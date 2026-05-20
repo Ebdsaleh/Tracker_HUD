@@ -137,4 +137,9 @@ function M.render(context, config)
     end
 end
 
+function M.is_panel_buffer(bufnr)
+    return is_valid_buffer(bufnr)
+        and bufnr == panel_bufnr
+end
+
 return M
