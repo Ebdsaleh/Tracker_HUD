@@ -146,6 +146,22 @@ local function update_hud()
     end
 end
 
+
+local function resize_panel_command(command_opts)
+    local requested_size = command_opts.args
+
+    if requested_size == nil or requested_size == "" then
+        vim.notify(
+            "Usage: :TrackerHudSize <number|auto>",
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    hud.resize_panel(requested_size, config, state.source_context)
+end
+
+
 function M.setup(opts)
     config = vim.tbl_deep_extend("force", defaults, opts or {})
 
@@ -168,6 +184,14 @@ function M.setup(opts)
         callback = function(args)
             close_panel_if_source_window_closed(args.match)
         end,
+    })
+
+    vim.api.nvim_create_user_command("TrackerHudSize", resize_panel_command, {
+        nargs = 1,
+        complete = function()
+            return { "auto" }
+        end,
+        force = true,
     })
 end
 

@@ -333,4 +333,55 @@ function M.is_panel_window(winid)
         and winid == panel_winid
 end
 
+local function apply_panel_size(panel_position, size)
+    if not is_valid_window(panel_winid) then
+        return false
+    end
+    
+    local numeric_size = tonumber(size)
+
+    if not numeric_size then
+        return false
+    end
+    
+    if is_vertical_panel(panel_position) then
+        pcall(vim.api.nvim_win_set_width, panel_winid, numeric_size)
+    else
+        pcall(vim.api.nvim_win_set_height, panel_winid, numeric_size)
+    end
+
+    resolved_panel_size = numeric_size
+    return true
+end
+
+function M.resize_panel(size, config, context)
+    config = config or {}
+
+    if not is_valid_window(panel_winid) then
+        vim.notify("tracker_hud: panel is not open", vim.log.levels.WARN)
+        return
+    end
+
+    local panel_position = get_panel_position(config)
+
+    if size == "auto" then
+        local lines = format_panel_lines(context)
+        resolved_panel_size = calculate_auto_panel_size(config, panel_position, lines)
+        apply_panel_size(panel_position, resolved_panel_size)
+        return
+    end
+
+    local numeric_size = tonumber(size)
+
+    if not numeric_size then
+        vim.notify(
+            "tracker_hud: invalid panel size '" .. tostring(size) .. "'",
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    apply_panel_size(panel_position, numeric_size)
+end
+
 return M
