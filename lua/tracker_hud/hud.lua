@@ -16,7 +16,7 @@ local function clear_winbar()
     vim.wo.winbar = nil
 end
 
-local function render_winbar(context, config)
+local function render_winbar(context, _config)
     if not context then
         clear_winbar()
         return
@@ -25,17 +25,29 @@ local function render_winbar(context, config)
     vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. context.label
 end
 
-local function create_panel(config)
+local function restore_focus(source_winid, fallback_winid)
+    if is_valid_window(source_winid) then
+        pcall(vim.api.nvim_set_current_win, source_winid)
+        return
+    end
+
+    if is_valid_window(fallback_winid) then
+        pcall(vim.api.nvim_set_current_win, fallback_winid)
+    end
+end
+
+local function create_panel(config, source_winid)
     if is_valid_window(panel_winid) and is_valid_buffer(panel_bufnr) then
         return
     end
 
-    local current_win = vim.api.nvim_get_current_win()
+    local fallback_winid = vim.api.nvim_get_current_win()
+    local panel_width = tostring(config.panel_width or 42)
 
     if config.panel_side == "left" then
-        vim.cmd("topleft vertical " .. tostring(config.panel_width) .. "new")
+        vim.cmd("noautocmd topleft vertical " .. panel_width .. "new")
     else
-        vim.cmd("botright vertical " .. tostring(config.panel_width) .. "new")
+        vim.cmd("noautocmd botright vertical " .. panel_width .. "new")
     end
 
     panel_winid = vim.api.nvim_get_current_win()
@@ -44,16 +56,20 @@ local function create_panel(config)
     vim.bo[panel_bufnr].buftype = "nofile"
     vim.bo[panel_bufnr].bufhidden = "hide"
     vim.bo[panel_bufnr].swapfile = false
-    vim.bo[panel_bufnr].filetype = "tracker_hud"
+    vim.bo[panel_bufnr].modifiable = false
+
+    -- Internal marker. Do not use filetype here.
+    -- A custom filetype can trigger ftplugins / Tree-sitter startup.
+    vim.b[panel_bufnr].tracker_hud_panel = true
 
     vim.wo[panel_winid].number = false
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
     vim.wo[panel_winid].winfixwidth = true
 
-    vim.api.nvim_buf_set_name(panel_bufnr, "Tracker HUD")
+    pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
-    vim.api.nvim_set_current_win(current_win)
+    restore_focus(source_winid, fallback_winid)
 end
 
 local function format_panel_lines(context)
@@ -62,11 +78,15 @@ local function format_panel_lines(context)
             "Tracker HUD",
             "",
             "No Tree-sitter context available.",
+            "",
+            "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
         }
     end
 
     local lines = {
         "Tracker HUD",
+        "",
+        "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
         "",
         "Scope:",
     }
@@ -95,8 +115,8 @@ local function format_panel_lines(context)
     return lines
 end
 
-local function render_panel(context, config)
-    create_panel(config)
+local function render_panel(context, config, source_winid)
+    create_panel(config, source_winid)
 
     if not is_valid_buffer(panel_bufnr) then
         return
@@ -107,6 +127,9 @@ local function render_panel(context, config)
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
+
+    -- If creating/updating the panel moved focus, give it back to source.
+    restore_focus(source_winid, nil)
 end
 
 function M.clear(config)
@@ -119,6 +142,8 @@ function M.clear(config)
                 "Tracker HUD",
                 "",
                 "No active context.",
+                "",
+                "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
             })
             vim.bo[panel_bufnr].modifiable = false
         end
@@ -127,11 +152,11 @@ function M.clear(config)
     end
 end
 
-function M.render(context, config)
+function M.render(context, config, source_winid)
     config = config or {}
 
     if config.display == "panel" then
-        render_panel(context, config)
+        render_panel(context, config, source_winid)
     else
         render_winbar(context, config)
     end
@@ -140,6 +165,11 @@ end
 function M.is_panel_buffer(bufnr)
     return is_valid_buffer(bufnr)
         and bufnr == panel_bufnr
+end
+
+function M.is_panel_window(winid)
+    return is_valid_window(winid)
+        and winid == panel_winid
 end
 
 return M

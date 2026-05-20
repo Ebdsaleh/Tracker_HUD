@@ -26,12 +26,16 @@ local state = {
     source_context = nil,
 }
 
+local function is_valid_window(winid)
+    return winid and vim.api.nvim_win_is_valid(winid)
+end
+
 local function is_trackable_buffer(bufnr)
     if hud.is_panel_buffer(bufnr) then
         return false
     end
 
-    if vim.bo[bufnr].filetype == "tracker_hud" then
+    if vim.b[bufnr].tracker_hud_panel then
         return false
     end
 
@@ -40,6 +44,16 @@ local function is_trackable_buffer(bufnr)
     end
 
     return true
+end
+
+local function restore_source_focus()
+    if config.display ~= "panel" then
+        return
+    end
+
+    if is_valid_window(state.source_winid) then
+        pcall(vim.api.nvim_set_current_win, state.source_winid)
+    end
 end
 
 local function update_hud()
@@ -60,7 +74,10 @@ local function update_hud()
         state.source_cursor = cursor
         state.source_context = current_context
 
-        hud.render(current_context, config)
+        hud.render(current_context, config, state.source_winid)
+
+        -- During plugin-created panel updates, source focus wins.
+        restore_source_focus()
     end)
 
     if not ok then
