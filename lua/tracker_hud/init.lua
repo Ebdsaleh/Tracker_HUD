@@ -61,18 +61,19 @@ local function close_panel_if_source_window_closed(closed_winid)
         return
     end
 
-    if tostring(state.source_winid) ~=tostring(closed_winid) then
+    if tostring(state.source_winid) ~= tostring(closed_winid) then
         return
     end
 
-    hud.close_panel()
+    vim.schedule(function()
+        hud.close_panel()
 
-    state.source_bufnr = nil
-    state.source_winid = nil
-    state.source_cursor = nil
-    state.source_context = nil
+        state.source_bufnr = nil
+        state.source_winid = nil
+        state.source_cursor = nil
+        state.source_context = nil
+    end)
 end
-
 
 local function update_hud()
     local ok, err = pcall(function()
