@@ -1,4 +1,5 @@
--- lua\tracker_hud\init.lua
+-- lua/tracker_hud/init.lua
+
 local M = {}
 
 local context = require("tracker_hud.context")
@@ -13,8 +14,16 @@ local defaults = {
     show_branch_context = true,
     separator = " -> ",
 
-    panel_side = "right", -- "left" or "right"
-    panel_width = 42,
+    -- "left", "right", "top", or "bottom"
+    panel_position = "right",
+
+    -- For left/right, this means width.
+    -- For top/bottom, this means height.
+    panel_size = 42,
+
+    -- Legacy aliases
+    panel_side = nil,
+    panel_width = nil,
 }
 
 local config = vim.deepcopy(defaults)
@@ -74,7 +83,6 @@ local function close_panel_before_source_quit()
     end
 
     hud.close_panel()
-    
 end
 
 local function close_panel_if_source_window_closed(closed_winid)
@@ -95,7 +103,6 @@ local function close_panel_if_source_window_closed(closed_winid)
         state.source_context = nil
     end)
 end
-
 
 local function update_hud()
     local ok, err = pcall(function()

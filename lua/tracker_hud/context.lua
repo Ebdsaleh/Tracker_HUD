@@ -1,4 +1,4 @@
--- lua\tracker_hud\context.lua
+-- lua/tracker_hud/context.lua
 
 local M = {}
 
@@ -17,7 +17,6 @@ local target_nodes = {
     while_statement = true,
     loop_statement = true,
 }
-
 
 local function is_function_like(node_type)
     return node_type:match("function")
@@ -66,7 +65,7 @@ local function get_first_node_line(node)
     return start_row + 1
 end
 
-local function get_if_branch_label(node, bufnr, row, col, if_line)
+local function get_if_branch_label(node, _bufnr, row, col, if_line)
     local alternative_nodes = {}
 
     -- Prefer Tree-sitter field lookup when the grammar supports it.
@@ -100,9 +99,9 @@ local function get_if_branch_label(node, bufnr, row, col, if_line)
     return "[" .. if_line .. "] If"
 end
 
-
 function M.get_cursor_context(bufnr, config)
     config = config or {}
+
     local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
 
     if not ok or not parser then
@@ -121,7 +120,6 @@ function M.get_cursor_context(bufnr, config)
         start_line = nil,
         end_line = nil,
     }
-
 
     local scopes = {}
 
@@ -142,12 +140,11 @@ function M.get_cursor_context(bufnr, config)
                     local node_text = vim.treesitter.get_node_text(node, bufnr)
                     label = node_text:match("([^\n]+)") or "Function"
                 else
-                    local clean_type = node_type
+                    label = node_type
                         :gsub("_statement", "")
                         :gsub("^%l", string.upper)
-
-                    label = clean_type
                 end
+
                 local line_number = start_row + 1
                 local display_label = "[" .. line_number .. "] " .. label
 
@@ -187,7 +184,6 @@ function M.get_cursor_context(bufnr, config)
     end
 
     local innermost = scopes[1]
-
     local separator = config.separator or " -> "
 
     context.label = "Scope: " .. table.concat(path, separator)

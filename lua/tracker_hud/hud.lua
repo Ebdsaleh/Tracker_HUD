@@ -1,4 +1,5 @@
--- lua\tracker_hud\hud.lua
+-- lua/tracker_hud/hud.lua
+
 local M = {}
 
 local panel_bufnr = nil
@@ -15,7 +16,6 @@ end
 local function clear_winbar()
     vim.wo.winbar = nil
 end
-
 
 local function ensure_panel_buffer()
     if is_valid_buffer(panel_bufnr) then
@@ -70,15 +70,28 @@ local function create_panel(config, source_winid)
     end
 
     local bufnr = ensure_panel_buffer()
-    local panel_width = tostring(config.panel_width or 42)
+    local panel_position = config.panel_position or config.panel_side or "right"
+    local panel_size = tostring(config.panel_size or config.panel_width or 42)
 
     -- Create the split from the source window, not from wherever Neovim happens to be.
     pcall(vim.api.nvim_set_current_win, target_winid)
 
-    if config.panel_side == "left" then
-        vim.cmd("noautocmd topleft vertical " .. panel_width .. "split")
+    if panel_position == "left" then
+        vim.cmd("noautocmd topleft vertical " .. panel_size .. "split")
+    elseif panel_position == "right" then
+        vim.cmd("noautocmd botright vertical " .. panel_size .. "split")
+    elseif panel_position == "top" then
+        vim.cmd("noautocmd topleft " .. panel_size .. "split")
+    elseif panel_position == "bottom" then
+        vim.cmd("noautocmd botright " .. panel_size .. "split")
     else
-        vim.cmd("noautocmd botright vertical " .. panel_width .. "split")
+        vim.notify(
+            "tracker_hud: invalid panel_position '" .. tostring(panel_position) .. "', falling back to right",
+            vim.log.levels.WARN
+        )
+
+        vim.cmd("noautocmd botright vertical " .. panel_size .. "split")
+        panel_position = "right"
     end
 
     panel_winid = vim.api.nvim_get_current_win()
@@ -89,7 +102,14 @@ local function create_panel(config, source_winid)
     vim.wo[panel_winid].number = false
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
-    vim.wo[panel_winid].winfixwidth = true
+
+    if panel_position == "left" or panel_position == "right" then
+        vim.wo[panel_winid].winfixwidth = true
+        vim.wo[panel_winid].winfixheight = false
+    else
+        vim.wo[panel_winid].winfixwidth = false
+        vim.wo[panel_winid].winfixheight = true
+    end
 
     restore_focus(source_winid, fallback_winid)
 end
@@ -190,13 +210,12 @@ function M.close_panel()
     end
 
     if is_valid_buffer(panel_bufnr) then
-        pcall(vim.api.nvim_buf_delete, panel_bufnr, { force = true})
+        pcall(vim.api.nvim_buf_delete, panel_bufnr, { force = true })
     end
 
     panel_winid = nil
     panel_bufnr = nil
 end
-
 
 function M.is_panel_buffer(bufnr)
     return is_valid_buffer(bufnr)
