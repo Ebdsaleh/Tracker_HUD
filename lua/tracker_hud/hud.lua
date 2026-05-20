@@ -48,28 +48,35 @@ end
 
 
 local function restore_focus(source_winid, fallback_winid, panel_position)
-    if is_valid_window(source_winid) then
-        pcall(vim.api.nvim_set_current_win, source_winid)
-        return
+    local function do_restore()
+        if is_valid_window(source_winid) then
+            pcall(vim.api.nvim_set_current_win, source_winid)
+            return
+        end
+
+        if is_valid_window(fallback_winid) then
+            pcall(vim.api.nvim_set_current_win, fallback_winid)
+            return
+        end
+
+        -- Last-resort directional fallback from the HUD panel.
+        if panel_position == "left" then
+            pcall(vim.cmd, "wincmd l")
+        elseif panel_position == "right" then
+            pcall(vim.cmd, "wincmd h")
+        elseif panel_position == "top" then
+            pcall(vim.cmd, "wincmd j")
+        elseif panel_position == "bottom" then
+            pcall(vim.cmd, "wincmd k")
+        end
     end
 
-    if is_valid_window(fallback_winid) then
-        pcall(vim.api.nvim_set_current_win, fallback_winid)
-        return
-    end
+    -- First attempt immediately.
+    do_restore()
 
-    -- Last-resort directional fallback from the HUD panel.
-    if panel_position == "left" then
-        vim.cmd("wincmd l")
-    elseif panel_position == "right" then
-        vim.cmd("wincmd h")
-    elseif panel_position == "top" then
-        vim.cmd("wincmd j")
-    elseif panel_position == "bottom" then
-        vim.cmd("wincmd k")
-    end
+    -- Second attempt after Neovim finishes split/autocmd focus changes.
+    vim.schedule(do_restore)
 end
-
 
 local function create_panel(config, source_winid)
     if is_valid_window(panel_winid) and is_valid_buffer(panel_bufnr) then
