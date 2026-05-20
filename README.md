@@ -1,5 +1,438 @@
 # Tracker_HUD
 
+By [@Ebdsaleh](https://github.com/Ebdsaleh)
+
 Tracker HUD is an experimental Neovim plugin that displays a live code-awareness HUD based on the cursor position. It uses Tree-sitter to track the current function, nested scope depth, and branch context, giving a breadcrumb-style view of where the cursor is inside the code.
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
+
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel resizing, and scope breadcrumbs.
+
+---
+
+## Features
+
+- Tree-sitter-powered cursor context tracking
+- Function/block scope breadcrumb display
+- Nested scope depth tracking
+- Basic branch awareness for `if` / `else`
+- Winbar display mode
+- Docked panel display mode
+- Panel positions:
+  - `left`
+  - `right`
+  - `top`
+  - `bottom`
+- Launch-time automatic panel sizing
+- Runtime panel resizing command
+- Configurable resize keymaps
+- Panel focus restoration so the HUD does not steal editing focus
+- HUD panel closes with the source file
+
+---
+
+## Requirements
+
+- Neovim with Lua support
+- `nvim-treesitter`
+- Tree-sitter parsers for the languages you want to inspect
+
+Tracker HUD uses Tree-sitter to inspect the current buffer. If a parser is not available for the current filetype, the HUD will not have structural context to display.
+
+---
+
+## Installation
+
+### lazy.nvim
+
+```lua
+{
+    "Ebdsaleh/Tracker_HUD",
+    config = function()
+        require("tracker_hud").setup()
+    end,
+}
+```
+
+A fuller example:
+
+```lua
+{
+    "Ebdsaleh/Tracker_HUD",
+    config = function()
+        require("tracker_hud").setup({
+            display = "panel",
+            panel_position = "left",
+            panel_size = "auto",
+        })
+    end,
+}
+```
+
+---
+
+## Important leader-key note
+
+If you use Tracker HUD's default keymaps, set your leader key **before** Lazy loads plugins.
+
+Good:
+
+```lua
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+require("lazy").setup({
+    -- plugins here
+})
+```
+
+Avoid setting `mapleader` after `lazy.setup()`, because plugin mappings such as `<leader>+`, `<leader>-`, and `<leader><CR>` may be created using Neovim's default leader instead of the key you expect.
+
+---
+
+## Basic setup
+
+### Winbar mode
+
+```lua
+require("tracker_hud").setup({
+    display = "winbar",
+})
+```
+
+Example output:
+
+```text
+[+] HUD: Scope: [29] function foo() -> [52] While -> ([61] If : Else [64])
+```
+
+### Panel mode
+
+```lua
+require("tracker_hud").setup({
+    display = "panel",
+    panel_position = "left",
+    panel_size = "auto",
+})
+```
+
+Panel mode opens a docked HUD window and keeps focus in the source file.
+
+---
+
+## Configuration
+
+Default configuration:
+
+```lua
+require("tracker_hud").setup({
+    display = "winbar", -- "winbar" or "panel"
+
+    show_line_numbers = true,
+    show_branch_context = true,
+    separator = " -> ",
+
+    -- "left", "right", "top", or "bottom"
+    panel_position = "right",
+
+    -- Number = fixed size.
+    -- "auto" = calculate once when panel opens.
+    panel_size = "auto",
+
+    -- Auto-size padding.
+    -- Left/right uses width padding.
+    -- Top/bottom uses height padding.
+    panel_auto_width_padding = 2,
+    panel_auto_height_padding = 2,
+
+    -- Fallbacks if auto-size cannot calculate.
+    panel_default_width = 52,
+    panel_default_height = 9,
+
+    keymaps = {
+        enabled = true,
+        increase_size = "<leader>+",
+        decrease_size = "<leader>-",
+        auto_size = "<leader><CR>",
+        step = 2,
+    },
+
+    -- Legacy aliases.
+    -- These may be removed later.
+    panel_side = nil,
+    panel_width = nil,
+})
+```
+
+---
+
+## Display modes
+
+### `display = "winbar"`
+
+Uses Neovim's winbar to show a compact one-line HUD.
+
+```lua
+require("tracker_hud").setup({
+    display = "winbar",
+})
+```
+
+### `display = "panel"`
+
+Uses a docked panel window.
+
+```lua
+require("tracker_hud").setup({
+    display = "panel",
+    panel_position = "left",
+    panel_size = "auto",
+})
+```
+
+The panel is a scratch buffer and should not be treated as a source file by Tree-sitter or LSP.
+
+---
+
+## Panel positioning
+
+```lua
+panel_position = "left"
+panel_position = "right"
+panel_position = "top"
+panel_position = "bottom"
+```
+
+For `left` and `right`, panel size means width in columns.
+
+For `top` and `bottom`, panel size means height in rows.
+
+---
+
+## Panel sizing
+
+### Automatic size
+
+```lua
+panel_size = "auto"
+```
+
+Auto sizing is calculated once when the panel opens.
+
+It does **not** constantly grow and shrink while you move the cursor.
+
+For left/right panels, auto size is based on the longest rendered HUD line.
+
+For top/bottom panels, auto size is based on the number of rendered HUD lines.
+
+### Fixed size
+
+```lua
+panel_size = 52
+```
+
+For left/right panels, this means 52 columns.
+
+For top/bottom panels, this means 52 rows.
+
+Usually, top/bottom panels should use a smaller value:
+
+```lua
+require("tracker_hud").setup({
+    display = "panel",
+    panel_position = "bottom",
+    panel_size = 9,
+})
+```
+
+---
+
+## Commands
+
+### `:TrackerHudSize`
+
+Resize the HUD panel while Neovim is running.
+
+```vim
+:TrackerHudSize 52
+```
+
+For left/right panels, this changes the panel width.
+
+For top/bottom panels, this changes the panel height.
+
+You can also reset the panel to auto-calculated size:
+
+```vim
+:TrackerHudSize auto
+```
+
+---
+
+## Keymaps
+
+Tracker HUD registers normal-mode panel resize keymaps by default.
+
+| Mapping | Action |
+|---|---|
+| `<leader>+` | Increase HUD panel size |
+| `<leader>-` | Decrease HUD panel size |
+| `<leader><CR>` | Auto-size HUD panel |
+
+The size change amount is controlled by:
+
+```lua
+keymaps = {
+    step = 2,
+}
+```
+
+For left/right panels, `step = 2` means 2 columns.
+
+For top/bottom panels, `step = 2` means 2 rows.
+
+### Custom keymaps
+
+```lua
+require("tracker_hud").setup({
+    keymaps = {
+        enabled = true,
+        increase_size = "<leader>+",
+        decrease_size = "<leader>-",
+        auto_size = "<leader><CR>",
+        step = 4,
+    },
+})
+```
+
+### Disable keymaps
+
+```lua
+require("tracker_hud").setup({
+    keymaps = {
+        enabled = false,
+    },
+})
+```
+
+---
+
+## Example full setup
+
+```lua
+vim.g.mapleader = " "
+vim.g.maplocalleader = " "
+
+require("lazy").setup({
+    {
+        "Ebdsaleh/Tracker_HUD",
+        config = function()
+            require("tracker_hud").setup({
+                display = "panel",
+                panel_position = "left",
+                panel_size = "auto",
+
+                show_line_numbers = true,
+                show_branch_context = true,
+                separator = " -> ",
+
+                keymaps = {
+                    enabled = true,
+                    increase_size = "<leader>+",
+                    decrease_size = "<leader>-",
+                    auto_size = "<leader><CR>",
+                    step = 2,
+                },
+            })
+        end,
+    },
+
+    {
+        "nvim-treesitter/nvim-treesitter",
+        build = ":TSUpdate",
+        config = function()
+            require("nvim-treesitter.config").setup({
+                ensure_installed = {
+                    "lua",
+                    "rust",
+                    "c",
+                    "cpp",
+                    "python",
+                    "vim",
+                    "vimdoc",
+                    "query",
+                },
+                highlight = {
+                    enable = true,
+                    additional_vim_regex_highlighting = false,
+                },
+            })
+        end,
+    },
+})
+```
+
+---
+
+## Current limitations
+
+Tracker HUD is still early.
+
+Current functionality is focused on structural awareness:
+
+- current function/scope
+- nested scope depth
+- basic `if` / `else` branch context
+- HUD panel behavior
+- resizing and focus handling
+
+It does **not yet** perform full memory, ownership, lifetime, stack, or heap analysis.
+
+---
+
+## Roadmap
+
+Planned future work:
+
+- Better panel formatting
+- Expandable/collapsible HUD sections
+- Rust ownership and lifetime hints
+- ASM stack pointer / heap tracking
+- C/C++ pointer allocation/free tracking
+- Diagnostics integration
+- Optional virtual text warnings
+- Language-specific analyzer modules
+
+Possible future structure:
+
+```text
+lua/tracker_hud/
+    init.lua
+    context.lua
+    hud.lua
+    analyzers/
+        rust.lua
+        asm.lua
+        c.lua
+```
+
+---
+
+## Native Windows Perl note
+
+Native Windows Perl LSP support is currently not a target for Tracker HUD development.
+
+Perl support may still be possible through Tree-sitter or through POSIX-like environments such as WSL, MSYS2, Linux, or OpenBSD, but native Windows Perl LSP behavior has proven unstable due to server/runtime/piping compatibility issues.
+
+---
+
+## Author
+
+Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
+
+---
+
+## License
+
+This project is licensed under the Apache License 2.0.
+
