@@ -56,6 +56,27 @@ local function restore_source_focus()
     end
 end
 
+local function close_panel_before_source_quit()
+    if config.display ~= "panel" then
+        return
+    end
+
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    -- If the user is quitting the HUD panel itself, let normal :q happen.
+    if hud.is_panel_buffer(bufnr) or vim.b[bufnr].tracker_hud_panel then
+        return
+    end
+
+    -- Only react for normal tracked source buffers.
+    if not is_trackable_buffer(bufnr) then
+        return
+    end
+
+    hud.close_panel()
+    
+end
+
 local function close_panel_if_source_window_closed(closed_winid)
     if not state.source_winid then
         return
@@ -74,6 +95,7 @@ local function close_panel_if_source_window_closed(closed_winid)
         state.source_context = nil
     end)
 end
+
 
 local function update_hud()
     local ok, err = pcall(function()
@@ -115,6 +137,11 @@ function M.setup(opts)
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "BufWinEnter" }, {
         group = hud_group,
         callback = update_hud,
+    })
+
+    vim.api.nvim_create_autocmd("QuitPre", {
+        group = hud_group,
+        callback = close_panel_before_source_quit,
     })
 
     vim.api.nvim_create_autocmd("WinClosed", {
