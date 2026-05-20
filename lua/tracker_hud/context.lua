@@ -1,4 +1,4 @@
--- C:\Users\Developer\AppData\Local\nvim\lua\tracker_hud\context.lua
+-- lua\tracker_hud\context.lua
 
 local M = {}
 
@@ -101,7 +101,8 @@ local function get_if_branch_label(node, bufnr, row, col, if_line)
 end
 
 
-function M.get_cursor_context(bufnr)
+function M.get_cursor_context(bufnr, config)
+    config = config or {}
     local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
 
     if not ok or not parser then
@@ -187,7 +188,9 @@ function M.get_cursor_context(bufnr)
 
     local innermost = scopes[1]
 
-    context.label = "Scope: " .. table.concat(path, " -> ")
+    local separator = config.separator or " -> "
+
+    context.label = "Scope: " .. table.concat(path, separator)
     context.node_type = innermost.node_type
     context.start_line = innermost.start_line
     context.end_line = innermost.end_line
