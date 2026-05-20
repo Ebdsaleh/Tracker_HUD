@@ -53,7 +53,7 @@ end
 local function calculate_auto_panel_size(config, panel_position, lines)
     if is_vertical_panel(panel_position) then
         local width = get_longest_line_width(lines)
-        local padding = config.panel_auto_width_padding or 0
+        local padding = config.panel_auto_width_padding or 2
         local fallback = config.panel_default_width or 52
 
         if width <= 0 then
@@ -64,7 +64,7 @@ local function calculate_auto_panel_size(config, panel_position, lines)
     end
 
     local height = #(lines or {})
-    local padding = config.panel_auto_height_padding or 1
+    local padding = config.panel_auto_height_padding or 2
     local fallback = config.panel_default_height or 9
 
     if height <= 0 then

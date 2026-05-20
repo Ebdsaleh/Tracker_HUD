@@ -25,8 +25,8 @@ local defaults = {
     -- Auto-size padding.
     -- Left/right uses width padding.
     -- Top/bottom uses height padding.
-    panel_auto_width_padding = 0,
-    panel_auto_height_padding = 1,
+    panel_auto_width_padding = 2,
+    panel_auto_height_padding = 2,
 
     -- Fallbacks if auto-size cannot calculate.
     panel_default_width = 52,
