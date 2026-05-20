@@ -16,6 +16,27 @@ local function clear_winbar()
     vim.wo.winbar = nil
 end
 
+
+local function ensure_panel_buffer()
+    if is_valid_buffer(panel_bufnr) then
+        return panel_bufnr
+    end
+
+    panel_bufnr = vim.api.nvim_create_buf(false, true)
+
+    vim.bo[panel_bufnr].buftype = "nofile"
+    vim.bo[panel_bufnr].bufhidden = "hide"
+    vim.bo[panel_bufnr].swapfile = false
+    vim.bo[panel_bufnr].modifiable = false
+
+    -- Internal marker only. Do NOT use filetype here.
+    vim.b[panel_bufnr].tracker_hud_panel = true
+
+    pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
+
+    return panel_bufnr
+end
+
 local function render_winbar(context, _config)
     if not context then
         clear_winbar()
@@ -42,32 +63,33 @@ local function create_panel(config, source_winid)
     end
 
     local fallback_winid = vim.api.nvim_get_current_win()
+    local target_winid = source_winid
+
+    if not is_valid_window(target_winid) then
+        target_winid = fallback_winid
+    end
+
+    local bufnr = ensure_panel_buffer()
     local panel_width = tostring(config.panel_width or 42)
 
+    -- Create the split from the source window, not from wherever Neovim happens to be.
+    pcall(vim.api.nvim_set_current_win, target_winid)
+
     if config.panel_side == "left" then
-        vim.cmd("noautocmd topleft vertical " .. panel_width .. "new")
+        vim.cmd("noautocmd topleft vertical " .. panel_width .. "split")
     else
-        vim.cmd("noautocmd botright vertical " .. panel_width .. "new")
+        vim.cmd("noautocmd botright vertical " .. panel_width .. "split")
     end
 
     panel_winid = vim.api.nvim_get_current_win()
-    panel_bufnr = vim.api.nvim_get_current_buf()
 
-    vim.bo[panel_bufnr].buftype = "nofile"
-    vim.bo[panel_bufnr].bufhidden = "hide"
-    vim.bo[panel_bufnr].swapfile = false
-    vim.bo[panel_bufnr].modifiable = false
-
-    -- Internal marker. Do not use filetype here.
-    -- A custom filetype can trigger ftplugins / Tree-sitter startup.
-    vim.b[panel_bufnr].tracker_hud_panel = true
+    -- Put our scratch HUD buffer into the split.
+    vim.api.nvim_win_set_buf(panel_winid, bufnr)
 
     vim.wo[panel_winid].number = false
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
     vim.wo[panel_winid].winfixwidth = true
-
-    pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
     restore_focus(source_winid, fallback_winid)
 end
@@ -161,6 +183,20 @@ function M.render(context, config, source_winid)
         render_winbar(context, config)
     end
 end
+
+function M.close_panel()
+    if is_valid_window(panel_winid) then
+        pcall(vim.api.nvim_win_close, panel_winid, true)
+    end
+
+    if is_valid_buffer(panel_bufnr) then
+        pcall(vim.api.nvim_buf_delete, panel_bufnr, { force = true})
+    end
+
+    panel_winid = nil
+    panel_bufnr = nil
+end
+
 
 function M.is_panel_buffer(bufnr)
     return is_valid_buffer(bufnr)

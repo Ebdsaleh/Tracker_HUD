@@ -56,6 +56,24 @@ local function restore_source_focus()
     end
 end
 
+local function close_panel_if_source_window_closed(closed_winid)
+    if not state.source_winid then
+        return
+    end
+
+    if tostring(state.source_winid) ~=tostring(closed_winid) then
+        return
+    end
+
+    hud.close_panel()
+
+    state.source_bufnr = nil
+    state.source_winid = nil
+    state.source_cursor = nil
+    state.source_context = nil
+end
+
+
 local function update_hud()
     local ok, err = pcall(function()
         local bufnr = vim.api.nvim_get_current_buf()
@@ -96,6 +114,13 @@ function M.setup(opts)
     vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "BufWinEnter" }, {
         group = hud_group,
         callback = update_hud,
+    })
+
+    vim.api.nvim_create_autocmd("WinClosed", {
+        group = hud_group,
+        callback = function(args)
+            close_panel_if_source_window_closed(args.match)
+        end,
     })
 end
 
