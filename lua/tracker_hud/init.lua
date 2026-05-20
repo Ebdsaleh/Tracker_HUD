@@ -7,6 +7,7 @@ local hud = require("tracker_hud.hud")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
+
 local defaults = {
     display = "winbar", -- "winbar" or "panel"
 
@@ -17,14 +18,25 @@ local defaults = {
     -- "left", "right", "top", or "bottom"
     panel_position = "right",
 
-    -- For left/right, this means width.
-    -- For top/bottom, this means height.
-    panel_size = 42,
+    -- Number = fixed size.
+    -- "auto" = calculate once when panel opens.
+    panel_size = "auto",
+
+    -- Auto-size padding.
+    -- Left/right uses width padding.
+    -- Top/bottom uses height padding.
+    panel_auto_width_padding = 0,
+    panel_auto_height_padding = 1,
+
+    -- Fallbacks if auto-size cannot calculate.
+    panel_default_width = 52,
+    panel_default_height = 9,
 
     -- Legacy aliases
     panel_side = nil,
     panel_width = nil,
 }
+
 
 local config = vim.deepcopy(defaults)
 

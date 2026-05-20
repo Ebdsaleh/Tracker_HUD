@@ -4,6 +4,7 @@ local M = {}
 
 local panel_bufnr = nil
 local panel_winid = nil
+local resolved_panel_size = nil
 
 local function is_valid_window(winid)
     return winid and vim.api.nvim_win_is_valid(winid)
@@ -15,6 +16,90 @@ end
 
 local function clear_winbar()
     vim.wo.winbar = nil
+end
+
+local function get_panel_position(config)
+    return config.panel_position or config.panel_side or "right"
+end
+
+local function is_vertical_panel(panel_position)
+    return panel_position == "left" or panel_position == "right"
+end
+
+local function get_line_width(line)
+    local ok, width = pcall(vim.fn.strdisplaywidth, line)
+
+    if ok and width then
+        return width
+    end
+
+    return #line
+end
+
+local function get_longest_line_width(lines)
+    local longest = 0
+
+    for _, line in ipairs(lines or {}) do
+        local width = get_line_width(line)
+
+        if width > longest then
+            longest = width
+        end
+    end
+
+    return longest
+end
+
+local function calculate_auto_panel_size(config, panel_position, lines)
+    if is_vertical_panel(panel_position) then
+        local width = get_longest_line_width(lines)
+        local padding = config.panel_auto_width_padding or 0
+        local fallback = config.panel_default_width or 52
+
+        if width <= 0 then
+            return fallback
+        end
+
+        return width + padding
+    end
+
+    local height = #(lines or {})
+    local padding = config.panel_auto_height_padding or 1
+    local fallback = config.panel_default_height or 9
+
+    if height <= 0 then
+        return fallback
+    end
+
+    return height + padding
+end
+
+local function get_resolved_panel_size(config, panel_position, lines)
+    if resolved_panel_size then
+        return resolved_panel_size
+    end
+
+    local requested_size = config.panel_size or config.panel_width or "auto"
+
+    if requested_size == "auto" then
+        resolved_panel_size = calculate_auto_panel_size(config, panel_position, lines)
+        return resolved_panel_size
+    end
+
+    local numeric_size = tonumber(requested_size)
+
+    if numeric_size then
+        resolved_panel_size = numeric_size
+        return resolved_panel_size
+    end
+
+    if is_vertical_panel(panel_position) then
+        resolved_panel_size = config.panel_default_width or 52
+    else
+        resolved_panel_size = config.panel_default_height or 9
+    end
+
+    return resolved_panel_size
 end
 
 local function ensure_panel_buffer()
@@ -46,7 +131,6 @@ local function render_winbar(context, _config)
     vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. context.label
 end
 
-
 local function restore_focus(source_winid, fallback_winid, panel_position)
     local function do_restore()
         if is_valid_window(source_winid) then
@@ -71,14 +155,11 @@ local function restore_focus(source_winid, fallback_winid, panel_position)
         end
     end
 
-    -- First attempt immediately.
     do_restore()
-
-    -- Second attempt after Neovim finishes split/autocmd focus changes.
     vim.schedule(do_restore)
 end
 
-local function create_panel(config, source_winid)
+local function create_panel(config, source_winid, lines)
     if is_valid_window(panel_winid) and is_valid_buffer(panel_bufnr) then
         return
     end
@@ -91,8 +172,8 @@ local function create_panel(config, source_winid)
     end
 
     local bufnr = ensure_panel_buffer()
-    local panel_position = config.panel_position or config.panel_side or "right"
-    local panel_size = tostring(config.panel_size or config.panel_width or 42)
+    local panel_position = get_panel_position(config)
+    local panel_size = tostring(get_resolved_panel_size(config, panel_position, lines))
 
     -- Create the split from the source window, not from wherever Neovim happens to be.
     pcall(vim.api.nvim_set_current_win, target_winid)
@@ -111,8 +192,9 @@ local function create_panel(config, source_winid)
             vim.log.levels.WARN
         )
 
-        vim.cmd("noautocmd botright vertical " .. panel_size .. "split")
         panel_position = "right"
+        panel_size = tostring(get_resolved_panel_size(config, panel_position, lines))
+        vim.cmd("noautocmd botright vertical " .. panel_size .. "split")
     end
 
     panel_winid = vim.api.nvim_get_current_win()
@@ -124,12 +206,14 @@ local function create_panel(config, source_winid)
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
 
-    if panel_position == "left" or panel_position == "right" then
+    if is_vertical_panel(panel_position) then
         vim.wo[panel_winid].winfixwidth = true
         vim.wo[panel_winid].winfixheight = false
+        pcall(vim.api.nvim_win_set_width, panel_winid, tonumber(panel_size))
     else
         vim.wo[panel_winid].winfixwidth = false
         vim.wo[panel_winid].winfixheight = true
+        pcall(vim.api.nvim_win_set_height, panel_winid, tonumber(panel_size))
     end
 
     restore_focus(source_winid, fallback_winid, panel_position)
@@ -179,20 +263,19 @@ local function format_panel_lines(context)
 end
 
 local function render_panel(context, config, source_winid)
-    create_panel(config, source_winid)
+    local lines = format_panel_lines(context)
+
+    create_panel(config, source_winid, lines)
 
     if not is_valid_buffer(panel_bufnr) then
         return
     end
 
-    local lines = format_panel_lines(context)
-
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
 
-    -- If creating/updating the panel moved focus, give it back to source.
-    local panel_position = config.panel_position or config.panel_side or "right"
+    local panel_position = get_panel_position(config)
     restore_focus(source_winid, nil, panel_position)
 end
 
@@ -237,6 +320,7 @@ function M.close_panel()
 
     panel_winid = nil
     panel_bufnr = nil
+    resolved_panel_size = nil
 end
 
 function M.is_panel_buffer(bufnr)
