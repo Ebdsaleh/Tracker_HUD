@@ -46,7 +46,8 @@ local function render_winbar(context, _config)
     vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. context.label
 end
 
-local function restore_focus(source_winid, fallback_winid)
+
+local function restore_focus(source_winid, fallback_winid, panel_position)
     if is_valid_window(source_winid) then
         pcall(vim.api.nvim_set_current_win, source_winid)
         return
@@ -54,8 +55,21 @@ local function restore_focus(source_winid, fallback_winid)
 
     if is_valid_window(fallback_winid) then
         pcall(vim.api.nvim_set_current_win, fallback_winid)
+        return
+    end
+
+    -- Last-resort directional fallback from the HUD panel.
+    if panel_position == "left" then
+        vim.cmd("wincmd l")
+    elseif panel_position == "right" then
+        vim.cmd("wincmd h")
+    elseif panel_position == "top" then
+        vim.cmd("wincmd j")
+    elseif panel_position == "bottom" then
+        vim.cmd("wincmd k")
     end
 end
+
 
 local function create_panel(config, source_winid)
     if is_valid_window(panel_winid) and is_valid_buffer(panel_bufnr) then
@@ -111,7 +125,7 @@ local function create_panel(config, source_winid)
         vim.wo[panel_winid].winfixheight = true
     end
 
-    restore_focus(source_winid, fallback_winid)
+    restore_focus(source_winid, fallback_winid, panel_position)
 end
 
 local function format_panel_lines(context)
@@ -171,7 +185,8 @@ local function render_panel(context, config, source_winid)
     vim.bo[panel_bufnr].modifiable = false
 
     -- If creating/updating the panel moved focus, give it back to source.
-    restore_focus(source_winid, nil)
+    local panel_position = config.panel_position or config.panel_side or "right"
+    restore_focus(source_winid, nil, panel_position)
 end
 
 function M.clear(config)
