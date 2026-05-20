@@ -384,4 +384,8 @@ function M.resize_panel(size, config, context)
     apply_panel_size(panel_position, numeric_size)
 end
 
+function M.get_panel_size()
+    return resolved_panel_size
+end
+
 return M

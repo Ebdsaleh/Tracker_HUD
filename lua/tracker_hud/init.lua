@@ -32,11 +32,18 @@ local defaults = {
     panel_default_width = 52,
     panel_default_height = 9,
 
+    keymaps = {
+        enabled = true,
+        increase_size = "<leader>+",
+        decrease_size = "<leader>-",
+        auto_size = "<leader><CR>",
+        step = 2,
+    },
+
     -- Legacy aliases
     panel_side = nil,
     panel_width = nil,
 }
-
 
 local config = vim.deepcopy(defaults)
 
@@ -162,6 +169,72 @@ local function resize_panel_command(command_opts)
 end
 
 
+local function resize_panel_by(delta)
+    local current_size = hud.get_panel_size()
+
+    if not current_size then
+        vim.notify("tracker_hud: panel is not open", vim.log.levels.WARN)
+        return
+    end
+
+    local next_size = current_size + delta
+
+    if next_size < 1 then
+        next_size = 1
+    end
+
+    hud.resize_panel(next_size, config, state.source_context)    
+end
+
+
+
+local function auto_resize_panel()
+    hud.resize_panel("auto", config, state.source_context)    
+end
+
+
+
+local function setup_keymaps()
+    local keymaps = config.keymaps or {}
+
+    if keymaps.enabled == false then
+        return
+    end
+
+    local step = tonumber(keymaps.step) or 2
+
+    if keymaps.increase_size then
+        vim.keymap.set("n", keymaps.increase_size, function()
+            resize_panel_by(step)
+        end, {
+            desc = "increase Tracker HUD panel size",
+            silent = true,
+            noremap = true,
+        })
+    end
+
+    if keymaps.decrease_size then
+        vim.keymap.set("n", keymaps.decrease_size, function()
+            resize_panel_by(-step)
+        end, {
+            desc = "Decrease Tracker HUD panel size",
+            silent = true,
+            noremap = true,
+        })
+    end
+    
+    if keymaps.auto_size then
+        vim.keymap.set("n", keymaps.auto_size, function()
+            auto_resize_panel()
+    end, {
+            desc = "Auto-size Tracker HUD panel",
+            silent = true,
+            noremap = true,
+        })
+
+    end
+end
+
 function M.setup(opts)
     config = vim.tbl_deep_extend("force", defaults, opts or {})
 
@@ -193,6 +266,8 @@ function M.setup(opts)
         end,
         force = true,
     })
+
+    setup_keymaps()
 end
 
 return M
