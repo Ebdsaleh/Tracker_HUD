@@ -187,6 +187,43 @@ local function setup_keymaps()
     end
 end
 
+
+local function set_panel_position_command(command_opts)
+    local requested_position = command_opts.args
+
+    local valid_positions = {
+        left = true,
+        right = true,
+        top = true,
+        bottom = true,
+    }
+
+    if not valid_positions[requested_position] then 
+        vim.notify(
+            "Usage: :TrackerHudPos <left|right|top|bottom>",
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    config.panel_position = requested_position
+    
+    if config.display ~= "panel" then 
+        vim.notify(
+            "tracker_hud: panel_position set to '".. requested_position .."'",
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    hud.reopen_panel()
+
+    if state.source_context then
+        hud.render(state.source_context, config, state.source_winid)
+    end
+end
+
+
 function M.setup(opts)
     config = config_module.resolve(opts)
 
@@ -215,6 +252,14 @@ function M.setup(opts)
         nargs = 1,
         complete = function()
             return { "auto" }
+        end,
+        force = true,
+    })
+
+    vim.api.nvim_create_user_command("TrackerHudPos", set_panel_position_command, {
+        nargs = 1,
+        complete = function()
+            return { "left", "right", "top", "bottom" }
         end,
         force = true,
     })

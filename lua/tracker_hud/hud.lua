@@ -388,4 +388,14 @@ function M.get_panel_size()
     return resolved_panel_size
 end
 
+
+function M.reopen_panel()
+    if is_valid_window(panel_winid) then
+        pcall(vim.api.nvim_win_close, panel_winid, true)
+    end
+
+    panel_winid = nil
+    resolved_panel_size = nil
+end
+
 return M
