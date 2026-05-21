@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel resizing, and scope breadcrumbs.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a cleaner internal configuration/state structure.
 
 ---
 
@@ -25,6 +25,7 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
   - `bottom`
 - Launch-time automatic panel sizing
 - Runtime panel resizing command
+- Runtime panel position command
 - Configurable resize keymaps
 - Panel focus restoration so the HUD does not steal editing focus
 - HUD panel closes with the source file
@@ -157,10 +158,6 @@ require("tracker_hud").setup({
         step = 2,
     },
 
-    -- Legacy aliases.
-    -- These may be removed later.
-    panel_side = nil,
-    panel_width = nil,
 })
 ```
 
@@ -267,7 +264,21 @@ You can also reset the panel to auto-calculated size:
 :TrackerHudSize auto
 ```
 
+### `:TrackerHudPos`
+
+Move the HUD panel while Neovim is running.
+
+```vim
+:TrackerHudPos left
+:TrackerHudPos right
+:TrackerHudPos top
+:TrackerHudPos bottom
+```
+
+This changes the current session only. It does not rewrite your Neovim configuration.
+
 ---
+
 
 ## Keymaps
 
@@ -384,6 +395,7 @@ Current functionality is focused on structural awareness:
 - nested scope depth
 - basic `if` / `else` branch context
 - HUD panel behavior
+- runtime panel position/size controls
 - resizing and focus handling
 
 It does **not yet** perform full memory, ownership, lifetime, stack, or heap analysis.
@@ -403,13 +415,21 @@ Planned future work:
 - Optional virtual text warnings
 - Language-specific analyzer modules
 
-Possible future structure:
+Current core structure:
 
 ```text
 lua/tracker_hud/
     init.lua
+    config.lua
+    state.lua
     context.lua
     hud.lua
+```
+
+Possible future analyzer structure:
+
+```text
+lua/tracker_hud/
     analyzers/
         rust.lua
         asm.lua
@@ -426,6 +446,21 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 
 ---
 
+## Version notes
+
+### `v0.3.0`
+
+Planned/expected focus:
+
+- runtime HUD panel position command
+- config/state module refactor
+- cleaner public configuration surface
+- README updates for panel position and runtime controls
+
+Validation work for internal state/config updates is planned, but may be handled after `v0.3.0` if it grows beyond a small safety pass.
+
+---
+
 ## Author
 
 Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
@@ -435,4 +470,5 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
+
 
