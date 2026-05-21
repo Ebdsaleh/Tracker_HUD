@@ -2,57 +2,16 @@
 
 local M = {}
 
+local config_module = require("tracker_hud.config")
+local state = require("tracker_hud.state")
 local context = require("tracker_hud.context")
 local hud = require("tracker_hud.hud")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
 
-local defaults = {
-    display = "winbar", -- "winbar" or "panel"
+local config = vim.deepcopy(config_module.defaults)
 
-    show_line_numbers = true,
-    show_branch_context = true,
-    separator = " -> ",
-
-    -- "left", "right", "top", or "bottom"
-    panel_position = "right",
-
-    -- Number = fixed size.
-    -- "auto" = calculate once when panel opens.
-    panel_size = "auto",
-
-    -- Auto-size padding.
-    -- Left/right uses width padding.
-    -- Top/bottom uses height padding.
-    panel_auto_width_padding = 2,
-    panel_auto_height_padding = 2,
-
-    -- Fallbacks if auto-size cannot calculate.
-    panel_default_width = 52,
-    panel_default_height = 9,
-
-    keymaps = {
-        enabled = true,
-        increase_size = "<leader>+",
-        decrease_size = "<leader>-",
-        auto_size = "<leader><CR>",
-        step = 2,
-    },
-
-    -- Legacy aliases
-    panel_side = nil,
-    panel_width = nil,
-}
-
-local config = vim.deepcopy(defaults)
-
-local state = {
-    source_bufnr = nil,
-    source_winid = nil,
-    source_cursor = nil,
-    source_context = nil,
-}
 
 local function is_valid_window(winid)
     return winid and vim.api.nvim_win_is_valid(winid)
@@ -115,11 +74,7 @@ local function close_panel_if_source_window_closed(closed_winid)
 
     vim.schedule(function()
         hud.close_panel()
-
-        state.source_bufnr = nil
-        state.source_winid = nil
-        state.source_cursor = nil
-        state.source_context = nil
+        state.reset_source()
     end)
 end
 
@@ -135,11 +90,8 @@ local function update_hud()
         local winid = vim.api.nvim_get_current_win()
         local cursor = vim.api.nvim_win_get_cursor(winid)
         local current_context = context.get_cursor_context(bufnr, config)
-
-        state.source_bufnr = bufnr
-        state.source_winid = winid
-        state.source_cursor = cursor
-        state.source_context = current_context
+        
+        state.update_source(bufnr, winid, cursor, current_context)
 
         hud.render(current_context, config, state.source_winid)
 
@@ -236,7 +188,7 @@ local function setup_keymaps()
 end
 
 function M.setup(opts)
-    config = vim.tbl_deep_extend("force", defaults, opts or {})
+    config = config_module.resolve(opts)
 
     vim.api.nvim_clear_autocmds({
         group = hud_group,

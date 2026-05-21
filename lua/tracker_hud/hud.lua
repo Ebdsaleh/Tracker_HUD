@@ -19,7 +19,7 @@ local function clear_winbar()
 end
 
 local function get_panel_position(config)
-    return config.panel_position or config.panel_side or "right"
+    return config.panel_position or  "right"
 end
 
 local function is_vertical_panel(panel_position)
@@ -79,7 +79,7 @@ local function get_resolved_panel_size(config, panel_position, lines)
         return resolved_panel_size
     end
 
-    local requested_size = config.panel_size or config.panel_width or "auto"
+    local requested_size = config.panel_size  or "auto"
 
     if requested_size == "auto" then
         resolved_panel_size = calculate_auto_panel_size(config, panel_position, lines)
