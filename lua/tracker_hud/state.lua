@@ -40,6 +40,7 @@ function M.update_source(bufnr, winid, cursor, context)
     M.source_winid = winid
     M.source_cursor = cursor
     M.source_context = context
+    return true
 end
 
 
