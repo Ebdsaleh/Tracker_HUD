@@ -2,6 +2,9 @@
 
 local M = {}
 
+local adapter_registry = require("tracker_hud.adapters.registry")
+
+
 local target_nodes = {
     -- Functions / Methods / Procedures
     function_declaration = true,
@@ -97,6 +100,26 @@ local function get_if_branch_label(node, _bufnr, row, col, if_line)
     end
 
     return "[" .. if_line .. "] If"
+end
+
+local function try_parse_construct_with_adapter(bufnr, node)
+    if not node then
+        return nil
+    end
+
+    local filetype = vim.bo[bufnr].filetype
+
+    if not filetype or filetype == "" then
+        return nil
+    end
+
+    if not adapter_registry.has_adapter(filetype) then
+        return nil
+    end
+
+    local construct, _err = adapter_registry.parse_node(filetype, node, bufnr)
+    
+    return construct
 end
 
 function M.get_cursor_context(bufnr, config)
