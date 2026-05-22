@@ -31,7 +31,6 @@ local function make_unavailable_context(message, filetype)
 end
 
 
-
 local function try_parse_construct_with_adapter(bufnr, node)
     if not node then
         return nil
