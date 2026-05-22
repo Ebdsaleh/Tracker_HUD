@@ -43,6 +43,32 @@ function M.make_unavailable_context(message, filetype)
     }
 end
 
+
+function M.get_first_line_text(node, bufnr)
+    local ok, node_text = pcall(vim.treesitter.get_node_text, node, bufnr)
+
+    if not ok or not node_text then
+        return nil
+    end
+
+    return node_text:match("([^\n]+)")
+end
+
+
+function M.build_signature(node, bufnr, spec)
+    if not is_table(spec) or not is_table(spec.signature) then
+        return nil
+    end
+
+    if spec.signature.strategy ~= "first_line" then
+        return nil
+    end
+
+    return M.get_first_line_text(node, bufnr)
+
+end
+
+
 function M.position_in_node(row, col, node)
     if not node then
         return false

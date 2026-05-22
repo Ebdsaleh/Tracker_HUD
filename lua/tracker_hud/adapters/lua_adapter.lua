@@ -142,16 +142,6 @@ local construct_specs = {
 
 
 
-local function get_first_line_text(node, bufnr)
-    local ok, node_text = pcall(vim.treesitter.get_node_text, node, bufnr)
-
-    if not ok or not node_text then
-        return nil
-    end
-
-    return node_text:match("([^\n]+)")
-end
-
 
 local function get_callable_name(first_line)
     if not first_line then
@@ -167,16 +157,6 @@ local function get_callable_name(first_line)
         or first_line:match("^%s*function%s+([%w_%.:]+)")
 end
 
-
-local function build_signature(node, bufnr, spec)
-    if not spec.signature or spec.signature.strategy ~= "first_line" then
-        return nil
-    end
-
-
-    return get_first_line_text(node, bufnr)
-
-end
 
 
 function M.match_node(node, _bufnr)
@@ -257,7 +237,7 @@ function M.parse_node(node, bufnr)
     local name = nil
 
     if spec.kind == "callable" then
-        signature = build_signature(node, bufnr, spec)
+        signature = context_engine.build_signature(node, bufnr, spec)
         name = get_callable_name(signature)
     end
 
