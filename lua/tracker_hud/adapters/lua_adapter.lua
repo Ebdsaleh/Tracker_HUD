@@ -18,10 +18,33 @@ local construct_specs = {
         label = "Function",
         creates_scope = true,
 
+        tokens = {
+            start = "function",
+            local_prefix = "local",
+            args_open ="(",
+            args_close = ")",
+            scope_close = "end",
+        },
+
         signature = {
             strategy = "first_line",
             name_pattern = "^%s*function%s+([%w_%.:]+)",
             local_name_pattern = "^%s*local%s+function%s+([%w_%.:]+)",
+        },
+
+        markers = {
+            required = {
+                "start",
+                "args_open",
+                "args_close",
+                "scope_close",
+            },
+            
+            optional = {
+                "local_prefix",
+            },
+
+            total_required = 4,
         },
     },
 
@@ -29,10 +52,35 @@ local construct_specs = {
         kind = "callable",
         label = "Function",
         creates_scope = true,
+
+        tokens = {
+            start = "function",
+            local_prefix = "local",
+            args_open = "(",
+            args_close = ")",
+            scope_close = "end",
+        },
+
+
         signature = {
             strategy = "first_line",
             name_pattern = "^%s*function%s+([%w_%.:]+)",
             local_name_pattern = "^%s*local%s+function%s+([%w_%.:]+)",
+        },
+
+        markers = {
+            required = {
+                "start",
+                "args_open",
+                "args_close",
+                "scope_close",
+            },
+
+            optional = {
+                "local_prefix",
+            },
+
+            total_required = 4,
         },
     },
 
@@ -41,12 +89,35 @@ local construct_specs = {
         label = "If",
         creates_scope = true,
 
+        tokens = {
+            start = "if",
+            branch_open = "then",
+            alternative_if = "elseif",
+            alternative = "else",
+            branch_close = "end",
+        },
+
         branch = {
             grouped = true, 
             alternatives = {
                 elseif_label = "Else-If",
                 else_label = "Else",
             },
+        },
+
+        markers = {
+            required = {
+                "start",
+                "branch_open",
+                "branch_close",
+            },
+
+            optional = {
+                "alternative_if",
+                "alternative",
+            },
+
+            total_required = 3,
         },
     },
 
