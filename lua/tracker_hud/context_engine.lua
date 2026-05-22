@@ -162,6 +162,32 @@ function M.get_node_range(node)
 end
 
 
+function M.get_construct_spec(construct_specs, node_type)
+    if not is_table(construct_specs) then
+        return nil, "construct_specs must be table"
+    end
+
+    if type(node_type) ~= "string" or node_type == "" then
+        return nil, "node_type must be a non-empty string"
+    end
+
+    local spec = construct_specs[node_type]
+
+    if not spec then
+        return nil, nil
+    end
+
+    local ok, err = M.validate_construct_spec(spec)
+
+    if not ok then
+        return nil, err
+    end
+
+    return spec, nil
+
+end
+
+
 function M.validate_construct_spec(spec)
     if not is_table(spec) then
         return false, "construct spec must be a table"
