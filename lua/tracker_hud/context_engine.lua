@@ -144,4 +144,22 @@ function M.build_context_from_scopes(scopes, config)
 end
 
 
+function M.get_node_range(node)
+    if not node then
+        return nil
+    end
+    
+    local start_row, _, end_row, _ = node:range()
+
+    if not is_number(start_row) or not is_number(end_row) then
+        return nil
+    end
+    
+    return {
+        start_line = start_row + 1,
+        end_line = end_row + 1,
+    }
+end
+
+
 return M

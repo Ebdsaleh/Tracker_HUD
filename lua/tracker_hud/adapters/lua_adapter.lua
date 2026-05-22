@@ -5,7 +5,7 @@
 -- Converts Lua Tree-sitter nodes into normalized Tracker HUD constructs.
 
 local contract = require("tracker_hud.constructs.contract")
-
+local context_engine = require("tracker_hud.context_engine")
 
 local M = {}
 
@@ -62,25 +62,6 @@ local function get_node_type(node)
 end
 
 
-local function get_range(node)
-    if not node then
-        return nil
-    end
-
-    local start_row, _, end_row, _ = node:range()
-
-    if not start_row or not end_row then
-        return nil
-    end
-
-
-    return {
-        start_line = start_row + 1,
-        end_line = end_row + 1,
-    }
-end
-
-
 local function get_first_line_text(node, bufnr)
     local ok, node_text = pcall(vim.treesitter.get_node_text, node, bufnr)
 
@@ -129,55 +110,12 @@ function M.match_node(node, _bufnr)
 end
 
 
-local function position_in_node(row, col, node)
-    if not node then
-        return false
-    end
-    
-
-    local start_row, start_col, end_row, end_col = node:range()
-
-    if not start_row or not end_row then
-        return false
-    end
-    
-    if row < start_row or row > end_row then
-        return false
-    end
-
-    if row == start_row and col < start_col then
-        return false
-    end
-
-    if row == end_row and col > end_col then
-        return false
-    end
-
-    return true
-end
-
-
-local function get_first_node_line(node)
-    if not node then
-        return nil
-    end
-
-    local start_row = node:range()
-
-    if not start_row then
-        return nil
-    end
-
-    return start_row + 1
-end
-
-
 local function get_if_branch_label(node)
     local cursor = vim.api.nvim_win_get_cursor(0)
     local cursor_row = cursor[1] - 1
     local cursor_col = cursor[2]
 
-    local if_line = get_first_node_line(node)
+    local if_line = context_engine.get_first_node_line(node)
 
     if not if_line then
         return "If"
@@ -205,8 +143,8 @@ local function get_if_branch_label(node)
     end
 
     for _, alternative in ipairs(alternative_nodes) do
-        if position_in_node(cursor_row, cursor_col, alternative) then
-            local alternative_line = get_first_node_line(alternative) or if_line
+        if context_engine.position_in_node(cursor_row, cursor_col, alternative) then
+            local alternative_line = context_engine.get_first_node_line(alternative) or if_line
             local alternative_type = alternative:type()
 
             if alternative_type:match("elseif") then
@@ -230,7 +168,7 @@ function M.parse_node(node, bufnr)
         return nil, nil
     end
 
-    local range = get_range(node)
+    local range = context_engine.get_node_range(node)
 
     if not range then
         return nil, "could not get node range"
