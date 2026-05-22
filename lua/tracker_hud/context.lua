@@ -152,8 +152,24 @@ function M.get_cursor_context(bufnr, config)
 
     while node do
         local node_type = node:type()
+        local construct = try_parse_construct_with_adapter(bufnr, node)
 
-        if target_nodes[node_type] then
+        if construct then
+            local line_number = construct.range.start_line
+            local label = construct.signature or construct.label
+            local display_label = "[" .. line_number .. "] " .. label
+
+            table.insert(scopes, {
+                label = display_label,
+                raw_label = label,
+                node_type = construct.node_type,
+                kind = construct.kind,
+                start_line = construct.range.start_line,
+                end_line = construct.range.end_line,
+                construct = construct,
+            })
+
+        elseif target_nodes[node_type] then
             local start_row, _, end_row, _ = node:range()
 
             if start_row and end_row then
@@ -173,13 +189,14 @@ function M.get_cursor_context(bufnr, config)
 
                 if node_type == "if_statement" then
                     display_label = get_if_branch_label(
-                        node,
+                        node, 
                         bufnr,
                         cursor_row,
                         cursor_col,
                         line_number
                     )
                 end
+
 
                 table.insert(scopes, {
                     label = display_label,
