@@ -33,6 +33,15 @@ M.defaults = {
         auto_size = "<leader><CR>",
         step= 2,
     },
+    -- Adapter discovery paths.
+    -- Each entry is a Lua module path prefix.
+    -- Example:
+    --   "tracker_hud/adapters"
+    -- maps to:
+    --   lua/tracker_hud/adapters/*_adapter.lua
+    adapter_paths = {
+        "tracker_hud/adapters",
+    },
 }
 
 
