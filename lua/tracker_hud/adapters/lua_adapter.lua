@@ -12,25 +12,42 @@ local M = {}
 M.name = "lua"
 M.filetypes =  { "lua" }
 
-local node_specs = {
+local construct_specs = {
     function_declaration = {
         kind = "callable",
         label = "Function",
         creates_scope = true,
-        signature = "first_line",
+
+        signature = {
+            strategy = "first_line",
+            name_pattern = "^%s*function%s+([%w_%.:]+)",
+            local_name_pattern = "^%s*local%s+function%s+([%w_%.:]+)",
+        },
     },
 
     function_definition = {
         kind = "callable",
         label = "Function",
         creates_scope = true,
-        signature = "first_line",
+        signature = {
+            strategy = "first_line",
+            name_pattern = "^%s*function%s+([%w_%.:]+)",
+            local_name_pattern = "^%s*local%s+function%s+([%w_%.:]+)",
+        },
     },
 
     if_statement = {
         kind = "branch",
         label = "If",
         creates_scope = true,
+
+        branch = {
+            grouped = true, 
+            alternatives = {
+                elseif_label = "Else-If",
+                else_label = "Else",
+            },
+        },
     },
 
     for_statement = { 
@@ -89,7 +106,7 @@ end
 
 
 local function build_signature(node, bufnr, spec)
-    if spec.signature ~= "first_line" then
+    if not spec.signature or spec.signature.strategy ~= "first_line" then
         return nil
     end
 
@@ -106,7 +123,7 @@ function M.match_node(node, _bufnr)
         return false
     end
     
-    return node_specs[node_type] ~= nil
+    return construct_specs[node_type] ~= nil
 end
 
 
@@ -162,7 +179,7 @@ end
 
 function M.parse_node(node, bufnr)
     local node_type = get_node_type(node)
-    local spec = node_specs[node_type]
+    local spec = construct_specs[node_type]
 
     if not spec then
         return nil, nil
@@ -174,10 +191,11 @@ function M.parse_node(node, bufnr)
         return nil, "could not get node range"
     end
 
-    local signature = build_signature(node, bufnr, spec)
+    local signature = nil
     local name = nil
 
     if spec.kind == "callable" then
+        signature = build_signature(node, bufnr, spec)
         name = get_callable_name(signature)
     end
 
