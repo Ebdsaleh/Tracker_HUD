@@ -162,4 +162,72 @@ function M.get_node_range(node)
 end
 
 
+function M.validate_construct_spec(spec)
+    if not is_table(spec) then
+        return false, "construct spec must be a table"
+    end
+
+    
+    if type(spec.kind) ~= "string" or spec.kind == "" then
+        return false, "construct spec kind must be a non-empty string"
+    end
+
+    if type(spec.label) ~= "string" or spec.label == "" then
+        return false, "construct spec label must be a non-empty string"
+    end
+
+    if spec.tokens ~= nil and not is_table(spec.tokens) then
+        return false, "construct spec tokens must be a table when provided"
+    end
+
+    if spec.markers ~= nil then
+        if not is_table(spec.markers) then
+            return false, "construct spec markers must be a table when provided"
+        end
+
+        local required = spec.markers.required or {}
+        local optional = spec.markers.optional or {}
+
+        if not is_table(required) then
+            return false, "construct spec markers.required must be a table"
+        end
+
+        if not is_table(optional) then
+            return false, "construct spec markers.optional must be a table"
+        end
+
+        if spec.tokens == nil then
+            return false, "construct spec markers require a tokens table"
+        end
+
+        for _, marker_name in ipairs(required) do
+            if type(marker_name) ~= "string" or marker_name == "" then
+                return false, "required marker names must be non-empty strings" 
+            end
+
+            if spec.tokens[marker_name] == nil then
+                return false, "required marker '" .. marker_name .. "' is missing from tokens"
+            end
+        end
+
+        for _, marker_name in ipairs(optional) do
+            if type(marker_name) ~= "string" or marker_name == "" then
+                return false, "optional marker names must be non-empty strings"
+            end
+
+            if spec.tokens[marker_name] == nil then
+                return false, "optional marker '" .. marker_name .. "' is missing from tokens"
+            end
+        end
+
+        if spec.markers.total_required ~= nil
+            and spec.markers.total_required ~= #required then
+            return false, "markers.total_required does not match number of required markers"
+        end
+    end
+
+    return true, nil
+end
+
+
 return M

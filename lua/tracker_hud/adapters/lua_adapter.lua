@@ -246,14 +246,29 @@ local function get_if_branch_label(node)
     return "[" .. if_line .. "] If"
 end
 
-
-
-function M.parse_node(node, bufnr)
-    local node_type = get_node_type(node)
+local function get_construct_spec(node_type)
     local spec = construct_specs[node_type]
 
     if not spec then
         return nil, nil
+    end
+
+    local ok, err = context_engine.validate_construct_spec(spec)
+
+    if not ok then
+        return nil, err
+    end
+
+    return spec, nil
+end
+
+
+function M.parse_node(node, bufnr)
+    local node_type = get_node_type(node)
+    local spec, spec_err = get_construct_spec(node_type)
+
+    if not spec then
+        return nil, spec_err
     end
 
     local range = context_engine.get_node_range(node)
