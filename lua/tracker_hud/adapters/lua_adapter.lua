@@ -127,7 +127,94 @@ function M.match_node(node, _bufnr)
     
     return node_specs[node_type] ~= nil
 end
+
+
+local function position_in_node(row, col, node)
+    if not node then
+        return false
+    end
     
+
+    local start_row, start_col, end_row, end_col = node:range()
+
+    if not start_row or not end_row then
+        return false
+    end
+    
+    if row < start_row or row > end_row then
+        return false
+    end
+
+    if row == start_row and col < start_col then
+        return false
+    end
+
+    if row == end_row and col > end_col then
+        return false
+    end
+
+    return true
+end
+
+
+local function get_first_node_line(node)
+    if not node then
+        return nil
+    end
+
+    local start_row = node:range()
+
+    if not start_row then
+        return nil
+    end
+
+    return start_row + 1
+end
+
+
+local function get_if_branch_label(node)
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local cursor_row = cursor[1] - 1
+    local cursor_col = cursor[2]
+
+    local alternative_nodes = {}
+
+    local ok, field_nodes = pcall(function()
+        return node:field("alternative")
+    end)
+
+
+    if ok and field_nodes then
+        for _, alternative in ipairs(field_nodes) do
+            table.insert(alternative_nodes, alternative)
+        end
+    end
+    
+
+    for i = 0, node:named_child_count() - 1 do
+        local child = node:named_child(i)
+        local child_type = child:type()
+
+        if child_type:match("else") or child_type:match("elseif") then
+            table.insert(alternative_nodes, child)
+        end
+    end
+
+    for _, alternative in ipairs(alternative_nodes) do
+        if position_in_node(cursor_row, cursor_col, alternative) then
+            local else_line = get_first_node_line(alternative)
+
+            if else_line then
+                return "If : Else [" .. else_line .. "]"
+            end
+
+            return "If : Else"
+        end
+    end
+    
+    return "If"
+end
+
 
 function M.parse_node(node, bufnr)
     local node_type = get_node_type(node)
@@ -150,9 +237,16 @@ function M.parse_node(node, bufnr)
         name = get_callable_name(signature)
     end
 
+    local label = spec.label
+
+    if node_type == "if_statement" then
+        label = get_if_branch_label(node)
+    end
+
+    
     local construct, err = contract.new_construct({
         kind = spec.kind,
-        label = spec.label,
+        label = label,
         node_type = node_type,
         name = name,
         signature = signature,
