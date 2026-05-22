@@ -69,6 +69,124 @@ function M.build_signature(node, bufnr, spec)
 end
 
 
+function M.extract_name_from_signature(signature, spec)
+    if type(signature) ~= "string" then
+        return nil
+    end
+    
+    if not is_table(spec) or not is_table(spec.signature) then
+        return nil
+    end
+
+    local signature_spec = spec.signature
+
+    if type(signature_spec.local_name_pattern) == "string" then
+        local name = signature:match(signature_spec.local_name_pattern)
+
+        if name then
+            return name
+        end
+    end
+
+    if type(signature_spec.name_pattern) == "string" then
+        return signature:match(signature_spec.name_pattern)
+    end
+
+    return nil
+end
+
+
+function M.build_construct(opts)
+    opts = opts or {}
+
+    local contract = require("tracker_hud.constructs.contract")
+
+    return contract.new_construct({
+        kind = opts.kind,
+        label = opts.label,
+        node_type = opts.node_type,
+        name = opts.name,
+        signature = opts.signature,
+        range = opts.range,
+        creates_scope = opts.creates_scope,
+        metadata = opts.metadata or {},
+    })
+
+end
+
+
+function M.get_cursor_position()
+    local cursor = vim.api.nvim_win_get_cursor(0)
+
+    return {
+        row = cursor[1] - 1,
+        col = cursor[2],
+    }
+end
+
+
+function M.get_node_alternatives(node)
+    local alternatives = {}
+
+    if not node then
+        return alternatives
+    end
+
+    local ok, field_nodes = pcall(function()
+        return node:field("alternative")
+    end)
+
+    if ok and field_nodes then
+        for _, alternative in ipairs(field_nodes) do
+            table.insert(alternatives, alternative)
+        end
+    end
+
+    for i = 0, node:named_child_count() - 1 do
+        local child = node:named_child(i)
+        local child_type = child:type()
+
+        if child_type:match("else") or child_type:match("elseif") then
+            table.insert(alternatives, child)
+        end
+    end
+
+    return alternatives
+end
+
+
+function M.build_branch_display_label(node, spec)
+    local start_line = M.get_first_node_line(node)
+
+    if not start_line then
+        return spec.label or "Branch"
+    end
+    
+    local branch_spec = spec.branch or {}
+    local alternative_labels = branch_spec.alternatives or {}
+
+    local cursor = M.get_cursor_position()
+    local alternatives = M.get_node_alternatives(node)
+
+    for _, alternative in ipairs(alternatives) do
+        if M.position_in_node(cursor.row, cursor.col, alternative) then
+            local alternative_line = M.get_first_node_line(alternative) or start_line
+            local alternative_type = alternative:type()
+
+            if alternative_type:match("elseif") then
+                local label = alternative_labels.elseif_label or "Else-If"
+                return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
+            end
+
+            local label = alternative_labels.else_label or "Else"
+            return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
+        end
+    end
+
+    return "[" .. start_line .. "] " .. spec.label
+end
+
+
 function M.position_in_node(row, col, node)
     if not node then
         return false
