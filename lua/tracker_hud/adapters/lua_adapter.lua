@@ -177,19 +177,23 @@ local function get_if_branch_label(node)
     local cursor_row = cursor[1] - 1
     local cursor_col = cursor[2]
 
+    local if_line = get_first_node_line(node)
+
+    if not if_line then
+        return "If"
+    end
+
     local alternative_nodes = {}
 
     local ok, field_nodes = pcall(function()
         return node:field("alternative")
     end)
 
-
     if ok and field_nodes then
         for _, alternative in ipairs(field_nodes) do
             table.insert(alternative_nodes, alternative)
         end
     end
-    
 
     for i = 0, node:named_child_count() - 1 do
         local child = node:named_child(i)
@@ -202,18 +206,20 @@ local function get_if_branch_label(node)
 
     for _, alternative in ipairs(alternative_nodes) do
         if position_in_node(cursor_row, cursor_col, alternative) then
-            local else_line = get_first_node_line(alternative)
+            local alternative_line = get_first_node_line(alternative) or if_line
+            local alternative_type = alternative:type()
 
-            if else_line then
-                return "If : Else [" .. else_line .. "]"
+            if alternative_type:match("elseif") then
+                return "([" .. if_line .. "] If : Else-If [" .. alternative_line .. "])"
             end
 
-            return "If : Else"
+            return "([" .. if_line .. "] If : Else [" .. alternative_line .. "])"
         end
     end
-    
-    return "If"
+
+    return "[" .. if_line .. "] If"
 end
+
 
 
 function M.parse_node(node, bufnr)
@@ -238,9 +244,11 @@ function M.parse_node(node, bufnr)
     end
 
     local label = spec.label
+    local display_label = nil
 
     if node_type == "if_statement" then
-        label = get_if_branch_label(node)
+        display_label = get_if_branch_label(node)
+        label = display_label
     end
 
     
@@ -254,6 +262,7 @@ function M.parse_node(node, bufnr)
         creates_scope = spec.creates_scope,
         metadata = {
             adapter = M.name,
+            display_label = display_label,
         },
     })
 

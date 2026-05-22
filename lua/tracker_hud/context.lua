@@ -188,7 +188,8 @@ function M.get_cursor_context(bufnr, config)
         if construct then
             local line_number = construct.range.start_line
             local label = construct.signature or construct.label
-            local display_label = "[" .. line_number .. "] " .. label
+            local display_label = construct.metadata.display_label 
+                or "[" .. line_number .. "] " .. label
 
             table.insert(scopes, {
                 label = display_label,
