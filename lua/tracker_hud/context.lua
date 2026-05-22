@@ -4,6 +4,31 @@ local M = {}
 
 local adapter_registry = require("tracker_hud.adapters.registry")
 
+local function make_global_context()
+    return {
+        label = "Global Scope",
+        node_type = nil,
+        start_line = nil,
+        end_line = nil,
+        depth = 0,
+        path = {},
+        scopes = {},
+    }
+end
+
+local function  make_unavailable_context(message, filetype)
+    return {
+        label = message,
+        node_type = nil,
+        start_line = nil,
+        end_line = nil,
+        depth = 0,
+        path = {},
+        scopes = {},
+        unavailable = true,
+        filetype = filetype,
+    }
+end
 
 local target_nodes = {
     -- Functions / Methods / Procedures
@@ -124,25 +149,31 @@ end
 
 function M.get_cursor_context(bufnr, config)
     config = config or {}
-
+    
+    local filetype = vim.bo[bufnr].filetype
     local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
 
     if not ok or not parser then
-        return nil
+        return make_unavailable_context(
+            "No Tree-sitter parser available for filetype: " .. tostring(filetype),
+            filetype
+        )
+    end
+
+    if not adapter_registry.has_adapter(filetype) then
+        return make_unavailable_context(
+            "No Tracker HUD adapter available for filetype: " .. tostring(filetype),
+            filetype
+        )
     end
 
     local node = vim.treesitter.get_node()
 
     if not node then
-        return nil
+        return make_global_context()
     end
 
-    local context = {
-        label = "Global Scope",
-        node_type = nil,
-        start_line = nil,
-        end_line = nil,
-    }
+    local context = make_global_context()
 
     local scopes = {}
 
