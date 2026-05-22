@@ -143,22 +143,6 @@ local construct_specs = {
 
 
 
-local function get_callable_name(first_line)
-    if not first_line then
-        return nil
-    end
-
-    -- Handles:
-    -- function my_func()
-    -- local function my_func()
-    -- function table_name:method_name()
-    -- function table_name.method_name()
-    return first_line:match("^%s*local%s+function%s+([%w_%.:]+)")
-        or first_line:match("^%s*function%s+([%w_%.:]+)")
-end
-
-
-
 function M.match_node(node, _bufnr)
     local node_type = context_engine.get_node_type(node)
 
@@ -238,7 +222,7 @@ function M.parse_node(node, bufnr)
 
     if spec.kind == "callable" then
         signature = context_engine.build_signature(node, bufnr, spec)
-        name = get_callable_name(signature)
+        name = context_engine.extract_name_from_signature(signature, spec)
     end
 
     local label = spec.label
