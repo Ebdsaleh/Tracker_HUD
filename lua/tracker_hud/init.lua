@@ -6,6 +6,7 @@ local config_module = require("tracker_hud.config")
 local state = require("tracker_hud.state")
 local context = require("tracker_hud.context")
 local hud = require("tracker_hud.hud")
+local adapter_loader = require("tracker_hud.adapters.loader")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -230,6 +231,7 @@ end
 
 function M.setup(opts)
     config = config_module.resolve(opts)
+    adapter_loader.reload(config.adapter_paths)
 
     vim.api.nvim_clear_autocmds({
         group = hud_group,
