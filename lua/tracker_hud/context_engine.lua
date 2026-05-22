@@ -70,6 +70,16 @@ function M.position_in_node(row, col, node)
 end
 
 
+function M.get_node_type(node)
+    if not node then
+        return nil
+    end
+
+    return node:type()
+end
+
+
+
 function M.get_first_node_line(node)
     if not node then
         return nil

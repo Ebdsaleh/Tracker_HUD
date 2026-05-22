@@ -21,7 +21,7 @@ local construct_specs = {
         tokens = {
             start = "function",
             local_prefix = "local",
-            args_open ="(",
+            args_open = "(",
             args_close = ")",
             scope_close = "end",
         },
@@ -141,14 +141,6 @@ local construct_specs = {
 }
 
 
-local function get_node_type(node)
-    if not node then
-        return nil
-    end
-    
-    return node:type()
-end
-
 
 local function get_first_line_text(node, bufnr)
     local ok, node_text = pcall(vim.treesitter.get_node_text, node, bufnr)
@@ -188,7 +180,7 @@ end
 
 
 function M.match_node(node, _bufnr)
-    local node_type = get_node_type(node)
+    local node_type = context_engine.get_node_type(node)
 
     if not node_type then
         return false
@@ -248,7 +240,7 @@ end
 
 
 function M.parse_node(node, bufnr)
-    local node_type = get_node_type(node)
+    local node_type = context_engine.get_node_type(node)
     local spec, spec_err = context_engine.get_construct_spec(construct_specs, node_type)
 
     if not spec then
