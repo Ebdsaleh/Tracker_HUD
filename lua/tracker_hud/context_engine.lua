@@ -26,6 +26,7 @@ function M.make_global_context()
         depth = 0,
         path = {},
         scopes = {},
+        cursor = M.get_cursor_location(),
     }
 end
 
@@ -38,6 +39,7 @@ function M.make_unavailable_context(message, filetype)
         depth = 0,
         path = {},
         scopes = {},
+        cursor = M.get_cursor_location(),
         unavailable = true,
         filetype = filetype,
     }
@@ -121,6 +123,16 @@ function M.get_cursor_position()
     return {
         row = cursor[1] - 1,
         col = cursor[2],
+    }
+end
+
+
+function M.get_cursor_location()
+    local cursor = vim.api.nvim_win_get_cursor(0)
+
+    return {
+        line = cursor[1],
+        column = cursor[2] + 1, 
     }
 end
 

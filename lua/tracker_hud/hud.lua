@@ -128,8 +128,15 @@ local function render_winbar(context, _config)
         return
     end
 
-    vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. context.label
+    local label = context.label
+
+    if context.cursor and context.cursor.line then
+        label = label .. " -> [" .. tostring(context.cursor.line) .. "] Current"
+    end
+
+    vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. label
 end
+
 
 local function restore_focus(source_winid, fallback_winid, panel_position)
     local function do_restore()
@@ -250,6 +257,10 @@ local function format_panel_lines(context)
         end
     else
         table.insert(lines, "  " .. context.label)
+    end
+
+    if context.cursor and context.cursor.line then
+        table.insert(lines, "  -> [" .. tostring(context.cursor.line) .. "] Current Line")
     end
 
     table.insert(lines, "")
