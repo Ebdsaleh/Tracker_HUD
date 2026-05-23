@@ -125,7 +125,29 @@ function M.get_cursor_position()
 end
 
 
-function M.get_node_alternatives(node)
+function M.node_matches_branch_alternative(node, spec)
+    if not node or not is_table(spec) then
+        return false
+    end
+
+    local branch_spec = spec.branch or {}
+    local alternatives = branch_spec.alternatives or {}
+    local node_type = node:type()
+
+    for _, alternative_spec in ipairs(alternatives) do
+        if is_table(alternative_spec)
+            and type(alternative_spec.node_match) == "string"
+            and node_type:match(alternative_spec.node_match)
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+function M.get_node_alternatives(node, spec)
     local alternatives = {}
 
     if not node then
@@ -144,9 +166,8 @@ function M.get_node_alternatives(node)
 
     for i = 0, node:named_child_count() - 1 do
         local child = node:named_child(i)
-        local child_type = child:type()
 
-        if child_type:match("else") or child_type:match("elseif") then
+        if M.node_matches_branch_alternative(child, spec) then
             table.insert(alternatives, child)
         end
     end
@@ -155,7 +176,7 @@ function M.get_node_alternatives(node)
 end
 
 
-function M.build_branch_alternative_label(alternative_node, spec)
+function M.get_branch_alternative_label(alternative_node, spec)
     if not alternative_node or not is_table(spec) then
         return nil
     end
@@ -185,17 +206,15 @@ function M.build_branch_display_label(node, spec)
     if not start_line then
         return spec.label or "Branch"
     end
-    
-    local branch_spec = spec.branch or {}
-    local alternative_labels = branch_spec.alternatives or {}
 
     local cursor = M.get_cursor_position()
-    local alternatives = M.get_node_alternatives(node)
+    local alternatives = M.get_node_alternatives(node, spec)
 
     for _, alternative in ipairs(alternatives) do
         if M.position_in_node(cursor.row, cursor.col, alternative) then
             local alternative_line = M.get_first_node_line(alternative) or start_line
             local label = M.get_branch_alternative_label(alternative, spec) or "Alternative"
+
             return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
         end
     end
