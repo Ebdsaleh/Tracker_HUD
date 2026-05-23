@@ -13,16 +13,17 @@
 --     name = "lua",
 --     filetypes = { "lua" },
 --
---     match_node = function(node, bufnr)
---         return true_or_false
---     end,
---
---     parse_node = function(node, bufnr)
---         return construct_or_nil, error_or_nil
---     end,
+--     construct_specs = {
+--         [tree_sitter_node_type] = {
+--             kind = "...",
+--             label = "...",
+--             creates_scope = true_or_false,
+--         },
+--     },
 -- }
 
 local contract = require("tracker_hud.constructs.contract")
+local context_engine = require("tracker_hud.context_engine")
 
 local M = {}
 
@@ -34,11 +35,6 @@ end
 
 local function is_string(value)
     return type(value) == "string"
-end
-
-
-local function is_function(value)
-    return type(value) == "function"
 end
 
 
@@ -88,14 +84,10 @@ function M.validate_adapter(adapter)
         return false, filetypes_err
     end
 
-    if not is_function(adapter.match_node) then
-        return false, "adapter.match_node(node, bufnr) must be a function"
+    if not is_table(adapter.construct_specs) then
+        return false, "adapter.construct_specs must be a table"
     end
-    
-    if not is_function(adapter.parse_node) then
-        return false, "adapter.parse_node(node, bufnr) must be a function"
-    end
-    
+
     return true, nil
 end
 
@@ -139,18 +131,18 @@ function M.parse_node(filetype, node, bufnr)
     end
 
 
-    local matched_ok, matched = pcall(adapter.match_node, node, bufnr)
+    local matched = context_engine.match_node(adapter, node)
 
-    if not matched_ok then
+    if not matched then
         return nil, nil
     end
 
-
-    local parsed_ok, construct, parse_err = pcall(adapter.parse_node, node, bufnr)
+    local parsed_ok, construct, parse_err = pcall(context_engine.parse_node, adapter, node, bufnr)
 
     if not parsed_ok then
-        return nil, "adapter.parse_node failed for " .. adapter.name .. ": " .. tostring(construct)
+        return nil, "context_engine.parse_node failed for " .. adapter.name .. ": " .. tostring(construct)
     end
+
 
     if not construct then
         return nil, parse_err
