@@ -5,6 +5,10 @@ local M = {}
 local panel_bufnr = nil
 local panel_winid = nil
 local resolved_panel_size = nil
+local last_context = nil
+local last_config = nil
+local last_source_winid = nil
+
 
 local section_state = {
     scope = true,
@@ -399,6 +403,10 @@ end
 function M.render(context, config, source_winid)
     config = config or {}
 
+    last_context = context
+    last_config = config
+    last_source_winid = source_winid
+
     if config.display == "panel" then
         render_panel(context, config, source_winid)
     else
@@ -495,8 +503,26 @@ function M.reopen_panel()
     resolved_panel_size = nil
 end
 
+
+function M.refresh()
+    if not last_context then
+        return false
+    end
+
+    M.render(last_context, last_config or {}, last_source_winid)
+    return true
+end
+
+
 function M.toggle_section(section_id)
-    return toggle_section(section_id)
+    local ok = toggle_section(section_id)
+
+    if not ok then
+        return false
+    end
+
+    M.refresh()
+    return true
 end
 
 
