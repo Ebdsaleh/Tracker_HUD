@@ -383,6 +383,21 @@ function M.get_node_range(node)
 end
 
 
+function M.match_node(adapter, node)
+    if not is_table(adapter) or not is_table(adapter.construct_specs) then
+        return false
+    end
+
+    local node_type = M.get_node_type(node)
+
+    if not node_type then
+        return false
+    end
+
+    return adapter.construct_specs[node_type] ~= nil
+end
+
+
 function M.get_construct_spec(construct_specs, node_type)
     if not is_table(construct_specs) then
         return nil, "construct_specs must be table"
