@@ -226,6 +226,86 @@ local function create_panel(config, source_winid, lines)
     restore_focus(source_winid, fallback_winid, panel_position)
 end
 
+
+local function build_hud_sections(context)
+    local sections = {
+        {
+            id = "scope",
+            title = "Scope",
+            expanded = true,
+            lines = {},
+        },
+        {
+            id = "scope_members",
+            title = "Scope Members",
+            expanded = false,
+            lines = {},
+        },
+        {
+            id = "registers",
+            title = "Registers",
+            expanded = false,
+            lines = {},
+        },
+        {
+            id = "stack",
+            title = "Stack",
+            expanded = false,
+            lines = {},
+        },
+        {
+            id = "warnings",
+            title = "Warnings",
+            expanded = false,
+            lines = {},
+        },
+    }
+
+    local scope_section = sections[1]
+
+    if context.path and #context.path > 0 then
+        for index, item in ipairs(context.path) do
+            local prefix = "  "
+
+            if index > 1 then
+                prefix = "  -> "
+            end
+            
+            table.insert(scope_section.lines, prefix .. item)
+        end
+    else
+        table.insert(scope_section.lines, "  " .. context.label)
+    end
+
+    if context.cursor and context.cursor.line then
+        table.insert(
+            scope_section.lines,
+            "  Current: [" .. tostring(context.cursor.line) .. "]"
+        )
+    end
+
+    return sections
+end
+
+
+local function append_section_lines(lines, section)
+    local marker = section.expanded and "[-]" or "[+]"
+    table.insert(lines, section.title .. " " .. marker)
+
+    if section.expanded then
+        if section.lines and #section.lines > 0 then
+            for _, line in ipairs(section.lines) do
+                table.insert(lines, line)
+            end
+        else
+            table.insert(lines, "  <empty>")
+        end
+    end
+
+    table.insert(lines, "")
+end
+
+
 local function format_panel_lines(context)
     if not context then
         return {
@@ -242,25 +322,12 @@ local function format_panel_lines(context)
         "",
         "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
         "",
-        "Scope:",
     }
 
-    if context.path and #context.path > 0 then
-        for index, item in ipairs(context.path) do
-            local prefix = "  "
+    local sections = build_hud_sections(context)
 
-            if index > 1 then
-                prefix = "  -> "
-            end
-
-            table.insert(lines, prefix .. item)
-        end
-    else
-        table.insert(lines, "  " .. context.label)
-    end
-
-    if context.cursor and context.cursor.line then
-        table.insert(lines, "  -> [" .. tostring(context.cursor.line) .. "] Current Line")
+    for _, section in ipairs(sections) do
+        append_section_lines(lines, section)
     end
 
     table.insert(lines, "")
