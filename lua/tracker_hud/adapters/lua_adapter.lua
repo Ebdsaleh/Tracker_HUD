@@ -38,7 +38,7 @@ M.construct_specs = {
                 "args_close",
                 "scope_close",
             },
-            
+
             optional = {
                 "local_prefix",
             },
@@ -159,56 +159,8 @@ function M.match_node(node, _bufnr)
 end
 
 
-
 function M.parse_node(node, bufnr)
-    local node_type = context_engine.get_node_type(node)
-    local spec, spec_err = context_engine.get_construct_spec(M.construct_specs, node_type)
-
-    if not spec then
-        return nil, spec_err
-    end
-
-    local range = context_engine.get_node_range(node)
-
-    if not range then
-        return nil, "could not get node range"
-    end
-
-    local signature = nil
-    local name = nil
-
-    if spec.kind == "callable" then
-        signature = context_engine.build_signature(node, bufnr, spec)
-        name = context_engine.extract_name_from_signature(signature, spec)
-    end
-
-    local label = spec.label
-    local display_label = nil
-
-    if spec.kind == "branch" and spec.branch then
-        display_label = context_engine.build_branch_display_label(node, spec)
-        label = display_label
-    end
-    
-    local construct, err = context_engine.build_construct({
-        kind = spec.kind,
-        label = label,
-        node_type = node_type,
-        name = name,
-        signature = signature,
-        range = range,
-        creates_scope = spec.creates_scope,
-        metadata = {
-            adapter = M.name,
-            display_label = display_label,
-        },
-    }) 
-    if not construct then
-        return nil, err
-    end
-
-    return construct, nil
-
+    return context_engine.parse_node(M, node, bufnr)
 end
 
 

@@ -398,6 +398,60 @@ function M.match_node(adapter, node)
 end
 
 
+function M.parse_node(adapter, node, bufnr)
+    if not is_table(adapter) then
+        return nil, "adapter must be a table"
+    end
+
+    if not is_table(adapter.construct_specs) then
+        return nil, "adapter.construct_specs must be a table"
+    end
+
+    local node_type = M.get_node_type(node)
+    local spec, spec_err = M.get_construct_spec(adapter.construct_specs, node_type)
+
+    if not spec then
+        return nil, spec_err
+    end
+
+    local range = M.get_node_range(node)
+
+    if not range then
+        return nil, "could not get node range"
+    end
+
+    local signature = nil
+    local name = nil
+
+    if spec.kind == "callable" then
+        signature = M.build_signature(node, bufnr, spec)
+        name = M.extract_name_from_signature(signature, spec)
+    end
+
+    local label = spec.label
+    local display_label = nil
+
+    if spec.kind == "branch" and spec.branch then
+        display_label = M.build_branch_display_label(node, spec)
+        label = display_label
+    end
+
+    return M.build_construct({
+        kind = spec.kind,
+        label = label,
+        node_type = node_type,
+        name = name,
+        signature = signature,
+        range = range,
+        creates_scope = spec.creates_scope,
+        metadata = {
+            adapter = adapter.name,
+            display_label = display_label,
+        },
+    })
+end
+
+
 function M.get_construct_spec(construct_specs, node_type)
     if not is_table(construct_specs) then
         return nil, "construct_specs must be table"
