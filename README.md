@@ -6,8 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a modular adapter-based context architecture.
-
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a modular spec-driven adapter architecture.
 ---
 
 ## Features
@@ -58,8 +57,7 @@ Current adapter support:
 | `lua` | Supported |
 | other filetypes | HUD appears, but structural adapter support is not yet implemented |
 
-Adapters are intended to become lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, scope construction, branch display formatting, and context output.
-
+Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, and context output.
 ---
 
 ## Installation
@@ -463,6 +461,15 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.5.0`
+
+- Made the Lua adapter spec-only
+- Moved adapter node matching into the shared context engine
+- Moved adapter node parsing into the shared context engine
+- Updated the adapter registry to route parsing through the context engine
+- Removed parser behavior requirements from language adapters
+- Continued moving toward declarative language construct specifications
 
 ### `v0.4.2`
 
