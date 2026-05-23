@@ -1,5 +1,7 @@
 -- lua/tracker_hud/hud.lua
 
+local hud_sections = require("tracker_hud.hud_sections")
+
 local M = {}
 
 local panel_bufnr = nil
@@ -12,30 +14,12 @@ local panel_line_sections = {}
 
 
 
-local section_state = {
-    scope = true,
-    scope_members = false,
-    registers = false,
-    stack = false,
-    warnings = false,
-}
-
-
 local function is_valid_window(winid)
     return winid and vim.api.nvim_win_is_valid(winid)
 end
 
 local function is_valid_buffer(bufnr)
     return bufnr and vim.api.nvim_buf_is_valid(bufnr)
-end
-
-local function toggle_section(section_id)
-    if not section_id or section_state[section_id] == nil then
-        return false
-    end
-
-    section_state[section_id] = not section_state[section_id]
-    return true
 end
 
 
@@ -296,66 +280,6 @@ local function create_panel(config, source_winid, lines)
 end
 
 
-local function build_hud_sections(context)
-    local sections = {
-        {
-            id = "scope",
-            title = "Scope",
-            expanded = section_state.scope == true,
-            lines = {},
-        },
-        {
-            id = "scope_members",
-            title = "Scope Members",
-            expanded = section_state.scope_members == true,
-            lines = {},
-        },
-        {
-            id = "registers",
-            title = "Registers",
-            expanded = section_state.registers == true,
-            lines = {},
-        },
-        {
-            id = "stack",
-            title = "Stack",
-            expanded = section_state.stack == true,
-            lines = {},
-        },
-        {
-            id = "warnings",
-            title = "Warnings",
-            expanded = section_state.warnings == true,
-            lines = {},
-        },
-    }
-
-    local scope_section = sections[1]
-
-    if context.path and #context.path > 0 then
-        for index, item in ipairs(context.path) do
-            local prefix = "  "
-
-            if index > 1 then
-                prefix = "  -> "
-            end
-            
-            table.insert(scope_section.lines, prefix .. item)
-        end
-    else
-        table.insert(scope_section.lines, "  " .. context.label)
-    end
-
-    if context.cursor and context.cursor.line then
-        table.insert(
-            scope_section.lines,
-            "  Current: [" .. tostring(context.cursor.line) .. "]"
-        )
-    end
-
-    return sections
-end
-
 
 local function append_section_lines(lines, section)
     local marker = section.expanded and "[-]" or "[+]"
@@ -397,7 +321,7 @@ local function format_panel_lines(context)
         "",
     }
 
-    local sections = build_hud_sections(context)
+    local sections = hud_sections.build(context)
 
     for _, section in ipairs(sections) do
         append_section_lines(lines, section)
@@ -441,7 +365,7 @@ function M.clear(config)
                 "",
                 "No active context.",
                 "",
-                "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
+                "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
             })
             vim.bo[panel_bufnr].modifiable = false
         end
@@ -615,7 +539,7 @@ end
 
 
 function M.toggle_section(section_id)
-    local ok = toggle_section(section_id)
+    local ok = hud_sections.toggle(section_id)
 
     if not ok then
         return false
