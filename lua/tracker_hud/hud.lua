@@ -169,6 +169,16 @@ local function ensure_panel_buffer()
         noremap = true,
         desc = "Toggle Tracker HUD section",
     })
+    
+    -- Toggle HUD sections from inside the panel (mouse support)
+    vim.keymap.set("n", "<2-LeftMouse>", function()
+        require("tracker_hud.hud").toggle_section_at_panel_cursor()
+    end, {
+        buffer = panel_bufnr,
+        silent = true,
+        noremap = true,
+        desc ="Toggle Tracker HUD section with double click",
+    })
 
     pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
