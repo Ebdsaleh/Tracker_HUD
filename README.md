@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a cleaner internal configuration/state structure.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a modular adapter-based context architecture.
 
 ---
 
@@ -15,7 +15,7 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Tree-sitter-powered cursor context tracking
 - Function/block scope breadcrumb display
 - Nested scope depth tracking
-- Basic branch awareness for `if` / `else`
+- Basic branch awareness for `if` / `elseif` / `else`
 - Winbar display mode
 - Docked panel display mode
 - Panel positions:
@@ -29,6 +29,9 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Configurable resize keymaps
 - Panel focus restoration so the HUD does not steal editing focus
 - HUD panel closes with the source file
+- Adapter-based language context architecture
+- Lua construct adapter with spec-driven branch alternatives
+- Clear missing-adapter messages for unsupported filetypes
 
 ---
 
@@ -38,7 +41,24 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - `nvim-treesitter`
 - Tree-sitter parsers for the languages you want to inspect
 
-Tracker HUD uses Tree-sitter to inspect the current buffer. If a parser is not available for the current filetype, the HUD will not have structural context to display.
+Tracker HUD requires both a Tree-sitter parser and a Tracker HUD adapter for full structural context. If a parser exists but no adapter is available for the filetype, the HUD will still appear and report that no adapter is available.
+
+---
+
+## Language adapters
+
+Tracker HUD now uses a modular adapter architecture.
+
+The HUD shell can appear for many filetypes, but structural context is only available when Tracker HUD has an adapter for that filetype.
+
+Current adapter support:
+
+| Filetype | Status |
+|---|---|
+| `lua` | Supported |
+| other filetypes | HUD appears, but structural adapter support is not yet implemented |
+
+Adapters are intended to become lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, scope construction, branch display formatting, and context output.
 
 ---
 
@@ -393,7 +413,7 @@ Current functionality is focused on structural awareness:
 
 - current function/scope
 - nested scope depth
-- basic `if` / `else` branch context
+- basic `if` / `elseif` / `else` branch context for Lua
 - HUD panel behavior
 - runtime panel position/size controls
 - resizing and focus handling
@@ -413,7 +433,7 @@ Planned future work:
 - C/C++ pointer allocation/free tracking
 - Diagnostics integration
 - Optional virtual text warnings
-- Language-specific analyzer modules
+- Additional language adapters and analyzer modules
 
 Current core structure:
 
@@ -423,19 +443,15 @@ lua/tracker_hud/
     config.lua
     state.lua
     context.lua
+    context_engine.lua
     hud.lua
+    constructs/
+        contract.lua
+    adapters/
+        loader.lua
+        registry.lua
+        lua_adapter.lua
 ```
-
-Possible future analyzer structure:
-
-```text
-lua/tracker_hud/
-    analyzers/
-        rust.lua
-        asm.lua
-        c.lua
-```
-
 ---
 
 ## Native Windows Perl note
@@ -448,16 +464,37 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 
 ## Version notes
 
+### `v0.4.2`
+
+- Made branch alternative labels spec-driven
+- Made branch alternative discovery spec-driven
+- Made branch display grouping controlled by adapter specs
+- Continued moving Lua adapter behavior toward declarative construct specs
+
+### `v0.4.1`
+
+- Added/refined shared `context_engine.lua`
+- Moved generic context helpers out of the Lua adapter
+- Added construct spec validation
+- Expanded Lua construct specs toward a declarative format
+
+### `v0.4.0`
+
+- Added adapter-based context architecture
+- Added Lua Tree-sitter adapter
+- Migrated context parsing away from hardcoded `target_nodes`
+- Added clearer missing-adapter behavior for unsupported filetypes
+
+### `v0.3.1`
+
+- Internal cleanup and follow-up fixes after `v0.3.0`
+
 ### `v0.3.0`
 
-Planned/expected focus:
-
-- runtime HUD panel position command
-- config/state module refactor
-- cleaner public configuration surface
-- README updates for panel position and runtime controls
-
-Validation work for internal state/config updates is planned, but may be handled after `v0.3.0` if it grows beyond a small safety pass.
+- Added runtime HUD panel position command
+- Refactored config/state handling
+- Cleaned public configuration surface
+- Updated README for panel position and runtime controls
 
 ---
 
