@@ -2,9 +2,7 @@
 --
 -- Lua Tree-sitter adapter.
 --
--- Converts Lua Tree-sitter nodes into normalized Tracker HUD constructs.
-
-local context_engine = require("tracker_hud.context_engine")
+-- Describes Lua Tree-sitter constructs for Tracker HUD.
 
 local M = {}
 
@@ -144,24 +142,6 @@ M.construct_specs = {
         creates_scope = true,
     },
 }
-
-
-
-
-function M.match_node(node, _bufnr)
-    local node_type = context_engine.get_node_type(node)
-
-    if not node_type then
-        return false
-    end
-    
-    return M.construct_specs[node_type] ~= nil
-end
-
-
-function M.parse_node(node, bufnr)
-    return context_engine.parse_node(M, node, bufnr)
-end
 
 
 return M
