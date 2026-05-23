@@ -155,6 +155,30 @@ function M.get_node_alternatives(node)
 end
 
 
+function M.build_branch_alternative_label(alternative_node, spec)
+    if not alternative_node or not is_table(spec) then
+        return nil
+    end
+
+    local branch_spec = spec.branch or {}
+    local alternatives = branch_spec.alternatives or {}
+    local alternative_type = alternative_node:type()
+
+    for _, alternative_spec in ipairs(alternatives) do
+        if is_table(alternative_spec)
+            and type(alternative_spec.node_match) == "string"
+            and type(alternative_spec.label) == "string"
+            and alternative_type:match(alternative_spec.node_match)
+        then
+            return alternative_spec.label
+        end
+    end
+
+    return nil
+end
+
+
+
 function M.build_branch_display_label(node, spec)
     local start_line = M.get_first_node_line(node)
 
@@ -171,14 +195,7 @@ function M.build_branch_display_label(node, spec)
     for _, alternative in ipairs(alternatives) do
         if M.position_in_node(cursor.row, cursor.col, alternative) then
             local alternative_line = M.get_first_node_line(alternative) or start_line
-            local alternative_type = alternative:type()
-
-            if alternative_type:match("elseif") then
-                local label = alternative_labels.elseif_label or "Else-If"
-                return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
-            end
-
-            local label = alternative_labels.else_label or "Else"
+            local label = M.get_branch_alternative_label(alternative, spec) or "Alternative"
             return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
         end
     end

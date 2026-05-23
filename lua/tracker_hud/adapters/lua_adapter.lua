@@ -99,8 +99,14 @@ local construct_specs = {
         branch = {
             grouped = true, 
             alternatives = {
-                elseif_label = "Else-If",
-                else_label = "Else",
+                {
+                    node_match = "elseif",
+                    label = "Else-If",
+                },
+                {
+                    node_match = "else",
+                    label = "Else",
+                },
             },
         },
 
