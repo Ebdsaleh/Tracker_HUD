@@ -21,6 +21,14 @@ local section_state = {
 }
 
 
+local function is_valid_window(winid)
+    return winid and vim.api.nvim_win_is_valid(winid)
+end
+
+local function is_valid_buffer(bufnr)
+    return bufnr and vim.api.nvim_buf_is_valid(bufnr)
+end
+
 local function toggle_section(section_id)
     if not section_id or section_state[section_id] == nil then
         return false
@@ -31,13 +39,39 @@ local function toggle_section(section_id)
 end
 
 
-local function is_valid_window(winid)
-    return winid and vim.api.nvim_win_is_valid(winid)
+local function get_panel_cursor_location()
+    if not is_valid_window(panel_winid) then
+        return nil
+    end
+
+    local ok, cursor = pcall(vim.api.nvim_win_get_cursor, panel_winid)
+
+    if not ok or not cursor then
+        return nil
+    end
+
+    return {
+        line = cursor[1],
+        column = cursor[2],
+    }
 end
 
-local function is_valid_buffer(bufnr)
-    return bufnr and vim.api.nvim_buf_is_valid(bufnr)
+
+local function set_panel_cursor_location(cursor)
+    if not cursor or not is_valid_window(panel_winid) or not is_valid_buffer(panel_bufnr) then
+        return false
+    end
+
+    local line_count = vim.api.nvim_buf_line_count(panel_bufnr)
+    local line = math.max(1, math.min(cursor.line or 1, line_count))
+    local column = math.max(0, cursor.column or 0)
+
+    pcall(vim.api.nvim_win_set_cursor, panel_winid, { line, column })
+
+    return true
 end
+
+
 
 local function clear_winbar()
     vim.wo.winbar = nil
@@ -525,21 +559,26 @@ function M.update_panel()
         return false
     end
 
+    if not is_valid_window(panel_winid) or not is_valid_buffer(panel_bufnr) then
+        return M.refresh()
+    end
+
     local current_winid = vim.api.nvim_get_current_win()
-    
-    M.render(last_context, last_config or {}, last_source_winid)
+    local panel_cursor = get_panel_cursor_location()
+    local lines = format_panel_lines(last_context)
+
+    vim.bo[panel_bufnr].modifiable = true
+    vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
+    vim.bo[panel_bufnr].modifiable = false
+
+    set_panel_cursor_location(panel_cursor)
 
     if is_valid_window(current_winid) then
-        vim.schedule(function()
-            if is_valid_window(current_winid) then 
-                pcall(vim.api.nvim_set_current_win, current_winid)
-            end
-        end)
+        pcall(vim.api.nvim_set_current_win, current_winid)
     end
 
     return true
 end
-
 
 function M.refresh()
     if not last_context then
