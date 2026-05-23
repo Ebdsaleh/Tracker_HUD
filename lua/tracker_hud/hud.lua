@@ -520,6 +520,27 @@ function M.reopen_panel()
 end
 
 
+function M.update_panel()
+    if not last_context then
+        return false
+    end
+
+    local current_winid = vim.api.nvim_get_current_win()
+    
+    M.render(last_context, last_config or {}, last_source_winid)
+
+    if is_valid_window(current_winid) then
+        vim.schedule(function()
+            if is_valid_window(current_winid) then 
+                pcall(vim.api.nvim_set_current_win, current_winid)
+            end
+        end)
+    end
+
+    return true
+end
+
+
 function M.refresh()
     if not last_context then
         return false
@@ -561,7 +582,7 @@ function M.toggle_section(section_id)
         return false
     end
 
-    M.refresh()
+    M.update_panel()
     return true
 end
 
