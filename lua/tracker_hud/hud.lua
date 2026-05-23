@@ -142,6 +142,16 @@ local function ensure_panel_buffer()
     -- Internal marker only. Do NOT use filetype here.
     vim.b[panel_bufnr].tracker_hud_panel = true
 
+    -- Toggle HUD sections from inside the panel.
+    vim.keymap.set("n", "<CR>", function()
+        require("tracker_hud.hud").toggle_section_at_panel_cursor()
+    end, {
+        buffer = panel_bufnr,
+        silent = true,
+        noremap = true,
+        desc = "Toggle Tracker HUD section",
+    })
+
     pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
     return panel_bufnr
@@ -518,6 +528,18 @@ function M.refresh()
     M.render(last_context, last_config or {}, last_source_winid)
     return true
 end
+
+
+function M.toggle_section_at_panel_cursor()
+    local section_id = M.get_section_at_panel_cursor()
+
+    if not section_id then
+        return false
+    end
+
+    return M.toggle_section(section_id)
+end
+
 
 
 function M.get_section_at_panel_cursor()
