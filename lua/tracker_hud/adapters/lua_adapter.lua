@@ -11,7 +11,7 @@ local M = {}
 M.name = "lua"
 M.filetypes =  { "lua" }
 
-local construct_specs = {
+M.construct_specs = {
     function_declaration = {
         kind = "callable",
         label = "Function",
@@ -155,14 +155,14 @@ function M.match_node(node, _bufnr)
         return false
     end
     
-    return construct_specs[node_type] ~= nil
+    return M.construct_specs[node_type] ~= nil
 end
 
 
 
 function M.parse_node(node, bufnr)
     local node_type = context_engine.get_node_type(node)
-    local spec, spec_err = context_engine.get_construct_spec(construct_specs, node_type)
+    local spec, spec_err = context_engine.get_construct_spec(M.construct_specs, node_type)
 
     if not spec then
         return nil, spec_err
