@@ -8,6 +8,8 @@ local resolved_panel_size = nil
 local last_context = nil
 local last_config = nil
 local last_source_winid = nil
+local panel_line_sections = {}
+
 
 
 local section_state = {
@@ -315,6 +317,8 @@ local function append_section_lines(lines, section)
     local marker = section.expanded and "[-]" or "[+]"
     table.insert(lines, section.title .. " " .. marker)
 
+    panel_line_sections[#lines] = section.id
+
     if section.expanded then
         if section.lines and #section.lines > 0 then
             for _, line in ipairs(section.lines) do
@@ -339,6 +343,8 @@ local function format_panel_lines(context)
             "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
         }
     end
+
+    panel_line_sections = {}
 
     local lines = {
         "Tracker HUD",
@@ -511,6 +517,18 @@ function M.refresh()
 
     M.render(last_context, last_config or {}, last_source_winid)
     return true
+end
+
+
+function M.get_section_at_panel_cursor()
+    if not is_valid_window(panel_winid) then
+        return nil
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(panel_winid)
+    local line_number = cursor[1]
+
+    return panel_line_sections[line_number]
 end
 
 
