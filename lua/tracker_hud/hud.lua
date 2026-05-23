@@ -384,7 +384,7 @@ local function format_panel_lines(context)
             "",
             "No Tree-sitter context available.",
             "",
-            "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
+            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
         }
     end
 
@@ -393,7 +393,7 @@ local function format_panel_lines(context)
     local lines = {
         "Tracker HUD",
         "",
-        "Tip: Use Ctrl+w then h/j/k/l to switch window focus.",
+        "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
         "",
     }
 
