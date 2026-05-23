@@ -125,6 +125,29 @@ function M.get_cursor_position()
 end
 
 
+
+function M.format_branch_display_label(start_line, base_label, alternative_label, alternative_line, grouped)
+    if grouped then
+        return "([" .. start_line .. "] "
+            .. base_label
+            .. " : "
+            .. alternative_label
+            .. " ["
+            .. alternative_line
+            .. "])"
+    end
+    
+    return "[" .. start_line .. "] "
+        .. base_label
+        .. " : "
+        .. alternative_label
+        .. " ["
+        .. alternative_line
+        .. "]"
+end
+
+
+
 function M.node_matches_branch_alternative(node, spec)
     if not node or not is_table(spec) then
         return false
@@ -209,13 +232,21 @@ function M.build_branch_display_label(node, spec)
 
     local cursor = M.get_cursor_position()
     local alternatives = M.get_node_alternatives(node, spec)
+    local branch_spec = spec.branch or {}
+    local grouped = branch_spec.grouped == true
 
     for _, alternative in ipairs(alternatives) do
         if M.position_in_node(cursor.row, cursor.col, alternative) then
             local alternative_line = M.get_first_node_line(alternative) or start_line
             local label = M.get_branch_alternative_label(alternative, spec) or "Alternative"
 
-            return "([" .. start_line .. "] " .. spec.label .. " : " .. label .. " [" .. alternative_line .. "])"
+            return M.format_branch_display_label(
+                start_line,
+                spec.label,
+                label,
+                alternative_line,
+                grouped
+            )
         end
     end
 

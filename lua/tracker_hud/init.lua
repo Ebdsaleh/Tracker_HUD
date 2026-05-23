@@ -91,7 +91,7 @@ local function update_hud()
         local winid = vim.api.nvim_get_current_win()
         local cursor = vim.api.nvim_win_get_cursor(winid)
         local current_context = context.get_cursor_context(bufnr, config)
-        
+
         local updated = state.update_source(bufnr, winid, cursor, current_context)
 
         if  not updated then
