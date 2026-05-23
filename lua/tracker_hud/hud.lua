@@ -6,6 +6,25 @@ local panel_bufnr = nil
 local panel_winid = nil
 local resolved_panel_size = nil
 
+local section_state = {
+    scope = true,
+    scope_members = false,
+    registers = false,
+    stack = false,
+    warnings = false,
+}
+
+
+local function toggle_section(section_id)
+    if not section_id or section_state[section_id] == nil then
+        return false
+    end
+
+    section_state[section_id] = not section_state[section_id]
+    return true
+end
+
+
 local function is_valid_window(winid)
     return winid and vim.api.nvim_win_is_valid(winid)
 end
@@ -232,31 +251,31 @@ local function build_hud_sections(context)
         {
             id = "scope",
             title = "Scope",
-            expanded = true,
+            expanded = section_state.scope == true,
             lines = {},
         },
         {
             id = "scope_members",
             title = "Scope Members",
-            expanded = false,
+            expanded = section_state.scope_members == true,
             lines = {},
         },
         {
             id = "registers",
             title = "Registers",
-            expanded = false,
+            expanded = section_state.registers == true,
             lines = {},
         },
         {
             id = "stack",
             title = "Stack",
-            expanded = false,
+            expanded = section_state.stack == true,
             lines = {},
         },
         {
             id = "warnings",
             title = "Warnings",
-            expanded = false,
+            expanded = section_state.warnings == true,
             lines = {},
         },
     }
@@ -475,5 +494,10 @@ function M.reopen_panel()
     panel_winid = nil
     resolved_panel_size = nil
 end
+
+function M.toggle_section(section_id)
+    return toggle_section(section_id)
+end
+
 
 return M
