@@ -2,6 +2,8 @@
 --
 -- HUD section state and section construction.
 
+local hud_controls = require("tracker_hud.hud_controls")
+
 local M = {}
 
 local section_state = {
@@ -10,6 +12,10 @@ local section_state = {
     registers = false,
     stack = false,
     warnings = false,
+}
+
+local control_state = {
+    show_all_scope_members = false,
 }
 
 local function is_valid_section(section_id)
@@ -34,7 +40,18 @@ function M.is_expanded(section_id)
     return section_state[section_id] == true
 end
 
+
+
 function M.build(context)
+    local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
+    local scope_member_lines = context.scope_members or {}
+
+    if show_all_scope_members then
+        scope_member_lines = context.all_scope_members or {}
+
+    end
+
+
     local sections = {
         {
             id = "scope",
@@ -44,10 +61,15 @@ function M.build(context)
             empty_text = "<no scope context>",
         },
         {
+            id = "show_all_scope_members",
+            kind = "control",
+            title = hud_controls.build_title("show_all_scope_members"),
+        },
+        {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = context.scope_members or {},
+            lines = scope_member_lines,
             empty_text = "<no scope members tracked yet>",
         },
         {

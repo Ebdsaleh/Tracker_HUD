@@ -1,6 +1,7 @@
 -- lua/tracker_hud/hud.lua
 
 local hud_sections = require("tracker_hud.hud_sections")
+local hud_controls = require("tracker_hud.hud_controls")
 
 
 local M = {}
@@ -293,6 +294,12 @@ end
 
 
 local function append_section_lines(lines, section)
+    if section.kind == "control" then
+        table.insert(lines, section.title or "<control>")
+        panel_line_sections[#lines] = section.id
+        return
+    end
+
     local marker = section.expanded and "[-]" or "[+]"
     table.insert(lines, section.title .. " " .. marker)
 
@@ -310,6 +317,7 @@ local function append_section_lines(lines, section)
 
     table.insert(lines, "")
 end
+
 
 
 local function format_panel_lines(context)
@@ -572,6 +580,10 @@ end
 
 function M.toggle_section(section_id)
     local ok = hud_sections.toggle(section_id)
+
+    if not ok then
+        ok = hud_controls.toggle(section_id)
+    end
 
     if not ok then
         return false
