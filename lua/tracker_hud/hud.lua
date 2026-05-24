@@ -303,7 +303,7 @@ local function append_section_lines(lines, section)
                 table.insert(lines, line)
             end
         else
-            table.insert(lines, "  <empty>")
+            table.insert(lines, "  " .. (section.empty_text or "<empty>"))
         end
     end
 

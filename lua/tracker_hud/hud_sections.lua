@@ -41,30 +41,35 @@ function M.build(context)
             title = "Scope",
             expanded = M.is_expanded("scope"),
             lines = {},
+            empty_text = "<no scope context>",
         },
         {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
             lines = {},
+            empty_text = "<no scope members tracked yet>",
         },
         {
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
             lines = {},
+            empty_text = "<register tracking not available yet>",
         },
         {
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
             lines = {},
+            empty_text = "<stack tracking not available yet>",
         },
         {
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
             lines = {},
+            empty_text = "<no warnings>",
         },
     }
 
