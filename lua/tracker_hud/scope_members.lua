@@ -63,6 +63,46 @@ local function node_type_matches(node, expected_type)
         and node:type() == expected_type
 end
 
+
+
+local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line)
+    if not list_node then
+        return
+    end
+    
+    for i = 0, list_node:named_child_count() - 1 do
+        local variable = list_node:named_child(i)
+        local name = get_node_text(variable, bufnr)
+
+        add_member(members, seen, name, kind, line)
+    end
+end
+
+
+local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line)
+    if not node then
+        return
+    end
+
+    if node_type_matches(node, list_node_type) then
+        collect_names_from_list_node(node, bufnr, members, seen, kind, line)
+        return
+    end
+    
+    for i = 0, node:named_child_count() - 1 do
+        collect_list_nodes_recursive(
+            node:named_child(i),
+            bufnr,
+            list_node_type,
+            members,
+            seen,
+            kind,
+            line
+        )
+    end
+end
+
+
 local function collect_declaration(node, bufnr, declaration_spec, members, seen)
     if not core.is_table(declaration_spec) then
         return
@@ -73,27 +113,18 @@ local function collect_declaration(node, bufnr, declaration_spec, members, seen)
     end
 
     local line = get_node_line(node)
-    local list_node_type = declaration_spec.list_node_type
 
-    for i = 0, node:named_child_count() - 1 do
-        local child = node:named_child(i)
-
-        if node_type_matches(child, list_node_type) then
-            for j = 0, child:named_child_count() - 1 do
-                local variable = child:named_child(j)
-                local name = get_node_text(variable, bufnr)
-
-                add_member(
-                    members,
-                    seen,
-                    name,
-                    declaration_spec.kind,
-                    line
-                )
-            end
-        end
-    end
+    collect_list_nodes_recursive(
+        node,
+        bufnr,
+        declaration_spec.list_node_type,
+        members,
+        seen,
+        declaration_spec.kind,
+        line
+    )
 end
+
 
 local function collect_from_node(node, bufnr, adapter, members, seen)
     if not node or not core.is_table(adapter) then

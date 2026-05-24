@@ -147,7 +147,7 @@ M.construct_specs = {
 M.scope_members = {
     declarations = {
         {
-            node_type = "variable_declaration",
+            node_type = "local_declaration",
             list_node_type = "variable_list",
             kind = "local",
         },
