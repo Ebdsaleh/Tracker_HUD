@@ -89,9 +89,9 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
         return
     end
     
-    for i = 0, node:named_child_count() - 1 do
+    for i = 0, node:child_count() - 1 do
         collect_list_nodes_recursive(
-            node:named_child(i),
+            node:child(i),
             bufnr,
             list_node_type,
             members,
@@ -133,7 +133,11 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
 
     -- Debug code
     if node and node:type() == "local_declaration" then
-        vim.notify("saw local_declaration")
+        vim.notify("detected node and saw local_declaration")
+    end
+
+    if node:type() == "local_declaration" then
+        vim.notify("did not look for node and saw local_declaration")
     end
     -- End Debug
     local scope_member_spec = adapter.scope_members or {}
@@ -148,6 +152,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
     end
 end
 
+
 local function walk_node(node, bufnr, adapter, members, seen)
     if not node then
         return
@@ -155,10 +160,12 @@ local function walk_node(node, bufnr, adapter, members, seen)
 
     collect_from_node(node, bufnr, adapter, members, seen)
 
-    for i = 0, node:named_child_count() - 1 do
-        walk_node(node:named_child(i), bufnr, adapter, members, seen)
+    for i = 0, node:child_count() - 1 do
+        walk_node(node:child(i), bufnr, adapter, members, seen)
     end
 end
+
+
 
 function M.collect(bufnr, root_node, adapter)
     local members = {}
