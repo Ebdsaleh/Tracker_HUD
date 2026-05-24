@@ -39,11 +39,17 @@ local function add_member(members, seen, name, kind, line, opts)
         return
     end
 
-    if seen[name] then
+    local seen_key = table.concat({
+        tostring(line or ""),
+        tostring(kind or ""),
+        name,
+    }, "|")
+
+    if seen[seen_key] then
         return
     end
 
-    seen[name] = true
+    seen[seen_key] = true
 
     local label = name
 
