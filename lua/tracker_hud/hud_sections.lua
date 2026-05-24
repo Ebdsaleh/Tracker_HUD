@@ -14,9 +14,6 @@ local section_state = {
     warnings = false,
 }
 
-local control_state = {
-    show_all_scope_members = false,
-}
 
 local function is_valid_section(section_id)
     return section_id ~= nil
@@ -41,6 +38,20 @@ function M.is_expanded(section_id)
 end
 
 
+
+local function build_scope_member_lines(members)
+    local lines = {}
+
+    for _, member in ipairs(members or {}) do
+        if type(member) == "table" then
+            table.insert(lines, member.label or tostring(member.name or ""))
+        elseif type(member) == "string" then
+            table.insert(lines, member)
+        end
+    end
+
+    return lines
+end
 
 function M.build(context)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
@@ -69,7 +80,7 @@ function M.build(context)
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = scope_member_lines,
+            lines = build_scope_member_lines(scope_member_lines),
             empty_text = "<no scope members tracked yet>",
         },
         {

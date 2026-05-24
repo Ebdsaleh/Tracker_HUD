@@ -9,20 +9,33 @@ local core = require("tracker_hud.core")
 
 local M = {}
 
-local function get_member_line(member)
-    if not core.is_string(member) then
-        return nil
+local function build_member_label(member)
+    if not core.is_table(member) then
+        return ""
     end
 
-    local line = member:match("^%[(%d+)%]")
+    local label = member.name or ""
 
-    if not line then
-        return nil
+    if core.is_non_empty_string(member.kind) then
+        label = member.kind .. " " .. label
     end
 
-    return tonumber(line)
+    if member.line then
+        label = "[" .. tostring(member.line) .. "] " .. label
+    end
+
+    return label
 end
 
+
+
+local function get_member_line(member)
+    if not core.is_table(member) then
+        return nil
+    end
+
+    return member.line
+end
 
 local function add_member(members, seen, name, kind, line, opts)
     if not core.is_non_empty_string(name) then
@@ -51,18 +64,18 @@ local function add_member(members, seen, name, kind, line, opts)
 
     seen[seen_key] = true
 
-    local label = name
+    local member = {
+        line = line,
+        kind = kind,
+        name = name,
+    }
 
-    if core.is_non_empty_string(kind) then
-        label = kind .. " " .. label
-    end
+    member.label = build_member_label(member)
 
-    if line then
-        label = "[" .. tostring(line) .. "] " .. label
-    end
-
-    table.insert(members, label)
+    table.insert(members, member)
 end
+
+
 
 local function get_node_line(node)
     if not node then
@@ -251,13 +264,13 @@ function M.collect(bufnr, root_node, adapter, opts)
 
         if left_line and right_line then
             if left_line == right_line then
-                return left < right
+                return (left.label or "") < (right.label or "")
             end
 
             return left_line < right_line
         end
 
-        return left < right
+        return (left.label or "") < (right.label or "")
     end)
 
     return members
