@@ -37,12 +37,22 @@ local function get_member_line(member)
     return member.line
 end
 
-local function add_member(members, seen, name, kind, line, opts, scope_depth)
+
+local function make_state(opts, scope_depth)
+    return {
+        opts = opts or {},
+        scope_depth = scope_depth or 0,
+    }
+end
+
+
+local function add_member(members, seen, name, kind, line, state)
     if not core.is_non_empty_string(name) then
         return
     end
 
-    opts = opts or {}
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
 
     if opts.start_line and line and line < opts.start_line then
         return
@@ -123,7 +133,7 @@ end
 
 
 
-local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, opts, scope_depth)
+local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, state)
     if not list_node then
         return
     end
@@ -132,18 +142,18 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
         local variable = list_node:named_child(i)
         local name = get_node_text(variable, bufnr)
 
-        add_member(members, seen, name, kind, line, opts, scope_depth)
+        add_member(members, seen, name, kind, line, state)
     end
 end
 
 
-local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, opts, scope_depth)
+local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, state)
     if not node then
         return
     end
 
     if node_type_matches(node, list_node_type) then
-        collect_names_from_list_node(node, bufnr, members, seen, kind, line, opts, scope_depth)
+        collect_names_from_list_node(node, bufnr, members, seen, kind, line, state)
         return
     end
 
@@ -156,16 +166,18 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
             seen,
             kind,
             line,
-            opts,
-            scope_depth
+            state
         )
     end
 end
 
-local function collect_member_spec(node, bufnr, member_spec, members, seen, opts, scope_depth)
+local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
     end
+    
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
 
     if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
         return
@@ -185,22 +197,22 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, opts
         seen,
         member_spec.kind,
         line,
-        opts,
-        scope_depth
+        state
     )
 end
 
-local function collect_member_group(node, bufnr, specs, members, seen, opts, scope_depth)
+local function collect_member_group(node, bufnr, specs, members, seen, state)
+
     if not core.is_table(specs) then
         return
     end
 
     for _, member_spec in ipairs(specs) do
-        collect_member_spec(node, bufnr, member_spec, members, seen, opts, scope_depth)
+        collect_member_spec(node, bufnr, member_spec, members, seen, state)
     end
 end
 
-local function collect_from_node(node, bufnr, adapter, members, seen, opts, scope_depth)
+local function collect_from_node(node, bufnr, adapter, members, seen, state)
     if not node or not core.is_table(adapter) then
         return
     end
@@ -213,8 +225,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, opts, scop
         scope_member_spec.declarations,
         members,
         seen,
-        opts,
-        scope_depth
+        state
     )
 
     collect_member_group(
@@ -223,27 +234,27 @@ local function collect_from_node(node, bufnr, adapter, members, seen, opts, scop
         scope_member_spec.parameters,
         members,
         seen,
-        opts,
-        scope_depth
-    )
+        state
+   )
 end
 
-local function walk_node(node, bufnr, adapter, members, seen, opts, scope_depth)
+local function walk_node(node, bufnr, adapter, members, seen, state)
     if not node then
         return
     end
 
-    scope_depth = scope_depth or 0
-    collect_from_node(node, bufnr, adapter, members, seen, opts, scope_depth)
+    state = state or make_state()
 
-    local child_scope_depth = scope_depth
+    collect_from_node(node, bufnr, adapter, members, seen, state)
+
+    local child_state = make_state(state.opts, state.scope_depth)
 
     if node_creates_scope(node, adapter) then
-        child_scope_depth = child_scope_depth + 1
+        child_state.scope_depth = child_state.scope_depth + 1
     end
 
     for child in node:iter_children() do
-        walk_node(child, bufnr, adapter, members, seen, opts, child_scope_depth)
+        walk_node(child, bufnr, adapter, members, seen, child_state)
     end
 end
 
@@ -260,7 +271,7 @@ function M.collect(bufnr, root_node, adapter, opts)
         return members
     end
 
-    walk_node(root_node, bufnr, adapter, members, seen, opts or {}, 0)
+    walk_node(root_node, bufnr, adapter, members, seen, make_state(opts, 0))
 
     table.sort(members, function(left, right)
         local left_line = get_member_line(left)
