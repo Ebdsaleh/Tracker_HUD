@@ -131,6 +131,11 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
         return
     end
 
+    -- Debug code
+    if node and node:type() == "local_declaration" then
+        vim.notify("saw local_declaration")
+    end
+    -- End Debug
     local scope_member_spec = adapter.scope_members or {}
     local declarations = scope_member_spec.declarations or {}
 
@@ -167,9 +172,14 @@ function M.collect(bufnr, root_node, adapter)
         return members
     end
 
+    -- Debug code
+    vim.notify("root node: " .. tostring(root_node:type()))
+    -- End Debug
     walk_node(root_node, bufnr, adapter, members, seen)
 
+    -- Debug Code
     vim.notify("scope members found: " .. tostring(#members))
+    -- End Debug
     table.sort(members)
 
     return members
