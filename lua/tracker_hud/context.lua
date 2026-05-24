@@ -82,7 +82,10 @@ function M.get_cursor_context(bufnr, config)
     end
 
     local context = context_engine.build_context_from_scopes(scopes, config)
-    context.scope_members = scope_members.collect(bufnr, root_node, adapter)
+    context.scope_members = scope_members.collect(bufnr, root_node, adapter,{
+        start_line = context.start_line,
+        end_line = context.end_line,
+    })
 
     return context
 end

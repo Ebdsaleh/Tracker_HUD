@@ -9,8 +9,18 @@ local core = require("tracker_hud.core")
 
 local M = {}
 
-local function add_member(members, seen, name, kind, line)
+local function add_member(members, seen, name, kind, line, opts)
     if not core.is_non_empty_string(name) then
+        return
+    end
+
+    opts = opts or {}
+
+    if opts.start_line and line and line < opts.start_line then
+        return
+    end
+
+    if opts.end_line and line and line > opts.end_line then
         return
     end
 
@@ -65,7 +75,7 @@ end
 
 
 
-local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line)
+local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, opts)
     if not list_node then
         return
     end
@@ -74,18 +84,18 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
         local variable = list_node:named_child(i)
         local name = get_node_text(variable, bufnr)
 
-        add_member(members, seen, name, kind, line)
+        add_member(members, seen, name, kind, line, opts)
     end
 end
 
 
-local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line)
+local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, opts)
     if not node then
         return
     end
 
     if node_type_matches(node, list_node_type) then
-        collect_names_from_list_node(node, bufnr, members, seen, kind, line)
+        collect_names_from_list_node(node, bufnr, members, seen, kind, line, opts)
         return
     end
 
@@ -97,12 +107,13 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
             members,
             seen,
             kind,
-            line
+            line,
+            opts
         )
     end
 end
 
-local function collect_declaration(node, bufnr, declaration_spec, members, seen)
+local function collect_declaration(node, bufnr, declaration_spec, members, seen, opts)
     if not core.is_table(declaration_spec) then
         return
     end
@@ -120,19 +131,15 @@ local function collect_declaration(node, bufnr, declaration_spec, members, seen)
         members,
         seen,
         declaration_spec.kind,
-        line
+        line,
+        opts
     )
 end
 
 
-local function collect_from_node(node, bufnr, adapter, members, seen)
+local function collect_from_node(node, bufnr, adapter, members, seen, opts)
     if not node or not core.is_table(adapter) then
         return
-    end
-
-    -- Temporary debug: proves whether traversal reaches Lua local declarations.
-    if node:type() == "local_declaration" then
-        vim.notify("saw local_declaration")
     end
 
     local scope_member_spec = adapter.scope_members or {}
@@ -143,26 +150,26 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
     end
 
     for _, declaration_spec in ipairs(declarations) do
-        collect_declaration(node, bufnr, declaration_spec, members, seen)
+        collect_declaration(node, bufnr, declaration_spec, members, seen, opts)
     end
 end
 
 
 
-local function walk_node(node, bufnr, adapter, members, seen)
+local function walk_node(node, bufnr, adapter, members, seen, opts)
     if not node then
         return
     end
 
-    collect_from_node(node, bufnr, adapter, members, seen)
+    collect_from_node(node, bufnr, adapter, members, seen, opts)
 
     for child in node:iter_children() do
-        walk_node(child, bufnr, adapter, members, seen)
+        walk_node(child, bufnr, adapter, members, seen, opts)
     end
 end
 
 
-function M.collect(bufnr, root_node, adapter)
+function M.collect(bufnr, root_node, adapter, opts)
     local members = {}
     local seen = {}
 
@@ -174,7 +181,7 @@ function M.collect(bufnr, root_node, adapter)
         return members
     end
 
-    walk_node(root_node, bufnr, adapter, members, seen)
+    walk_node(root_node, bufnr, adapter, members, seen, opts)
 
     table.sort(members)
 
