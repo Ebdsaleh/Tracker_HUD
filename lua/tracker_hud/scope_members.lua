@@ -9,6 +9,21 @@ local core = require("tracker_hud.core")
 
 local M = {}
 
+local function get_member_line(member)
+    if not core.is_string(member) then
+        return nil    
+    end
+
+    local line = member:match("^%[(%d+)%]")
+
+    if not line then
+        return nil
+    end
+
+    return tonumber(line)
+end
+
+
 local function add_member(members, seen, name, kind, line, opts)
     if not core.is_non_empty_string(name) then
         return
@@ -183,7 +198,20 @@ function M.collect(bufnr, root_node, adapter, opts)
 
     walk_node(root_node, bufnr, adapter, members, seen, opts)
 
-    table.sort(members)
+    table.sort(members, function(left, right)
+        local left_line = get_member_line(left)
+        local right_line = get_member_line(right)
+
+        if left_line and right_line then
+            if left_line == right_line then
+                return left < right
+            end
+
+            return left_line < right_line
+        end
+
+        return left < right
+    end)
 
     return members
 end
