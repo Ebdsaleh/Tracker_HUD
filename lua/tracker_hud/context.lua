@@ -4,6 +4,7 @@ local M = {}
 
 local adapter_registry = require("tracker_hud.adapters.registry")
 local context_engine = require("tracker_hud.context_engine")
+local scope_members = require("tracker_hud.scope_members")
 
 
 
@@ -47,10 +48,21 @@ function M.get_cursor_context(bufnr, config)
         )
     end
 
+    local tree = parser:parse()[1]
+    local root_node = nil
+
+    if tree then
+        root_node = tree:root()
+    end
+
+    local adapter = adapter_registry.get_adapter(filetype)
+
     local node = vim.treesitter.get_node()
 
     if not node then
-        return context_engine.make_global_context()
+        local context = context_engine.make_global_context()
+        context.scope_members = scope_members.collect(bufnr, root_node, adapter)
+        return context
     end
 
     local scopes = {}
@@ -69,7 +81,10 @@ function M.get_cursor_context(bufnr, config)
         node = node:parent()
     end
 
-    return context_engine.build_context_from_scopes(scopes, config)
+    local context = context_engine.build_context_from_scopes(scopes, config)
+    context.scope_members = scope_members.collect(bufnr, root_node, adapter)
+
+    return context
 end
 
 return M
