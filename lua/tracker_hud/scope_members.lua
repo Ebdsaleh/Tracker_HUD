@@ -169,6 +169,7 @@ function M.collect(bufnr, root_node, adapter)
 
     walk_node(root_node, bufnr, adapter, members, seen)
 
+    vim.notify("scope members found: " .. tostring(#members))
     table.sort(members)
 
     return members
