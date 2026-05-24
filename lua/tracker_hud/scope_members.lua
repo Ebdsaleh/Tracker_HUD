@@ -88,10 +88,10 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
         collect_names_from_list_node(node, bufnr, members, seen, kind, line)
         return
     end
-    
-    for i = 0, node:child_count() - 1 do
+
+    for child in node:iter_children() do
         collect_list_nodes_recursive(
-            node:child(i),
+            child,
             bufnr,
             list_node_type,
             members,
@@ -101,7 +101,6 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
         )
     end
 end
-
 
 local function collect_declaration(node, bufnr, declaration_spec, members, seen)
     if not core.is_table(declaration_spec) then
@@ -131,15 +130,11 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
         return
     end
 
-    -- Debug code
-    if node and node:type() == "local_declaration" then
-        vim.notify("detected node and saw local_declaration")
+    -- Temporary debug: proves whether traversal reaches Lua local declarations.
+    if node:type() == "local_declaration" then
+        vim.notify("saw local_declaration")
     end
 
-    if node:type() == "local_declaration" then
-        vim.notify("did not look for node and saw local_declaration")
-    end
-    -- End Debug
     local scope_member_spec = adapter.scope_members or {}
     local declarations = scope_member_spec.declarations or {}
 
@@ -153,6 +148,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen)
 end
 
 
+
 local function walk_node(node, bufnr, adapter, members, seen)
     if not node then
         return
@@ -160,11 +156,10 @@ local function walk_node(node, bufnr, adapter, members, seen)
 
     collect_from_node(node, bufnr, adapter, members, seen)
 
-    for i = 0, node:child_count() - 1 do
-        walk_node(node:child(i), bufnr, adapter, members, seen)
+    for child in node:iter_children() do
+        walk_node(child, bufnr, adapter, members, seen)
     end
 end
-
 
 
 function M.collect(bufnr, root_node, adapter)
