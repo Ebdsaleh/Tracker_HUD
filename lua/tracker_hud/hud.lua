@@ -330,16 +330,19 @@ local function format_panel_lines(context)
         "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
         "",
     }
-
+    -- Current Scope Lines:
     if context.start_line and context.end_line then
-        table.insert(lines, "Current scope lines: " .. context.start_line .. " - " .. context.end_line)
+        scope_lines = tostring(context.start_line) .. " - " .. tostring(context.end_line)
     end
 
+    table.insert(lines, "Current scope lines: " .. scope_lines)
+
+    -- Depth:
     table.insert(lines, "Depth: " .. tostring(context.depth or 0))
 
-    
+    -- Current Line:
     if context.cursor and context.cursor.line then
-        table.insert(lines, "Current: [" .. tostring(context.cursor.line) .. "]")
+        table.insert(lines, "Current Line: [" .. tostring(context.cursor.line) .. "]")
     end
 
 
