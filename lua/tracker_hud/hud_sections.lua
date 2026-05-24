@@ -47,7 +47,7 @@ function M.build(context)
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = {},
+            lines = context.scope_members or {},
             empty_text = "<no scope members tracked yet>",
         },
         {

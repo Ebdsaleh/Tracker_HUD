@@ -26,6 +26,7 @@ function M.make_global_context()
         depth = 0,
         path = {},
         scopes = {},
+        scope_members = {},
         cursor = M.get_cursor_location(),
     }
 end
@@ -39,6 +40,7 @@ function M.make_unavailable_context(message, filetype)
         depth = 0,
         path = {},
         scopes = {},
+        scope_members = {},
         cursor = M.get_cursor_location(),
         unavailable = true,
         filetype = filetype,
@@ -372,6 +374,7 @@ function M.build_context_from_scopes(scopes, config)
     context.depth = #scopes
     context.path = path
     context.scopes = scopes
+    context.scope_members = {}
 
     return context
 end
