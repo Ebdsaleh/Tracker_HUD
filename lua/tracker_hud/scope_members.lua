@@ -11,7 +11,7 @@ local M = {}
 
 local function get_member_line(member)
     if not core.is_string(member) then
-        return nil    
+        return nil
     end
 
     local line = member:match("^%[(%d+)%]")
@@ -82,6 +82,18 @@ local function get_node_text(node, bufnr)
     return text
 end
 
+
+local function node_creates_scope(node, adapter)
+    if not node or not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
+        return false
+    end
+    
+    local spec = adapter.construct_specs[node:type()]
+
+    return core.is_table(spec) and spec.creates_scope == true
+end
+
+
 local function node_type_matches(node, expected_type)
     return node
         and core.is_non_empty_string(expected_type)
@@ -128,8 +140,12 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
     end
 end
 
-local function collect_declaration(node, bufnr, declaration_spec, members, seen, opts)
+local function collect_declaration(node, bufnr, declaration_spec, members, seen, opts, scope_depth)
     if not core.is_table(declaration_spec) then
+        return
+    end
+
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
         return
     end
 
@@ -152,7 +168,7 @@ local function collect_declaration(node, bufnr, declaration_spec, members, seen,
 end
 
 
-local function collect_from_node(node, bufnr, adapter, members, seen, opts)
+local function collect_from_node(node, bufnr, adapter, members, seen, opts, scope_depth)
     if not node or not core.is_table(adapter) then
         return
     end
@@ -165,21 +181,28 @@ local function collect_from_node(node, bufnr, adapter, members, seen, opts)
     end
 
     for _, declaration_spec in ipairs(declarations) do
-        collect_declaration(node, bufnr, declaration_spec, members, seen, opts)
+        collect_declaration(node, bufnr, declaration_spec, members, seen, opts, scope_depth)
     end
 end
 
 
 
-local function walk_node(node, bufnr, adapter, members, seen, opts)
+local function walk_node(node, bufnr, adapter, members, seen, opts, scope_depth)
     if not node then
         return
     end
 
-    collect_from_node(node, bufnr, adapter, members, seen, opts)
+    scope_depth = scope_depth or 0
+    collect_from_node(node, bufnr, adapter, members, seen, opts, scope_depth)
+
+    local child_scope_depth = scope_depth
+
+    if node_creates_scope(node, adapter) then
+        child_scope_depth = child_scope_depth + 1
+    end
 
     for child in node:iter_children() do
-        walk_node(child, bufnr, adapter, members, seen, opts)
+        walk_node(child, bufnr, adapter, members, seen, opts, child_scope_depth)
     end
 end
 
@@ -196,7 +219,7 @@ function M.collect(bufnr, root_node, adapter, opts)
         return members
     end
 
-    walk_node(root_node, bufnr, adapter, members, seen, opts)
+    walk_node(root_node, bufnr, adapter, members, seen, opts or {}, 0)
 
     table.sort(members, function(left, right)
         local left_line = get_member_line(left)

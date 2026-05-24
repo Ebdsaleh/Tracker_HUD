@@ -24,13 +24,13 @@ local function try_parse_construct_with_adapter(bufnr, node)
     end
 
     local construct, _err = adapter_registry.parse_node(filetype, node, bufnr)
-    
     return construct
 end
 
+
 function M.get_cursor_context(bufnr, config)
     config = config or {}
-    
+
     local filetype = vim.bo[bufnr].filetype
     local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
 
@@ -61,8 +61,14 @@ function M.get_cursor_context(bufnr, config)
 
     if not node then
         local context = context_engine.make_global_context()
-        context.scope_members = scope_members.collect(bufnr, root_node, adapter)
-        context.all_scope_members = context.scope_members
+
+        context.scope_members = scope_members.collect(bufnr, root_node, adapter, {
+            scope_depth = 0,
+            cursor_line = context.cursor and context.cursor.line,
+        })
+
+        context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
+
         return context
     end
 
@@ -83,11 +89,19 @@ function M.get_cursor_context(bufnr, config)
     end
 
     local context = context_engine.build_context_from_scopes(scopes, config)
-    context.scope_members = scope_members.collect(bufnr, root_node, adapter, {
-        start_line = context.start_line,
-        end_line = context.end_line,
+
+    local scope_member_opts = {
         cursor_line = context.cursor and context.cursor.line,
-    })
+    }
+
+    if context.depth and context.depth > 0 then
+        scope_member_opts.start_line = context.start_line
+        scope_member_opts.end_line = context.end_line
+    else
+        scope_member_opts.scope_depth = 0
+    end
+
+    context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
 
     context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
 
