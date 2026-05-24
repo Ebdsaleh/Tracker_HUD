@@ -170,14 +170,14 @@ local function ensure_panel_buffer()
         desc = "Toggle Tracker HUD section",
     })
     
-    -- Toggle HUD sections from inside the panel (mouse support)
+    -- Toggle HUD sections from inside the panel (mouse support).
     vim.keymap.set("n", "<2-LeftMouse>", function()
         require("tracker_hud.hud").toggle_section_at_panel_cursor()
     end, {
         buffer = panel_bufnr,
         silent = true,
         noremap = true,
-        desc ="Toggle Tracker HUD section with double click",
+        desc = "Toggle Tracker HUD section with double click",
     })
 
     pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
@@ -331,17 +331,22 @@ local function format_panel_lines(context)
         "",
     }
 
-    local sections = hud_sections.build(context)
-
-    for _, section in ipairs(sections) do
-        append_section_lines(lines, section)
+    if context.cursor and context.cursor.line then
+        table.insert(lines, "Current: [" .. tostring(context.cursor.line) .. "]")
     end
 
-    table.insert(lines, "")
     table.insert(lines, "Depth: " .. tostring(context.depth or 0))
 
     if context.start_line and context.end_line then
         table.insert(lines, "Current scope lines: " .. context.start_line .. " - " .. context.end_line)
+    end
+
+    table.insert(lines, "")
+
+    local sections = hud_sections.build(context)
+
+    for _, section in ipairs(sections) do
+        append_section_lines(lines, section)
     end
 
     return lines

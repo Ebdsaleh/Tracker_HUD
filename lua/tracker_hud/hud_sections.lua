@@ -84,13 +84,6 @@ function M.build(context)
         table.insert(scope_section.lines, "  " .. context.label)
     end
 
-    if context.cursor and context.cursor.line then
-        table.insert(
-            scope_section.lines,
-            "  Current: [" .. tostring(context.cursor.line) .. "]"
-        )
-    end
-
     return sections
 end
 
