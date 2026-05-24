@@ -6,7 +6,8 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, panel display, panel positioning/resizing, scope breadcrumbs, and a modular spec-driven adapter architecture.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, and a modular spec-driven adapter architecture.
+
 ---
 
 ## Features
@@ -31,6 +32,14 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Adapter-based language context architecture
 - Lua construct adapter with spec-driven branch alternatives
 - Clear missing-adapter messages for unsupported filetypes
+- Interactive HUD sections
+- Expand/collapse HUD sections with `<CR>`
+- Double-click HUD section/control interaction with the mouse
+- Stable HUD status block for current line, scope lines, and scope depth
+- Scope Members section for adapter-driven local declaration discovery
+- Scope Members filtering by active scope and cursor position
+- Show All Scope Members HUD control
+- Shared HUD control registry
 
 ---
 
@@ -58,6 +67,7 @@ Current adapter support:
 | other filetypes | HUD appears, but structural adapter support is not yet implemented |
 
 Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, and context output.
+
 ---
 
 ## Installation
@@ -139,6 +149,53 @@ Panel mode opens a docked HUD window and keeps focus in the source file.
 
 ---
 
+## Interactive HUD panel
+
+In panel mode, Tracker HUD displays multiple HUD sections.
+
+Current sections include:
+
+```text
+Scope
+Scope Members
+Registers
+Stack
+Warnings
+```
+
+Sections can be expanded or collapsed from inside the HUD panel.
+
+| Input | Action |
+|---|---|
+| `<CR>` | Toggle the HUD section or control under the cursor |
+| Double left click | Toggle the HUD section or control under the mouse cursor |
+
+The HUD panel preserves panel cursor position during interactive updates.
+
+### Scope Members
+
+The `Scope Members` section displays statically discovered local declarations from the current language adapter.
+
+For Lua, Tracker HUD currently detects local declarations using Tree-sitter and the Lua adapter's `scope_members` specification.
+
+By default, Scope Members shows declarations relevant to the active scope and current cursor position.
+
+The HUD also provides a control:
+
+```text
+[ ] Show All Scope Members
+```
+
+When enabled:
+
+```text
+[+] Show All Scope Members
+```
+
+the Scope Members section displays all discovered scope members from the current file.
+
+---
+
 ## Configuration
 
 Default configuration:
@@ -175,7 +232,6 @@ require("tracker_hud").setup({
         auto_size = "<leader><CR>",
         step = 2,
     },
-
 })
 ```
 
@@ -297,7 +353,6 @@ This changes the current session only. It does not rewrite your Neovim configura
 
 ---
 
-
 ## Keymaps
 
 Tracker HUD registers normal-mode panel resize keymaps by default.
@@ -415,6 +470,10 @@ Current functionality is focused on structural awareness:
 - HUD panel behavior
 - runtime panel position/size controls
 - resizing and focus handling
+- Scope member tracking is static and name-based only
+- Scope Members currently tracks declarations, not runtime values
+- Scope Members does not yet fully model shadowing, lifetime, mutation, or control-flow visibility
+- Registers, Stack, and Warnings are placeholder sections
 
 It does **not yet** perform full memory, ownership, lifetime, stack, or heap analysis.
 
@@ -425,7 +484,11 @@ It does **not yet** perform full memory, ownership, lifetime, stack, or heap ana
 Planned future work:
 
 - Better panel formatting
-- Expandable/collapsible HUD sections
+- Structured Scope Member entries instead of display strings
+- Function parameter discovery
+- Loop variable discovery
+- Better shadowing and lifetime handling for Scope Members
+- HUD highlights/colors for section headers, controls, warnings, and muted text
 - Rust ownership and lifetime hints
 - ASM stack pointer / heap tracking
 - C/C++ pointer allocation/free tracking
@@ -439,10 +502,14 @@ Current core structure:
 lua/tracker_hud/
     init.lua
     config.lua
+    core.lua
     state.lua
     context.lua
     context_engine.lua
+    scope_members.lua
     hud.lua
+    hud_sections.lua
+    hud_controls.lua
     constructs/
         contract.lua
     adapters/
@@ -450,6 +517,7 @@ lua/tracker_hud/
         registry.lua
         lua_adapter.lua
 ```
+
 ---
 
 ## Native Windows Perl note
@@ -461,6 +529,23 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.6.0`
+
+- Added interactive HUD sections
+- Added expand/collapse support for HUD sections
+- Added `<CR>` section/control toggling inside the HUD panel
+- Added double-click mouse toggling for HUD panel rows
+- Added stable HUD status layout for current line, current scope lines, and scope depth
+- Added `hud_sections.lua` for HUD section state and construction
+- Added `hud_controls.lua` for HUD control state and control title rendering
+- Added `core.lua` for shared validation helpers
+- Added `scope_members.lua` for static adapter-driven scope member discovery
+- Added Lua adapter `scope_members` declaration specifications
+- Added Scope Members HUD section
+- Added scope member filtering by active scope range and cursor position
+- Added Show All Scope Members HUD control
+- Added numeric line sorting for scope member display
 
 ### `v0.5.0`
 
@@ -514,5 +599,3 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
-
-
