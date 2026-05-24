@@ -174,9 +174,6 @@ function M.collect(bufnr, root_node, adapter)
         return members
     end
 
-    -- Debug code
-    vim.notify("root node: " .. tostring(root_node:type()))
-    -- End Debug
     walk_node(root_node, bufnr, adapter, members, seen)
 
     table.sort(members)
