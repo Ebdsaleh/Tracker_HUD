@@ -140,8 +140,8 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
     end
 end
 
-local function collect_declaration(node, bufnr, declaration_spec, members, seen, opts, scope_depth)
-    if not core.is_table(declaration_spec) then
+local function collect_member_spec(node, bufnr, member_spec, members, seen, opts, scope_depth)
+    if not core.is_table(member_spec) then
         return
     end
 
@@ -149,7 +149,7 @@ local function collect_declaration(node, bufnr, declaration_spec, members, seen,
         return
     end
 
-    if not node_type_matches(node, declaration_spec.node_type) then
+    if not node_type_matches(node, member_spec.node_type) then
         return
     end
 
@@ -158,15 +158,24 @@ local function collect_declaration(node, bufnr, declaration_spec, members, seen,
     collect_list_nodes_recursive(
         node,
         bufnr,
-        declaration_spec.list_node_type,
+        member_spec.list_node_type,
         members,
         seen,
-        declaration_spec.kind,
+        member_spec.kind,
         line,
         opts
     )
 end
 
+local function collect_member_group(node, bufnr, specs, members, seen, opts, scope_depth)
+    if not core.is_table(specs) then
+        return
+    end
+
+    for _, member_spec in ipairs(specs) do
+        collect_member_spec(node, bufnr, member_spec, members, seen, opts, scope_depth)
+    end
+end
 
 local function collect_from_node(node, bufnr, adapter, members, seen, opts, scope_depth)
     if not node or not core.is_table(adapter) then
@@ -174,18 +183,27 @@ local function collect_from_node(node, bufnr, adapter, members, seen, opts, scop
     end
 
     local scope_member_spec = adapter.scope_members or {}
-    local declarations = scope_member_spec.declarations or {}
 
-    if not core.is_table(declarations) then
-        return
-    end
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.declarations,
+        members,
+        seen,
+        opts,
+        scope_depth
+    )
 
-    for _, declaration_spec in ipairs(declarations) do
-        collect_declaration(node, bufnr, declaration_spec, members, seen, opts, scope_depth)
-    end
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.parameters,
+        members,
+        seen,
+        opts,
+        scope_depth
+    )
 end
-
-
 
 local function walk_node(node, bufnr, adapter, members, seen, opts, scope_depth)
     if not node then

@@ -152,6 +152,18 @@ M.scope_members = {
             kind = "local",
         },
     },
-}
 
+    parameters = {
+        {
+            node_type = "function_declaration",
+            list_node_type = "parameters",
+            kind = "param",
+        },
+        {
+            node_type = "function_definition",
+            list_node_type = "parameters",
+            kind = "param",
+        },
+    },
+}
 return M
