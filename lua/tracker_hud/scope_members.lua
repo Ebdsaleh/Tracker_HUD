@@ -37,7 +37,7 @@ local function get_member_line(member)
     return member.line
 end
 
-local function add_member(members, seen, name, kind, line, opts)
+local function add_member(members, seen, name, kind, line, opts, scope_depth)
     if not core.is_non_empty_string(name) then
         return
     end
@@ -55,6 +55,7 @@ local function add_member(members, seen, name, kind, line, opts)
     local seen_key = table.concat({
         tostring(line or ""),
         tostring(kind or ""),
+        tostring(scope_depth or 0),
         name,
     }, "|")
 
@@ -68,6 +69,7 @@ local function add_member(members, seen, name, kind, line, opts)
         line = line,
         kind = kind,
         name = name,
+        scope_depth = scope_depth or 0,
     }
 
     member.label = build_member_label(member)
@@ -121,7 +123,7 @@ end
 
 
 
-local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, opts)
+local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, opts, scope_depth)
     if not list_node then
         return
     end
@@ -130,18 +132,18 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
         local variable = list_node:named_child(i)
         local name = get_node_text(variable, bufnr)
 
-        add_member(members, seen, name, kind, line, opts)
+        add_member(members, seen, name, kind, line, opts, scope_depth)
     end
 end
 
 
-local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, opts)
+local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, opts, scope_depth)
     if not node then
         return
     end
 
     if node_type_matches(node, list_node_type) then
-        collect_names_from_list_node(node, bufnr, members, seen, kind, line, opts)
+        collect_names_from_list_node(node, bufnr, members, seen, kind, line, opts, scope_depth)
         return
     end
 
@@ -154,7 +156,8 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
             seen,
             kind,
             line,
-            opts
+            opts,
+            scope_depth
         )
     end
 end
@@ -182,7 +185,8 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, opts
         seen,
         member_spec.kind,
         line,
-        opts
+        opts,
+        scope_depth
     )
 end
 
