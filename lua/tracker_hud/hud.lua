@@ -330,6 +330,8 @@ local function format_panel_lines(context)
         "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
         "",
     }
+
+    local scope_lines = " "
     -- Current Scope Lines:
     if context.start_line and context.end_line then
         scope_lines = tostring(context.start_line) .. " - " .. tostring(context.end_line)
