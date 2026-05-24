@@ -331,7 +331,7 @@ local function format_panel_lines(context)
         "",
     }
 
-    local scope_lines = " "
+    local scope_lines = ""
     -- Current Scope Lines:
     if context.start_line and context.end_line then
         scope_lines = tostring(context.start_line) .. " - " .. tostring(context.end_line)
