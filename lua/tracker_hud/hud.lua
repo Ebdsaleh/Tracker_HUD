@@ -331,22 +331,31 @@ local function format_panel_lines(context)
         "",
     }
 
-    local scope_lines = ""
     -- Current Scope Lines:
-    if context.start_line and context.end_line then
-        scope_lines = tostring(context.start_line) .. " - " .. tostring(context.end_line)
-    end
+    local scope_line_text = "Current scope lines:"
 
-    table.insert(lines, "Current scope lines: " .. scope_lines)
+    if context.start_line and context.end_line then
+        scope_line_text = scope_line_text
+            .. " "
+            .. tostring(context.start_line)
+            .. " - "
+            .. tostring(context.end_line)
+    end
+    table.insert(lines, scope_line_text)
 
     -- Depth:
     table.insert(lines, "Depth: " .. tostring(context.depth or 0))
 
     -- Current Line:
-    if context.cursor and context.cursor.line then
-        table.insert(lines, "Current Line: [" .. tostring(context.cursor.line) .. "]")
-    end
+    local current_line_text = "Current Line:"
 
+    if context.cursor and context.cursor.line then
+        current_line_text = current_line_text
+            .. " ["
+            .. tostring(context.cursor.line)
+            .. "]"
+    end
+    table.insert(lines, current_line_text)
 
     table.insert(lines, "")
 
