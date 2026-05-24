@@ -2,6 +2,7 @@
 
 local hud_sections = require("tracker_hud.hud_sections")
 
+
 local M = {}
 
 local panel_bufnr = nil
