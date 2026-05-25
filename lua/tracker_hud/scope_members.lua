@@ -17,7 +17,7 @@ local function build_member_label(member)
     local label = member.name or ""
 
     if core.is_non_empty_string(member.kind) then
-        label = member.kind .. " " .. label
+        label = "(" .. member.kind .. ") " .. label
     end
 
     if member.line then
@@ -89,6 +89,15 @@ local function add_member(members, seen, name, kind, line, state)
         scope_start_line = scope_range and scope_range.start_line,
         scope_end_line = scope_range and scope_range.end_line,
     }
+
+    member.id = table.concat({
+        "member",
+        tostring(member.scope_start_line or ""),
+        tostring(member.scope_end_line or ""),
+        tostring(member.line or ""),
+        tostring(member.kind or ""),
+        tostring(member.name or ""),
+    }, ":")
 
     member.label = build_member_label(member)
 
@@ -237,6 +246,7 @@ local function collect_member_group(node, bufnr, specs, members, seen, state)
     end
 end
 
+
 local function collect_from_node(node, bufnr, adapter, members, seen, state)
     if not node or not core.is_table(adapter) then
         return
@@ -260,9 +270,8 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         members,
         seen,
         state
-   )
+    )
 end
-
 local function walk_node(node, bufnr, adapter, members, seen, state)
     if not node then
         return
