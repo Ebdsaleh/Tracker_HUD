@@ -39,17 +39,72 @@ function M.is_expanded(section_id)
 end
 
 
-local function append_scope_member_tree_lines(lines, nodes, depth)
+local function get_display_width(text)
+    local ok, width = pcall(vim.fn.strdisplaywidth, text or "")
+
+    if ok and type(width) == "number" then
+        return width
+    end
+
+    return #(text or "")
+end
+
+
+local function fit_width(text, max_width)
+    if not max_width or max_width <= 0 then
+        return true
+    end
+
+    return get_display_width(text) <= max_width
+end
+
+
+
+local function build_scope_range_label(node)
+    if type(node) ~= "table" then
+        return nil
+    end
+
+    if not node.scope_start_line or not node.scope_end_line then
+        return nil
+    end
+
+    return "[scope "
+        .. tostring(node.scope_start_line)
+        .. " - "
+        .. tostring(node.scope_end_line)
+        .. "]"
+end
+
+
+local function append_scope_member_tree_lines(lines, nodes, depth, opts)
     depth = depth or 0
+    opts = opts or {}
 
     local indent = string.rep("  ", depth)
+    local panel_width = opts.panel_width or 0
 
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
-            table.insert(lines, indent .. (node.label or tostring(node.id or "")))
+            local label = node.label or tostring(node.id or "")
+            local range_label = build_scope_range_label(node)
+
+            if node.kind == "scope" and range_label then
+                local inline_label = label .. "  " .. range_label
+                local rendered_inline = indent .. inline_label
+
+                if fit_width(rendered_inline, panel_width) then
+                    table.insert(lines, rendered_inline)
+                else
+                    table.insert(lines, indent .. label)
+                    table.insert(lines, indent .. "  " .. range_label)
+                end
+            else
+                table.insert(lines, indent .. label)
+            end
 
             if node.children and #node.children > 0 then
-                append_scope_member_tree_lines(lines, node.children, depth + 1)
+                append_scope_member_tree_lines(lines, node.children, depth + 1, opts)
             end
         elseif type(node) == "string" then
             table.insert(lines, indent .. node)
@@ -57,18 +112,20 @@ local function append_scope_member_tree_lines(lines, nodes, depth)
     end
 end
 
-local function build_scope_member_tree_lines(nodes)
+
+local function build_scope_member_tree_lines(nodes, opts)
     local lines = {}
 
-    append_scope_member_tree_lines(lines, nodes, 0)
+    append_scope_member_tree_lines(lines, nodes, 0, opts)
 
     return lines
 end
 
 
-function M.build(context)
+function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
+    opts = opts or {}
 
     if show_all_scope_members then
         scope_members = context.all_scope_members or {}
@@ -94,7 +151,9 @@ function M.build(context)
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = build_scope_member_tree_lines(scope_member_nodes),
+            lines = build_scope_member_tree_lines(scope_member_nodes, {
+                panel_width = opts.panel_width,
+            }),
             empty_text = "<no scope members tracked yet>",
         },
         {

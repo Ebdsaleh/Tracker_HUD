@@ -368,7 +368,19 @@ local function format_panel_lines(context)
 
     table.insert(lines, "")
 
-    local sections = hud_sections.build(context)
+    local panel_width = resolved_panel_size
+
+    if is_valid_window(panel_winid) then
+        local ok, width = pcall(vim.api.nvim_win_get_width, panel_winid)
+
+        if ok and width then
+            panel_width = width
+        end
+    end
+
+    local sections = hud_sections.build(context, {
+        panel_width = panel_width,
+    })
 
     for _, section in ipairs(sections) do
         append_section_lines(lines, section)
