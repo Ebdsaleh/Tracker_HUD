@@ -18,7 +18,43 @@ local function get_scope_key(member)
     }, ":")
 end
 
-local function build_scope_label(member)
+
+local function get_current_scope_label(context)
+    if not core.is_table(context) then
+        return nil
+    end
+
+    if core.is_table(context.path) and #context.path > 0 then
+        return context.path[#context.path]
+    end
+
+    if core.is_non_empty_string(context.label) then
+        return context.label
+    end
+
+    return nil
+end
+
+local function member_matches_current_scope(member, context)
+    if not core.is_table(member) or not core.is_table(context) then
+        return false
+    end
+
+    return member.scope_start_line == context.start_line
+        and member.scope_end_line == context.end_line
+end
+
+
+
+local function build_scope_label(member, context)
+    if member_matches_current_scope(member, context) then
+        local current_scope_label = get_current_scope_label(context)
+
+        if core.is_non_empty_string(current_scope_label) then
+            return current_scope_label
+        end
+    end
+
     if not core.is_table(member) then
         return "[global scope]"
     end
@@ -29,6 +65,7 @@ local function build_scope_label(member)
 
     return "[global scope]"
 end
+
 
 local function build_member_node(member)
     if not core.is_table(member) then
@@ -44,13 +81,13 @@ local function build_member_node(member)
     }
 end
 
-local function build_scope_node(member)
+local function build_scope_node(member, context)
     local scope_key = get_scope_key(member)
 
     return {
         id = scope_key,
         kind = "scope",
-        label = build_scope_label(member),
+        label = build_scope_label(member, context),
         scope_start_line = member and member.scope_start_line or nil,
         scope_end_line = member and member.scope_end_line or nil,
         scope_depth = member and member.scope_depth or 0,
@@ -69,7 +106,9 @@ local function sort_scope_nodes(left, right)
     return left_line < right_line
 end
 
-function M.build(members, _context)
+
+
+function M.build(members, context)
     local scope_nodes = {}
     local scope_order = {}
 
@@ -79,7 +118,7 @@ function M.build(members, _context)
             local scope_node = scope_nodes[scope_key]
 
             if not scope_node then
-                scope_node = build_scope_node(member)
+                scope_node = build_scope_node(member, context)
                 scope_nodes[scope_key] = scope_node
                 table.insert(scope_order, scope_node)
             end
@@ -96,5 +135,4 @@ function M.build(members, _context)
 
     return scope_order
 end
-
 return M
