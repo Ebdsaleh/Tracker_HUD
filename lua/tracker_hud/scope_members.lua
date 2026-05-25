@@ -38,10 +38,11 @@ local function get_member_line(member)
 end
 
 
-local function make_state(opts, scope_depth)
+local function make_state(opts, scope_depth, scope_range)
     return {
         opts = opts or {},
         scope_depth = scope_depth or 0,
+        scope_range = scope_range,
     }
 end
 
@@ -53,12 +54,17 @@ local function add_member(members, seen, name, kind, line, state)
 
     local opts = state.opts or {}
     local scope_depth = state.scope_depth or 0
+    local scope_range = state.scope_range
 
     if opts.start_line and line and line < opts.start_line then
         return
     end
 
     if opts.end_line and line and line > opts.end_line then
+        return
+    end
+
+    if opts.cursor_line and line and line > opts.cursor_line then
         return
     end
 
@@ -80,6 +86,8 @@ local function add_member(members, seen, name, kind, line, state)
         kind = kind,
         name = name,
         scope_depth = scope_depth or 0,
+        scope_start_line = scope_range and scope_range.start_line,
+        scope_end_line = scope_range and scope_range.end_line,
     }
 
     member.label = build_member_label(member)
@@ -88,6 +96,23 @@ local function add_member(members, seen, name, kind, line, state)
 end
 
 
+local function get_node_range(node)
+    if not node then
+        return nil
+    end
+
+    local start_row, _, end_row, _ = node:range()
+
+    if not core.is_number(start_row) or not core.is_number(end_row) then
+        return nil
+    end
+
+    return {
+        start_line = start_row + 1,
+        end_line = end_row + 1,
+    }
+
+end
 
 local function get_node_line(node)
     if not node then
@@ -245,18 +270,23 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 
     state = state or make_state()
 
-    collect_from_node(node, bufnr, adapter, members, seen, state)
-
-    local child_state = make_state(state.opts, state.scope_depth)
+    local current_state = state
 
     if node_creates_scope(node, adapter) then
-        child_state.scope_depth = child_state.scope_depth + 1
+        current_state = make_state(
+            state.opts,
+            state.scope_depth + 1,
+            get_node_range(node)
+        )
     end
 
+    collect_from_node(node, bufnr, adapter, members, seen, current_state)
+
     for child in node:iter_children() do
-        walk_node(child, bufnr, adapter, members, seen, child_state)
+        walk_node(child, bufnr, adapter, members, seen, current_state)
     end
 end
+
 
 
 function M.collect(bufnr, root_node, adapter, opts)
