@@ -77,11 +77,15 @@ function M.validate_range(range)
         and range.start_line <= range.end_line
 end
 
-function M.validate_construct(construct)
-    if not core.is_table(construct) then
-        return false, "construct must be a table"
-    end
 
+function M.is_synthetic_construct(construct)
+    return core.is_table(construct)
+        and core.is_table(construct.metadata)
+        and construct.metadata.synthetic == true
+end
+
+
+function M.validate_common_construct(construct)
     if not M.validate_kind(construct.kind) then
         return false, "construct.kind is invalid or missing"
     end
@@ -98,14 +102,6 @@ function M.validate_construct(construct)
         return false, "construct.label must be a non-empty string"
     end
 
-    if not core.is_non_empty_string(construct.node_type) then
-        return false, "construct.node_type must be a non-empty string"
-    end
-
-    if not M.validate_range(construct.range) then
-        return false, "construct.range is invalid"
-    end
-
     if construct.signature ~= nil and not core.is_non_empty_string(construct.signature) then
         return false, "construct.signature must be a non-empty string when provided"
     end
@@ -116,6 +112,47 @@ function M.validate_construct(construct)
 
     return true, nil
 end
+
+
+function M.validate_treesitter_construct(construct)
+    if not core.is_non_empty_string(construct.node_type) then
+        return false, "construct.node_type must be a non-empty string"
+    end
+
+    if not M.validate_range(construct.range) then
+        return false, "construct.range is invalid"
+    end
+
+    return true, nil
+end
+
+function M.validate_synthetic_construct(_construct)
+    -- Synthetic constructs are Tracker HUD-created constructs.
+    -- They do not require Tree-sitter node_type/range.
+    --
+    -- Common fields are already validated by validate_common_construct().
+    return true, nil
+end
+
+
+function M.validate_construct(construct)
+    if not core.is_table(construct) then
+        return false, "construct must be a table"
+    end
+
+    local ok, err = M.validate_common_construct(construct)
+
+    if not ok then
+        return false, err
+    end
+
+    if M.is_synthetic_construct(construct) then
+        return M.validate_synthetic_construct(construct)
+    end
+
+    return M.validate_treesitter_construct(construct)
+end
+
 
 function M.new_construct(opts)
     opts = opts or {}
