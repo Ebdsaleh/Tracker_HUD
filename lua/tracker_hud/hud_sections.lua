@@ -97,7 +97,7 @@ local function build_scope_range_label(node)
 end
 
 
-local function append_scope_member_tree_lines(lines, nodes, depth, opts)
+local function append_scope_member_tree_lines(result, nodes, depth, opts)
     depth = depth or 0
     opts = opts or {}
 
@@ -116,34 +116,48 @@ local function append_scope_member_tree_lines(lines, nodes, depth, opts)
                 local rendered_inline = indent .. inline_label
 
                 if fit_width(rendered_inline, panel_width) then
-                    table.insert(lines, rendered_inline)
+                    table.insert(result.lines, rendered_inline)
+                    result.targets[#result.lines] = {
+                        kind = "node",
+                        id = node.id,
+                    }
                 else
-                    table.insert(lines, indent .. rendered_label)
-                    table.insert(lines, indent .. "  " .. range_label)
+                    table.insert(result.lines, indent .. rendered_label)
+                    result.targets[#result.lines] = {
+                        kind = "node",
+                        id = node.id,
+                    }
+
+                    table.insert(result.lines, indent .. "  " .. range_label)
                 end
             else
-                table.insert(lines, indent .. rendered_label)
+                table.insert(result.lines, indent .. rendered_label)
+                result.targets[#result.lines] = {
+                    kind = "node",
+                    id = node.id,
+                }
             end
 
             if node_has_children(node) and hud_nodes.is_expanded(node.id, true) then
-                append_scope_member_tree_lines(lines, node.children, depth + 1, opts)
+                append_scope_member_tree_lines(result, node.children, depth + 1, opts)
             end
         elseif type(node) == "string" then
-            table.insert(lines, indent .. node)
+            table.insert(result.lines, indent .. node)
         end
     end
 end
 
 
-
 local function build_scope_member_tree_lines(nodes, opts)
-    local lines = {}
+    local result = {
+        lines = {},
+        targets = {},
+    }
 
-    append_scope_member_tree_lines(lines, nodes, 0, opts)
+    append_scope_member_tree_lines(result, nodes, 0, opts)
 
-    return lines
+    return result
 end
-
 
 function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
@@ -156,6 +170,10 @@ function M.build(context, opts)
 
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
+    local scope_member_render = build_scope_member_tree_lines(scope_member_nodes, {
+        panel_width = opts.panel_width,
+    })
+
     local sections = {
         {
             id = "scope",
@@ -170,13 +188,12 @@ function M.build(context, opts)
             title = hud_controls.build_title("show_all_scope_members"),
         },
 
-        {
+         {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = build_scope_member_tree_lines(scope_member_nodes, {
-                panel_width = opts.panel_width,
-            }),
+            lines = scope_member_render.lines,
+            line_targets = scope_member_render.targets,
             empty_text = "<no scope members tracked yet>",
         },
         {

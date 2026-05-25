@@ -2,7 +2,7 @@
 
 local hud_sections = require("tracker_hud.hud_sections")
 local hud_controls = require("tracker_hud.hud_controls")
-
+local hud_nodes = require("tracker_hud.hud_nodes")
 
 local M = {}
 
@@ -313,8 +313,12 @@ local function append_section_lines(lines, section)
 
     if section.expanded then
         if section.lines and #section.lines > 0 then
-            for _, line in ipairs(section.lines) do
+            for index, line in ipairs(section.lines) do
                 table.insert(lines, line)
+
+                if section.line_targets and section.line_targets[index] then
+                    panel_line_targets[#lines] = section.line_targets[index]
+                end
             end
         else
             table.insert(lines, "  " .. (section.empty_text or "<empty>"))
@@ -323,7 +327,6 @@ local function append_section_lines(lines, section)
 
     table.insert(lines, "")
 end
-
 
 
 local function format_panel_lines(context)
@@ -606,6 +609,8 @@ function M.toggle_target(target)
         ok = hud_sections.toggle(target.id)
     elseif target.kind == "control" then
         ok = hud_controls.toggle(target.id)
+    elseif target.kind == "node" then
+        ok = hud_nodes.toggle(target.id)
     end
 
     if not ok then
