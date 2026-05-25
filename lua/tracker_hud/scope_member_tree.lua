@@ -77,7 +77,14 @@ local function build_member_node(member)
         kind = "member",
         label = member.label or tostring(member.name or ""),
         member = member,
-        children = {},
+        children = {
+            {
+                id = member.id .. ":value",
+                kind = "value",
+                label = "value: <unknown>",
+                children = {},
+            },
+        },
     }
 end
 

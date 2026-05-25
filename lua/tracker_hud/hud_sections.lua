@@ -67,17 +67,28 @@ local function node_has_children(node)
         and #node.children > 0
 end
 
+
+local function get_node_default_expanded(node)
+    if type(node) ~= "table" then
+        return false
+    end
+
+    return node.kind == "scope"
+end
+
+
 local function get_node_marker(node)
     if not node_has_children(node) then
         return "   "
     end
-    
-    if hud_nodes.is_expanded(node.id, true) then
+
+    if hud_nodes.is_expanded(node.id, get_node_default_expanded(node)) then
         return "[-]"
     end
 
     return "[+]"
 end
+
 
 
 local function build_scope_range_label(node)
@@ -138,7 +149,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                 }
             end
 
-            if node_has_children(node) and hud_nodes.is_expanded(node.id, true) then
+            if node_has_children(node) and hud_nodes.is_expanded(node.id, get_node_default_expanded(node)) then
                 append_scope_member_tree_lines(result, node.children, depth + 1, opts)
             end
         elseif type(node) == "string" then
@@ -188,7 +199,7 @@ function M.build(context, opts)
             title = hud_controls.build_title("show_all_scope_members"),
         },
 
-         {
+        {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
