@@ -12,7 +12,7 @@ local resolved_panel_size = nil
 local last_context = nil
 local last_config = nil
 local last_source_winid = nil
-local panel_line_sections = {}
+local panel_line_targets = {}
 
 
 
@@ -296,14 +296,20 @@ end
 local function append_section_lines(lines, section)
     if section.kind == "control" then
         table.insert(lines, section.title or "<control>")
-        panel_line_sections[#lines] = section.id
+        panel_line_targets[#lines] = {
+            kind = "control",
+            id = section.id,
+        }
         return
     end
 
     local marker = section.expanded and "[-]" or "[+]"
     table.insert(lines, section.title .. " " .. marker)
 
-    panel_line_sections[#lines] = section.id
+    panel_line_targets[#lines] = {
+        kind = "section",
+        id = section.id,
+    }
 
     if section.expanded then
         if section.lines and #section.lines > 0 then
@@ -331,7 +337,7 @@ local function format_panel_lines(context)
         }
     end
 
-    panel_line_sections = {}
+    panel_line_targets = {}
 
     local lines = {
         "Tracker HUD",
@@ -567,18 +573,17 @@ end
 
 
 function M.toggle_section_at_panel_cursor()
-    local section_id = M.get_section_at_panel_cursor()
+    local target = M.get_target_at_panel_cursor()
 
-    if not section_id then
+    if not target then
         return false
     end
 
-    return M.toggle_section(section_id)
+    return M.toggle_target(target)
 end
 
 
-
-function M.get_section_at_panel_cursor()
+function M.get_target_at_panel_cursor()
     if not is_valid_window(panel_winid) then
         return nil
     end
@@ -586,15 +591,21 @@ function M.get_section_at_panel_cursor()
     local cursor = vim.api.nvim_win_get_cursor(panel_winid)
     local line_number = cursor[1]
 
-    return panel_line_sections[line_number]
+    return panel_line_targets[line_number]
 end
 
 
-function M.toggle_section(section_id)
-    local ok = hud_sections.toggle(section_id)
+function M.toggle_target(target)
+    if not target or not target.id then
+        return false
+    end
 
-    if not ok then
-        ok = hud_controls.toggle(section_id)
+    local ok = false
+
+    if target.kind == "section" then
+        ok = hud_sections.toggle(target.id)
+    elseif target.kind == "control" then
+        ok = hud_controls.toggle(target.id)
     end
 
     if not ok then
@@ -604,6 +615,5 @@ function M.toggle_section(section_id)
     M.update_panel()
     return true
 end
-
 
 return M
