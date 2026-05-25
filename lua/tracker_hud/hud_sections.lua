@@ -39,20 +39,32 @@ function M.is_expanded(section_id)
 end
 
 
+local function append_scope_member_tree_lines(lines, nodes, depth)
+    depth = depth or 0
 
-local function build_scope_member_tree_lines(members)
-    local lines = {}
+    local indent = string.rep("  ", depth)
 
-    for _, member in ipairs(members or {}) do
-        if type(member) == "table" then
-            table.insert(lines, member.label or tostring(member.name or ""))
-        elseif type(member) == "string" then
-            table.insert(lines, member)
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            table.insert(lines, indent .. (node.label or tostring(node.id or "")))
+
+            if node.children and #node.children > 0 then
+                append_scope_member_tree_lines(lines, node.children, depth + 1)
+            end
+        elseif type(node) == "string" then
+            table.insert(lines, indent .. node)
         end
     end
+end
+
+local function build_scope_member_tree_lines(nodes)
+    local lines = {}
+
+    append_scope_member_tree_lines(lines, nodes, 0)
 
     return lines
 end
+
 
 function M.build(context)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
@@ -60,7 +72,6 @@ function M.build(context)
 
     if show_all_scope_members then
         scope_members = context.all_scope_members or {}
-
     end
 
 
