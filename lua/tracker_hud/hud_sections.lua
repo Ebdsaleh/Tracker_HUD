@@ -3,6 +3,7 @@
 -- HUD section state and section construction.
 
 local hud_controls = require("tracker_hud.hud_controls")
+local scope_member_tree = require("tracker_hud.scope_member_tree")
 
 local M = {}
 
@@ -39,7 +40,7 @@ end
 
 
 
-local function build_scope_member_lines(members)
+local function build_scope_member_tree_lines(members)
     local lines = {}
 
     for _, member in ipairs(members or {}) do
@@ -55,14 +56,15 @@ end
 
 function M.build(context)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
-    local scope_member_lines = context.scope_members or {}
+    local scope_members = context.scope_members or {}
 
     if show_all_scope_members then
-        scope_member_lines = context.all_scope_members or {}
+        scope_members = context.all_scope_members or {}
 
     end
 
 
+    local scope_member_nodes = scope_member_tree.build(scope_members, context)
     local sections = {
         {
             id = "scope",
@@ -76,11 +78,12 @@ function M.build(context)
             kind = "control",
             title = hud_controls.build_title("show_all_scope_members"),
         },
+
         {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
-            lines = build_scope_member_lines(scope_member_lines),
+            lines = build_scope_member_tree_lines(scope_member_nodes),
             empty_text = "<no scope members tracked yet>",
         },
         {
