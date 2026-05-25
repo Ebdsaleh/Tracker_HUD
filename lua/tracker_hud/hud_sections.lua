@@ -5,6 +5,7 @@
 local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
+local symbol_state = require("tracker_hud.symbol_state")
 
 
 local M = {}
@@ -179,6 +180,7 @@ function M.build(context, opts)
         scope_members = context.all_scope_members or {}
     end
 
+    scope_members = symbol_state.enrich_members(scope_members, context)
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
     local scope_member_render = build_scope_member_tree_lines(scope_member_nodes, {

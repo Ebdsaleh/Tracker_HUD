@@ -79,14 +79,23 @@ local function build_member_node(member)
         member = member,
         children = {
             {
-                id = member.id .. ":value",
-                kind = "value",
-                label = "value: <unknown>",
+                id = member.id .. ":type",
+                kind = "detail",
+                label = "type: " .. tostring(member.type_label or "<unknown>"),
                 children = {},
             },
-        },
+            {
+                id = member.id .. ":value",
+                kind = "detail",
+                label = "value: " .. tostring(member.value_label or "<unknown>"),
+                children = {},
+            },
+        },    
     }
+
 end
+
+
 
 local function build_scope_node(member, context)
     local scope_key = get_scope_key(member)
