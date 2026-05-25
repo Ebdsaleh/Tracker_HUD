@@ -12,6 +12,11 @@ M.filetypes =  { "lua" }
 M.construct_specs = {
     function_declaration = {
         kind = "callable",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "Function",
         creates_scope = true,
 
@@ -47,6 +52,11 @@ M.construct_specs = {
 
     function_definition = {
         kind = "callable",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "Function",
         creates_scope = true,
 
@@ -83,6 +93,11 @@ M.construct_specs = {
 
     if_statement = {
         kind = "branch",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "If",
         creates_scope = true,
 
@@ -126,20 +141,46 @@ M.construct_specs = {
 
     for_statement = { 
         kind = "loop",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "For",
         creates_scope = true,
     },
 
     while_statement = {
         kind = "loop",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "While",
         creates_scope = true,
     },
 
     repeat_statement = {
         kind = "loop",
+        scope_kind = "lexical",
+        scope_effect = {
+            lexical = true,
+            structural = false,
+        },
         label = "Repeat",
         creates_scope = true,
+    },
+
+    table_constructor = {
+        kind = "structural",
+        scope_kind = "structural",
+        scope_effect = {
+            lexical = false,
+            structural = true,
+        },
+        label = "Table",
+        creates_scope = false,
     },
 }
 

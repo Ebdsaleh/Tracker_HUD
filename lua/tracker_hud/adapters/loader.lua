@@ -18,28 +18,19 @@
 -- lua/tracker_hud/adapters/*_adapter.lua
 -- lua/my_custom_tracker_adapters/*_adapter.lua
 
-
+local core = require("tracker_hud.core")
 local registry = require("tracker_hud.adapters.registry")
 
 local M = {}
 
 local loaded_modules = {}
 
-local function is_table(value)
-    return type(value) == "table"
-end
-
-local function is_string(value)
-    return type(value) == "string"
-end
-
-
 local function normalize_adapter_paths(adapter_paths)
-    if is_string(adapter_paths) then
+    if core.is_string(adapter_paths) then
         return { adapter_paths }
     end
 
-    if is_table(adapter_paths) then
+    if core.is_table(adapter_paths) then
         return adapter_paths 
     end
 
@@ -107,7 +98,7 @@ function M.load_from_paths(adapter_paths)
 
 
     for _, adapter_path in ipairs(paths) do
-        if is_string(adapter_path) and adapter_path ~= "" then
+        if core.is_string(adapter_path) and adapter_path ~= "" then
             local glob = path_to_runtime_glob(adapter_path)
             local files = vim.api.nvim_get_runtime_file(glob, true)
 

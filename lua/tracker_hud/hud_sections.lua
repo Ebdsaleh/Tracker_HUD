@@ -19,13 +19,13 @@ local section_state = {
 }
 
 
-local function is_valid_section(section_id)
+local function validate_section(section_id)
     return section_id ~= nil
         and section_state[section_id] ~= nil
 end
 
 function M.toggle(section_id)
-    if not is_valid_section(section_id) then
+    if not validate_section(section_id) then
         return false
     end
 
@@ -34,7 +34,7 @@ function M.toggle(section_id)
 end
 
 function M.is_expanded(section_id)
-    if not is_valid_section(section_id) then
+    if not validate_section(section_id) then
         return false
     end
 

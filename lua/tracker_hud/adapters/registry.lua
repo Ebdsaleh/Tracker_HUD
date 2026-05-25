@@ -22,6 +22,7 @@
 --     },
 -- }
 
+local core = require("tracker_hud.core")
 local contract = require("tracker_hud.constructs.contract")
 local context_engine = require("tracker_hud.context_engine")
 
@@ -29,21 +30,12 @@ local M = {}
 
 local adapters_by_filetype = {}
 
-local function is_table(value)
-    return type(value) == "table"
-end
-
-local function is_string(value)
-    return type(value) == "string"
-end
-
-
 local function normalize_filetypes(filetypes)
-    if is_string(filetypes) then
+    if core.is_string(filetypes) then
         return { filetypes }
     end
 
-    if is_table(filetypes) then
+    if core.is_table(filetypes) then
         return filetypes
     end
 
@@ -58,9 +50,9 @@ local function validate_filetypes(filetypes)
         return false, "adapter.filetypes must contain at least one filetype"
     end
 
-    
+
     for _, filetype in ipairs(normalized) do
-        if not is_string(filetype) or filetype == "" then
+        if not core.is_string(filetype) or filetype == "" then
             return false, "adapter.filetypes must only contain non-empty strings"
         end
     end
@@ -70,11 +62,11 @@ end
 
 
 function M.validate_adapter(adapter)
-    if not is_table(adapter) then
+    if not core.is_table(adapter) then
         return false, "adapter must be a table"
     end
 
-    if not is_string(adapter.name) or adapter.name == "" then
+    if not core.is_string(adapter.name) or adapter.name == "" then
         return false, "adapter.name must be a non-empty string"
     end
 
@@ -84,7 +76,7 @@ function M.validate_adapter(adapter)
         return false, filetypes_err
     end
 
-    if not is_table(adapter.construct_specs) then
+    if not core.is_table(adapter.construct_specs) then
         return false, "adapter.construct_specs must be a table"
     end
 
@@ -103,17 +95,17 @@ function M.register(adapter)
     for _, filetype in ipairs(normalize_filetypes(adapter.filetypes)) do
         adapters_by_filetype[filetype] = adapter
     end
-    
+
 
     return true, nil
 end
 
 
 function M.get_adapter(filetype)
-    if not is_string(filetype) or filetype == "" then
+    if not core.is_string(filetype) or filetype == "" then
         return nil
     end
-    
+
     return adapters_by_filetype[filetype]
 end
 

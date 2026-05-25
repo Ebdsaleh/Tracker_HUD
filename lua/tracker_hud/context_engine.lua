@@ -5,16 +5,8 @@
 -- This module should contain language-neutral behavior only.
 -- Language-specific rules belong in adapters.
 
+local core = require("tracker_hud.core")
 local M = {}
-
-
-local function is_number(value)
-    return type(value) == "number"
-end
-
-local function is_table(value)
-    return type(value) == "table"
-end
 
 
 function M.make_global_context()
@@ -60,7 +52,7 @@ end
 
 
 function M.build_signature(node, bufnr, spec)
-    if not is_table(spec) or not is_table(spec.signature) then
+    if not core.is_table(spec) or not core.is_table(spec.signature) then
         return nil
     end
 
@@ -78,7 +70,7 @@ function M.extract_name_from_signature(signature, spec)
         return nil
     end
     
-    if not is_table(spec) or not is_table(spec.signature) then
+    if not core.is_table(spec) or not core.is_table(spec.signature) then
         return nil
     end
 
@@ -163,7 +155,7 @@ end
 
 
 function M.node_matches_branch_alternative(node, spec)
-    if not node or not is_table(spec) then
+    if not node or not core.is_table(spec) then
         return false
     end
 
@@ -172,7 +164,7 @@ function M.node_matches_branch_alternative(node, spec)
     local node_type = node:type()
 
     for _, alternative_spec in ipairs(alternatives) do
-        if is_table(alternative_spec)
+        if core.is_table(alternative_spec)
             and type(alternative_spec.node_match) == "string"
             and node_type:match(alternative_spec.node_match)
         then
@@ -214,7 +206,7 @@ end
 
 
 function M.get_branch_alternative_label(alternative_node, spec)
-    if not alternative_node or not is_table(spec) then
+    if not alternative_node or not core.is_table(spec) then
         return nil
     end
 
@@ -223,7 +215,7 @@ function M.get_branch_alternative_label(alternative_node, spec)
     local alternative_type = alternative_node:type()
 
     for _, alternative_spec in ipairs(alternatives) do
-        if is_table(alternative_spec)
+        if core.is_table(alternative_spec)
             and type(alternative_spec.node_match) == "string"
             and type(alternative_spec.label) == "string"
             and alternative_type:match(alternative_spec.node_match)
@@ -275,7 +267,7 @@ function M.position_in_node(row, col, node)
 
     local start_row, start_col, end_row, end_col = node:range()
 
-    if not is_number(start_row) or not is_number(end_row) then
+    if not core.is_number(start_row) or not core.is_number(end_row) then
         return false
     end
 
@@ -283,11 +275,11 @@ function M.position_in_node(row, col, node)
         return false
     end
 
-    if row == start_row and is_number(start_col) and col < start_col then
+    if row == start_row and core.is_number(start_col) and col < start_col then
         return false
-    end    
+    end
 
-    if row == end_row and is_number(end_col) and col > end_col then
+    if row == end_row and core.is_number(end_col) and col > end_col then
         return false
     end
 
@@ -313,7 +305,7 @@ function M.get_first_node_line(node)
     local start_row = node:range()
 
 
-    if not is_number(start_row) then
+    if not core.is_number(start_row) then
         return nil
     end
 
@@ -322,7 +314,7 @@ end
 
 
 function M.build_scope_entry_from_construct(construct)
-    if not is_table(construct) or not is_table(construct.range) then
+    if not core.is_table(construct) or not core.is_table(construct.range) then
         return nil
     end
 
@@ -351,7 +343,7 @@ end
 function M.build_context_from_scopes(scopes, config)
     local context = M.make_global_context()
 
-    if not is_table(scopes) or #scopes == 0 then
+    if not core.is_table(scopes) or #scopes == 0 then
         return context
     end
 
@@ -387,7 +379,7 @@ function M.get_node_range(node)
     
     local start_row, _, end_row, _ = node:range()
 
-    if not is_number(start_row) or not is_number(end_row) then
+    if not core.is_number(start_row) or not core.is_number(end_row) then
         return nil
     end
     
@@ -399,7 +391,7 @@ end
 
 
 function M.match_node(adapter, node)
-    if not is_table(adapter) or not is_table(adapter.construct_specs) then
+    if not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
         return false
     end
 
@@ -414,11 +406,11 @@ end
 
 
 function M.parse_node(adapter, node, bufnr)
-    if not is_table(adapter) then
+    if not core.is_table(adapter) then
         return nil, "adapter must be a table"
     end
 
-    if not is_table(adapter.construct_specs) then
+    if not core.is_table(adapter.construct_specs) then
         return nil, "adapter.construct_specs must be a table"
     end
 
@@ -468,7 +460,7 @@ end
 
 
 function M.get_construct_spec(construct_specs, node_type)
-    if not is_table(construct_specs) then
+    if not core.is_table(construct_specs) then
         return nil, "construct_specs must be table"
     end
 
@@ -494,7 +486,7 @@ end
 
 
 function M.validate_construct_spec(spec)
-    if not is_table(spec) then
+    if not core.is_table(spec) then
         return false, "construct spec must be a table"
     end
 
@@ -507,23 +499,23 @@ function M.validate_construct_spec(spec)
         return false, "construct spec label must be a non-empty string"
     end
 
-    if spec.tokens ~= nil and not is_table(spec.tokens) then
+    if spec.tokens ~= nil and not core.is_table(spec.tokens) then
         return false, "construct spec tokens must be a table when provided"
     end
 
     if spec.markers ~= nil then
-        if not is_table(spec.markers) then
+        if not core.is_table(spec.markers) then
             return false, "construct spec markers must be a table when provided"
         end
 
         local required = spec.markers.required or {}
         local optional = spec.markers.optional or {}
 
-        if not is_table(required) then
+        if not core.is_table(required) then
             return false, "construct spec markers.required must be a table"
         end
 
-        if not is_table(optional) then
+        if not core.is_table(optional) then
             return false, "construct spec markers.optional must be a table"
         end
 
