@@ -4,6 +4,8 @@
 
 local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
+local hud_nodes = require("tracker_hud.hud_nodes")
+
 
 local M = {}
 
@@ -59,6 +61,24 @@ local function fit_width(text, max_width)
 end
 
 
+local function node_has_children(node)
+    return type(node) == "table"
+        and type(node.children) == "table"
+        and #node.children > 0
+end
+
+local function get_node_marker(node)
+    if not node_has_children(node) then
+        return "   "
+    end
+    
+    if hud_nodes.is_expanded(node.id, true) then
+        return "[-]"
+    end
+
+    return "[+]"
+end
+
 
 local function build_scope_range_label(node)
     if type(node) ~= "table" then
@@ -87,23 +107,25 @@ local function append_scope_member_tree_lines(lines, nodes, depth, opts)
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
             local label = node.label or tostring(node.id or "")
+            local marker = get_node_marker(node)
+            local rendered_label = marker .. " " .. label
             local range_label = build_scope_range_label(node)
 
             if node.kind == "scope" and range_label then
-                local inline_label = label .. "  " .. range_label
+                local inline_label = rendered_label .. "  " .. range_label
                 local rendered_inline = indent .. inline_label
 
                 if fit_width(rendered_inline, panel_width) then
                     table.insert(lines, rendered_inline)
                 else
-                    table.insert(lines, indent .. label)
+                    table.insert(lines, indent .. rendered_label)
                     table.insert(lines, indent .. "  " .. range_label)
                 end
             else
-                table.insert(lines, indent .. label)
+                table.insert(lines, indent .. rendered_label)
             end
 
-            if node.children and #node.children > 0 then
+            if node_has_children(node) and hud_nodes.is_expanded(node.id, true) then
                 append_scope_member_tree_lines(lines, node.children, depth + 1, opts)
             end
         elseif type(node) == "string" then
@@ -111,6 +133,7 @@ local function append_scope_member_tree_lines(lines, nodes, depth, opts)
         end
     end
 end
+
 
 
 local function build_scope_member_tree_lines(nodes, opts)
