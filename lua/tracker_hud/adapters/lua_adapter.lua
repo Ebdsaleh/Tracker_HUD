@@ -7,18 +7,33 @@
 local M = {}
 
 M.name = "lua"
-M.filetypes =  { "lua" }
+M.filetypes = { "lua" }
+
+M.capabilities = {
+    lexical_scopes = true,
+    structural_scopes = true,
+    members = true,
+    values = true,
+    source_jump = true,
+}
 
 M.construct_specs = {
-    function_declaration = {
-        kind = "callable",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["function_declaration"] = {
+        construct = {
+            kind = "callable",
+            label = "Function",
         },
-        label = "Function",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+
+        value = {
+            kind = "callable",
+            type_label = "function",
+        },
 
         tokens = {
             start = "function",
@@ -50,15 +65,22 @@ M.construct_specs = {
         },
     },
 
-    function_definition = {
-        kind = "callable",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["function_definition"] = {
+        construct = {
+            kind = "callable",
+            label = "Function",
         },
-        label = "Function",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+
+        value = {
+            kind = "callable",
+            type_label = "function",
+        },
 
         tokens = {
             start = "function",
@@ -67,7 +89,6 @@ M.construct_specs = {
             args_close = ")",
             scope_close = "end",
         },
-
 
         signature = {
             strategy = "first_line",
@@ -91,15 +112,17 @@ M.construct_specs = {
         },
     },
 
-    if_statement = {
-        kind = "branch",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["if_statement"] = {
+        construct = {
+            kind = "branch",
+            label = "If",
         },
-        label = "If",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
 
         tokens = {
             start = "if",
@@ -110,7 +133,7 @@ M.construct_specs = {
         },
 
         branch = {
-            grouped = true, 
+            grouped = true,
             alternatives = {
                 {
                     node_match = "elseif",
@@ -139,58 +162,134 @@ M.construct_specs = {
         },
     },
 
-    for_statement = { 
-        kind = "loop",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["for_statement"] = {
+        construct = {
+            kind = "loop",
+            label = "For",
         },
-        label = "For",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
     },
 
-    while_statement = {
-        kind = "loop",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["while_statement"] = {
+        construct = {
+            kind = "loop",
+            label = "While",
         },
-        label = "While",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
     },
 
-    repeat_statement = {
-        kind = "loop",
-        scope_kind = "lexical",
-        scope_effect = {
-            lexical = true,
-            structural = false,
+    ["repeat_statement"] = {
+        construct = {
+            kind = "loop",
+            label = "Repeat",
         },
-        label = "Repeat",
-        creates_scope = true,
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
     },
 
-    table_constructor = {
-        kind = "structural",
-        scope_kind = "structural",
-        scope_effect = {
-            lexical = false,
-            structural = true,
+    ["string"] = {
+        construct = {
+            kind = "literal",
+            label = "String",
         },
-        label = "Table",
-        creates_scope = false,
+
+        value = {
+            kind = "scalar",
+            type_label = "string",
+        },
+    },
+
+    ["number"] = {
+        construct = {
+            kind = "literal",
+            label = "Number",
+        },
+
+        value = {
+            kind = "scalar",
+            type_label = "number",
+        },
+    },
+
+    ["nil"] = {
+        construct = {
+            kind = "literal",
+            label = "Nil",
+        },
+
+        value = {
+            kind = "scalar",
+            type_label = "nil",
+        },
+    },
+
+    ["true"] = {
+        construct = {
+            kind = "literal",
+            label = "Boolean",
+        },
+
+        value = {
+            kind = "scalar",
+            type_label = "boolean",
+        },
+    },
+
+    ["false"] = {
+        construct = {
+            kind = "literal",
+            label = "Boolean",
+        },
+
+        value = {
+            kind = "scalar",
+            type_label = "boolean",
+        },
+    },
+
+    ["table_constructor"] = {
+        construct = {
+            kind = "literal",
+            label = "Table",
+        },
+
+        scope = {
+            kind = "structural",
+            affects_visibility = false,
+            owns_members = true,
+        },
+
+        value = {
+            kind = "structural",
+            type_label = "table",
+        },
     },
 }
-
 
 M.scope_members = {
     declarations = {
         {
             node_type = "variable_declaration",
             list_node_type = "variable_list",
-            kind = "local",
+
+            member = {
+                kind = "local_",
+                owner_scope = "lexical",
+            },
         },
     },
 
@@ -198,23 +297,33 @@ M.scope_members = {
         {
             node_type = "function_declaration",
             list_node_type = "parameters",
-            kind = "param",
+
+            member = {
+                kind = "parameter",
+                owner_scope = "lexical",
+            },
         },
         {
             node_type = "function_definition",
             list_node_type = "parameters",
-            kind = "param",
+
+            member = {
+                kind = "parameter",
+                owner_scope = "lexical",
+            },
         },
     },
 
     fields = {
         {
             node_type = "field",
-            kind = "field",
-            scope_kind = "structural",
+
+            member = {
+                kind = "field",
+                owner_scope = "structural",
+            },
         },
     },
 }
-
 
 return M

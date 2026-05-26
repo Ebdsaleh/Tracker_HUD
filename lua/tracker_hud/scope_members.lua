@@ -9,22 +9,20 @@ local core = require("tracker_hud.core")
 
 local M = {}
 
-local function build_member_label(member)
-    if not core.is_table(member) then
-        return ""
+
+local member_kind_labels = {
+    local_ = "local",
+    parameter = "param",
+    function_ = "function",
+}
+
+
+local function get_member_kind_label(kind)
+    if not core.is_non_empty_string(kind) then
+        return nil
     end
 
-    local label = member.name or ""
-
-    if core.is_non_empty_string(member.kind) then
-        label = "(" .. member.kind .. ") " .. label
-    end
-
-    if member.line then
-        label = "[" .. tostring(member.line) .. "] " .. label
-    end
-
-    return label
+    return member_kind_labels[kind] or kind 
 end
 
 
@@ -35,6 +33,26 @@ local function get_member_line(member)
     end
 
     return member.line
+end
+
+
+local function build_member_label(member)
+    if not core.is_table(member) then
+        return ""
+    end
+
+    local label = member.name or ""
+    local kind_label = get_member_kind_label(member.kind)
+
+    if core.is_non_empty_string(kind_label) then
+        label = "(" .. kind_label .. ") " .. label
+    end
+
+    if member.line then
+        label = "[" .. tostring(member.line) .. "] " .. label
+    end
+
+    return label
 end
 
 
@@ -95,10 +113,13 @@ local function add_member(members, seen, name, kind, line, state, metadata)
         scope_start_line = scope_range and scope_range.start_line,
         scope_end_line = scope_range and scope_range.end_line,
 
+        -- metadata
         value_text = metadata.value_text,
         value_node_type = metadata.value_node_type,
         value_start_line = metadata.value_start_line,
         value_end_line = metadata.value_end_line,
+        value_kind = metadata.value_kind,
+        type_label = metadata.type_label,
         source_node_type = metadata.source_node_type,
     }
 
@@ -267,37 +288,41 @@ local function get_construct_spec(node, adapter)
     return adapter.construct_specs[node:type()]
 end
 
+local function get_value_spec_from_node(node, adapter)
+    local spec = get_construct_spec(node, adapter)
+
+    if not core.is_table(spec) or not core.is_table(spec.value) then
+        return nil
+    end
+
+    return spec.value
+end
+
 
 
 local function node_creates_lexical_scope(node, adapter)
     local spec = get_construct_spec(node, adapter)
 
-    if not core.is_table(spec) then
+    if not core.is_table(spec) or not core.is_table(spec.scope) then
         return false
     end
 
-    if core.is_table(spec.scope_effect) then
-        return spec.scope_effect.lexical == true
-    end
-
-    return spec.creates_scope == true
+    return spec.scope.kind == "lexical"
+        and spec.scope.affects_visibility == true
 end
+
 
 
 local function node_creates_structural_scope(node, adapter)
     local spec = get_construct_spec(node, adapter)
 
-    if not core.is_table(spec) then
+    if not core.is_table(spec) or not core.is_table(spec.scope) then
         return false
     end
 
-    if core.is_table(spec.scope_effect) then
-        return spec.scope_effect.structural == true
-    end
-
-    return spec.scope_kind == "structural"
+    return spec.scope.kind == "structural"
+        and spec.scope.owns_members == true
 end
-
 
 
 local function node_type_matches(node, expected_type)
@@ -372,7 +397,7 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
         member_spec.list_node_type,
         members,
         seen,
-        member_spec.kind,
+        member_spec.member and member_spec.member.kind,
         line,
         state
     )
@@ -395,7 +420,7 @@ local function make_structural_member_state(state)
 end
 
 
-local function collect_field_member_spec(node, bufnr, member_spec, members, seen, state)
+local function collect_field_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
     if not core.is_table(member_spec) then
         return
     end
@@ -415,6 +440,8 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
     local value_node = get_field_value_node(node)
     local value_text = nil
     local value_node_type = nil
+    local value_kind = nil
+    local type_label = nil
     local value_range = {
         start_line = nil,
         end_line = nil,
@@ -424,9 +451,16 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         value_text = get_node_text(value_node, bufnr)
         value_node_type = value_node:type()
         value_range = get_node_range_fields(value_node)
+
+        local value_spec = get_value_spec_from_node(value_node, adapter)
+
+        if core.is_table(value_spec) then
+            value_kind = value_spec.kind
+            type_label = value_spec.type_label
+        end
     end
 
-    if member_spec.scope_kind == "structural" then
+    if member_spec.member and member_spec.member.owner_scope == "structural" then
         member_state = make_structural_member_state(state)
     end
 
@@ -434,7 +468,7 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         members,
         seen,
         name,
-        member_spec.kind,
+        member_spec.member and member_spec.member.kind,
         line,
         member_state,
         {
@@ -442,6 +476,8 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
             value_node_type = value_node_type,
             value_start_line = value_range.start_line,
             value_end_line = value_range.end_line,
+            value_kind = value_kind,
+            type_label = type_label,
             source_node_type = node:type(),
         }
     )
@@ -449,7 +485,7 @@ end
 
 
 
-local function collect_member_group(node, bufnr, specs, members, seen, state, collector)
+local function collect_member_group(node, bufnr, specs, members, seen, state, collector, adapter)
     if not core.is_table(specs) then
         return
     end
@@ -457,10 +493,9 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
     collector = collector or collect_member_spec
 
     for _, member_spec in ipairs(specs) do
-        collector(node, bufnr, member_spec, members, seen, state)
+        collector(node, bufnr, member_spec, members, seen, state, adapter)
     end
 end
-
 
 
 local function collect_from_node(node, bufnr, adapter, members, seen, state)
@@ -470,6 +505,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
 
     local scope_member_spec = adapter.scope_members or {}
 
+    -- declarations
     collect_member_group(
         node,
         bufnr,
@@ -478,7 +514,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         seen,
         state
     )
-
+    -- parameters
     collect_member_group(
         node,
         bufnr,
@@ -487,7 +523,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         seen,
         state
     )
-
+    -- fields
     collect_member_group(
         node,
         bufnr,
@@ -495,7 +531,8 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         members,
         seen,
         state,
-        collect_field_member_spec
+        collect_field_member_spec,
+        adapter
     )
 end
 

@@ -2,151 +2,61 @@
 --
 -- Language-agnostic symbol state enrichment.
 --
--- This module is intended to become the reflection/state layer that can enrich
--- scope members with type/value information without making scope_members.lua or
--- scope_member_tree.lua responsible for value analysis.
+-- This module enriches collected scope members with normalized type/value
+-- display information. Language-specific meaning should come from adapters,
+-- not from hardcoded Tree-sitter node names here.
 
 local core = require("tracker_hud.core")
 
 local M = {}
 
-
-local function infer_type_from_node_type(value_node_type)
-    if not core.is_non_empty_string(value_node_type) then
-        return nil
-    end
-
-    if value_node_type == "string" then
-        return "string"
-    end
-
-    if value_node_type == "number" then
-        return "number"
-    end
-
-    if value_node_type == "nil" then
-        return "nil"
-    end
-
-    if value_node_type == "true"
-        or value_node_type == "false"
-        or value_node_type == "boolean"
-    then
-        return "boolean"
-    end
-
-    if value_node_type == "table_constructor" then
-        return "table"
-    end
-
-    if value_node_type == "function_call"
-        or value_node_type == "call_expression"
-    then
-        return "call"
-    end
-
-    if value_node_type == "identifier" then
-        return "identifier"
-    end
-
-    if value_node_type == "dot_index_expression"
-        or value_node_type == "method_index_expression"
-        or value_node_type == "field_expression"
-    then
-        return "reference"
-    end
-
-    return nil
-end
-
-
-local function infer_type_from_text(value_text)
-    if not core.is_non_empty_string(value_text) then
-        return nil
-    end
-
-    if value_text == "nil" then
-        return "nil"
-    end
-
-    if value_text == "true" or value_text == "false" then
-        return "boolean"
-    end
-
-    if tonumber(value_text) ~= nil then
-        return "number"
-    end
-
-    if value_text:match('^".*"$') or value_text:match("^'.*'$") then
-        return "string"
-    end
-
-    if value_text:match("^%{.*%}$") then
-        return "table"
-    end
-
-    if value_text:match("%)$") then
-        return "call"
-    end
-
-    if value_text:match("^[%a_][%w_%.:]*$") then
-        return "reference"
-    end
-
-    return nil
-end
-
-
-local function infer_type_label(value_text, value_node_type)
-    local type_label = infer_type_from_node_type(value_node_type)
-
-    if type_label then
-        return type_label
-    end
-
-    type_label = infer_type_from_text(value_text)
-
-    if type_label then
-        return type_label
+local function make_type_label(member)
+    if core.is_table(member) and core.is_non_empty_string(member.type_label) then
+        return member.type_label
     end
 
     return "<unknown>"
 end
 
-
-local function make_value_label(value_text)
-    if not core.is_non_empty_string(value_text) then
-        return "<unknown>"
+local function make_value_kind(member)
+    if core.is_table(member) and core.is_non_empty_string(member.value_kind) then
+        return member.value_kind
     end
 
-    return value_text
+    return "unknown"
 end
 
+local function make_value_label(member)
+    if core.is_table(member) and core.is_non_empty_string(member.value_text) then
+        return member.value_text
+    end
 
+    return "<unknown>"
+end
 
-local function make_unknown_state(member)
-    local value_text = member and member.value_text or nil
-    local value_node_type = member and member.value_node_type or nil
-
+local function make_member_state(member)
     return {
         member_id = member and member.id or nil,
         name = member and member.name or nil,
         kind = member and member.kind or nil,
-        type_label = infer_type_label(value_text, value_node_type),
-        value_label = make_value_label(value_text),
+
+        type_label = make_type_label(member),
+        value_label = make_value_label(member),
+        value_kind = make_value_kind(member),
+
         source_line = member and member.line or nil,
-        value_node_type = value_node_type,
+        value_node_type = member and member.value_node_type or nil,
+        value_start_line = member and member.value_start_line or nil,
+        value_end_line = member and member.value_end_line or nil,
     }
 end
 
-
-
 function M.get_member_state(member, _context)
     if not core.is_table(member) then
-        return make_unknown_state(nil)
+        return make_member_state(nil)
     end
 
-    return make_unknown_state(member)
+    return make_member_state(member)
 end
 
 function M.enrich_member(member, context)
@@ -159,6 +69,7 @@ function M.enrich_member(member, context)
     member.symbol_state = state
     member.type_label = state.type_label
     member.value_label = state.value_label
+    member.value_kind = state.value_kind
 
     return member
 end

@@ -99,16 +99,17 @@ function M.build_construct(opts)
     local contract = require("tracker_hud.constructs.contract")
 
     return contract.new_construct({
-        kind = opts.kind,
-        label = opts.label,
+        construct = opts.construct,
+        scope = opts.scope,
+        member = opts.member,
+        value = opts.value,
+
         node_type = opts.node_type,
         name = opts.name,
         signature = opts.signature,
         range = opts.range,
-        creates_scope = opts.creates_scope,
         metadata = opts.metadata or {},
     })
-
 end
 
 
@@ -229,12 +230,13 @@ function M.get_branch_alternative_label(alternative_node, spec)
 end
 
 
-
 function M.build_branch_display_label(node, spec)
     local start_line = M.get_first_node_line(node)
+    local construct_spec = spec.construct or {}
+    local base_label = construct_spec.label or "Branch"
 
     if not start_line then
-        return spec.label or "Branch"
+        return base_label
     end
 
     local cursor = M.get_cursor_position()
@@ -249,7 +251,7 @@ function M.build_branch_display_label(node, spec)
 
             return M.format_branch_display_label(
                 start_line,
-                spec.label,
+                base_label,
                 label,
                 alternative_line,
                 grouped
@@ -257,7 +259,7 @@ function M.build_branch_display_label(node, spec)
         end
     end
 
-    return "[" .. start_line .. "] " .. spec.label
+    return "[" .. start_line .. "] " .. base_label
 end
 
 
@@ -319,26 +321,29 @@ function M.build_scope_entry_from_construct(construct)
         return nil
     end
 
+    local construct_spec = construct.construct or {}
     local line_number = construct.range.start_line
-    local label = construct.signature or construct.label
+    local label = construct.signature or construct_spec.label
     local display_label = nil
 
     if construct.metadata then
         display_label = construct.metadata.display_label
     end
 
-    display_label = display_label or "[" .. line_number .. "] " .. label
+    display_label = display_label or "[" .. line_number .. "] " .. tostring(label or "<unknown>")
 
     return {
         label = display_label,
         raw_label = label,
         node_type = construct.node_type,
-        kind = construct.kind,
+        kind = construct_spec.kind,
+        scope = construct.scope,
+        value = construct.value,
         start_line = construct.range.start_line,
         end_line = construct.range.end_line,
         construct = construct,
     }
-end  
+end
 
 
 function M.build_context_from_scopes(scopes, config)
@@ -406,6 +411,7 @@ function M.match_node(adapter, node)
 end
 
 
+
 function M.parse_node(adapter, node, bufnr)
     if not core.is_table(adapter) then
         return nil, "adapter must be a table"
@@ -428,36 +434,44 @@ function M.parse_node(adapter, node, bufnr)
         return nil, "could not get node range"
     end
 
+    local construct_spec = spec.construct or {}
     local signature = nil
     local name = nil
 
-    if spec.kind == "callable" then
+    if construct_spec.kind == "callable" then
         signature = M.build_signature(node, bufnr, spec)
         name = M.extract_name_from_signature(signature, spec)
     end
 
-    local label = spec.label
+    local label = construct_spec.label or "<unknown>"
     local display_label = nil
 
-    if spec.kind == "branch" and spec.branch then
+    if construct_spec.kind == "branch" and spec.branch then
         display_label = M.build_branch_display_label(node, spec)
         label = display_label
     end
 
     return M.build_construct({
-        kind = spec.kind,
-        label = label,
+        construct = {
+            kind = construct_spec.kind,
+            label = label,
+        },
+
+        scope = spec.scope,
+        member = spec.member,
+        value = spec.value,
+
         node_type = node_type,
         name = name,
         signature = signature,
         range = range,
-        creates_scope = spec.creates_scope,
         metadata = {
             adapter = adapter.name,
             display_label = display_label,
         },
     })
 end
+
 
 
 function M.get_construct_spec(construct_specs, node_type)
@@ -491,13 +505,30 @@ function M.validate_construct_spec(spec)
         return false, "construct spec must be a table"
     end
 
-    
-    if type(spec.kind) ~= "string" or spec.kind == "" then
-        return false, "construct spec kind must be a non-empty string"
+    local contract = require("tracker_hud.constructs.contract")
+
+    local ok, err = contract.validate_construct_spec(spec.construct)
+
+    if not ok then
+        return false, err
     end
 
-    if type(spec.label) ~= "string" or spec.label == "" then
-        return false, "construct spec label must be a non-empty string"
+    ok, err = contract.validate_scope_spec(spec.scope)
+
+    if not ok then
+        return false, err
+    end
+
+    ok, err = contract.validate_member_spec(spec.member)
+
+    if not ok then
+        return false, err
+    end
+
+    ok, err = contract.validate_value_spec(spec.value)
+
+    if not ok then
+        return false, err
     end
 
     if spec.tokens ~= nil and not core.is_table(spec.tokens) then
@@ -526,7 +557,7 @@ function M.validate_construct_spec(spec)
 
         for _, marker_name in ipairs(required) do
             if type(marker_name) ~= "string" or marker_name == "" then
-                return false, "required marker names must be non-empty strings" 
+                return false, "required marker names must be non-empty strings"
             end
 
             if spec.tokens[marker_name] == nil then
@@ -545,7 +576,8 @@ function M.validate_construct_spec(spec)
         end
 
         if spec.markers.total_required ~= nil
-            and spec.markers.total_required ~= #required then
+            and spec.markers.total_required ~= #required
+        then
             return false, "markers.total_required does not match number of required markers"
         end
     end
