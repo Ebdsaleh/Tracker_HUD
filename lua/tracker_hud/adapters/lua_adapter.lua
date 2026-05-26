@@ -206,5 +206,15 @@ M.scope_members = {
             kind = "param",
         },
     },
+
+    fields = {
+        {
+            node_type = "field",
+            kind = "field",
+            scope_kind = "structural",
+        },
+    },
 }
+
+
 return M

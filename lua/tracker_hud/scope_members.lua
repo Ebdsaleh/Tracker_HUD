@@ -38,13 +38,17 @@ local function get_member_line(member)
 end
 
 
-local function make_state(opts, scope_depth, scope_range)
+local function make_state(opts, scope_depth, scope_range, structural_depth, structural_range)
     return {
         opts = opts or {},
         scope_depth = scope_depth or 0,
         scope_range = scope_range,
+
+        structural_depth = structural_depth or 0,
+        structural_range = structural_range,
     }
 end
+
 
 
 local function add_member(members, seen, name, kind, line, state)
@@ -148,15 +152,104 @@ local function get_node_text(node, bufnr)
 end
 
 
-local function node_creates_scope(node, adapter)
+local function get_child_by_field_name(node, field_name)
+    if not node or not core.is_non_empty_string(field_name) then
+        return nil
+    end
+
+    local ok, child = pcall(function()
+        return node:child_by_field_name(field_name)
+    end)
+
+    if ok then
+        return child
+    end
+
+    return nil
+end
+
+local function strip_quotes(text)
+    if not core.is_non_empty_string(text) then
+        return text
+    end
+
+    return text
+        :gsub('^"', "")
+        :gsub('"$', "")
+        :gsub("^'", "")
+        :gsub("'$", "")
+end
+
+
+local function get_field_name(node, bufnr)
+    if not node then
+        return nil
+    end
+
+    local name_node = get_child_by_field_name(node, "name")
+        or get_child_by_field_name(node, "key")
+
+    if name_node then
+        return strip_quotes(get_node_text(name_node, bufnr))
+    end
+
+    local first_named_child = node:named_child(0)
+
+    if not first_named_child then
+        return nil
+    end
+
+    local child_type = first_named_child:type()
+
+    if child_type ~= "identifier" and child_type ~= "string" then
+        return nil
+    end
+
+    return strip_quotes(get_node_text(first_named_child, bufnr))
+end
+
+
+
+
+local function get_construct_spec(node, adapter)
     if not node or not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
+        return nil
+    end
+
+    return adapter.construct_specs[node:type()]
+end
+
+
+
+local function node_creates_lexical_scope(node, adapter)
+    local spec = get_construct_spec(node, adapter)
+
+    if not core.is_table(spec) then
         return false
     end
-    
-    local spec = adapter.construct_specs[node:type()]
 
-    return core.is_table(spec) and spec.creates_scope == true
+    if core.is_table(spec.scope_effect) then
+        return spec.scope_effect.lexical == true
+    end
+
+    return spec.creates_scope == true
 end
+
+
+local function node_creates_structural_scope(node, adapter)
+    local spec = get_construct_spec(node, adapter)
+
+    if not core.is_table(spec) then
+        return false
+    end
+
+    if core.is_table(spec.scope_effect) then
+        return spec.scope_effect.structural == true
+    end
+
+    return spec.scope_kind == "structural"
+end
+
 
 
 local function node_type_matches(node, expected_type)
@@ -171,7 +264,7 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
     if not list_node then
         return
     end
-    
+
     for i = 0, list_node:named_child_count() - 1 do
         local variable = list_node:named_child(i)
         local name = get_node_text(variable, bufnr)
@@ -205,11 +298,13 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
     end
 end
 
+
+
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
     end
-    
+
     local opts = state.opts or {}
     local scope_depth = state.scope_depth or 0
 
@@ -235,16 +330,68 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
     )
 end
 
-local function collect_member_group(node, bufnr, specs, members, seen, state)
 
+
+local function make_structural_member_state(state)
+    if not state then
+        return make_state()
+    end
+
+    return make_state(
+        state.opts,
+        state.scope_depth,
+        state.structural_range or state.scope_range,
+        state.structural_depth,
+        state.structural_range
+    )
+end
+
+
+local function collect_field_member_spec(node, bufnr, member_spec, members, seen, state)
+    if not core.is_table(member_spec) then
+        return
+    end
+
+    if not node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    local name = get_field_name(node, bufnr)
+
+    if not core.is_non_empty_string(name) then
+        return
+    end
+
+    local line = get_node_line(node)
+    local member_state = state
+
+    if member_spec.scope_kind == "structural" then
+        member_state = make_structural_member_state(state)
+    end
+
+    add_member(
+        members,
+        seen,
+        name,
+        member_spec.kind,
+        line,
+        member_state
+    )
+end
+
+
+local function collect_member_group(node, bufnr, specs, members, seen, state, collector)
     if not core.is_table(specs) then
         return
     end
 
+    collector = collector or collect_member_spec
+
     for _, member_spec in ipairs(specs) do
-        collect_member_spec(node, bufnr, member_spec, members, seen, state)
+        collector(node, bufnr, member_spec, members, seen, state)
     end
 end
+
 
 
 local function collect_from_node(node, bufnr, adapter, members, seen, state)
@@ -271,7 +418,19 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         seen,
         state
     )
+
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.fields,
+        members,
+        seen,
+        state,
+        collect_field_member_spec
+    )
 end
+
+
 local function walk_node(node, bufnr, adapter, members, seen, state)
     if not node then
         return
@@ -281,10 +440,22 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 
     local current_state = state
 
-    if node_creates_scope(node, adapter) then
+    if node_creates_lexical_scope(node, adapter) then
         current_state = make_state(
             state.opts,
             state.scope_depth + 1,
+            get_node_range(node),
+            state.structural_depth,
+            state.structural_range
+        )
+    end
+
+    if node_creates_structural_scope(node, adapter) then
+        current_state = make_state(
+            current_state.opts,
+            current_state.scope_depth,
+            current_state.scope_range,
+            current_state.structural_depth + 1,
             get_node_range(node)
         )
     end
@@ -295,7 +466,6 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
         walk_node(child, bufnr, adapter, members, seen, current_state)
     end
 end
-
 
 
 function M.collect(bufnr, root_node, adapter, opts)
