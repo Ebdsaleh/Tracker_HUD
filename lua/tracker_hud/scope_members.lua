@@ -174,12 +174,24 @@ local function get_child_by_field_name(node, field_name)
     return nil
 end
 
-local function get_field_value_node(node) 
+
+
+local function get_field_value_node(node)
     if not node then
         return nil
     end
 
-    return get_child_by_field_name(node, "value") 
+    local value_node = get_child_by_field_name(node, "value")
+
+    if value_node then
+        return value_node
+    end
+
+    if node:named_child_count() >= 2 then
+        return node:named_child(1)
+    end
+
+    return nil
 end
 
 
