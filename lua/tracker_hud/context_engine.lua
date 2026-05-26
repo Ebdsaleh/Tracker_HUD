@@ -23,6 +23,7 @@ function M.make_global_context()
     }
 end
 
+
 function M.make_unavailable_context(message, filetype)
     return {
         label = message,
