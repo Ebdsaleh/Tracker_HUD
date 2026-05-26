@@ -51,7 +51,7 @@ end
 
 
 
-local function add_member(members, seen, name, kind, line, state)
+local function add_member(members, seen, name, kind, line, state, metadata)
     if not core.is_non_empty_string(name) then
         return
     end
@@ -85,6 +85,8 @@ local function add_member(members, seen, name, kind, line, state)
 
     seen[seen_key] = true
 
+    metadata = metadata or {}
+
     local member = {
         line = line,
         kind = kind,
@@ -92,6 +94,10 @@ local function add_member(members, seen, name, kind, line, state)
         scope_depth = scope_depth or 0,
         scope_start_line = scope_range and scope_range.start_line,
         scope_end_line = scope_range and scope_range.end_line,
+
+        value_text = metadata.value_text,
+        value_node_type = metadata.value_node_type,
+        source_node_type = metadata.source_node_type,
     }
 
     member.id = table.concat({
@@ -167,6 +173,16 @@ local function get_child_by_field_name(node, field_name)
 
     return nil
 end
+
+local function get_field_value_node(node) 
+    if not node then
+        return nil
+    end
+
+    return get_child_by_field_name(node, "value") 
+end
+
+
 
 local function strip_quotes(text)
     if not core.is_non_empty_string(text) then
@@ -364,6 +380,14 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
 
     local line = get_node_line(node)
     local member_state = state
+    local value_node = get_field_value_node(node)
+    local value_text = nil
+    local value_node_type = nil
+
+    if value_node then
+        value_text = get_node_text(value_node, bufnr)
+        value_node_type = value_node:type()
+    end
 
     if member_spec.scope_kind == "structural" then
         member_state = make_structural_member_state(state)
@@ -375,9 +399,15 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         name,
         member_spec.kind,
         line,
-        member_state
+        member_state,
+        {
+            value_text = value_text,
+            value_node_type = value_node_type,
+            source_node_type = node:type(),
+        }
     )
 end
+
 
 
 local function collect_member_group(node, bufnr, specs, members, seen, state, collector)

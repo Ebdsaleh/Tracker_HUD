@@ -10,16 +10,88 @@ local core = require("tracker_hud.core")
 
 local M = {}
 
+
+local function infer_type_label(value_text, value_node_type)
+    if core.is_non_empty_string(value_node_type) then
+        if value_node_type == "string" then
+            return "string"
+        end
+
+        if value_node_type == "number" then
+            return "number"
+        end
+
+        if value_node_type == "nil" then
+            return "nil"
+        end
+
+        if value_node_type == "true" or value_node_type == "false" or value_node_type == "boolean" then
+            return "boolean"
+        end
+
+        if value_node_type == "table_constructor" then
+            return "table"
+        end
+
+        if value_node_type == "function_call" then
+            return "call"
+        end
+    end
+
+    if value_text == nil then
+        return "<unknown>"
+    end
+
+    if value_text == "nil" then
+        return "nil"
+    end
+
+    if value_text == "true" or value_text == "false" then
+        return "boolean"
+    end
+
+    if tonumber(value_text) ~= nil then
+        return "number"
+    end
+
+    if value_text:match('^".*"$') or value_text:match("^'.*'$") then
+        return "string"
+    end
+
+    if value_text:match("^%{.*%}$") then
+        return "table"
+    end
+
+    return "<unknown>"
+end
+
+
+local function make_value_label(value_text)
+    if not core.is_non_empty_string(value_text) then
+        return "<unknown>"
+    end
+
+    return value_text
+end
+
+
+
 local function make_unknown_state(member)
+    local value_text = member and member.value_text or nil
+    local value_node_type = member and member.value_node_type or nil
+
     return {
         member_id = member and member.id or nil,
         name = member and member.name or nil,
         kind = member and member.kind or nil,
-        type_label = "<unknown>",
-        value_label = "<unknown>",
+        type_label = infer_type_label(value_text, value_node_type),
+        value_label = make_value_label(value_text),
         source_line = member and member.line or nil,
+        value_node_type = value_node_type,
     }
 end
+
+
 
 function M.get_member_state(member, _context)
     if not core.is_table(member) then
