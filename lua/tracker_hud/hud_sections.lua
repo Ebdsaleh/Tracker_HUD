@@ -132,12 +132,16 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                     result.targets[#result.lines] = {
                         kind = "node",
                         id = node.id,
+                        source_line = node.source_line,
+                        source_column = node.source_column,
                     }
                 else
                     table.insert(result.lines, indent .. rendered_label)
                     result.targets[#result.lines] = {
                         kind = "node",
                         id = node.id,
+                        source_line = node.source_line,
+                        source_column = node.source_column,
                     }
 
                     table.insert(result.lines, indent .. "  " .. range_label)
@@ -147,6 +151,8 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                 result.targets[#result.lines] = {
                     kind = "node",
                     id = node.id,
+                    source_line = node.source_line,
+                    source_column = node.source_column,
                 }
             end
 

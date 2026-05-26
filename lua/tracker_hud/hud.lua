@@ -171,6 +171,17 @@ local function ensure_panel_buffer()
         noremap = true,
         desc = "Toggle Tracker HUD section",
     })
+
+    -- Jump from the selected HUD row to its source location.
+    vim.keymap.set("n", "<Tab>", function()
+        require("tracker_hud.hud").jump_to_target_source_at_panel_cursor()
+    end, {
+        buffer = panel_bufnr,
+        silent = true,
+        noremap = true,
+        desc = "Jump to Tracker HUD row source",
+    })
+    
     
     -- Toggle HUD sections from inside the panel (mouse support).
     vim.keymap.set("n", "<2-LeftMouse>", function()
@@ -182,6 +193,7 @@ local function ensure_panel_buffer()
         desc = "Toggle Tracker HUD section with double click",
     })
 
+    
     pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
     return panel_bufnr
@@ -596,6 +608,55 @@ function M.get_target_at_panel_cursor()
 
     return panel_line_targets[line_number]
 end
+
+
+local function focus_source_window()
+    if is_valid_window(last_source_winid) then
+        pcall(vim.api.nvim_set_current_win, last_source_winid)
+        return true
+    end
+
+    return false
+end
+
+
+function M.jump_to_target_source(target)
+    if not target or not target.source_line then
+        return false
+    end
+
+    if not focus_source_window() then
+        return false
+    end
+
+    local line = math.max(1, tonumber(target.source_line) or 1)
+    local column = math.max(0, tonumber(target.source_column) or 0)
+
+    pcall(vim.api.nvim_win_set_cursor, 0, { line, column })
+
+    return true
+end
+
+
+
+function M.jump_to_target_source_at_panel_cursor()
+    if not hud_controls.is_enabled("show_all_scope_members") then
+        vim.notify(
+            "tracker_hud: enable Show All Scope Members to jump to source rows",
+            vim.log.levels.INFO
+        )
+        return false
+    end
+
+    local target = M.get_target_at_panel_cursor()
+
+    if not target then
+        return false
+    end
+
+    return M.jump_to_target_source(target)
+end
+
 
 
 function M.toggle_target(target)
