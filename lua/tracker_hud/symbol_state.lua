@@ -11,35 +11,58 @@ local core = require("tracker_hud.core")
 local M = {}
 
 
-local function infer_type_label(value_text, value_node_type)
-    if core.is_non_empty_string(value_node_type) then
-        if value_node_type == "string" then
-            return "string"
-        end
-
-        if value_node_type == "number" then
-            return "number"
-        end
-
-        if value_node_type == "nil" then
-            return "nil"
-        end
-
-        if value_node_type == "true" or value_node_type == "false" or value_node_type == "boolean" then
-            return "boolean"
-        end
-
-        if value_node_type == "table_constructor" then
-            return "table"
-        end
-
-        if value_node_type == "function_call" then
-            return "call"
-        end
+local function infer_type_from_node_type(value_node_type)
+    if not core.is_non_empty_string(value_node_type) then
+        return nil
     end
 
-    if value_text == nil then
-        return "<unknown>"
+    if value_node_type == "string" then
+        return "string"
+    end
+
+    if value_node_type == "number" then
+        return "number"
+    end
+
+    if value_node_type == "nil" then
+        return "nil"
+    end
+
+    if value_node_type == "true"
+        or value_node_type == "false"
+        or value_node_type == "boolean"
+    then
+        return "boolean"
+    end
+
+    if value_node_type == "table_constructor" then
+        return "table"
+    end
+
+    if value_node_type == "function_call"
+        or value_node_type == "call_expression"
+    then
+        return "call"
+    end
+
+    if value_node_type == "identifier" then
+        return "identifier"
+    end
+
+    if value_node_type == "dot_index_expression"
+        or value_node_type == "method_index_expression"
+        or value_node_type == "field_expression"
+    then
+        return "reference"
+    end
+
+    return nil
+end
+
+
+local function infer_type_from_text(value_text)
+    if not core.is_non_empty_string(value_text) then
+        return nil
     end
 
     if value_text == "nil" then
@@ -60,6 +83,31 @@ local function infer_type_label(value_text, value_node_type)
 
     if value_text:match("^%{.*%}$") then
         return "table"
+    end
+
+    if value_text:match("%)$") then
+        return "call"
+    end
+
+    if value_text:match("^[%a_][%w_%.:]*$") then
+        return "reference"
+    end
+
+    return nil
+end
+
+
+local function infer_type_label(value_text, value_node_type)
+    local type_label = infer_type_from_node_type(value_node_type)
+
+    if type_label then
+        return type_label
+    end
+
+    type_label = infer_type_from_text(value_text)
+
+    if type_label then
+        return type_label
     end
 
     return "<unknown>"
