@@ -348,7 +348,7 @@ local function format_panel_lines(context)
             "",
             "No Tree-sitter context available.",
             "",
-            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
+            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
         }
     end
 
@@ -357,7 +357,7 @@ local function format_panel_lines(context)
     local lines = {
         "Tracker HUD",
         "",
-        "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
+        "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
         "",
     }
 
@@ -438,7 +438,7 @@ function M.clear(config)
                 "",
                 "No active context.",
                 "",
-                "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle sections.",
+                "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
             })
             vim.bo[panel_bufnr].modifiable = false
         end

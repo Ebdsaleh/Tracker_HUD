@@ -97,6 +97,8 @@ local function add_member(members, seen, name, kind, line, state, metadata)
 
         value_text = metadata.value_text,
         value_node_type = metadata.value_node_type,
+        value_start_line = metadata.value_start_line,
+        value_end_line = metadata.value_end_line,
         source_node_type = metadata.source_node_type,
     }
 
@@ -132,6 +134,24 @@ local function get_node_range(node)
     }
 
 end
+
+local function get_node_range_fields(node)
+    local range = get_node_range(node)
+
+    if not range then
+        return {
+            start_line = nil,
+            end_line = nil,
+        }
+    end
+
+    return {
+        start_line = range.start_line,
+        end_line = range.end_line,
+    }
+end
+
+
 
 local function get_node_line(node)
     if not node then
@@ -395,10 +415,15 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
     local value_node = get_field_value_node(node)
     local value_text = nil
     local value_node_type = nil
+    local value_range = {
+        start_line = nil,
+        end_line = nil,
+    }
 
     if value_node then
         value_text = get_node_text(value_node, bufnr)
         value_node_type = value_node:type()
+        value_range = get_node_range_fields(value_node)
     end
 
     if member_spec.scope_kind == "structural" then
@@ -415,6 +440,8 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         {
             value_text = value_text,
             value_node_type = value_node_type,
+            value_start_line = value_range.start_line,
+            value_end_line = value_range.end_line,
             source_node_type = node:type(),
         }
     )
