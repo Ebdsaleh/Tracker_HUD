@@ -201,6 +201,18 @@ M.construct_specs = {
         },
     },
 
+    ["function_call"] = {
+        construct = {
+            kind = "expression",
+            label = "Call",
+        },
+
+        value = {
+            kind = "call",
+            type_label = "call",
+        },
+    },
+
     ["string"] = {
         construct = {
             kind = "literal",
