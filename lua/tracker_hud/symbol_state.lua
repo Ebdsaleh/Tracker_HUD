@@ -42,6 +42,21 @@ local function make_value_label(member)
         return "<unknown>"
     end
 
+    if member.value_kind == "structural" then
+        local type_label = member.type_label or "structural"
+
+        if member.value_start_line and member.value_end_line then
+            return type_label
+                .. " ["
+                .. tostring(member.value_start_line)
+                .. " - "
+                .. tostring(member.value_end_line)
+                .. "]"
+        end
+
+        return type_label
+    end
+
     local value_text = make_single_line_text(member.value_text)
 
     if core.is_non_empty_string(value_text) then
