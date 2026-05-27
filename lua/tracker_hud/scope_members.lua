@@ -509,6 +509,56 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
 end
 
 
+local function collect_return_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
+    if not core.is_table(member_spec) then
+        return
+    end
+
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
+
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
+        return
+    end
+
+    if not node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    local value_list_node = find_first_descendant_by_type(
+        node,
+        member_spec.value_list_node_type
+    )
+
+    if not value_list_node then
+        return
+    end
+
+    local line = get_node_line(node)
+    local kind = member_spec.member and member_spec.member.kind
+
+    for i = 0, value_list_node:named_child_count() - 1 do
+        local value_node = value_list_node:named_child(i)
+        local metadata = build_value_metadata(value_node, bufnr, adapter)
+        local name = "return"
+
+        if value_list_node:named_child_count() > 1 then
+            name = "return #" .. tostring(i + 1)
+        end
+
+        add_member(
+            members,
+            seen,
+            name,
+            kind,
+            line,
+            state,
+            metadata
+        )
+    end
+end
+
+
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
@@ -642,6 +692,18 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         members,
         seen,
         state
+    )
+
+    -- returns
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.returns,
+        members,
+        seen,
+        state,
+        collect_return_member_spec,
+        adapter
     )
 
     -- fields

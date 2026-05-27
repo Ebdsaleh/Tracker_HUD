@@ -15,6 +15,7 @@ M.construct_kinds = {
     assignment = true,
     literal = true,
     expression = true,
+    statement = true,
 }
 
 M.scope_kinds = {

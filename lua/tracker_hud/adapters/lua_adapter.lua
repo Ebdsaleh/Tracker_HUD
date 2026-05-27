@@ -201,6 +201,13 @@ M.construct_specs = {
         },
     },
 
+    ["return_statement"] = {
+        construct = {
+            kind = "statement",
+            label = "Return",
+        },
+    },
+
     ["function_call"] = {
         construct = {
             kind = "expression",
@@ -322,6 +329,18 @@ M.scope_members = {
 
             member = {
                 kind = "parameter",
+                owner_scope = "lexical",
+            },
+        },
+    },
+
+    returns = {
+        {
+            node_type = "return_statement",
+            value_list_node_type = "expression_list",
+
+            member = {
+                kind = "return_value",
                 owner_scope = "lexical",
             },
         },
