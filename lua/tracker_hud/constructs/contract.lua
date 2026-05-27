@@ -34,6 +34,7 @@ M.member_kinds = {
     entry = true,
     return_value = true,
     assignment = true,
+    loop_variable = true
 }
 
 M.owner_scope_kinds = {

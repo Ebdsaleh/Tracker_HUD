@@ -357,6 +357,7 @@ M.scope_members = {
         },
     },
 
+
     functions = {
         {
             node_type = "function_declaration",
@@ -371,6 +372,27 @@ M.scope_members = {
 
             member = {
                 kind = "function_",
+                owner_scope = "lexical",
+            },
+        },
+    },
+
+    loops = {
+        {
+            node_type = "for_numeric_clause",
+            name_field = "name",
+
+            member = {
+                kind = "loop_variable",
+                owner_scope = "lexical",
+            },
+        },
+        {
+            node_type = "for_generic_clause",
+            name_list_node_type = "variable_list",
+
+            member = {
+                kind = "loop_variable",
                 owner_scope = "lexical",
             },
         },

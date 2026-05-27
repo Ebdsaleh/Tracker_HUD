@@ -628,6 +628,67 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
 end
 
 
+local function collect_loop_member_spec(node, bufnr, member_spec, members, seen, state)
+    if not core.is_table(member_spec) then
+        return
+    end
+    
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
+    
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
+        return
+    end
+
+    if not node_type_matches(node, member_spec.node_type) then
+        return 
+    end
+    
+    local line = get_node_line(node)
+    local kind = member_spec.member and member_spec.member.kind
+
+    if core.is_non_empty_string(member_spec.name_field) then
+        local name_node = get_child_by_field_name(node, member_spec.name_field)
+
+        if name_node then
+            local name = get_node_text(name_node, bufnr)
+
+            add_member(
+                members,
+                seen,
+                name,
+                kind,
+                line,
+                state
+            )
+        end
+        return
+    end
+
+    local name_list_node = find_first_descendant_by_type(
+        node,
+        member_spec.name_list_node_type
+    )
+
+    if not name_list_node then
+        return 
+    end
+
+    collect_names_from_list_node(
+        name_list_node,
+        bufnr,
+        members,
+        seen,
+        kind,
+        line,
+        state
+    )
+
+end
+
+
+
+
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
@@ -785,6 +846,17 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         state,
         collect_function_member_spec,
         adapter
+    )
+
+    -- loops
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.loops,
+        members,
+        seen,
+        state,
+        collect_loop_member_spec
     )
 
     -- returns
