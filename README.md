@@ -560,6 +560,13 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 
 ## Version notes
 
+### `v0.7.1`
+
+- Added assignment tracking for Scope Members
+- Added adapter-driven assignment name/value pairing
+- Added assignment values as inspectable HUD members
+- Supported structural assignment values with nested field ownership
+
 ### `v0.7.0`
 
 - Migrated construct handling to Contract v2
