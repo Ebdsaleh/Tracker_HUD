@@ -559,6 +559,75 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
 end
 
 
+local function get_function_name(node, bufnr)
+    if not node then
+        return nil
+    end
+
+    local name_node = get_child_by_field_name(node, "name")
+
+    if not name_node then
+        return nil
+    end
+
+    return get_node_text(name_node, bufnr)
+end
+
+
+local function collect_function_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
+    if not core.is_table(member_spec) then
+        return
+    end
+
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
+
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
+        return
+    end
+
+    if not node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    local name = get_function_name(node, bufnr)
+
+    if not core.is_non_empty_string(name) then
+        return
+    end
+
+    local line = get_node_line(node)
+    local range = get_node_range_fields(node)
+    local kind = member_spec.member and member_spec.member.kind
+    local value_spec = get_value_spec_from_node(node, adapter)
+
+    local metadata = {
+        value_text = name,
+        value_node_type = node:type(),
+        value_start_line = range.start_line,
+        value_end_line = range.end_line,
+        value_kind = nil,
+        type_label = nil,
+        source_node_type = node:type(),
+    }
+
+    if core.is_table(value_spec) then
+        metadata.value_kind = value_spec.kind
+        metadata.type_label = value_spec.type_label
+    end
+
+    add_member(
+        members,
+        seen,
+        name,
+        kind,
+        line,
+        state,
+        metadata
+    )
+end
+
+
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
@@ -706,7 +775,18 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         state
     )
 
-    
+    -- functions
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.functions,
+        members,
+        seen,
+        state,
+        collect_function_member_spec,
+        adapter
+    )
+
     -- returns
     collect_member_group(
         node,

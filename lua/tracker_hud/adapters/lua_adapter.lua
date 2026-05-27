@@ -357,6 +357,25 @@ M.scope_members = {
         },
     },
 
+    functions = {
+        {
+            node_type = "function_declaration",
+
+            member = {
+                kind = "function_",
+                owner_scope = "lexical",
+            },
+        },
+        {
+            node_type = "function_definition",
+
+            member = {
+                kind = "function_",
+                owner_scope = "lexical",
+            },
+        },
+    },
+
     returns = {
         {
             node_type = "return_statement",
