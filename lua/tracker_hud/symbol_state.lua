@@ -26,13 +26,31 @@ local function make_value_kind(member)
     return "unknown"
 end
 
+local function make_single_line_text(text)
+    if not core.is_non_empty_string(text) then
+        return nil
+    end
+
+    return text
+        :gsub("\r\n", "\\n")
+        :gsub("\n", "\\n")
+        :gsub("\r", "\\n")
+end
+
 local function make_value_label(member)
-    if core.is_table(member) and core.is_non_empty_string(member.value_text) then
-        return member.value_text
+    if not core.is_table(member) then
+        return "<unknown>"
+    end
+
+    local value_text = make_single_line_text(member.value_text)
+
+    if core.is_non_empty_string(value_text) then
+        return value_text
     end
 
     return "<unknown>"
 end
+
 
 local function make_member_state(member)
     return {
