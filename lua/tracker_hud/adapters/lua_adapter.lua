@@ -296,7 +296,8 @@ M.scope_members = {
     declarations = {
         {
             node_type = "variable_declaration",
-            list_node_type = "variable_list",
+            name_list_node_type = "variable_list",
+            value_list_node_type = "expression_list",
 
             member = {
                 kind = "local_",

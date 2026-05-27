@@ -299,6 +299,38 @@ local function get_value_spec_from_node(node, adapter)
 end
 
 
+local function build_value_metadata(value_node, bufnr, adapter)
+    local metadata = {
+        value_text = nil,
+        value_node_type = nil,
+        value_start_line = nil,
+        value_end_line = nil,
+        value_kind = nil,
+        type_label = nil,
+    }
+
+    if not value_node then
+        return metadata
+    end
+    
+    metadata.value_text = get_node_text(value_node, bufnr)
+    metadata.value_node_type = value_node:type()
+
+
+    local value_range = get_node_range_fields(value_node)
+    metadata.value_start_line = value_range.start_line
+    metadata.value_end_line = value_range.end_line
+
+    local value_spec = get_value_spec_from_node(value_node, adapter)
+
+    if core.is_table(value_spec) then
+        metadata.value_kind = value_spec.kind
+        metadata.type_label = value_spec.type_label
+    end
+    
+    return metadata
+end
+
 
 local function node_creates_lexical_scope(node, adapter)
     local spec = get_construct_spec(node, adapter)
@@ -331,6 +363,65 @@ local function node_type_matches(node, expected_type)
         and node:type() == expected_type
 end
 
+
+local function find_first_descendant_by_type(node, node_type)
+    if not node or not core.is_non_empty_string(node_type) then
+        return nil
+    end
+
+    if node_type_matches(node, node_type) then
+        return node
+    end
+
+    for child in node:iter_children() do
+        local found = find_first_descendant_by_type(child, node_type)
+
+        if found then
+            return found
+        end
+    end
+
+    return nil
+end
+
+
+local function collect_names_with_values_from_list_nodes(
+    name_list_node,
+    value_list_node,
+    bufnr,
+    adapter,
+    members,
+    seen,
+    kind,
+    line,
+    state
+)
+    if not name_list_node then
+        return
+    end
+
+    for i = 0, name_list_node:named_child_count() - 1 do
+        local name_node = name_list_node:named_child(i)
+        local value_node = nil
+
+        if value_list_node and i < value_list_node:named_child_count() then
+            value_node = value_list_node:named_child(i)
+        end
+
+        local name = get_node_text(name_node, bufnr)
+        local metadata = build_value_metadata(value_node, bufnr, adapter)
+
+        add_member(
+            members,
+            seen,
+            name,
+            kind,
+            line,
+            state,
+            metadata
+        )
+    end
+end
 
 
 local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, state)
@@ -371,6 +462,51 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
     end
 end
 
+
+local function collect_declaration_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
+    if not core.is_table(member_spec) then
+        return
+    end
+
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
+
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
+        return
+    end
+
+    if not node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    local name_list_node = find_first_descendant_by_type(
+        node,
+        member_spec.name_list_node_type or member_spec.list_node_type
+    )
+
+    if not name_list_node then
+        return
+    end
+
+    local value_list_node = find_first_descendant_by_type(
+        node,
+        member_spec.value_list_node_type
+    )
+
+    local line = get_node_line(node)
+
+    collect_names_with_values_from_list_nodes(
+        name_list_node,
+        value_list_node,
+        bufnr,
+        adapter,
+        members,
+        seen,
+        member_spec.member and member_spec.member.kind,
+        line,
+        state
+    )
+end
 
 
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
@@ -438,27 +574,8 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
     local line = get_node_line(node)
     local member_state = state
     local value_node = get_field_value_node(node)
-    local value_text = nil
-    local value_node_type = nil
-    local value_kind = nil
-    local type_label = nil
-    local value_range = {
-        start_line = nil,
-        end_line = nil,
-    }
+    local metadata = build_value_metadata(value_node, bufnr, adapter)
 
-    if value_node then
-        value_text = get_node_text(value_node, bufnr)
-        value_node_type = value_node:type()
-        value_range = get_node_range_fields(value_node)
-
-        local value_spec = get_value_spec_from_node(value_node, adapter)
-
-        if core.is_table(value_spec) then
-            value_kind = value_spec.kind
-            type_label = value_spec.type_label
-        end
-    end
 
     if member_spec.member and member_spec.member.owner_scope == "structural" then
         member_state = make_structural_member_state(state)
@@ -472,12 +589,12 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         line,
         member_state,
         {
-            value_text = value_text,
-            value_node_type = value_node_type,
-            value_start_line = value_range.start_line,
-            value_end_line = value_range.end_line,
-            value_kind = value_kind,
-            type_label = type_label,
+            value_text = metadata.value_text,
+            value_node_type = metadata.value_node_type,
+            value_start_line = metadata.value_start_line,
+            value_end_line = metadata.value_end_line,
+            value_kind = metadata.value_kind,
+            type_label = metadata.type_label,
             source_node_type = node:type(),
         }
     )
@@ -512,8 +629,11 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         scope_member_spec.declarations,
         members,
         seen,
-        state
+        state,
+        collect_declaration_member_spec,
+        adapter
     )
+
     -- parameters
     collect_member_group(
         node,
@@ -523,6 +643,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         seen,
         state
     )
+
     -- fields
     collect_member_group(
         node,
