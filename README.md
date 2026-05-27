@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, and a modular spec-driven adapter architecture.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, and a Contract v2 spec-driven adapter architecture.
 
 ---
 
@@ -39,6 +39,12 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Scope Members section for adapter-driven local declaration discovery
 - Scope Members filtering by active scope and cursor position
 - Show All Scope Members HUD control
+- `<Tab>` source jump from HUD rows when Show All Scope Members is enabled
+- Contract v2 adapter model using `construct`, `scope`, `member`, and `value` specs
+- Adapter-driven value type labels for Lua scalar, structural, callable, and call values
+- Lua return statement tracking
+- Return values displayed as scope members
+- Structural values such as Lua tables attach under their owning member
 - Shared HUD control registry
 
 ---
@@ -63,10 +69,21 @@ Current adapter support:
 
 | Filetype | Status |
 |---|---|
-| `lua` | Supported |
+| `lua` | Supported: scopes, branches, fields, locals, return values, scalar values, calls, and structural table values |
 | other filetypes | HUD appears, but structural adapter support is not yet implemented |
 
-Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, and context output.
+Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, value metadata routing, and context output.
+
+Tracker HUD uses a Contract v2 adapter model. Adapters describe language syntax using four normalized concepts:
+
+```text
+construct
+scope
+member
+value
+```
+
+This keeps the engine language-neutral. For example, Lua tables, JavaScript objects, Python dictionaries, Rust structs, C structs, and custom DSL object blocks can all be described as structural values/scopes by their adapters without requiring engine changes.
 
 ---
 
@@ -167,18 +184,27 @@ Sections can be expanded or collapsed from inside the HUD panel.
 
 | Input | Action |
 |---|---|
-| `<CR>` | Toggle the HUD section or control under the cursor |
+| `<CR>` | Toggle the HUD section, control, or node under the cursor |
+| `<Tab>` | Jump to the selected HUD row's source location when Show All Scope Members is enabled |
 | Double left click | Toggle the HUD section or control under the mouse cursor |
 
 The HUD panel preserves panel cursor position during interactive updates.
 
 ### Scope Members
 
-The `Scope Members` section displays statically discovered local declarations from the current language adapter.
+The `Scope Members` section displays statically discovered members from the current language adapter.
 
-For Lua, Tracker HUD currently detects local declarations using Tree-sitter and the Lua adapter's `scope_members` specification.
+For Lua, Tracker HUD currently detects:
 
-By default, Scope Members shows declarations relevant to the active scope and current cursor position.
+- local declarations
+- function parameters
+- table fields
+- return values
+- scalar values such as strings, numbers, booleans, and nil
+- call values
+- structural table values
+
+By default, Scope Members shows members relevant to the active scope and current cursor position.
 
 The HUD also provides a control:
 
@@ -192,7 +218,9 @@ When enabled:
 [+] Show All Scope Members
 ```
 
-the Scope Members section displays all discovered scope members from the current file.
+the Scope Members section displays all discovered scope members from the current file. In this mode, pressing `<Tab>` on a scope/member row jumps the source cursor to that row's source location.
+
+Structural values are attached under the member that owns them. For example, a returned Lua table is shown under the `return_value` member instead of floating as a separate first-class scope member.
 
 ---
 
@@ -470,8 +498,9 @@ Current functionality is focused on structural awareness:
 - HUD panel behavior
 - runtime panel position/size controls
 - resizing and focus handling
-- Scope member tracking is static and name-based only
-- Scope Members currently tracks declarations, not runtime values
+- Scope member tracking is static and syntax-based only
+- Scope Members tracks adapter-described values, not runtime values
+- Local initializer tracking is currently syntax-based and depends on adapter support
 - Scope Members does not yet fully model shadowing, lifetime, mutation, or control-flow visibility
 - Registers, Stack, and Warnings are placeholder sections
 
@@ -485,9 +514,10 @@ Planned future work:
 
 - Better panel formatting
 - Structured Scope Member entries instead of display strings
-- Function parameter discovery
 - Loop variable discovery
 - Better shadowing and lifetime handling for Scope Members
+- More complete adapter capability declarations
+- Additional Contract v2 adapter documentation
 - HUD highlights/colors for section headers, controls, warnings, and muted text
 - Rust ownership and lifetime hints
 - ASM stack pointer / heap tracking
@@ -529,6 +559,24 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.0`
+
+- Migrated construct handling to Contract v2
+- Replaced ambiguous `creates_scope`-style adapter semantics with normalized `construct`, `scope`, `member`, and `value` specs
+- Added adapter capabilities metadata
+- Updated the Lua adapter to use quoted Tree-sitter node-type keys
+- Added adapter-driven Lua value metadata for strings, numbers, booleans, nil, calls, callable values, and table values
+- Moved type/value display toward adapter-provided metadata instead of core inference
+- Added return statement recognition
+- Added return values as Scope Members
+- Added initializer value capture for local declarations
+- Added structural value ranges for collected members
+- Added compact structural value display such as `table [start - end]`
+- Attached structural scopes to the member that owns the structural value
+- Added HUD `<Tab>` source jump for rows when Show All Scope Members is enabled
+- Added source-line metadata to HUD tree targets
+- Improved Scope Members tree semantics so structural table scopes can nest under returns or owning values
 
 ### `v0.6.0`
 
