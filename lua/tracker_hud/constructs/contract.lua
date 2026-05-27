@@ -33,6 +33,7 @@ M.member_kinds = {
     function_ = true,
     entry = true,
     return_value = true,
+    assignment = true,
 }
 
 M.owner_scope_kinds = {

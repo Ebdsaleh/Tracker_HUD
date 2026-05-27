@@ -684,6 +684,18 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         adapter
     )
 
+    -- assignments
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.assignments,
+        members,
+        seen,
+        state,
+        collect_declaration_member_spec,
+        adapter
+    )
+
     -- parameters
     collect_member_group(
         node,
@@ -694,6 +706,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         state
     )
 
+    
     -- returns
     collect_member_group(
         node,

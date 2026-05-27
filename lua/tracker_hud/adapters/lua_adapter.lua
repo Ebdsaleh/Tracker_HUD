@@ -201,10 +201,19 @@ M.construct_specs = {
         },
     },
 
+    
+
     ["return_statement"] = {
         construct = {
             kind = "statement",
             label = "Return",
+        },
+    },
+
+    ["assignment_statement"] = {
+        construct = {
+            kind = "assignment",
+            label = "Assignment",
         },
     },
 
@@ -313,6 +322,20 @@ M.scope_members = {
         },
     },
 
+     assignments = {
+        {
+            node_type = "assignment_statement",
+            name_list_node_type = "variable_list",
+            value_list_node_type = "expression_list",
+
+            member = {
+                kind = "assignment",
+                owner_scope = "lexical",
+            },
+        },
+    },
+
+
     parameters = {
         {
             node_type = "function_declaration",
@@ -356,6 +379,7 @@ M.scope_members = {
             },
         },
     },
-}
+
+   }
 
 return M
