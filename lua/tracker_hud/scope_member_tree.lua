@@ -127,6 +127,80 @@ local function sort_scope_nodes(left, right)
 end
 
 
+local function get_scope_range_key(start_line, end_line)
+    if not start_line or not end_line then
+        return nil
+    end
+
+    return table.concat({
+        "scope_range",
+        tostring(start_line),
+        tostring(end_line),
+    }, ":")
+end
+
+
+local function member_has_structural_value(member)
+    return core.is_table(member)
+        and member.value_kind == "structural"
+        and member.value_start_line ~= nil
+        and member.value_end_line ~= nil
+end
+
+
+local function build_scope_range_index(scope_order)
+    local scope_range_index = {}
+
+    for _, scope_node in ipairs(scope_order or {}) do
+        local range_key = get_scope_range_key(
+            scope_node.scope_start_line,
+            scope_node.scope_end_line
+        )
+
+        if range_key then
+            scope_range_index[range_key] = scope_node
+        end
+    end
+
+    return scope_range_index
+end
+
+
+local function attach_structural_scopes_to_members(scope_order)
+    local scope_range_index = build_scope_range_index(scope_order)
+    local attached_scope_ids = {}
+
+    for _, scope_node in ipairs(scope_order or {}) do
+        for _, member_node in ipairs(scope_node.children or {}) do
+            local member = member_node.member
+
+            if member_has_structural_value(member) then
+                local range_key = get_scope_range_key(
+                    member.value_start_line,
+                    member.value_end_line
+                )
+
+                local structural_scope_node = scope_range_index[range_key]
+
+                if structural_scope_node and structural_scope_node.id ~= scope_node.id then
+                    table.insert(member_node.children, structural_scope_node)
+                    attached_scope_ids[structural_scope_node.id] = true
+                end
+            end
+        end
+    end
+
+    local filtered_scope_order = {}
+
+    for _, scope_node in ipairs(scope_order or {}) do
+        if not attached_scope_ids[scope_node.id] then
+            table.insert(filtered_scope_order, scope_node)
+        end
+    end
+
+    return filtered_scope_order
+end
+
 
 
 
@@ -154,6 +228,8 @@ function M.build(members, context)
     end
 
     table.sort(scope_order, sort_scope_nodes)
+
+    scope_order = attach_structural_scopes_to_members(scope_order)
 
     return scope_order
 end
