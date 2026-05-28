@@ -372,6 +372,11 @@ M.scope_members = {
             node_type = "assignment_statement",
             name_list_node_type = "variable_list",
             value_list_node_type = "expression_list",
+            -- exclude types
+            exclude_ancestor_node_types = {
+                "variable_declaration",
+                "local_declaration"
+            },
 
             member = {
                 kind = "assignment",

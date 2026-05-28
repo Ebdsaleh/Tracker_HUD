@@ -357,10 +357,30 @@ local function node_creates_structural_scope(node, adapter)
 end
 
 
+
 local function node_type_matches(node, expected_type)
     return node
         and core.is_non_empty_string(expected_type)
         and node:type() == expected_type
+end
+
+local function node_has_ancestor_type(node, ancestor_node_types)
+    if not node or not core.is_table(ancestor_node_types) then
+        return false
+    end
+
+    local current = node:parent()
+
+    while current do
+        for _, ancestor_node_type in ipairs(ancestor_node_types) do
+            if node_type_matches(current, ancestor_node_type) then
+                return true
+            end
+        end
+        current = current:parent()
+    end
+
+    return false
 end
 
 
@@ -382,6 +402,15 @@ local function find_first_descendant_by_type(node, node_type)
     end
 
     return nil
+end
+
+
+local function should_skip_member_spec_node(node, member_spec)
+    return core.is_table(member_spec)
+        and node_has_ancestor_type(
+            node,
+            member_spec.exclude_ancestor_node_types
+        )
 end
 
 
@@ -476,6 +505,10 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
     end
 
     if not node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    if should_skip_member_spec_node(node, member_spec) then
         return
     end
 
