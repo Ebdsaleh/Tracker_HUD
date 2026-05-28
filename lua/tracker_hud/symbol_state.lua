@@ -42,8 +42,8 @@ local function make_value_label(member)
         return "<unknown>"
     end
 
-    if member.value_kind == "structural" then
-        local type_label = member.type_label or "structural"
+    if member.value_kind == "structural" or member.value_kind == "callable" then
+        local type_label = member.type_label or member.value_kind
 
         if member.value_start_line and member.value_end_line then
             return type_label
