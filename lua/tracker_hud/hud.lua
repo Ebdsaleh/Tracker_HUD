@@ -3,6 +3,7 @@
 local hud_sections = require("tracker_hud.hud_sections")
 local hud_controls = require("tracker_hud.hud_controls")
 local hud_nodes = require("tracker_hud.hud_nodes")
+local inspect_mode = require("tracker_hud.inspect_mode")
 
 local M = {}
 
@@ -58,6 +59,14 @@ local function set_panel_cursor_location(cursor)
 end
 
 
+local function set_panel_statusline()
+    if not is_valid_window(panel_winid) then
+        return
+    end
+
+    vim.wo[panel_winid].statusline = 
+        "Tracker HUD [-] " .. inspect_mode.get_status_label()
+end
 
 local function clear_winbar()
     vim.wo.winbar = nil
@@ -290,6 +299,9 @@ local function create_panel(config, source_winid, lines)
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
 
+    set_panel_statusline()
+
+
     if is_vertical_panel(panel_position) then
         vim.wo[panel_winid].winfixwidth = true
         vim.wo[panel_winid].winfixheight = false
@@ -414,6 +426,7 @@ local function render_panel(context, config, source_winid)
     local lines = format_panel_lines(context)
 
     create_panel(config, source_winid, lines)
+    set_panel_statusline()
 
     if not is_valid_buffer(panel_bufnr) then
         return
@@ -567,6 +580,7 @@ function M.update_panel()
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
+    set_panel_statusline()
 
     set_panel_cursor_location(panel_cursor)
 
