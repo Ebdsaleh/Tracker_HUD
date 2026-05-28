@@ -42,6 +42,14 @@ function M.is_expanded(section_id)
 end
 
 
+function M.set_expanded(section_id, expanded)
+    if not validate_section(section_id) then
+        return false
+    end
+
+    section_state[section_id] = expanded == true
+    return true
+end
 local function get_display_width(text)
     local ok, width = pcall(vim.fn.strdisplaywidth, text or "")
 
@@ -175,6 +183,130 @@ local function build_scope_member_tree_lines(nodes, opts)
     append_scope_member_tree_lines(result, nodes, 0, opts)
 
     return result
+end
+
+
+local function get_node_source_range(node)
+    if type(node) ~= "table" then
+        return nil
+    end
+
+    if node.scope_start_line and node.scope_end_line then
+        return {
+            start_line = node.scope_start_line,
+            end_line = node.scope_end_line,
+        }
+    end
+
+    if type(node.member) == "table" then
+        if node.member.value_start_line and node.member.value_end_line then
+            return {
+                start_line = node.member.value_start_line,
+                end_line = node.member.value_end_line,
+            }
+        end
+        
+        if node.member.line then
+            return {
+                start_line = node.member.line,
+                end_line = node.member.line,
+            }
+        end
+    end
+    
+    if node.source_line then
+    return {
+        start_line = node.source_line,
+        end_line = node.source_line,
+    }
+    end
+    return nil
+end
+
+
+local function node_contains_line(node, source_line)
+    local range = get_node_source_range(node)
+
+    if not range then
+        return false
+    end
+    
+    return source_line >= range.start_line
+        and source_line <= range.end_line
+end
+
+
+local function find_deepest_node_path_for_line(nodes, source_line, current_path, best_path)
+    current_path = current_path or {}
+    best_path = best_path or nil
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" and node_contains_line(node, source_line) then
+            local next_path = {}
+
+            for _, path_node in ipairs(current_path) do
+                table.insert(next_path, path_node)
+            end
+
+            table.insert(next_path, node)
+            best_path = next_path
+
+            if node_has_children(node) then
+                best_path = find_deepest_node_path_for_line(
+                    node.children,
+                    source_line,
+                    next_path,
+                    best_path
+                )
+            end
+        end
+    end
+    
+    return best_path
+end
+
+
+function M.reveal_scope_member_at_line(context, source_line, opts)
+    if type(context) ~= "table" then
+        return false
+    end
+
+    source_line = tonumber(source_line)
+
+    if not source_line then
+        return false
+    end
+
+    opts = opts or {}
+
+    local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
+    local scope_members = context.scope_members or {}
+
+    if  show_all_scope_members then
+        scope_members = context.all_scope_members or {}
+    end
+
+    scope_members = symbol_state.enrich_members(scope_members, context)
+
+    local scope_member_nodes = scope_member_tree.build(scope_members, context)
+    local node_path = find_deepest_node_path_for_line(
+        scope_member_nodes,
+        source_line
+    )
+
+    if not node_path or #node_path == 0 then
+        return false
+    end
+
+    M.set_expanded("scope_members", true)
+
+    for _, node in ipairs(node_path) do
+        if node_has_children(node) then
+            hud_nodes.set_expanded(node.id, true)
+        end
+    end
+
+    return true
 end
 
 function M.build(context, opts)

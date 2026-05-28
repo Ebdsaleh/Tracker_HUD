@@ -592,10 +592,48 @@ function M.update_panel()
 end
 
 
+
 function M.cycle_inspect_mode()
     inspect_mode.cycle_mode()
     M.update_panel()
     return true
+end
+
+
+function M.inspect_source_at_cursor()
+    local mode = inspect_mode.get_mode()
+
+       if mode == "scope_members" then
+        local cursor = vim.api.nvim_win_get_cursor(0)
+        local source_line = cursor and cursor[1]
+
+        local ok = hud_sections.reveal_scope_member_at_line(
+            last_context,
+            source_line
+        )
+
+        if not ok then
+            vim.notify(
+                "tracker_hud: no Scope Members node found for current source line",
+                vim.log.levels.INFO
+            )
+            return false
+        end
+
+        M.update_panel()
+
+        if is_valid_window(last_source_winid) then
+            pcall(vim.api.nvim_set_current_win, last_source_winid)
+        end
+
+        return true
+    end
+    vim.notify(
+        "tracker_hud: source inspect for " .. inspect_mode.get_label(mode) .. " is not implemented yet",
+        vim.log.levels.INFO
+    )
+
+    return false
 end
 
 

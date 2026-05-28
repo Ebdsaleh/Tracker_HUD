@@ -200,6 +200,16 @@ local function setup_keymaps()
             noremap = true,
         })
     end
+
+    if keymaps.inspect_source then
+        vim.keymap.set("n", keymaps.inspect_source, function()
+            hud.inspect_source_at_cursor()
+        end, {
+            desc = "inspect source cursor in Tracker HUD",
+            silent = true,
+            noremap = true,
+        })
+    end
 end
 
 
