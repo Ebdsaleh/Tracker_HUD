@@ -190,6 +190,16 @@ local function setup_keymaps()
         })
 
     end
+
+    if keymaps.cycle_inspect_mode then
+        vim.keymap.set("n", keymaps.cycle_inspect_mode, function()
+            hud.cycle_inspect_mode()
+        end, {
+            desc = "Cycle Tracker HUD inspect mode",
+            silent = true,
+            noremap = true,
+        })
+    end
 end
 
 

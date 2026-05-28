@@ -591,6 +591,15 @@ function M.update_panel()
     return true
 end
 
+
+function M.cycle_inspect_mode()
+    inspect_mode.cycle_mode()
+    M.update_panel()
+    return true
+end
+
+
+
 function M.refresh()
     if not last_context then
         return false
