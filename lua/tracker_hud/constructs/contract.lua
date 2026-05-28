@@ -34,11 +34,12 @@ M.member_kinds = {
     entry = true,
     return_value = true,
     assignment = true,
-    loop_variable = true
+    loop_variable = true,
 }
 
 M.owner_scope_kinds = {
     lexical = true,
+    parent_lexical = true, 
     structural = true,
     none = true,
 }

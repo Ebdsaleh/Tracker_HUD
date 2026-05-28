@@ -781,6 +781,12 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
 end
 
 
+local function should_collect_before_scope_enter(member_spec)
+    return core.is_table(member_spec)
+        and core.is_table(member_spec.member)
+        and member_spec.member.owner_scope == "parent_lexical"
+end
+
 
 local function collect_member_group(node, bufnr, specs, members, seen, state, collector, adapter)
     if not core.is_table(specs) then
@@ -790,9 +796,34 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
     collector = collector or collect_member_spec
 
     for _, member_spec in ipairs(specs) do
-        collector(node, bufnr, member_spec, members, seen, state, adapter)
+        if not should_collect_before_scope_enter(member_spec) then
+            collector(node, bufnr, member_spec, members, seen, state, adapter)
+        end
     end
 end
+
+
+local function collect_member_group_before_scope_enter(
+    node,
+    bufnr,
+    specs,
+    members,
+    seen,
+    state,
+    collector,
+    adapter
+)
+    if not core.is_table(specs) then
+        return
+    end
+
+    for _, member_spec in ipairs(specs) do
+        if should_collect_before_scope_enter(member_spec) then
+            collector(node, bufnr, member_spec, members, seen, state, adapter)
+        end
+    end
+end
+
 
 
 local function collect_from_node(node, bufnr, adapter, members, seen, state)
@@ -893,6 +924,20 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
     state = state or make_state()
 
     local current_state = state
+
+    local scope_member_spec = adapter.scope_members or {}
+
+    collect_member_group_before_scope_enter(
+        node,
+        bufnr,
+        scope_member_spec.functions,
+        members,
+        seen,
+        state,
+        collect_function_member_spec,
+        adapter
+    )
+
 
     if node_creates_lexical_scope(node, adapter) then
         current_state = make_state(

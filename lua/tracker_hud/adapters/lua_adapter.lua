@@ -173,6 +173,22 @@ M.construct_specs = {
             affects_visibility = true,
             owns_members = true,
         },
+
+        tokens = {
+            start = "for",
+            loop_open = "do",
+            scope_close = "end",
+        },
+
+        markers = {
+            required = {
+                "start",
+                "loop_open",
+                "scope_close",
+            },
+
+            total_required = 3,
+        },
     },
 
     ["while_statement"] = {
@@ -185,6 +201,22 @@ M.construct_specs = {
             kind = "lexical",
             affects_visibility = true,
             owns_members = true,
+        },
+
+        tokens = {
+            start = "while",
+            loop_open = "do",
+            scope_close = "end",
+        },
+
+        markers = {
+            required = {
+                "start",
+                "loop_open",
+                "scope_close",
+            },
+
+            total_required = 3,
         },
     },
 
@@ -199,9 +231,22 @@ M.construct_specs = {
             affects_visibility = true,
             owns_members = true,
         },
+
+        tokens = {
+            start = "repeat",
+            scope_close = "until",
+        },
+
+        markers = {
+            required = {
+                "start",
+                "scope_close",
+            },
+
+            total_required = 2,  
+        },
     },
 
-    
 
     ["return_statement"] = {
         construct = {
@@ -322,7 +367,7 @@ M.scope_members = {
         },
     },
 
-     assignments = {
+    assignments = {
         {
             node_type = "assignment_statement",
             name_list_node_type = "variable_list",
@@ -364,7 +409,7 @@ M.scope_members = {
 
             member = {
                 kind = "function_",
-                owner_scope = "lexical",
+                owner_scope = "parent_lexical",
             },
         },
         {
@@ -372,7 +417,7 @@ M.scope_members = {
 
             member = {
                 kind = "function_",
-                owner_scope = "lexical",
+                owner_scope = "parent_lexical",
             },
         },
     },
@@ -421,6 +466,6 @@ M.scope_members = {
         },
     },
 
-   }
+}
 
 return M
