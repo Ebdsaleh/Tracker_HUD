@@ -6,6 +6,7 @@
 -- Scope Members HUD section. It does not resolve values or lifetimes yet.
 
 local core = require("tracker_hud.core")
+local ts_utils = require("tracker_hud.treesitter_utils")
 
 local M = {}
 
@@ -138,82 +139,6 @@ local function add_member(members, seen, name, kind, line, state, metadata)
 end
 
 
-local function get_node_range(node)
-    if not node then
-        return nil
-    end
-
-    local start_row, _, end_row, _ = node:range()
-
-    if not core.is_number(start_row) or not core.is_number(end_row) then
-        return nil
-    end
-
-    return {
-        start_line = start_row + 1,
-        end_line = end_row + 1,
-    }
-
-end
-
-local function get_node_range_fields(node)
-    local range = get_node_range(node)
-
-    if not range then
-        return {
-            start_line = nil,
-            end_line = nil,
-        }
-    end
-
-    return {
-        start_line = range.start_line,
-        end_line = range.end_line,
-    }
-end
-
-
-
-local function get_node_line(node)
-    if not node then
-        return nil
-    end
-
-    local start_row = node:range()
-
-    if not core.is_number(start_row) then
-        return nil
-    end
-
-    return start_row + 1
-end
-
-local function get_node_text(node, bufnr)
-    local ok, text = pcall(vim.treesitter.get_node_text, node, bufnr)
-
-    if not ok then
-        return nil
-    end
-
-    return text
-end
-
-
-local function get_child_by_field_name(node, field_name)
-    if not node or not core.is_non_empty_string(field_name) then
-        return nil
-    end
-
-    local ok, child = pcall(function()
-        return node:child_by_field_name(field_name)
-    end)
-
-    if ok then
-        return child
-    end
-
-    return nil
-end
 
 
 
@@ -222,7 +147,7 @@ local function get_field_value_node(node)
         return nil
     end
 
-    local value_node = get_child_by_field_name(node, "value")
+    local value_node = ts_utils.get_child_by_field_name(node, "value")
 
     if value_node then
         return value_node
@@ -255,11 +180,11 @@ local function get_field_name(node, bufnr)
         return nil
     end
 
-    local name_node = get_child_by_field_name(node, "name")
-        or get_child_by_field_name(node, "key")
+    local name_node = ts_utils.get_child_by_field_name(node, "name")
+        or ts_utils.get_child_by_field_name(node, "key")
 
     if name_node then
-        return strip_quotes(get_node_text(name_node, bufnr))
+        return strip_quotes(ts_utils.get_node_text(name_node, bufnr))
     end
 
     local first_named_child = node:named_child(0)
@@ -274,7 +199,7 @@ local function get_field_name(node, bufnr)
         return nil
     end
 
-    return strip_quotes(get_node_text(first_named_child, bufnr))
+    return strip_quotes(ts_utils.get_node_text(first_named_child, bufnr))
 end
 
 
@@ -313,11 +238,11 @@ local function build_value_metadata(value_node, bufnr, adapter)
         return metadata
     end
     
-    metadata.value_text = get_node_text(value_node, bufnr)
+    metadata.value_text = ts_utils.get_node_text(value_node, bufnr)
     metadata.value_node_type = value_node:type()
 
 
-    local value_range = get_node_range_fields(value_node)
+    local value_range = ts_utils.get_node_range_fields(value_node)
     metadata.value_start_line = value_range.start_line
     metadata.value_end_line = value_range.end_line
 
@@ -358,56 +283,10 @@ end
 
 
 
-local function node_type_matches(node, expected_type)
-    return node
-        and core.is_non_empty_string(expected_type)
-        and node:type() == expected_type
-end
-
-local function node_has_ancestor_type(node, ancestor_node_types)
-    if not node or not core.is_table(ancestor_node_types) then
-        return false
-    end
-
-    local current = node:parent()
-
-    while current do
-        for _, ancestor_node_type in ipairs(ancestor_node_types) do
-            if node_type_matches(current, ancestor_node_type) then
-                return true
-            end
-        end
-        current = current:parent()
-    end
-
-    return false
-end
-
-
-local function find_first_descendant_by_type(node, node_type)
-    if not node or not core.is_non_empty_string(node_type) then
-        return nil
-    end
-
-    if node_type_matches(node, node_type) then
-        return node
-    end
-
-    for child in node:iter_children() do
-        local found = find_first_descendant_by_type(child, node_type)
-
-        if found then
-            return found
-        end
-    end
-
-    return nil
-end
-
 
 local function should_skip_member_spec_node(node, member_spec)
     return core.is_table(member_spec)
-        and node_has_ancestor_type(
+        and ts_utils.node_has_ancestor_type(
             node,
             member_spec.exclude_ancestor_node_types
         )
@@ -437,7 +316,7 @@ local function collect_names_with_values_from_list_nodes(
             value_node = value_list_node:named_child(i)
         end
 
-        local name = get_node_text(name_node, bufnr)
+        local name = ts_utils.get_node_text(name_node, bufnr)
         local metadata = build_value_metadata(value_node, bufnr, adapter)
 
         add_member(
@@ -460,7 +339,7 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
 
     for i = 0, list_node:named_child_count() - 1 do
         local variable = list_node:named_child(i)
-        local name = get_node_text(variable, bufnr)
+        local name = ts_utils.get_node_text(variable, bufnr)
 
         add_member(members, seen, name, kind, line, state)
     end
@@ -472,7 +351,7 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
         return
     end
 
-    if node_type_matches(node, list_node_type) then
+    if ts_utils.node_type_matches(node, list_node_type) then
         collect_names_from_list_node(node, bufnr, members, seen, kind, line, state)
         return
     end
@@ -504,7 +383,7 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return
     end
 
@@ -512,7 +391,7 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         return
     end
 
-    local name_list_node = find_first_descendant_by_type(
+    local name_list_node = ts_utils.find_first_descendant_by_type(
         node,
         member_spec.name_list_node_type or member_spec.list_node_type
     )
@@ -521,12 +400,12 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         return
     end
 
-    local value_list_node = find_first_descendant_by_type(
+    local value_list_node = ts_utils.find_first_descendant_by_type(
         node,
         member_spec.value_list_node_type
     )
 
-    local line = get_node_line(node)
+    local line = ts_utils.get_node_line(node)
 
     collect_names_with_values_from_list_nodes(
         name_list_node,
@@ -554,11 +433,11 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return
     end
 
-    local value_list_node = find_first_descendant_by_type(
+    local value_list_node = ts_utils.find_first_descendant_by_type(
         node,
         member_spec.value_list_node_type
     )
@@ -567,7 +446,7 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
         return
     end
 
-    local line = get_node_line(node)
+    local line = ts_utils.get_node_line(node)
     local kind = member_spec.member and member_spec.member.kind
 
     for i = 0, value_list_node:named_child_count() - 1 do
@@ -597,13 +476,13 @@ local function get_function_name(node, bufnr)
         return nil
     end
 
-    local name_node = get_child_by_field_name(node, "name")
+    local name_node = ts_utils.get_child_by_field_name(node, "name")
 
     if not name_node then
         return nil
     end
 
-    return get_node_text(name_node, bufnr)
+    return ts_utils.get_node_text(name_node, bufnr)
 end
 
 
@@ -619,7 +498,7 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return
     end
 
@@ -629,8 +508,8 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         return
     end
 
-    local line = get_node_line(node)
-    local range = get_node_range_fields(node)
+    local line = ts_utils.get_node_line(node)
+    local range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
     local value_spec = get_value_spec_from_node(node, adapter)
 
@@ -673,18 +552,18 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return 
     end
     
-    local line = get_node_line(node)
+    local line = ts_utils.get_node_line(node)
     local kind = member_spec.member and member_spec.member.kind
 
     if core.is_non_empty_string(member_spec.name_field) then
-        local name_node = get_child_by_field_name(node, member_spec.name_field)
+        local name_node = ts_utils.get_child_by_field_name(node, member_spec.name_field)
 
         if name_node then
-            local name = get_node_text(name_node, bufnr)
+            local name = ts_utils.get_node_text(name_node, bufnr)
 
             add_member(
                 members,
@@ -698,7 +577,7 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
         return
     end
 
-    local name_list_node = find_first_descendant_by_type(
+    local name_list_node = ts_utils.find_first_descendant_by_type(
         node,
         member_spec.name_list_node_type
     )
@@ -734,11 +613,11 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return
     end
 
-    local line = get_node_line(node)
+    local line = ts_utils.get_node_line(node)
 
     collect_list_nodes_recursive(
         node,
@@ -774,7 +653,7 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         return
     end
 
-    if not node_type_matches(node, member_spec.node_type) then
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
         return
     end
 
@@ -784,7 +663,7 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         return
     end
 
-    local line = get_node_line(node)
+    local line = ts_utils.get_node_line(node)
     local member_state = state
     local value_node = get_field_value_node(node)
     local metadata = build_value_metadata(value_node, bufnr, adapter)
@@ -976,7 +855,7 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
         current_state = make_state(
             state.opts,
             state.scope_depth + 1,
-            get_node_range(node),
+            ts_utils.get_node_range(node),
             state.structural_depth,
             state.structural_range
         )
@@ -988,7 +867,7 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
             current_state.scope_depth,
             current_state.scope_range,
             current_state.structural_depth + 1,
-            get_node_range(node)
+            ts_utils.get_node_range(node)
         )
     end
 
