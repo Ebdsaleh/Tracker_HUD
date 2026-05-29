@@ -306,8 +306,12 @@ function M.reveal_scope_member_at_line(context, source_line, opts)
         end
     end
 
-    return true
+    local target_node = node_path[#node_path]
+    local target_node_id = target_node and target_node.id
+
+    return true, target_node_id
 end
+
 
 function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")

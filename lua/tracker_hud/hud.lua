@@ -59,6 +59,20 @@ local function set_panel_cursor_location(cursor)
 end
 
 
+local function find_panel_line_for_target_id(target_id)
+    if not target_id then
+        return nil
+    end
+
+    for line_number, target in pairs(panel_line_targets or {}) do
+        if target and target.id == target_id then
+            return line_number
+        end
+    end
+
+    return nil
+end
+
 local function set_panel_statusline()
     if not is_valid_window(panel_winid) then
         return
@@ -603,11 +617,11 @@ end
 function M.inspect_source_at_cursor()
     local mode = inspect_mode.get_mode()
 
-       if mode == "scope_members" then
+    if mode == "scope_members" then
         local cursor = vim.api.nvim_win_get_cursor(0)
         local source_line = cursor and cursor[1]
 
-        local ok = hud_sections.reveal_scope_member_at_line(
+        local ok, target_node_id = hud_sections.reveal_scope_member_at_line(
             last_context,
             source_line
         )
@@ -622,12 +636,22 @@ function M.inspect_source_at_cursor()
 
         M.update_panel()
 
+        local panel_line = find_panel_line_for_target_id(target_node_id)
+
+        if panel_line then
+            set_panel_cursor_location({
+                line = panel_line,
+                column = 0,
+            })
+        end
+
         if is_valid_window(last_source_winid) then
             pcall(vim.api.nvim_set_current_win, last_source_winid)
         end
 
         return true
     end
+
     vim.notify(
         "tracker_hud: source inspect for " .. inspect_mode.get_label(mode) .. " is not implemented yet",
         vim.log.levels.INFO
