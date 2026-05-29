@@ -32,7 +32,7 @@ M.defaults = {
         decrease_size = "<leader>-",
         auto_size = "<leader><CR>",
         cycle_inspect_mode = "<leader><leader>",
-        inspect_source = "<leader>i",
+        inspect_source = "<leader>f",
         step= 2,
     },
     -- Adapter discovery paths.
