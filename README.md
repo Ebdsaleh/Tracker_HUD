@@ -46,6 +46,16 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Return values displayed as scope members
 - Structural values such as Lua tables attach under their owning member
 - Shared HUD control registry
+- Active Inspect Mode displayed in the HUD panel statusline
+- Configurable Inspect Mode cycling keymap
+- Configurable source-side inspect/reveal keymap
+- Source-side Scope Members inspect reveal
+- Scope Members inspect reveal expands the relevant HUD breadcrumb path
+- Scope Members inspect reveal keeps focus in the source file
+- Scope Members inspect reveal positions the HUD cursor on the revealed row
+- Shared Tree-sitter utility helpers
+- Shared adapter construct/value utility helpers
+- Dedicated Scope Member model helpers for member record creation and labeling
 
 ---
 
@@ -258,6 +268,8 @@ require("tracker_hud").setup({
         increase_size = "<leader>+",
         decrease_size = "<leader>-",
         auto_size = "<leader><CR>",
+        cycle_inspect_mode = "<leader><leader>",
+        inspect_source = "<leader>t",
         step = 2,
     },
 })
@@ -390,6 +402,8 @@ Tracker HUD registers normal-mode panel resize keymaps by default.
 | `<leader>+` | Increase HUD panel size |
 | `<leader>-` | Decrease HUD panel size |
 | `<leader><CR>` | Auto-size HUD panel |
+| `<leader><leader>` | Cycle active Inspect Mode |
+| `<leader>t` | Inspect/reveal current source cursor in the active HUD section |
 
 The size change amount is controlled by:
 
@@ -536,10 +550,17 @@ lua/tracker_hud/
     state.lua
     context.lua
     context_engine.lua
+    treesitter_utils.lua
+    construct_utils.lua
+    inspect_mode.lua
     scope_members.lua
+    scope_member_model.lua
+    scope_member_tree.lua
+    symbol_state.lua
     hud.lua
     hud_sections.lua
     hud_controls.lua
+    hud_nodes.lua
     constructs/
         contract.lua
     adapters/
@@ -547,7 +568,6 @@ lua/tracker_hud/
         registry.lua
         lua_adapter.lua
 ```
-
 ---
 
 ## Native Windows Perl note
@@ -559,6 +579,23 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.2`
+
+* Added active Inspect Mode state for HUD-driven source inspection
+* Added HUD statusline display for the active Inspect Mode
+* Added configurable Inspect Mode cycling keymap
+* Added configurable source-side inspect/reveal keymap
+* Added Scope Members source-side inspect reveal
+* Scope Members inspect reveal now opens the Scope Members section when needed
+* Scope Members inspect reveal expands the relevant node breadcrumb path
+* Scope Members inspect reveal preserves source-file focus
+* Scope Members inspect reveal positions the HUD cursor on the revealed row
+* Added `inspect_mode.lua` for active inspect mode state
+* Extracted shared Tree-sitter node helpers into `treesitter_utils.lua`
+* Extracted adapter-backed construct/value helpers into `construct_utils.lua`
+* Extracted Scope Member record construction and labeling into `scope_member_model.lua`
+* Reduced `scope_members.lua` responsibilities by separating generic utilities, construct helpers, and member model logic
 
 ### `v0.7.1`
 
