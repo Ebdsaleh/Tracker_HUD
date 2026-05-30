@@ -8,53 +8,9 @@
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local construct_utils = require("tracker_hud.construct_utils")
+local scope_member_model = require("tracker_hud.scope_member_model")
+
 local M = {}
-
-
-local member_kind_labels = {
-    local_ = "local",
-    parameter = "param",
-    function_ = "function",
-}
-
-
-local function get_member_kind_label(kind)
-    if not core.is_non_empty_string(kind) then
-        return nil
-    end
-
-    return member_kind_labels[kind] or kind 
-end
-
-
-
-local function get_member_line(member)
-    if not core.is_table(member) then
-        return nil
-    end
-
-    return member.line
-end
-
-
-local function build_member_label(member)
-    if not core.is_table(member) then
-        return ""
-    end
-
-    local label = member.name or ""
-    local kind_label = get_member_kind_label(member.kind)
-
-    if core.is_non_empty_string(kind_label) then
-        label = "(" .. kind_label .. ") " .. label
-    end
-
-    if member.line then
-        label = "[" .. tostring(member.line) .. "] " .. label
-    end
-
-    return label
-end
 
 
 local function make_state(opts, scope_depth, scope_range, structural_depth, structural_range)
@@ -67,77 +23,6 @@ local function make_state(opts, scope_depth, scope_range, structural_depth, stru
         structural_range = structural_range,
     }
 end
-
-
-
-local function add_member(members, seen, name, kind, line, state, metadata)
-    if not core.is_non_empty_string(name) then
-        return
-    end
-
-    local opts = state.opts or {}
-    local scope_depth = state.scope_depth or 0
-    local scope_range = state.scope_range
-
-    if opts.start_line and line and line < opts.start_line then
-        return
-    end
-
-    if opts.end_line and line and line > opts.end_line then
-        return
-    end
-
-    if opts.cursor_line and line and line > opts.cursor_line then
-        return
-    end
-
-    local seen_key = table.concat({
-        tostring(line or ""),
-        tostring(kind or ""),
-        tostring(scope_depth or 0),
-        name,
-    }, "|")
-
-    if seen[seen_key] then
-        return
-    end
-
-    seen[seen_key] = true
-
-    metadata = metadata or {}
-
-    local member = {
-        line = line,
-        kind = kind,
-        name = name,
-        scope_depth = scope_depth or 0,
-        scope_start_line = scope_range and scope_range.start_line,
-        scope_end_line = scope_range and scope_range.end_line,
-
-        -- metadata
-        value_text = metadata.value_text,
-        value_node_type = metadata.value_node_type,
-        value_start_line = metadata.value_start_line,
-        value_end_line = metadata.value_end_line,
-        value_kind = metadata.value_kind,
-        type_label = metadata.type_label,
-        source_node_type = metadata.source_node_type,
-    }
-
-    member.id = table.concat({
-        "member",
-        tostring(member.scope_start_line or ""),
-        tostring(member.scope_end_line or ""),
-        tostring(member.line or ""),
-        tostring(member.kind or ""),
-        tostring(member.name or ""),
-    }, ":")
-
-    member.label = build_member_label(member)
-
-    table.insert(members, member)
-end
-
 
 
 
@@ -240,7 +125,7 @@ local function collect_names_with_values_from_list_nodes(
         local name = ts_utils.get_node_text(name_node, bufnr)
         local metadata = construct_utils.build_value_metadata(value_node, bufnr, adapter)
 
-        add_member(
+        scope_member_model.add(
             members,
             seen,
             name,
@@ -262,7 +147,7 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
         local variable = list_node:named_child(i)
         local name = ts_utils.get_node_text(variable, bufnr)
 
-        add_member(members, seen, name, kind, line, state)
+        scope_member_model.add(members, seen, name, kind, line, state)
     end
 end
 
@@ -379,7 +264,7 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
             name = "return #" .. tostring(i + 1)
         end
 
-        add_member(
+        scope_member_model.add(
             members,
             seen,
             name,
@@ -449,7 +334,7 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         metadata.type_label = value_spec.type_label
     end
 
-    add_member(
+    scope_member_model.add(
         members,
         seen,
         name,
@@ -486,7 +371,7 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
         if name_node then
             local name = ts_utils.get_node_text(name_node, bufnr)
 
-            add_member(
+            scope_member_model.add(
                 members,
                 seen,
                 name,
@@ -594,7 +479,7 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         member_state = make_structural_member_state(state)
     end
 
-    add_member(
+    scope_member_model.add(
         members,
         seen,
         name,
@@ -815,8 +700,8 @@ function M.collect(bufnr, root_node, adapter, opts)
     walk_node(root_node, bufnr, adapter, members, seen, make_state(opts, 0))
 
     table.sort(members, function(left, right)
-        local left_line = get_member_line(left)
-        local right_line = get_member_line(right)
+        local left_line = scope_member_model.get_line(left)
+        local right_line = scope_member_model.get_line(right)
 
         if left_line and right_line then
             if left_line == right_line then
