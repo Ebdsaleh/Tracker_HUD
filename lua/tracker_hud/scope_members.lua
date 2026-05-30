@@ -7,7 +7,7 @@
 
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
-
+local construct_utils = require("tracker_hud.construct_utils")
 local M = {}
 
 
@@ -205,85 +205,6 @@ end
 
 
 
-local function get_construct_spec(node, adapter)
-    if not node or not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
-        return nil
-    end
-
-    return adapter.construct_specs[node:type()]
-end
-
-local function get_value_spec_from_node(node, adapter)
-    local spec = get_construct_spec(node, adapter)
-
-    if not core.is_table(spec) or not core.is_table(spec.value) then
-        return nil
-    end
-
-    return spec.value
-end
-
-
-local function build_value_metadata(value_node, bufnr, adapter)
-    local metadata = {
-        value_text = nil,
-        value_node_type = nil,
-        value_start_line = nil,
-        value_end_line = nil,
-        value_kind = nil,
-        type_label = nil,
-    }
-
-    if not value_node then
-        return metadata
-    end
-    
-    metadata.value_text = ts_utils.get_node_text(value_node, bufnr)
-    metadata.value_node_type = value_node:type()
-
-
-    local value_range = ts_utils.get_node_range_fields(value_node)
-    metadata.value_start_line = value_range.start_line
-    metadata.value_end_line = value_range.end_line
-
-    local value_spec = get_value_spec_from_node(value_node, adapter)
-
-    if core.is_table(value_spec) then
-        metadata.value_kind = value_spec.kind
-        metadata.type_label = value_spec.type_label
-    end
-    
-    return metadata
-end
-
-
-local function node_creates_lexical_scope(node, adapter)
-    local spec = get_construct_spec(node, adapter)
-
-    if not core.is_table(spec) or not core.is_table(spec.scope) then
-        return false
-    end
-
-    return spec.scope.kind == "lexical"
-        and spec.scope.affects_visibility == true
-end
-
-
-
-local function node_creates_structural_scope(node, adapter)
-    local spec = get_construct_spec(node, adapter)
-
-    if not core.is_table(spec) or not core.is_table(spec.scope) then
-        return false
-    end
-
-    return spec.scope.kind == "structural"
-        and spec.scope.owns_members == true
-end
-
-
-
-
 local function should_skip_member_spec_node(node, member_spec)
     return core.is_table(member_spec)
         and ts_utils.node_has_ancestor_type(
@@ -317,7 +238,7 @@ local function collect_names_with_values_from_list_nodes(
         end
 
         local name = ts_utils.get_node_text(name_node, bufnr)
-        local metadata = build_value_metadata(value_node, bufnr, adapter)
+        local metadata = construct_utils.build_value_metadata(value_node, bufnr, adapter)
 
         add_member(
             members,
@@ -451,7 +372,7 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
 
     for i = 0, value_list_node:named_child_count() - 1 do
         local value_node = value_list_node:named_child(i)
-        local metadata = build_value_metadata(value_node, bufnr, adapter)
+        local metadata = construct_utils.build_value_metadata(value_node, bufnr, adapter)
         local name = "return"
 
         if value_list_node:named_child_count() > 1 then
@@ -511,7 +432,7 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
     local line = ts_utils.get_node_line(node)
     local range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
-    local value_spec = get_value_spec_from_node(node, adapter)
+    local value_spec = construct_utils.get_value_spec_from_node(node, adapter)
 
     local metadata = {
         value_text = name,
@@ -666,7 +587,7 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
     local line = ts_utils.get_node_line(node)
     local member_state = state
     local value_node = get_field_value_node(node)
-    local metadata = build_value_metadata(value_node, bufnr, adapter)
+    local metadata = construct_utils.build_value_metadata(value_node, bufnr, adapter)
 
 
     if member_spec.member and member_spec.member.owner_scope == "structural" then
@@ -851,7 +772,7 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
     )
 
 
-    if node_creates_lexical_scope(node, adapter) then
+    if construct_utils.node_creates_lexical_scope(node, adapter) then
         current_state = make_state(
             state.opts,
             state.scope_depth + 1,
@@ -861,7 +782,7 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
         )
     end
 
-    if node_creates_structural_scope(node, adapter) then
+    if construct_utils.node_creates_structural_scope(node, adapter) then
         current_state = make_state(
             current_state.opts,
             current_state.scope_depth,
