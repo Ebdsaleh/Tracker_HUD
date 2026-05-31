@@ -266,29 +266,32 @@ local function find_deepest_node_path_for_line(nodes, source_line, current_path,
 end
 
 
-function M.reveal_scope_member_at_line(context, source_line, opts)
-    if type(context) ~= "table" then
+function M.inspect_scope_members(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
     end
 
-    source_line = tonumber(source_line)
+    local source_line = tonumber(request.line)
+    local source_column = tonumber(request.column) or 0
 
     if not source_line then
         return false
     end
 
-    opts = opts or {}
-
+    local context = request.context
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
 
-    if  show_all_scope_members then
+    if show_all_scope_members then
         scope_members = context.all_scope_members or {}
     end
 
     scope_members = symbol_state.enrich_members(scope_members, context)
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
+
+    -- For this first generic-dispatch pass, this still uses line matching.
+    -- Next pass will replace this with position/range matching.
     local node_path = find_deepest_node_path_for_line(
         scope_member_nodes,
         source_line

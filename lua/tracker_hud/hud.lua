@@ -4,6 +4,7 @@ local hud_sections = require("tracker_hud.hud_sections")
 local hud_controls = require("tracker_hud.hud_controls")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local inspect_mode = require("tracker_hud.inspect_mode")
+local hud_inspect = require("tracker_hud.hud_inspect")
 
 local M = {}
 
@@ -616,50 +617,46 @@ end
 
 function M.inspect_source_at_cursor()
     local mode = inspect_mode.get_mode()
+    local current_winid = vim.api.nvim_get_current_win()
+    local current_bufnr = vim.api.nvim_get_current_buf()
+    local cursor = vim.api.nvim_win_get_cursor(0)
 
-    if mode == "scope_members" then
-        local cursor = vim.api.nvim_win_get_cursor(0)
-        local source_line = cursor and cursor[1]
+    local request = {
+        bufnr = current_bufnr,
+        winid = current_winid,
+        line = cursor and cursor[1],
+        column = cursor and cursor[2],
+        context = last_context,
+        mode = mode,
+    }
 
-        local ok, target_node_id = hud_sections.reveal_scope_member_at_line(
-            last_context,
-            source_line
+    local result = hud_inspect.inspect(mode, request)
+
+    if not result or result.ok ~= true then
+        vim.notify(
+            result and result.message or "tracker_hud: source inspect failed",
+            vim.log.levels.INFO
         )
-
-        if not ok then
-            vim.notify(
-                "tracker_hud: no Scope Members node found for current source line",
-                vim.log.levels.INFO
-            )
-            return false
-        end
-
-        M.update_panel()
-
-        local panel_line = find_panel_line_for_target_id(target_node_id)
-
-        if panel_line then
-            set_panel_cursor_location({
-                line = panel_line,
-                column = 0,
-            })
-        end
-
-        if is_valid_window(last_source_winid) then
-            pcall(vim.api.nvim_set_current_win, last_source_winid)
-        end
-
-        return true
+        return false
     end
 
-    vim.notify(
-        "tracker_hud: source inspect for " .. inspect_mode.get_label(mode) .. " is not implemented yet",
-        vim.log.levels.INFO
-    )
+    M.update_panel()
 
-    return false
+    local panel_line = find_panel_line_for_target_id(result.target_node_id)
+
+    if panel_line then
+        set_panel_cursor_location({
+            line = panel_line,
+            column = 0,
+        })
+    end
+
+    if is_valid_window(last_source_winid) then
+        pcall(vim.api.nvim_set_current_win, last_source_winid)
+    end
+
+    return true
 end
-
 
 
 function M.refresh()
