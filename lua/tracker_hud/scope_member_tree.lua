@@ -76,9 +76,16 @@ local function build_member_node(member)
         id = member.id,
         kind = "member",
         label = member.label or tostring(member.name or ""),
-        source_line = member.line,
-        source_column = 0,
+
+        source_line = member.source_start_line or member.line,
+        source_column = member.source_start_column or 0,
+        source_start_line = member.source_start_line or member.line,
+        source_start_column = member.source_start_column or 0,
+        source_end_line = member.source_end_line or member.line,
+        source_end_column = member.source_end_column or member.source_start_column or 0,
+
         member = member,
+
         children = {
             {
                 id = member.id .. ":type",
@@ -90,11 +97,18 @@ local function build_member_node(member)
                 id = member.id .. ":value",
                 kind = "detail",
                 label = "value: " .. tostring(member.value_label or "<unknown>"),
+
+                source_line = member.value_start_line or member.source_start_line or member.line,
+                source_column = member.value_start_column or member.source_start_column or 0,
+                source_start_line = member.value_start_line or member.source_start_line or member.line,
+                source_start_column = member.value_start_column or member.source_start_column or 0,
+                source_end_line = member.value_end_line or member.source_end_line or member.line,
+                source_end_column = member.value_end_column or member.source_end_column or member.source_start_column or 0,
+
                 children = {},
             },
-        },    
+        },
     }
-
 end
 
 
@@ -106,14 +120,21 @@ local function build_scope_node(member, context)
         id = scope_key,
         kind = "scope",
         label = build_scope_label(member, context),
+
         source_line = member and member.scope_start_line or nil,
         source_column = 0,
+        source_start_line = member and member.scope_start_line or nil,
+        source_start_column = 0,
+        source_end_line = member and member.scope_end_line or nil,
+        source_end_column = 0,
+
         scope_start_line = member and member.scope_start_line or nil,
         scope_end_line = member and member.scope_end_line or nil,
         scope_depth = member and member.scope_depth or 0,
         children = {},
     }
 end
+
 
 local function sort_scope_nodes(left, right)
     local left_line = left.scope_start_line or 0

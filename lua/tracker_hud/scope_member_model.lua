@@ -55,7 +55,7 @@ function M.build_label(member)
 end
 
 
-function M.add(members, seen, name, kind, line, state, metadata)
+function M.add(members, seen, name, kind, source_range, state, metadata)
     if not core.is_non_empty_string(name) then
         return
     end
@@ -66,6 +66,20 @@ function M.add(members, seen, name, kind, line, state, metadata)
     local opts = state.opts or {}
     local scope_depth = state.scope_depth or 0
     local scope_range = state.scope_range
+
+    local line = nil
+    local source_start_column = nil
+    local source_end_line = nil
+    local source_end_column = nil
+
+    if core.is_table(source_range) then
+        line = source_range.start_line
+        source_start_column = source_range.start_column
+        source_end_line = source_range.end_line
+        source_end_column = source_range.end_column
+    else
+        line = source_range
+    end
 
     if opts.start_line and line and line < opts.start_line then
         return
@@ -100,11 +114,18 @@ function M.add(members, seen, name, kind, line, state, metadata)
         scope_start_line = scope_range and scope_range.start_line,
         scope_end_line = scope_range and scope_range.end_line,
 
+        source_start_line = line,
+        source_start_column = source_start_column,
+        source_end_line = source_end_line,
+        source_end_column = source_end_column,
+
         -- metadata
         value_text = metadata.value_text,
         value_node_type = metadata.value_node_type,
         value_start_line = metadata.value_start_line,
         value_end_line = metadata.value_end_line,
+        value_start_column = metadata.value_start_column,
+        value_end_column = metadata.value_end_column,
         value_kind = metadata.value_kind,
         type_label = metadata.type_label,
         source_node_type = metadata.source_node_type,
@@ -123,6 +144,5 @@ function M.add(members, seen, name, kind, line, state, metadata)
 
     table.insert(members, member)
 end
-
 
 return M

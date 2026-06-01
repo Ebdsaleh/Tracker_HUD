@@ -107,7 +107,7 @@ local function collect_names_with_values_from_list_nodes(
     members,
     seen,
     kind,
-    line,
+    source_range,
     state
 )
     if not name_list_node then
@@ -130,7 +130,7 @@ local function collect_names_with_values_from_list_nodes(
             seen,
             name,
             kind,
-            line,
+            source_range,
             state,
             metadata
         )
@@ -138,7 +138,8 @@ local function collect_names_with_values_from_list_nodes(
 end
 
 
-local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, line, state)
+
+local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, source_range, state)
     if not list_node then
         return
     end
@@ -147,18 +148,18 @@ local function collect_names_from_list_node(list_node, bufnr, members, seen, kin
         local variable = list_node:named_child(i)
         local name = ts_utils.get_node_text(variable, bufnr)
 
-        scope_member_model.add(members, seen, name, kind, line, state)
+        scope_member_model.add(members, seen, name, kind, source_range, state)
     end
 end
 
 
-local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, line, state)
+local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, source_range, state)
     if not node then
         return
     end
 
     if ts_utils.node_type_matches(node, list_node_type) then
-        collect_names_from_list_node(node, bufnr, members, seen, kind, line, state)
+        collect_names_from_list_node(node, bufnr, members, seen, kind, source_range, state)
         return
     end
 
@@ -170,7 +171,7 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
             members,
             seen,
             kind,
-            line,
+            source_range,
             state
         )
     end
@@ -211,7 +212,7 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         member_spec.value_list_node_type
     )
 
-    local line = ts_utils.get_node_line(node)
+    local source_range = ts_utils.get_node_range_fields(node)
 
     collect_names_with_values_from_list_nodes(
         name_list_node,
@@ -221,10 +222,11 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         members,
         seen,
         member_spec.member and member_spec.member.kind,
-        line,
+        source_range,
         state
     )
 end
+
 
 
 local function collect_return_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
@@ -252,7 +254,7 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
         return
     end
 
-    local line = ts_utils.get_node_line(node)
+    local source_range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
 
     for i = 0, value_list_node:named_child_count() - 1 do
@@ -269,7 +271,7 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
             seen,
             name,
             kind,
-            line,
+            source_range,
             state,
             metadata
         )
@@ -290,6 +292,7 @@ local function get_function_name(node, bufnr)
 
     return ts_utils.get_node_text(name_node, bufnr)
 end
+
 
 
 local function collect_function_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
@@ -314,16 +317,17 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         return
     end
 
-    local line = ts_utils.get_node_line(node)
-    local range = ts_utils.get_node_range_fields(node)
+    local source_range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
     local value_spec = construct_utils.get_value_spec_from_node(node, adapter)
 
     local metadata = {
         value_text = name,
         value_node_type = node:type(),
-        value_start_line = range.start_line,
-        value_end_line = range.end_line,
+        value_start_line = source_range.start_line,
+        value_end_line = source_range.end_line,
+        value_start_column = source_range.start_column,
+        value_end_column = source_range.end_column,
         value_kind = nil,
         type_label = nil,
         source_node_type = node:type(),
@@ -339,30 +343,31 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         seen,
         name,
         kind,
-        line,
+        source_range,
         state,
         metadata
     )
 end
 
 
+
 local function collect_loop_member_spec(node, bufnr, member_spec, members, seen, state)
     if not core.is_table(member_spec) then
         return
     end
-    
+
     local opts = state.opts or {}
     local scope_depth = state.scope_depth or 0
-    
+
     if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
         return
     end
 
     if not ts_utils.node_type_matches(node, member_spec.node_type) then
-        return 
+        return
     end
-    
-    local line = ts_utils.get_node_line(node)
+
+    local source_range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
 
     if core.is_non_empty_string(member_spec.name_field) then
@@ -376,10 +381,11 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
                 seen,
                 name,
                 kind,
-                line,
+                source_range,
                 state
             )
         end
+
         return
     end
 
@@ -389,7 +395,7 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
     )
 
     if not name_list_node then
-        return 
+        return
     end
 
     collect_names_from_list_node(
@@ -398,13 +404,10 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
         members,
         seen,
         kind,
-        line,
+        source_range,
         state
     )
-
 end
-
-
 
 
 local function collect_member_spec(node, bufnr, member_spec, members, seen, state)
@@ -423,7 +426,7 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
         return
     end
 
-    local line = ts_utils.get_node_line(node)
+    local source_range = ts_utils.get_node_range_fields(node)
 
     collect_list_nodes_recursive(
         node,
@@ -432,11 +435,10 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
         members,
         seen,
         member_spec.member and member_spec.member.kind,
-        line,
+        source_range,
         state
     )
 end
-
 
 
 local function make_structural_member_state(state)
@@ -469,11 +471,12 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         return
     end
 
-    local line = ts_utils.get_node_line(node)
+    local source_range = ts_utils.get_node_range_fields(node)
     local member_state = state
     local value_node = get_field_value_node(node)
     local metadata = construct_utils.build_value_metadata(value_node, bufnr, adapter)
 
+    metadata.source_node_type = node:type()
 
     if member_spec.member and member_spec.member.owner_scope == "structural" then
         member_state = make_structural_member_state(state)
@@ -484,17 +487,9 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
         seen,
         name,
         member_spec.member and member_spec.member.kind,
-        line,
+        source_range,
         member_state,
-        {
-            value_text = metadata.value_text,
-            value_node_type = metadata.value_node_type,
-            value_start_line = metadata.value_start_line,
-            value_end_line = metadata.value_end_line,
-            value_kind = metadata.value_kind,
-            type_label = metadata.type_label,
-            source_node_type = node:type(),
-        }
+        metadata
     )
 end
 

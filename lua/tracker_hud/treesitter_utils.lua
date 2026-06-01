@@ -15,7 +15,7 @@ function M.get_node_range(node)
         return nil
     end
 
-    local start_row, _, end_row, _ = node:range()
+    local start_row, start_col, end_row, end_col = node:range()
 
     if not core.is_number(start_row) or not core.is_number(end_row) then
         return nil
@@ -23,7 +23,9 @@ function M.get_node_range(node)
 
     return {
         start_line = start_row + 1,
+        start_column = start_col,
         end_line = end_row + 1,
+        end_column = end_col,
     }
 end
 
@@ -34,15 +36,20 @@ function M.get_node_range_fields(node)
     if not range then
         return {
             start_line = nil,
+            start_column = nil,
             end_line = nil,
+            end_column = nil,
         }
     end
 
     return {
         start_line = range.start_line,
+        start_column = range.start_column,
         end_line = range.end_line,
+        end_column = range.end_column,
     }
 end
+
 
 
 function M.get_node_line(node)

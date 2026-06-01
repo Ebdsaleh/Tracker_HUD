@@ -174,6 +174,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
 end
 
 
+
 local function build_scope_member_tree_lines(nodes, opts)
     local result = {
         lines = {},
@@ -185,16 +186,26 @@ local function build_scope_member_tree_lines(nodes, opts)
     return result
 end
 
-
 local function get_node_source_range(node)
     if type(node) ~= "table" then
         return nil
     end
 
+    if node.source_start_line and node.source_end_line then
+        return {
+            start_line = node.source_start_line,
+            start_column = node.source_start_column or 0,
+            end_line = node.source_end_line,
+            end_column = node.source_end_column or 0,
+        }
+    end
+
     if node.scope_start_line and node.scope_end_line then
         return {
             start_line = node.scope_start_line,
+            start_column = 0,
             end_line = node.scope_end_line,
+            end_column = 0,
         }
     end
 
@@ -202,46 +213,93 @@ local function get_node_source_range(node)
         if node.member.value_start_line and node.member.value_end_line then
             return {
                 start_line = node.member.value_start_line,
+                start_column = node.member.value_start_column or 0,
                 end_line = node.member.value_end_line,
+                end_column = node.member.value_end_column or 0,
             }
         end
-        
+
+        if node.member.source_start_line and node.member.source_end_line then
+            return {
+                start_line = node.member.source_start_line,
+                start_column = node.member.source_start_column or 0,
+                end_line = node.member.source_end_line,
+                end_column = node.member.source_end_column or 0,
+            }
+        end
+
         if node.member.line then
             return {
                 start_line = node.member.line,
+                start_column = 0,
                 end_line = node.member.line,
+                end_column = 0,
             }
         end
     end
-    
+
     if node.source_line then
-    return {
-        start_line = node.source_line,
-        end_line = node.source_line,
-    }
+        return {
+            start_line = node.source_line,
+            start_column = node.source_column or 0,
+            end_line = node.source_line,
+            end_column = node.source_column or 0,
+        }
     end
+
     return nil
 end
 
 
-local function node_contains_line(node, source_line)
-    local range = get_node_source_range(node)
-
-    if not range then
+local function position_is_in_range(source_line, source_column, range)
+    if not source_line or type(range) ~= "table" then
         return false
     end
-    
-    return source_line >= range.start_line
-        and source_line <= range.end_line
+
+    local start_line = range.start_line
+    local end_line = range.end_line
+
+    if not start_line or not end_line then
+        return false
+    end
+
+    source_column = tonumber(source_column) or 0
+
+    local start_column = tonumber(range.start_column) or 0
+    local end_column = tonumber(range.end_column) or 0
+
+    if source_line < start_line or source_line > end_line then
+        return false
+    end
+
+    if start_line == end_line then
+        return source_column >= start_column
+            and source_column <= end_column
+    end
+
+    if source_line == start_line then
+        return source_column >= start_column
+    end
+
+    if source_line == end_line and end_column > 0 then
+        return source_column <= end_column
+    end
+
+    return true
 end
 
+local function node_contains_position(node, source_line, source_column)
+    local range = get_node_source_range(node)
 
-local function find_deepest_node_path_for_line(nodes, source_line, current_path, best_path)
+    return position_is_in_range(source_line, source_column, range)
+end
+
+local function find_deepest_node_path_for_position(nodes, source_line, source_column, current_path, best_path)
     current_path = current_path or {}
     best_path = best_path or nil
 
     for _, node in ipairs(nodes or {}) do
-        if type(node) == "table" and node_contains_line(node, source_line) then
+        if type(node) == "table" and node_contains_position(node, source_line, source_column) then
             local next_path = {}
 
             for _, path_node in ipairs(current_path) do
@@ -252,18 +310,20 @@ local function find_deepest_node_path_for_line(nodes, source_line, current_path,
             best_path = next_path
 
             if node_has_children(node) then
-                best_path = find_deepest_node_path_for_line(
+                best_path = find_deepest_node_path_for_position(
                     node.children,
                     source_line,
+                    source_column,
                     next_path,
                     best_path
                 )
             end
         end
     end
-    
+
     return best_path
 end
+
 
 
 function M.inspect_scope_members(request)
@@ -290,11 +350,12 @@ function M.inspect_scope_members(request)
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
 
-    -- For this first generic-dispatch pass, this still uses line matching.
-    -- Next pass will replace this with position/range matching.
-    local node_path = find_deepest_node_path_for_line(
+    -- Use the source cursor position to reveal the deepest matching Scope Members node.
+
+    local node_path = find_deepest_node_path_for_position(
         scope_member_nodes,
-        source_line
+        source_line,
+        source_column
     )
 
     if not node_path or #node_path == 0 then

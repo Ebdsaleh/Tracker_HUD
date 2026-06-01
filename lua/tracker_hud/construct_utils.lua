@@ -37,6 +37,8 @@ function M.build_value_metadata(value_node, bufnr, adapter)
         value_node_type = nil,
         value_start_line = nil,
         value_end_line = nil,
+        value_start_column = nil,
+        value_end_column = nil,
         value_kind = nil,
         type_label = nil,
     }
@@ -51,6 +53,8 @@ function M.build_value_metadata(value_node, bufnr, adapter)
     local value_range = ts_utils.get_node_range_fields(value_node)
     metadata.value_start_line = value_range.start_line
     metadata.value_end_line = value_range.end_line
+    metadata.value_start_column = value_range.start_column
+    metadata.value_end_column = value_range.end_column
 
     local value_spec = M.get_value_spec_from_node(value_node, adapter)
 
