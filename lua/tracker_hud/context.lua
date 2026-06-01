@@ -28,6 +28,24 @@ local function try_parse_construct_with_adapter(bufnr, node)
 end
 
 
+local function find_nearest_member_scope(scopes)
+    for _, scope_entry in ipairs(scopes or {}) do
+        local scope = scope_entry.scope
+
+        if type(scope) == "table"
+            and (
+                scope.affects_visibility == true
+                or scope.owns_members == true
+            )
+        then
+            return scope_entry
+        end
+    end
+
+    return nil
+end
+
+
 function M.get_cursor_context(bufnr, config)
     config = config or {}
 
@@ -94,12 +112,15 @@ function M.get_cursor_context(bufnr, config)
         cursor_line = context.cursor and context.cursor.line,
     }
 
-    if context.depth and context.depth > 0 then
-        scope_member_opts.start_line = context.start_line
-        scope_member_opts.end_line = context.end_line
+    local nearest_member_scope = find_nearest_member_scope(context.scopes)
+
+    if nearest_member_scope then
+        scope_member_opts.start_line = nearest_member_scope.start_line
+        scope_member_opts.end_line = nearest_member_scope.end_line
     else
         scope_member_opts.scope_depth = 0
     end
+
 
     context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
 
