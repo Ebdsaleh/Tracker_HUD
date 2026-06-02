@@ -111,8 +111,11 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         kind = kind,
         name = name,
         scope_depth = scope_depth or 0,
+
         scope_start_line = scope_range and scope_range.start_line,
+        scope_start_column = scope_range and scope_range.start_column,
         scope_end_line = scope_range and scope_range.end_line,
+        scope_end_column = scope_range and scope_range.end_column,
 
         source_start_line = line,
         source_start_column = source_start_column,
@@ -144,5 +147,6 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
 
     table.insert(members, member)
 end
+
 
 return M

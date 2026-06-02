@@ -122,18 +122,22 @@ local function build_scope_node(member, context)
         label = build_scope_label(member, context),
 
         source_line = member and member.scope_start_line or nil,
-        source_column = 0,
+        source_column = member and member.scope_start_column or 0,
         source_start_line = member and member.scope_start_line or nil,
-        source_start_column = 0,
+        source_start_column = member and member.scope_start_column or 0,
         source_end_line = member and member.scope_end_line or nil,
-        source_end_column = 0,
+        source_end_column = member and member.scope_end_column or 0,
 
         scope_start_line = member and member.scope_start_line or nil,
+        scope_start_column = member and member.scope_start_column or 0,
         scope_end_line = member and member.scope_end_line or nil,
+        scope_end_column = member and member.scope_end_column or 0,
+
         scope_depth = member and member.scope_depth or 0,
         children = {},
     }
 end
+
 
 
 local function sort_scope_nodes(left, right)
