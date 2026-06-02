@@ -4,6 +4,7 @@
 
 local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
+local register_tree = require("tracker_hud.register_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local symbol_state = require("tracker_hud.symbol_state")
 
@@ -180,6 +181,18 @@ end
 
 
 local function build_scope_member_tree_lines(nodes, opts)
+    local result = {
+        lines = {},
+        targets = {},
+    }
+
+    append_scope_member_tree_lines(result, nodes, 0, opts)
+
+    return result
+end
+
+
+local function build_hud_tree_lines(nodes, opts)
     local result = {
         lines = {},
         targets = {},
@@ -624,6 +637,11 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
+    local register_nodes = register_tree.build(context.registers or {}, context)
+    local register_render = build_hud_tree_lines(register_nodes, {
+        panel_width = opts.panel_width,
+    })
+
     local sections = {
         {
             id = "scope",
@@ -650,8 +668,9 @@ function M.build(context, opts)
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
-            lines = {},
-            empty_text = "<register tracking not available yet>",
+            lines = register_render.lines,
+            line_targets = register_render.targets,
+            empty_text = "<no registers tracked yet>",
         },
         {
             id = "stack",

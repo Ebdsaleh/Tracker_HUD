@@ -5,6 +5,7 @@ local M = {}
 local adapter_registry = require("tracker_hud.adapters.registry")
 local context_engine = require("tracker_hud.context_engine")
 local scope_members = require("tracker_hud.scope_members")
+local registers = require("tracker_hud.registers")
 
 
 local function try_parse_construct_with_adapter(bufnr, node)
@@ -102,6 +103,7 @@ function M.get_cursor_context(bufnr, config)
         })
 
         context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
+        context.registers = registers.collect(context, adapter)
 
         return context
     end
@@ -141,8 +143,10 @@ function M.get_cursor_context(bufnr, config)
 
     context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
     context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
+    context.registers = registers.collect(context, adapter)
 
     return context
-end
+
+    end
 
 return M
