@@ -34,6 +34,7 @@ M.defaults = {
         cycle_inspect_mode = "<leader><leader>",
         inspect_source = "<leader>t",
         expand_all_members_in_scope = "<leader>.",
+        collapse_all_members_in_scope = "<leader>,",
         step= 2,
     },
     -- Adapter discovery paths.

@@ -695,6 +695,36 @@ function M.expand_all_members_in_scope()
 end
 
 
+function M.collapse_all_members_in_scope()
+    local mode, request = build_source_inspect_request()
+    local result = hud_inspect.collapse_all(mode, request)
+
+    if not result or result.ok ~= true then
+        vim.notify(
+            result and result.message or "tracker_hud: collapse all members in scope failed",
+            vim.log.levels.INFO
+        )
+        return false
+    end
+
+    M.update_panel()
+
+    local panel_line = find_panel_line_for_target_id(result.target_node_id)
+
+    if panel_line then
+        set_panel_cursor_location({
+            line = panel_line,
+            column = 0,
+        })
+    end
+
+    if is_valid_window(last_source_winid) then
+        pcall(vim.api.nvim_set_current_win, last_source_winid)
+    end
+
+    return true
+end
+
 
 function M.refresh()
     if not last_context then

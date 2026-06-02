@@ -221,6 +221,16 @@ local function setup_keymaps()
         })
     end
 
+    if keymaps.collapse_all_members_in_scope then
+        vim.keymap.set("n", keymaps.collapse_all_members_in_scope, function()
+            hud.collapse_all_members_in_scope()
+        end, {
+            desc = "Collapse all Tracker HUD scope members in current scope",
+            silent = true,
+            noremap = true,
+        })
+    end
+
 end
 
 

@@ -473,6 +473,35 @@ function M.expand_scope_members_in_current_scope(request)
 end
 
 
+function M.collapse_scope_members_in_current_scope(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local context = request.context
+    local scope_range = get_context_member_scope_range(context)
+
+    if not scope_range then
+        return false
+    end
+
+    local scope_member_nodes = build_scope_member_nodes_for_context(context, true)
+    local target_scope_node = find_scope_node_by_range(scope_member_nodes, scope_range)
+
+    if not target_scope_node then
+        return false
+    end
+
+    M.set_expanded("scope_members", true)
+    hud_nodes.collapse_tree(target_scope_node)
+
+    -- Keep the owning scope itself visible/open so the section does not feel like it vanished.
+    hud_nodes.expand(target_scope_node.id)
+
+    return true, target_scope_node.id
+end
+
+
 function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
