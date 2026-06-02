@@ -350,8 +350,7 @@ function M.inspect_scope_members(request)
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
 
-    -- Use the source cursor position to reveal the deepest matching Scope Members node.
-
+    -- Use the source cursor position to reveal/toggle the deepest matching Scope Members node.
     local node_path = find_deepest_node_path_for_position(
         scope_member_nodes,
         source_line,
@@ -364,14 +363,26 @@ function M.inspect_scope_members(request)
 
     M.set_expanded("scope_members", true)
 
-    for _, node in ipairs(node_path) do
+    local target_index = #node_path
+    local target_node = node_path[target_index]
+    local target_node_id = target_node and target_node.id
+
+    for index, node in ipairs(node_path) do
         if node_has_children(node) then
-            hud_nodes.set_expanded(node.id, true)
+            if index < target_index then
+                -- Ancestors must stay open so the target remains visible.
+                hud_nodes.set_expanded(node.id, true)
+            else
+                -- The target itself toggles open/closed.
+                local currently_expanded = hud_nodes.is_expanded(
+                    node.id,
+                    get_node_default_expanded(node)
+                )
+
+                hud_nodes.set_expanded(node.id, not currently_expanded)
+            end
         end
     end
-
-    local target_node = node_path[#node_path]
-    local target_node_id = target_node and target_node.id
 
     return true, target_node_id
 end
