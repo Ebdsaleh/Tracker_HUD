@@ -5,6 +5,7 @@
 local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
 local register_tree = require("tracker_hud.register_tree")
+local stack_tree = require("tracker_hud.stack_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local symbol_state = require("tracker_hud.symbol_state")
 
@@ -642,6 +643,12 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
+
+    local stack_nodes = stack_tree.build(context.stack or {}, context)
+    local stack_render = build_hud_tree_lines(stack_nodes, {
+        panel_width = opts.panel_width,
+    })
+
     local sections = {
         {
             id = "scope",
@@ -676,8 +683,9 @@ function M.build(context, opts)
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
-            lines = {},
-            empty_text = "<stack tracking not available yet>",
+            lines = stack_render.lines,
+            line_targets = stack_render.targets,
+            empty_text = "<no stack entries tracked yet>",
         },
         {
             id = "warnings",
