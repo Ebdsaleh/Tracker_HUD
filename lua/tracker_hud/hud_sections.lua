@@ -332,6 +332,103 @@ local function find_deepest_node_path_for_position(nodes, source_line, source_co
 end
 
 
+local function range_contains_line(range, source_line)
+    if type(range) ~= "table" or not source_line then
+        return false
+    end
+
+    if not range.start_line or not range.end_line then
+        return false
+    end
+
+    return source_line >= range.start_line
+        and source_line <= range.end_line
+end
+
+
+local function get_column_distance_to_range(source_line, source_column, range)
+    if type(range) ~= "table" then
+        return 999999
+    end
+
+    source_column = tonumber(source_column) or 0
+
+    local start_column = tonumber(range.start_column) or 0
+    local end_column = tonumber(range.end_column) or start_column
+
+    if range.start_line ~= range.end_line then
+        return 0
+    end
+
+    if source_column < start_column then
+        return start_column - source_column
+    end
+
+    if source_column > end_column then
+        return source_column - end_column
+    end
+
+    return 0
+end
+
+
+local function find_closest_node_path_for_line(nodes, source_line, source_column, current_path, best)
+    current_path = current_path or {}
+    best = best or nil
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            local range = get_node_source_range(node)
+
+            if range_contains_line(range, source_line) then
+                local next_path = {}
+
+                for _, path_node in ipairs(current_path) do
+                    table.insert(next_path, path_node)
+                end
+
+                table.insert(next_path, node)
+
+                local distance = get_column_distance_to_range(
+                    source_line,
+                    source_column,
+                    range
+                )
+
+                local depth = #next_path
+
+                if not best
+                    or distance < best.distance
+                    or (
+                        distance == best.distance
+                        and depth > best.depth
+                    )
+                then
+                    best = {
+                        path = next_path,
+                        distance = distance,
+                        depth = depth,
+                    }
+                end
+
+                if node_has_children(node) then
+                    best = find_closest_node_path_for_line(
+                        node.children,
+                        source_line,
+                        source_column,
+                        next_path,
+                        best
+                    )
+                end
+            end
+        end
+    end
+
+    return best
+end
+
+
+
 local function build_scope_member_nodes_for_context(context, use_all_members)
     if type(context) ~= "table" then
         return {}
@@ -417,6 +514,16 @@ function M.inspect_scope_members(request)
     )
 
     if not node_path or #node_path == 0 then
+        local fallback = find_closest_node_path_for_line(
+            scope_member_nodes,
+            source_line,
+            source_column
+        )
+
+        node_path = fallback and fallback.path or nil
+    end
+
+    if not node_path or #node_path == 0 then
         return false
     end
 
@@ -445,7 +552,6 @@ function M.inspect_scope_members(request)
 
     return true, target_node_id
 end
-
 
 function M.expand_scope_members_in_current_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
