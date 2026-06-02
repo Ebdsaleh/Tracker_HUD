@@ -210,6 +210,17 @@ local function setup_keymaps()
             noremap = true,
         })
     end
+
+    if keymaps.expand_all_members_in_scope then
+        vim.keymap.set("n", keymaps.expand_all_members_in_scope, function()
+            hud.expand_all_members_in_scope()
+        end, {
+            desc = "Expand all Tracker HUD scope members in current scope",
+            silent = true,
+            noremap = true,
+        })
+    end
+
 end
 
 

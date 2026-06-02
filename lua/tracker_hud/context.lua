@@ -7,7 +7,6 @@ local context_engine = require("tracker_hud.context_engine")
 local scope_members = require("tracker_hud.scope_members")
 
 
-
 local function try_parse_construct_with_adapter(bufnr, node)
     if not node then
         return nil
@@ -46,6 +45,22 @@ local function find_nearest_member_scope(scopes)
 end
 
 
+local function build_member_scope_context(scope_entry)
+    if type(scope_entry) ~= "table" then
+        return nil
+    end
+
+    return {
+        label = scope_entry.label,
+        raw_label = scope_entry.raw_label,
+        node_type = scope_entry.node_type,
+        kind = scope_entry.kind,
+        start_line = scope_entry.start_line,
+        end_line = scope_entry.end_line,
+    }
+end
+
+
 function M.get_cursor_context(bufnr, config)
     config = config or {}
 
@@ -74,11 +89,12 @@ function M.get_cursor_context(bufnr, config)
     end
 
     local adapter = adapter_registry.get_adapter(filetype)
-
     local node = vim.treesitter.get_node()
 
     if not node then
         local context = context_engine.make_global_context()
+
+        context.member_scope = nil
 
         context.scope_members = scope_members.collect(bufnr, root_node, adapter, {
             scope_depth = 0,
@@ -117,13 +133,13 @@ function M.get_cursor_context(bufnr, config)
     if nearest_member_scope then
         scope_member_opts.start_line = nearest_member_scope.start_line
         scope_member_opts.end_line = nearest_member_scope.end_line
+        context.member_scope = build_member_scope_context(nearest_member_scope)
     else
         scope_member_opts.scope_depth = 0
+        context.member_scope = nil
     end
 
-
     context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
-
     context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
 
     return context

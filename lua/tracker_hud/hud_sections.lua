@@ -24,6 +24,7 @@ local function validate_section(section_id)
         and section_state[section_id] ~= nil
 end
 
+
 function M.toggle(section_id)
     if not validate_section(section_id) then
         return false
@@ -32,6 +33,7 @@ function M.toggle(section_id)
     section_state[section_id] = not section_state[section_id]
     return true
 end
+
 
 function M.is_expanded(section_id)
     if not validate_section(section_id) then
@@ -50,6 +52,8 @@ function M.set_expanded(section_id, expanded)
     section_state[section_id] = expanded == true
     return true
 end
+
+
 local function get_display_width(text)
     local ok, width = pcall(vim.fn.strdisplaywidth, text or "")
 
@@ -97,7 +101,6 @@ local function get_node_marker(node)
 
     return "[+]"
 end
-
 
 
 local function build_scope_range_label(node)
@@ -164,7 +167,9 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                 }
             end
 
-            if node_has_children(node) and hud_nodes.is_expanded(node.id, get_node_default_expanded(node)) then
+            if node_has_children(node)
+                and hud_nodes.is_expanded(node.id, get_node_default_expanded(node))
+            then
                 append_scope_member_tree_lines(result, node.children, depth + 1, opts)
             end
         elseif type(node) == "string" then
@@ -172,7 +177,6 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
         end
     end
 end
-
 
 
 local function build_scope_member_tree_lines(nodes, opts)
@@ -185,6 +189,7 @@ local function build_scope_member_tree_lines(nodes, opts)
 
     return result
 end
+
 
 local function get_node_source_range(node)
     if type(node) ~= "table" then
@@ -203,9 +208,9 @@ local function get_node_source_range(node)
     if node.scope_start_line and node.scope_end_line then
         return {
             start_line = node.scope_start_line,
-            start_column = 0,
+            start_column = node.scope_start_column or 0,
             end_line = node.scope_end_line,
-            end_column = 0,
+            end_column = node.scope_end_column or 0,
         }
     end
 
@@ -288,11 +293,13 @@ local function position_is_in_range(source_line, source_column, range)
     return true
 end
 
+
 local function node_contains_position(node, source_line, source_column)
     local range = get_node_source_range(node)
 
     return position_is_in_range(source_line, source_column, range)
 end
+
 
 local function find_deepest_node_path_for_position(nodes, source_line, source_column, current_path, best_path)
     current_path = current_path or {}
@@ -325,6 +332,67 @@ local function find_deepest_node_path_for_position(nodes, source_line, source_co
 end
 
 
+local function build_scope_member_nodes_for_context(context, use_all_members)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    local scope_members = context.scope_members or {}
+
+    if use_all_members then
+        scope_members = context.all_scope_members or {}
+    end
+
+    scope_members = symbol_state.enrich_members(scope_members, context)
+
+    return scope_member_tree.build(scope_members, context)
+end
+
+
+local function get_context_member_scope_range(context)
+    if type(context) ~= "table" then
+        return nil
+    end
+
+    if type(context.member_scope) == "table"
+        and context.member_scope.start_line
+        and context.member_scope.end_line
+    then
+        return {
+            start_line = context.member_scope.start_line,
+            end_line = context.member_scope.end_line,
+        }
+    end
+
+    return nil
+end
+
+
+local function scope_node_matches_range(node, range)
+    return type(node) == "table"
+        and type(range) == "table"
+        and node.kind == "scope"
+        and node.scope_start_line == range.start_line
+        and node.scope_end_line == range.end_line
+end
+
+
+local function find_scope_node_by_range(nodes, range)
+    for _, node in ipairs(nodes or {}) do
+        if scope_node_matches_range(node, range) then
+            return node
+        end
+
+        local found = find_scope_node_by_range(node.children, range)
+
+        if found then
+            return found
+        end
+    end
+
+    return nil
+end
+
 
 function M.inspect_scope_members(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
@@ -339,16 +407,7 @@ function M.inspect_scope_members(request)
     end
 
     local context = request.context
-    local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
-    local scope_members = context.scope_members or {}
-
-    if show_all_scope_members then
-        scope_members = context.all_scope_members or {}
-    end
-
-    scope_members = symbol_state.enrich_members(scope_members, context)
-
-    local scope_member_nodes = scope_member_tree.build(scope_members, context)
+    local scope_member_nodes = build_scope_member_nodes_for_context(context, false)
 
     -- Use the source cursor position to reveal/toggle the deepest matching Scope Members node.
     local node_path = find_deepest_node_path_for_position(
@@ -385,6 +444,32 @@ function M.inspect_scope_members(request)
     end
 
     return true, target_node_id
+end
+
+
+function M.expand_scope_members_in_current_scope(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local context = request.context
+    local scope_range = get_context_member_scope_range(context)
+
+    if not scope_range then
+        return false
+    end
+
+    local scope_member_nodes = build_scope_member_nodes_for_context(context, true)
+    local target_scope_node = find_scope_node_by_range(scope_member_nodes, scope_range)
+
+    if not target_scope_node then
+        return false
+    end
+
+    M.set_expanded("scope_members", true)
+    hud_nodes.expand_tree(target_scope_node)
+
+    return true, target_scope_node.id
 end
 
 
