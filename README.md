@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, and a Contract v2 spec-driven adapter architecture.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side Scope Members inspect controls, and a Contract v2 spec-driven adapter architecture.
 
 ---
 
@@ -56,6 +56,14 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Shared Tree-sitter utility helpers
 - Shared adapter construct/value utility helpers
 - Dedicated Scope Member model helpers for member record creation and labeling
+- Column-aware Scope Members inspect targeting
+- Scope Members inspect fallback to nearest member on the current line
+- Source-side Scope Members inspect toggle for individual expandable members
+- Expand all Scope Members in the current owning scope
+- Collapse all Scope Members in the current owning scope
+- Scope Members expansion state persists as cursor-filtered members become visible
+- Identifier return values can resolve to visible scope members where possible
+- Scope Members filtering uses the nearest member-owning scope instead of the nearest syntax construct
 
 ---
 
@@ -232,6 +240,14 @@ the Scope Members section displays all discovered scope members from the current
 
 Structural values are attached under the member that owns them. For example, a returned Lua table is shown under the `return_value` member instead of floating as a separate first-class scope member.
 
+Scope Members also supports source-side inspection commands.
+
+When `Inspect Mode` is set to `Scope Members`, pressing the source inspect keymap reveals the member at the source cursor position. If the matched member is expandable, the command toggles that member open or closed.
+
+Inspect targeting is column-aware. If the cursor is not directly on a symbol or value, Tracker HUD falls back to the nearest Scope Members node on the current line.
+
+Tracker HUD can also expand or collapse all Scope Members inside the current owning scope. This updates the HUD node expansion state without disabling cursor-based visibility filtering. Members that appear later in the scope remain hidden until the source cursor reaches them, but when they become visible they use the stored expanded/collapsed state.
+
 ---
 
 ## Configuration
@@ -270,6 +286,8 @@ require("tracker_hud").setup({
         auto_size = "<leader><CR>",
         cycle_inspect_mode = "<leader><leader>",
         inspect_source = "<leader>t",
+        expand_all_members_in_scope = "<leader>.",
+        collapse_all_members_in_scope = "<leader>,",
         step = 2,
     },
 })
@@ -403,7 +421,9 @@ Tracker HUD registers normal-mode panel resize keymaps by default.
 | `<leader>-` | Decrease HUD panel size |
 | `<leader><CR>` | Auto-size HUD panel |
 | `<leader><leader>` | Cycle active Inspect Mode |
-| `<leader>t` | Inspect/reveal current source cursor in the active HUD section |
+| `<leader>t` | Inspect/reveal/toggle current source cursor in the active HUD section |
+| `<leader>.` | Expand all Scope Members in the current owning scope |
+| `<leader>,` | Collapse all Scope Members in the current owning scope |
 
 The size change amount is controlled by:
 
@@ -426,6 +446,10 @@ require("tracker_hud").setup({
         increase_size = "<leader>+",
         decrease_size = "<leader>-",
         auto_size = "<leader><CR>",
+        cycle_inspect_mode = "<leader><leader>",
+        inspect_source = "<leader>t",
+        expand_all_members_in_scope = "<leader>.",
+        collapse_all_members_in_scope = "<leader>,",
         step = 4,
     },
 })
@@ -467,6 +491,10 @@ require("lazy").setup({
                     increase_size = "<leader>+",
                     decrease_size = "<leader>-",
                     auto_size = "<leader><CR>",
+                    cycle_inspect_mode = "<leader><leader>",
+                    inspect_source = "<leader>t",
+                    expand_all_members_in_scope = "<leader>.",
+                    collapse_all_members_in_scope = "<leader>,",
                     step = 2,
                 },
             })
@@ -579,6 +607,20 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.3`
+
+- Added column-aware Scope Members inspect targeting
+- Added nearest-node fallback for source inspect when the cursor is on whitespace on a line with Scope Members
+- Changed Scope Members source inspect from reveal-only to reveal/toggle behavior
+- Added source-side expand-all command for Scope Members in the current owning scope
+- Added source-side collapse-all command for Scope Members in the current owning scope
+- Added configurable keymaps for expanding and collapsing all Scope Members in the current owning scope
+- Added HUD node tree expansion helpers for generic expand/collapse behavior
+- Added current owning member scope tracking to context output
+- Improved Scope Members filtering to use the nearest member-owning scope instead of the nearest syntax construct
+- Added identifier return-value resolution through Scope Members symbol enrichment
+- Preserved cursor-based visibility while allowing expanded state to apply as later members become visible
 
 ### `v0.7.2`
 
