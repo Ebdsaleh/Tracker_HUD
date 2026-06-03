@@ -90,6 +90,22 @@ function M.get_cursor_context(bufnr, config)
         root_node = tree:root()
     end
 
+    local configured, configure_err = adapter_registry.configure_adapter_for_buffer(
+        filetype,
+        bufnr,
+        config
+    )
+
+    if not configured then
+        return context_engine.make_unavailable_context(
+            "Tracker HUD adapter configuration failed for filetype: "
+                .. tostring(filetype)
+                .. " - "
+                .. tostring(configure_err),
+            filetype
+        )
+    end
+
     local adapter = adapter_registry.get_adapter(filetype)
     local node = vim.treesitter.get_node()
 

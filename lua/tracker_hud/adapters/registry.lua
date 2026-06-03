@@ -110,6 +110,28 @@ function M.get_adapter(filetype)
 end
 
 
+function M.configure_adapter_for_buffer(filetype, bufnr, config)
+    local adapter = M.get_adapter(filetype)
+
+    if not adapter then
+        return false, "no adapter registered for filetype: " .. tostring(filetype)
+    end
+
+    if type(adapter.configure_adapter_for_buffer) ~= "function" then
+        return true, nil
+    end
+
+    local ok, err = pcall(adapter.configure_adapter_for_buffer, bufnr, config)
+
+    if not ok then
+        return false, tostring(err)
+    end
+
+    return true, nil
+end
+
+
+
 function M.has_adapter(filetype)
     return M.get_adapter(filetype) ~= nil
 end
