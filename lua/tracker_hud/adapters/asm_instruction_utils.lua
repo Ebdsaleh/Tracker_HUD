@@ -36,21 +36,34 @@ local function node_text(bufnr, node)
 end
 
 
-local function is_register_node(node)
-    if not node then
+local function node_has_descendant_type(node, wanted_type)
+    if not node or type(wanted_type) ~= "string" then
         return false
     end
 
-    local node_type = node:type()
+    for child in node:iter_children() do
+        if child:type() == wanted_type then
+            return true
+        end
 
-    if node_type == "reg" then
-        return true
+        if node_has_descendant_type(child, wanted_type) then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function node_has_ancestor_type_until_instruction(node, wanted_type)
+    if not node or type(wanted_type) ~= "string" then
+        return false
     end
 
     local parent = node:parent()
 
     while parent do
-        if parent:type() == "reg" then
+        if parent:type() == wanted_type then
             return true
         end
 
@@ -63,6 +76,28 @@ local function is_register_node(node)
 
     return false
 end
+
+
+local function is_register_node(node)
+    if not node then
+        return false
+    end
+
+    if node:type() == "reg" then
+        return true
+    end
+
+    if node_has_ancestor_type_until_instruction(node, "reg") then
+        return true
+    end
+
+    if node_has_descendant_type(node, "reg") then
+        return true
+    end
+
+    return false
+end
+
 
 
 local function classify_operand(bufnr, node)
@@ -98,11 +133,14 @@ local function append_operand(operands, seen, bufnr, node)
         return
     end
 
+    local start_row, start_column = node:start()
+
     local key = table.concat({
         operand.text,
         operand.kind,
         operand.node_type,
-        tostring(node:start()),
+        tostring(start_row),
+        tostring(start_column),
     }, "|")
 
     if seen[key] then
