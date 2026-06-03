@@ -120,7 +120,10 @@ function M.get_cursor_context(bufnr, config)
         })
 
         context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
-        context.registers = registers.collect(context, adapter)
+        context.registers = registers.collect(context, adapter, {
+            bufnr = bufnr,
+            root_node = root_node,
+        }) 
         context.stack = stack.collect(context, adapter)
 
         return context
@@ -161,7 +164,10 @@ function M.get_cursor_context(bufnr, config)
 
     context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
     context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
-    context.registers = registers.collect(context, adapter)
+    context.registers = registers.collect(context, adapter, {
+        bufnr = bufnr,
+        root_node = root_node,
+    })
     context.stack = stack.collect(context, adapter)
 
     return context
