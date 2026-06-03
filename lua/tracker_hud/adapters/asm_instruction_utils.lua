@@ -30,7 +30,9 @@ local function node_text(bufnr, node)
         return nil
     end
 
-    return normalize_text(treesitter_utils.get_node_text(bufnr, node))
+    -- treesitter_utils.get_node_text() expects:
+    --   get_node_text(node, bufnr)
+    return normalize_text(treesitter_utils.get_node_text(node, bufnr))
 end
 
 
