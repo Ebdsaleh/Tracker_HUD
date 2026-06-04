@@ -2,14 +2,30 @@
 --
 -- ASM Tree-sitter adapter.
 --
--- ASM is different from high-level language adapters because register and stack
--- meaning depends on the selected CPU architecture. The adapter owns the ASM
--- language-level behavior, while architecture modules provide machine facts.
+-- ASM is a variant-based adapter.
+--
+-- The master ASM adapter owns:
+--   - filetype registration
+--   - variant metadata
+--   - source directive detection
+--   - active variant loading
+--
+-- Architecture/variant files own:
+--   - registers
+--   - stack concepts
+--   - scope member declarations
+--
+-- Example source directive:
+--
+--   ; arch=x86-64;
 
 local M = {}
+
 local asm_instruction_utils = require("tracker_hud.adapters.asm_instruction_utils")
 
+
 M.name = "asm"
+
 M.filetypes = {
     "asm",
     "nasm",
@@ -17,23 +33,19 @@ M.filetypes = {
     "s",
 }
 
-M.capabilities = {
-    lexical_scopes = true,
-    structural_scopes = false,
-    members = false,
-    values = false,
-    source_jump = true,
-    registers = true,
-    stack = true,
-}
+
+M.has_variant = true
+M.variant_kind = "architecture"
+M.default_variant = "x86-64"
+M.variant_directive = "arch"
 
 
-local architecture_modules = {
+M.variants = {
     ["x86-64"] = "tracker_hud.adapters.asm_arch.x86_64",
 }
 
 
-local architecture_aliases = {
+M.variant_aliases = {
     ["x86-64"] = "x86-64",
     ["x86_64"] = "x86-64",
     ["amd64"] = "x86-64",
@@ -41,14 +53,48 @@ local architecture_aliases = {
 }
 
 
-local function normalize_architecture_name(name)
+M.capabilities = {
+    lexical_scopes = true,
+    structural_scopes = false,
+    members = true,
+    values = false,
+    source_jump = true,
+    registers = true,
+    stack = true,
+}
+
+
+M.construct_specs = {
+    ["label"] = {
+        construct = {
+            kind = "label",
+            label = "Label",
+        },
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+    },
+
+    ["instruction"] = {
+        construct = {
+            kind = "instruction",
+            label = "Instruction",
+        },
+    },
+}
+
+
+local function normalize_variant_name(name)
     if type(name) ~= "string" then
         return nil
     end
 
     local normalized = name:lower():gsub("^%s+", ""):gsub("%s+$", "")
 
-    return architecture_aliases[normalized] or normalized
+    return M.variant_aliases[normalized] or normalized
 end
 
 
@@ -63,11 +109,12 @@ local function read_buffer_line(bufnr, index)
 end
 
 
-local function detect_architecture_from_source(bufnr)
+local function detect_variant_from_source(bufnr)
     if not bufnr then
         return nil
     end
 
+    local directive = M.variant_directive or "arch"
     local max_scan_lines = 20
     local line_count = vim.api.nvim_buf_line_count(bufnr)
     local scan_count = math.min(max_scan_lines, line_count)
@@ -76,10 +123,14 @@ local function detect_architecture_from_source(bufnr)
         local line = read_buffer_line(bufnr, index)
 
         if type(line) == "string" then
-            local arch = line:match("^%s*;%s*arch%s*=%s*([%w%-_]+)%s*;?")
+            local pattern = "^%s*;%s*"
+                .. directive
+                .. "%s*=%s*([%w%-_]+)%s*;?"
 
-            if arch then
-                return normalize_architecture_name(arch)
+            local variant_name = line:match(pattern)
+
+            if variant_name then
+                return normalize_variant_name(variant_name)
             end
         end
     end
@@ -88,47 +139,59 @@ local function detect_architecture_from_source(bufnr)
 end
 
 
-local function load_architecture(architecture_name)
-    local normalized = normalize_architecture_name(architecture_name) or "x86-64"
-    local module_name = architecture_modules[normalized]
+local function load_variant(variant_name)
+    local normalized = normalize_variant_name(variant_name) or M.default_variant
+    local module_name = M.variants[normalized]
 
     if not module_name then
-        normalized = "x86-64"
-        module_name = architecture_modules[normalized]
+        normalized = M.default_variant
+        module_name = M.variants[normalized]
     end
 
-    local ok, architecture = pcall(require, module_name)
+    local ok, variant = pcall(require, module_name)
 
-    if not ok or type(architecture) ~= "table" then
+    if not ok or type(variant) ~= "table" then
         return nil
     end
 
-    return architecture
+    return variant
 end
 
 
-local function apply_architecture(architecture)
-    if type(architecture) ~= "table" then
+local function apply_variant(variant)
+    if type(variant) ~= "table" then
         return
     end
 
-    M.architecture = architecture.name or "x86-64"
-    M.registers = architecture.registers or { static = {} }
-    M.stack = architecture.stack or { static = {} }
+    M.active_variant = variant
+    M.active_variant_name = variant.name or M.default_variant
+
+    -- Keep architecture as an alias for older code paths and HUD metadata.
+    M.architecture = M.active_variant_name
+
+    -- Variant-owned descriptive specs.
+    M.registers = variant.registers or { static = {} }
+    M.stack = variant.stack or { static = {} }
+    M.scope_members = variant.scope_members or { symbols = {} }
+
+    -- Optional override point if a future ASM variant needs different grammar specs.
+    if type(variant.construct_specs) == "table" then
+        M.construct_specs = variant.construct_specs
+    end
 end
 
 
 function M.configure_for_buffer(bufnr, _config)
-    local architecture_name = detect_architecture_from_source(bufnr) or "x86-64"
-    local architecture = load_architecture(architecture_name)
+    local variant_name = detect_variant_from_source(bufnr) or M.default_variant
+    local variant = load_variant(variant_name)
 
-    apply_architecture(architecture)
+    apply_variant(variant)
 end
 
 
--- Default architecture so the adapter still provides useful data before
+-- Default variant so the adapter still exposes useful specs before
 -- configure_for_buffer() is called.
-apply_architecture(load_architecture("x86-64"))
+apply_variant(load_variant(M.default_variant))
 
 
 local function get_static_register_spec(name)
@@ -167,6 +230,7 @@ local function make_register_fact(name, value, role, source_line)
         source_line = source_line,
         metadata = {
             architecture = M.architecture,
+            variant = M.active_variant_name,
         },
     }
 end
@@ -289,26 +353,4 @@ function M.collect_registers(context, opts)
 end
 
 
-
-M.construct_specs = {
-    ["label"] = {
-        construct = {
-            kind = "label",
-            label = "Label",
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = false,
-        },
-    },
-
-    ["instruction"] = {
-        construct = {
-            kind = "instruction",
-            label = "Instruction",
-        },
-    },
-}
 return M

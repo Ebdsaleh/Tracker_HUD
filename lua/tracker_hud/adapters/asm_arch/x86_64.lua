@@ -2,19 +2,68 @@
 --
 -- x86-64 architecture facts for the ASM adapter.
 --
--- Public architecture name uses "x86-64" to match common tooling such as
--- asm-lsp. Lua module name uses x86_64 because hyphens are awkward in module
--- paths.
+-- This file is spec-only.
+--
+-- It describes:
+--   - public architecture name
+--   - aliases
+--   - registers
+--   - stack concepts
+--   - scope member declarations
+--
+-- Behaviour belongs in:
+--   - asm_adapter.lua
+--   - scope_members.lua
+--   - registers.lua
+--   - stack.lua
+--   - asm_instruction_utils.lua
 
 local M = {}
 
 M.name = "x86-64"
+
 M.aliases = {
     "x86-64",
     "x86_64",
     "amd64",
     "x64",
 }
+
+
+M.scope_members = {
+    symbols = {
+        {
+            node_type = "label",
+            name_node_type = "ident",
+
+            member = {
+                kind = "label",
+                owner_scope = "lexical",
+            },
+
+            value = {
+                kind = "symbol",
+                type_label = "label",
+            },
+        },
+        {
+            node_type = "instruction",
+            mnemonic = "global",
+            operand_index = 1,
+
+            member = {
+                kind = "global",
+                owner_scope = "lexical",
+            },
+
+            value = {
+                kind = "symbol",
+                type_label = "global",
+            },
+        },
+    },
+}
+
 
 M.registers = {
     static = {
@@ -41,6 +90,7 @@ M.registers = {
         { name = "rflags", kind = "flags", role = "status/control flags" },
     },
 }
+
 
 M.stack = {
     static = {
@@ -70,5 +120,6 @@ M.stack = {
         },
     },
 }
+
 
 return M

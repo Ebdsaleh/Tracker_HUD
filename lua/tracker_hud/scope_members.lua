@@ -25,8 +25,6 @@ local function make_state(opts, scope_depth, scope_range, structural_depth, stru
 end
 
 
-
-
 local function get_field_value_node(node)
     if not node then
         return nil
@@ -44,7 +42,6 @@ local function get_field_value_node(node)
 
     return nil
 end
-
 
 
 local function strip_quotes(text)
@@ -86,8 +83,6 @@ local function get_field_name(node, bufnr)
 
     return strip_quotes(ts_utils.get_node_text(first_named_child, bufnr))
 end
-
-
 
 
 local function should_skip_member_spec_node(node, member_spec)
@@ -136,7 +131,6 @@ local function collect_names_with_values_from_list_nodes(
         )
     end
 end
-
 
 
 local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, source_range, state)
@@ -228,7 +222,6 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
 end
 
 
-
 local function collect_return_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
     if not core.is_table(member_spec) then
         return
@@ -294,7 +287,6 @@ local function get_function_name(node, bufnr)
 end
 
 
-
 local function collect_function_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
     if not core.is_table(member_spec) then
         return
@@ -348,7 +340,6 @@ local function collect_function_member_spec(node, bufnr, member_spec, members, s
         metadata
     )
 end
-
 
 
 local function collect_loop_member_spec(node, bufnr, member_spec, members, seen, state)
@@ -494,6 +485,150 @@ local function collect_field_member_spec(node, bufnr, member_spec, members, seen
 end
 
 
+local function get_first_descendant_text_by_type(node, bufnr, node_type)
+    if not node or not core.is_non_empty_string(node_type) then
+        return nil
+    end
+
+    local found = ts_utils.find_first_descendant_by_type(node, node_type)
+
+    if not found then
+        return nil
+    end
+
+    return ts_utils.get_node_text(found, bufnr)
+end
+
+
+local function get_instruction_mnemonic(node, bufnr)
+    if not node then
+        return nil
+    end
+
+    local word_node = ts_utils.find_first_descendant_by_type(node, "word")
+
+    if not word_node then
+        return nil
+    end
+
+    local text = ts_utils.get_node_text(word_node, bufnr)
+
+    if not core.is_non_empty_string(text) then
+        return nil
+    end
+
+    return text:lower()
+end
+
+
+local function get_instruction_operand_text(node, bufnr, operand_index)
+    if not node then
+        return nil
+    end
+
+    operand_index = tonumber(operand_index) or 1
+
+    local mnemonic_seen = false
+    local operand_count = 0
+
+    for child in node:iter_children() do
+        local child_type = child:type()
+
+        if child_type == "word" and not mnemonic_seen then
+            mnemonic_seen = true
+        elseif child_type == "reg"
+            or child_type == "ident"
+            or child_type == "int"
+            or child_type == "word"
+        then
+            operand_count = operand_count + 1
+
+            if operand_count == operand_index then
+                return ts_utils.get_node_text(child, bufnr)
+            end
+        end
+    end
+
+    return nil
+end
+
+
+local function build_symbol_metadata(node, bufnr, name, member_spec)
+    local source_range = ts_utils.get_node_range_fields(node)
+    local value_spec = member_spec.value or {}
+
+    return {
+        value_text = name,
+        value_node_type = node and node:type() or nil,
+        value_start_line = source_range.start_line,
+        value_end_line = source_range.end_line,
+        value_start_column = source_range.start_column,
+        value_end_column = source_range.end_column,
+        value_kind = value_spec.kind,
+        type_label = value_spec.type_label,
+        source_node_type = node and node:type() or nil,
+    }
+end
+
+
+local function collect_symbol_member_spec(node, bufnr, member_spec, members, seen, state)
+    if not core.is_table(member_spec) then
+        return
+    end
+
+    local opts = state.opts or {}
+    local scope_depth = state.scope_depth or 0
+
+    if opts and opts.scope_depth ~= nil and scope_depth ~= opts.scope_depth then
+        return
+    end
+
+    if not ts_utils.node_type_matches(node, member_spec.node_type) then
+        return
+    end
+
+    local name = nil
+
+    if core.is_non_empty_string(member_spec.mnemonic) then
+        local mnemonic = get_instruction_mnemonic(node, bufnr)
+
+        if mnemonic ~= member_spec.mnemonic:lower() then
+            return
+        end
+
+        name = get_instruction_operand_text(
+            node,
+            bufnr,
+            member_spec.operand_index or 1
+        )
+    elseif core.is_non_empty_string(member_spec.name_node_type) then
+        name = get_first_descendant_text_by_type(
+            node,
+            bufnr,
+            member_spec.name_node_type
+        )
+    end
+
+    if not core.is_non_empty_string(name) then
+        return
+    end
+
+    local source_range = ts_utils.get_node_range_fields(node)
+    local kind = member_spec.member and member_spec.member.kind
+    local metadata = build_symbol_metadata(node, bufnr, name, member_spec)
+
+    scope_member_model.add(
+        members,
+        seen,
+        name,
+        kind,
+        source_range,
+        state,
+        metadata
+    )
+end
+
+
 local function should_collect_before_scope_enter(member_spec)
     return core.is_table(member_spec)
         and core.is_table(member_spec.member)
@@ -536,7 +671,6 @@ local function collect_member_group_before_scope_enter(
         end
     end
 end
-
 
 
 local function collect_from_node(node, bufnr, adapter, members, seen, state)
@@ -626,6 +760,18 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
         collect_field_member_spec,
         adapter
     )
+
+    -- symbols
+    collect_member_group(
+        node,
+        bufnr,
+        scope_member_spec.symbols,
+        members,
+        seen,
+        state,
+        collect_symbol_member_spec,
+        adapter
+    )
 end
 
 
@@ -650,7 +796,6 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
         collect_function_member_spec,
         adapter
     )
-
 
     if construct_utils.node_creates_lexical_scope(node, adapter) then
         current_state = make_state(
