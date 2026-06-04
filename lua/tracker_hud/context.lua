@@ -7,6 +7,7 @@ local context_engine = require("tracker_hud.context_engine")
 local scope_members = require("tracker_hud.scope_members")
 local registers = require("tracker_hud.registers")
 local stack = require("tracker_hud.stack")
+local ts_utils = require("tracker_hud.treesitter_utils")
 
 
 local function try_parse_construct_with_adapter(bufnr, node)
@@ -63,6 +64,187 @@ local function build_member_scope_context(scope_entry)
 end
 
 
+local function get_first_descendant_text_by_type(node, bufnr, node_type)
+    if not node or type(node_type) ~= "string" or node_type == "" then
+        return nil
+    end
+
+    local found = ts_utils.find_first_descendant_by_type(node, node_type)
+
+    if not found then
+        return nil
+    end
+
+    return ts_utils.get_node_text(found, bufnr)
+end
+
+
+local function collect_nodes_by_type(node, node_type, result)
+    result = result or {}
+
+    if not node or type(node_type) ~= "string" or node_type == "" then
+        return result
+    end
+
+    if node:type() == node_type then
+        table.insert(result, node)
+    end
+
+    for child in node:iter_children() do
+        collect_nodes_by_type(child, node_type, result)
+    end
+
+    return result
+end
+
+
+local function make_range_scope_entry(bufnr, node, range_scope_spec, start_line, end_line)
+    if not node or type(range_scope_spec) ~= "table" then
+        return nil
+    end
+
+    local name = get_first_descendant_text_by_type(
+        node,
+        bufnr,
+        range_scope_spec.name_node_type
+    )
+
+    local label = range_scope_spec.label or "Scope"
+    local raw_label = label
+
+    if type(name) == "string" and name ~= "" then
+        raw_label = label .. " " .. name
+    end
+
+    local display_label = "[" .. tostring(start_line) .. "] " .. raw_label
+
+    return {
+        label = display_label,
+        raw_label = raw_label,
+        node_type = node:type(),
+        kind = range_scope_spec.kind or "range_scope",
+        scope = range_scope_spec.scope,
+        value = range_scope_spec.value,
+        start_line = start_line,
+        end_line = end_line,
+        construct = {
+            node_type = node:type(),
+            name = name,
+            range = {
+                start_line = start_line,
+                end_line = end_line,
+            },
+            metadata = {
+                display_label = display_label,
+                range_strategy = range_scope_spec.range_strategy,
+            },
+        },
+    }
+end
+
+
+local function scope_entry_exists(scopes, candidate)
+    if type(candidate) ~= "table" then
+        return false
+    end
+
+    for _, scope_entry in ipairs(scopes or {}) do
+        if type(scope_entry) == "table"
+            and scope_entry.node_type == candidate.node_type
+            and scope_entry.start_line == candidate.start_line
+            and scope_entry.end_line == candidate.end_line
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function collect_range_scope_entries(bufnr, root_node, adapter, cursor_line)
+    local entries = {}
+
+    if not root_node or type(adapter) ~= "table" or type(adapter.range_scopes) ~= "table" then
+        return entries
+    end
+
+    if type(cursor_line) ~= "number" then
+        return entries
+    end
+
+    local file_end_line = vim.api.nvim_buf_line_count(bufnr)
+
+    for _, range_scope_spec in ipairs(adapter.range_scopes) do
+        if type(range_scope_spec) == "table"
+            and range_scope_spec.range_strategy == "until_next_peer"
+            and type(range_scope_spec.node_type) == "string"
+        then
+            local nodes = collect_nodes_by_type(root_node, range_scope_spec.node_type)
+
+            for index, node in ipairs(nodes) do
+                local start_line = node:start() + 1
+                local end_line = file_end_line
+
+                local next_node = nodes[index + 1]
+
+                if next_node then
+                    end_line = next_node:start()
+                end
+
+                if cursor_line >= start_line and cursor_line <= end_line then
+                    local entry = make_range_scope_entry(
+                        bufnr,
+                        node,
+                        range_scope_spec,
+                        start_line,
+                        end_line
+                    )
+
+                    if entry then
+                        table.insert(entries, entry)
+                    end
+                end
+            end
+        end
+    end
+
+    return entries
+end
+
+
+local function append_missing_range_scopes(scopes, range_scopes)
+    for _, range_scope in ipairs(range_scopes or {}) do
+        if not scope_entry_exists(scopes, range_scope) then
+            -- scopes are stored innermost -> outermost.
+            -- A label range is usually outside the current instruction node.
+            table.insert(scopes, range_scope)
+        end
+    end
+end
+
+
+local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
+    context.scope_members = scope_members.collect(
+        bufnr,
+        root_node,
+        adapter,
+        scope_member_opts
+    )
+
+    context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
+
+    context.registers = registers.collect(context, adapter, {
+        bufnr = bufnr,
+        root_node = root_node,
+    })
+
+    context.stack = stack.collect(context, adapter)
+
+    return context
+end
+
+
 function M.get_cursor_context(bufnr, config)
     config = config or {}
 
@@ -107,26 +289,45 @@ function M.get_cursor_context(bufnr, config)
     end
 
     local adapter = adapter_registry.get_adapter(filetype)
+    local cursor = context_engine.get_cursor_location()
     local node = vim.treesitter.get_node()
 
     if not node then
         local context = context_engine.make_global_context()
+        local range_scopes = collect_range_scope_entries(
+            bufnr,
+            root_node,
+            adapter,
+            cursor.line
+        )
 
-        context.member_scope = nil
+        append_missing_range_scopes(context.scopes, range_scopes)
 
-        context.scope_members = scope_members.collect(bufnr, root_node, adapter, {
-            scope_depth = 0,
+        if #context.scopes > 0 then
+            context = context_engine.build_context_from_scopes(context.scopes, config)
+        end
+
+        local nearest_member_scope = find_nearest_member_scope(context.scopes)
+        local scope_member_opts = {
             cursor_line = context.cursor and context.cursor.line,
-        })
+        }
 
-        context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
-        context.registers = registers.collect(context, adapter, {
-            bufnr = bufnr,
-            root_node = root_node,
-        }) 
-        context.stack = stack.collect(context, adapter)
+        if nearest_member_scope then
+            scope_member_opts.start_line = nearest_member_scope.start_line
+            scope_member_opts.end_line = nearest_member_scope.end_line
+            context.member_scope = build_member_scope_context(nearest_member_scope)
+        else
+            scope_member_opts.scope_depth = 0
+            context.member_scope = nil
+        end
 
-        return context
+        return attach_context_sections(
+            context,
+            bufnr,
+            root_node,
+            adapter,
+            scope_member_opts
+        )
     end
 
     local scopes = {}
@@ -145,6 +346,15 @@ function M.get_cursor_context(bufnr, config)
         node = node:parent()
     end
 
+    local range_scopes = collect_range_scope_entries(
+        bufnr,
+        root_node,
+        adapter,
+        cursor.line
+    )
+
+    append_missing_range_scopes(scopes, range_scopes)
+
     local context = context_engine.build_context_from_scopes(scopes, config)
 
     local scope_member_opts = {
@@ -162,15 +372,13 @@ function M.get_cursor_context(bufnr, config)
         context.member_scope = nil
     end
 
-    context.scope_members = scope_members.collect(bufnr, root_node, adapter, scope_member_opts)
-    context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
-    context.registers = registers.collect(context, adapter, {
-        bufnr = bufnr,
-        root_node = root_node,
-    })
-    context.stack = stack.collect(context, adapter)
-
-    return context
+    return attach_context_sections(
+        context,
+        bufnr,
+        root_node,
+        adapter,
+        scope_member_opts
+    )
 end
 
 return M

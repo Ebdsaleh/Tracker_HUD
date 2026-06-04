@@ -30,6 +30,22 @@ M.aliases = {
 }
 
 
+M.range_scopes = {
+    {
+        node_type = "label",
+        name_node_type = "ident",
+        label = "Label",
+        range_strategy = "until_next_peer",
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+    },
+}
+
+
 M.scope_members = {
     symbols = {
         {
