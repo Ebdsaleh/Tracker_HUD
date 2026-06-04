@@ -34,6 +34,51 @@ local function inspect_scope_members(request)
 end
 
 
+local function inspect_registers(request)
+    local ok, target_node_id = hud_sections.inspect_registers(request)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Registers node found for current source position"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
+
+local function inspect_stack(request)
+    local ok, target_node_id = hud_sections.inspect_stack(request)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Stack node found for current source position"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
+
+local function inspect_scope(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Scope context available for current source position"
+        )
+    end
+
+    hud_sections.set_expanded("scope", true)
+
+    return make_result(true, nil, nil)
+end
+
+
 local function expand_scope_members(request)
     local ok, target_node_id = hud_sections.expand_scope_members_in_current_scope(request)
 
@@ -65,8 +110,20 @@ end
 
 
 function M.inspect(mode, request)
+    if mode == "scope" then
+        return inspect_scope(request)
+    end
+
     if mode == "scope_members" then
         return inspect_scope_members(request)
+    end
+
+    if mode == "registers" then
+        return inspect_registers(request)
+    end
+
+    if mode == "stack" then
+        return inspect_stack(request)
     end
 
     return make_result(

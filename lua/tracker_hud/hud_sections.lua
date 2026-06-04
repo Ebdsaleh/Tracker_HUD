@@ -567,6 +567,121 @@ function M.inspect_scope_members(request)
     return true, target_node_id
 end
 
+
+local function build_register_nodes_for_context(context)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    return register_tree.build(context.registers or {}, context)
+end
+
+
+local function build_stack_nodes_for_context(context)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    return stack_tree.build(context.stack or {}, context)
+end
+
+
+local function inspect_hud_nodes_for_source_position(request, section_id, nodes)
+    if type(request) ~= "table" then
+        return false
+    end
+
+    local source_line = tonumber(request.line)
+    local source_column = tonumber(request.column) or 0
+
+    if not source_line then
+        return false
+    end
+
+    local node_path = find_deepest_node_path_for_position(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    if not node_path or #node_path == 0 then
+        local fallback = find_closest_node_path_for_line(
+            nodes,
+            source_line,
+            source_column
+        )
+
+        node_path = fallback and fallback.path or nil
+    end
+
+    if not node_path or #node_path == 0 then
+        return false
+    end
+
+    M.set_expanded(section_id, true)
+
+    local target_index = #node_path
+    local target_node = node_path[target_index]
+    local target_node_id = target_node and target_node.id
+
+    for index, node in ipairs(node_path) do
+        if node_has_children(node) then
+            if index < target_index then
+                hud_nodes.set_expanded(node.id, true)
+            else
+                local currently_expanded = hud_nodes.is_expanded(
+                    node.id,
+                    get_node_default_expanded(node)
+                )
+
+                hud_nodes.set_expanded(node.id, not currently_expanded)
+            end
+        end
+    end
+
+    return true, target_node_id
+end
+
+
+function M.inspect_registers(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local register_nodes = build_register_nodes_for_context(request.context)
+
+    if not register_nodes or #register_nodes == 0 then
+        return false
+    end
+
+    return inspect_hud_nodes_for_source_position(
+        request,
+        "registers",
+        register_nodes
+    )
+end
+
+
+function M.inspect_stack(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local stack_nodes = build_stack_nodes_for_context(request.context)
+
+    if not stack_nodes or #stack_nodes == 0 then
+        return false
+    end
+
+    return inspect_hud_nodes_for_source_position(
+        request,
+        "stack",
+        stack_nodes
+    )
+end
+
+
+
 function M.expand_scope_members_in_current_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
