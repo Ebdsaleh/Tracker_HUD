@@ -557,6 +557,9 @@ local function reveal_path_and_toggle_best_node(section_id, node_path)
         return false, nil
     end
 
+    local section_was_expanded = M.is_expanded(section_id)
+
+    -- Always reveal the section first.
     M.set_expanded(section_id, true)
 
     local toggle_node, toggle_index = find_deepest_expandable_node_in_path(node_path)
@@ -565,9 +568,14 @@ local function reveal_path_and_toggle_best_node(section_id, node_path)
 
     for index, node in ipairs(node_path) do
         if node_has_children(node) then
-            if index < (toggle_index or #node_path) then
+            if not section_was_expanded then
+                -- First press opens/reveals the path.
+                hud_nodes.set_expanded(node.id, true)
+            elseif index < (toggle_index or #node_path) then
+                -- Ancestors stay open so the target remains visible.
                 hud_nodes.set_expanded(node.id, true)
             elseif node == toggle_node then
+                -- Second press toggles the target.
                 local currently_expanded = hud_nodes.is_expanded(
                     node.id,
                     get_node_default_expanded(node)
@@ -581,6 +589,15 @@ local function reveal_path_and_toggle_best_node(section_id, node_path)
     return true, target_node_id
 end
 
+local function toggle_section_fallback(section_id)
+    if not validate_section(section_id) then
+        return false, nil
+    end
+
+    M.set_expanded(section_id, not M.is_expanded(section_id))
+
+    return true, nil
+end
 
 
 function M.inspect_scope_members(request)
@@ -691,10 +708,8 @@ function M.inspect_registers(request)
     end
 
     -- Fallback: Registers may contain static architecture rows that do not map
-    -- to the current source position. In that case, still open the section.
-    M.set_expanded("registers", true)
-
-    return true, nil
+    -- to the current source position. In that case, toggle the section itself.
+    return toggle_section_fallback("registers")
 end
 
 
@@ -720,10 +735,8 @@ function M.inspect_stack(request)
     end
 
     -- Fallback: Stack v1 is mostly static architecture data right now, so it
-    -- often has no source-specific node to target yet. Still open the section.
-    M.set_expanded("stack", true)
-
-    return true, nil
+    -- often has no source-specific node to target yet. Toggle the section itself.
+    return toggle_section_fallback("stack")
 end
 
 local function get_section_nodes(context, section_id, use_all_members)
