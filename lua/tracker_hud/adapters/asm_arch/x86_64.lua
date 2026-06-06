@@ -80,6 +80,63 @@ M.scope_members = {
     },
 }
 
+M.register_effects = {
+    {
+        node_type = "instruction",
+        mnemonic = "mov",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "source_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mov_register_immediate",
+            target_operand = 1,
+            value_operand = 2,
+            role = "written by mov",
+        },
+    },
+    {
+        node_type = "instruction",
+        mnemonic = "xor",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source",
+            },
+        },
+
+        condition = {
+            operands_equal = { 1, 2 },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xor_register_self_zero",
+            target_operand = 1,
+            value = "0",
+            role = "zeroed by xor",
+        },
+    },
+}
+
 
 M.registers = {
     static = {

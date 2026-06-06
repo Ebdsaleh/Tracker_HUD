@@ -2,28 +2,29 @@
 --
 -- Register discovery / collection.
 --
--- Registers v1 establishes the analyzer boundary for future register tracking.
--- Static registers can come from adapters/architectures.
--- Instruction-derived register facts can also be provided by adapters.
+-- Static registers come from adapters / variant specs.
+-- Dynamic register facts come from declarative register effects interpreted by
+-- the context engine.
 
 local core = require("tracker_hud.core")
+local context_engine = require("tracker_hud.context_engine")
 local register_model = require("tracker_hud.register_model")
 
 local M = {}
 
 
-local function collect_adapter_dynamic_registers(registers, seen, context, adapter, opts)
+local function collect_engine_register_effects(registers, seen, context, adapter, opts)
     if not core.is_table(adapter) then
         return
     end
 
-    if type(adapter.collect_registers) ~= "function" then
-        return
-    end
+    local dynamic_registers = context_engine.collect_register_effects(
+        context,
+        adapter,
+        opts
+    )
 
-    local ok, dynamic_registers = pcall(adapter.collect_registers, context, opts)
-
-    if not ok or not core.is_table(dynamic_registers) then
+    if not core.is_table(dynamic_registers) then
         return
     end
 
@@ -86,7 +87,7 @@ function M.collect(context, adapter, opts)
     end
 
     -- Dynamic facts go first so they override same-id static architecture rows.
-    collect_adapter_dynamic_registers(registers, seen, context, adapter, opts)
+    collect_engine_register_effects(registers, seen, context, adapter, opts)
     collect_adapter_static_registers(registers, seen, context, adapter)
 
     table.sort(registers, function(left, right)

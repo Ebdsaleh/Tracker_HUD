@@ -6,6 +6,8 @@
 -- Language-specific rules belong in adapters.
 
 local core = require("tracker_hud.core")
+local ts_utils = require("tracker_hud.treesitter_utils")
+
 local M = {}
 
 
@@ -583,6 +585,413 @@ function M.validate_construct_spec(spec)
     end
 
     return true, nil
+end
+
+
+local function normalize_text(text)
+    if type(text) ~= "string" then
+        return nil
+    end
+
+    text = text:gsub("^%s+", ""):gsub("%s+$", "")
+
+    if text == "" then
+        return nil
+    end
+
+    return text
+end
+
+
+local function node_text(node, bufnr)
+    if not node then
+        return nil
+    end
+
+    return normalize_text(ts_utils.get_node_text(node, bufnr))
+end
+
+
+local function node_has_descendant_type(node, wanted_type)
+    if not node or type(wanted_type) ~= "string" then
+        return false
+    end
+
+    for child in node:iter_children() do
+        if child:type() == wanted_type then
+            return true
+        end
+
+        if node_has_descendant_type(child, wanted_type) then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function node_has_ancestor_type_until(node, wanted_type, stop_type)
+    if not node or type(wanted_type) ~= "string" then
+        return false
+    end
+
+    local parent = node:parent()
+
+    while parent do
+        if parent:type() == wanted_type then
+            return true
+        end
+
+        if stop_type and parent:type() == stop_type then
+            break
+        end
+
+        parent = parent:parent()
+    end
+
+    return false
+end
+
+
+local function infer_operand_kind(node, effect_spec)
+    if not node then
+        return "unknown"
+    end
+
+    local node_type = node:type()
+    local instruction_node_type = effect_spec.node_type or "instruction"
+
+    if node_type == "int" then
+        return "integer"
+    end
+
+    if node_type == "reg"
+        or node_has_ancestor_type_until(node, "reg", instruction_node_type)
+        or node_has_descendant_type(node, "reg")
+    then
+        return "register"
+    end
+
+    if node_type == "ident" or node_type == "word" then
+        return "symbol"
+    end
+
+    return "unknown"
+end
+
+
+local function build_operand(node, bufnr, effect_spec)
+    local text = node_text(node, bufnr)
+
+    if not text then
+        return nil
+    end
+
+    local start_row, start_column, end_row, end_column = node:range()
+
+    return {
+        text = text,
+        kind = infer_operand_kind(node, effect_spec),
+        node_type = node:type(),
+
+        source_line = start_row + 1,
+        source_column = start_column,
+
+        source_start_line = start_row + 1,
+        source_start_column = start_column,
+        source_end_line = end_row + 1,
+        source_end_column = end_column,
+    }
+end
+
+
+local function collect_instruction_operands(node, bufnr, effect_spec)
+    local operands = {}
+    local mnemonic = nil
+    local mnemonic_seen = false
+
+    for child in node:iter_children() do
+        local child_type = child:type()
+
+        if child_type == "word" and not mnemonic_seen then
+            mnemonic = node_text(child, bufnr)
+            mnemonic_seen = true
+        elseif child_type == "reg"
+            or child_type == "ident"
+            or child_type == "int"
+            or child_type == "word"
+        then
+            local operand = build_operand(child, bufnr, effect_spec)
+
+            if operand then
+                table.insert(operands, operand)
+            end
+        end
+    end
+
+    return {
+        mnemonic = mnemonic and mnemonic:lower() or nil,
+        operands = operands,
+        source_line = node:start() + 1,
+    }
+end
+
+
+local function collect_nodes_by_type(node, node_type, result)
+    result = result or {}
+
+    if not node or type(node_type) ~= "string" or node_type == "" then
+        return result
+    end
+
+    if node:type() == node_type then
+        table.insert(result, node)
+    end
+
+    for child in node:iter_children() do
+        collect_nodes_by_type(child, node_type, result)
+    end
+
+    return result
+end
+
+
+local function operand_matches_spec(operand, operand_spec)
+    if type(operand) ~= "table" or type(operand_spec) ~= "table" then
+        return false
+    end
+
+    if type(operand_spec.kind) == "string"
+        and operand.kind ~= operand_spec.kind
+    then
+        return false
+    end
+
+    return true
+end
+
+
+local function operands_match_effect(instruction, effect_spec)
+    if type(instruction) ~= "table" or type(effect_spec) ~= "table" then
+        return false
+    end
+
+    for _, operand_spec in ipairs(effect_spec.operands or {}) do
+        local index = tonumber(operand_spec.index)
+
+        if not index then
+            return false
+        end
+
+        local operand = instruction.operands and instruction.operands[index]
+
+        if not operand_matches_spec(operand, operand_spec) then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function condition_matches(instruction, condition_spec)
+    if type(condition_spec) ~= "table" then
+        return true
+    end
+
+    local operands_equal = condition_spec.operands_equal
+
+    if type(operands_equal) == "table" then
+        local left_index = tonumber(operands_equal[1])
+        local right_index = tonumber(operands_equal[2])
+
+        if not left_index or not right_index then
+            return false
+        end
+
+        local left = instruction.operands and instruction.operands[left_index]
+        local right = instruction.operands and instruction.operands[right_index]
+
+        if not left or not right then
+            return false
+        end
+
+        if tostring(left.text or ""):lower() ~= tostring(right.text or ""):lower() then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function get_static_register_spec(adapter, name)
+    if not core.is_table(adapter) or type(name) ~= "string" then
+        return nil
+    end
+
+    local normalized = name:lower()
+
+    for _, register_spec in ipairs((adapter.registers and adapter.registers.static) or {}) do
+        if type(register_spec) == "table"
+            and type(register_spec.name) == "string"
+            and register_spec.name:lower() == normalized
+        then
+            return register_spec
+        end
+    end
+
+    return nil
+end
+
+
+local function make_register_fact(adapter, instruction, effect_spec)
+    if not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+        or not core.is_table(effect_spec.effect)
+    then
+        return nil
+    end
+
+    local effect = effect_spec.effect
+    local target_index = tonumber(effect.target_operand)
+
+    if not target_index then
+        return nil
+    end
+
+    local target_operand = instruction.operands and instruction.operands[target_index]
+
+    if not core.is_table(target_operand)
+        or not core.is_non_empty_string(target_operand.text)
+    then
+        return nil
+    end
+
+    local value = effect.value
+
+    if value == nil and tonumber(effect.value_operand) then
+        local value_operand = instruction.operands[tonumber(effect.value_operand)]
+
+        if value_operand then
+            value = value_operand.text
+        end
+    end
+
+    local static_spec = get_static_register_spec(adapter, target_operand.text) or {}
+
+    return {
+        name = target_operand.text:lower(),
+        kind = static_spec.kind or "unknown",
+        value = value,
+        role = effect.role or static_spec.role,
+        source = "instruction",
+
+        source_line = target_operand.source_line,
+        source_column = target_operand.source_column,
+
+        source_start_line = target_operand.source_start_line,
+        source_start_column = target_operand.source_start_column,
+        source_end_line = target_operand.source_end_line,
+        source_end_column = target_operand.source_end_column,
+
+        metadata = {
+            adapter = adapter.name,
+            architecture = adapter.architecture,
+            variant = adapter.active_variant_name,
+            mnemonic = instruction.mnemonic,
+            effect = effect.name,
+        },
+    }
+end
+
+
+local function apply_register_effect(facts_by_register, adapter, instruction, effect_spec)
+    if not core.is_table(facts_by_register)
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
+        return
+    end
+
+    if instruction.mnemonic ~= effect_spec.mnemonic then
+        return
+    end
+
+    if not operands_match_effect(instruction, effect_spec) then
+        return
+    end
+
+    if not condition_matches(instruction, effect_spec.condition) then
+        return
+    end
+
+    local fact = make_register_fact(adapter, instruction, effect_spec)
+
+    if fact then
+        facts_by_register[fact.name] = fact
+    end
+end
+
+
+function M.collect_register_effects(context, adapter, opts)
+    opts = opts or {}
+
+    local bufnr = opts.bufnr
+    local root_node = opts.root_node
+
+    if not bufnr
+        or not root_node
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.register_effects)
+    then
+        return {}
+    end
+
+    local cursor_line = context
+        and context.cursor
+        and context.cursor.line
+
+    local facts_by_register = {}
+
+    for _, effect_spec in ipairs(adapter.register_effects) do
+        if core.is_table(effect_spec)
+            and core.is_non_empty_string(effect_spec.node_type)
+            and core.is_non_empty_string(effect_spec.mnemonic)
+        then
+            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+
+            for _, node in ipairs(nodes) do
+                local node_line = node:start() + 1
+
+                if not cursor_line or node_line <= cursor_line then
+                    local instruction = collect_instruction_operands(
+                        node,
+                        bufnr,
+                        effect_spec
+                    )
+
+                    apply_register_effect(
+                        facts_by_register,
+                        adapter,
+                        instruction,
+                        effect_spec
+                    )
+                end
+            end
+        end
+    end
+
+    local facts = {}
+
+    for _, fact in pairs(facts_by_register) do
+        table.insert(facts, fact)
+    end
+
+    return facts
 end
 
 
