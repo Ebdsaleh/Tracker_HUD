@@ -109,6 +109,36 @@ local function collapse_scope_members(request)
 end
 
 
+local function expand_section_tree(mode, request)
+    local ok, target_node_id = hud_sections.expand_section_tree(request, mode)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no " .. tostring(mode) .. " nodes found to expand"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
+
+local function collapse_section_tree(mode, request)
+    local ok, target_node_id = hud_sections.collapse_section_tree(request, mode)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no " .. tostring(mode) .. " nodes found to collapse"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
+
 function M.inspect(mode, request)
     if mode == "scope" then
         return inspect_scope(request)
@@ -139,6 +169,10 @@ function M.expand_all(mode, request)
         return expand_scope_members(request)
     end
 
+    if mode == "registers" or mode == "stack" then
+        return expand_section_tree(mode, request)
+    end
+
     return make_result(
         false,
         nil,
@@ -150,6 +184,10 @@ end
 function M.collapse_all(mode, request)
     if mode == "scope_members" then
         return collapse_scope_members(request)
+    end
+
+    if mode == "registers" or mode == "stack" then
+        return collapse_section_tree(mode, request)
     end
 
     return make_result(

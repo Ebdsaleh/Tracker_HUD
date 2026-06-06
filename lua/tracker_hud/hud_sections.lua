@@ -503,6 +503,84 @@ local function find_scope_node_by_range(nodes, range)
 
     return nil
 end
+local function find_scope_node_inside_range(nodes, range)
+    if type(range) ~= "table" then
+        return nil
+    end
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" and node.kind == "scope" then
+            local start_line = node.scope_start_line
+
+            if start_line
+                and range.start_line
+                and range.end_line
+                and start_line >= range.start_line
+                and start_line <= range.end_line
+            then
+                return node
+            end
+        end
+
+        local found = find_scope_node_inside_range(node.children, range)
+
+        if found then
+            return found
+        end
+    end
+
+    return nil
+end
+
+
+local function find_scope_node_for_range(nodes, range)
+    return find_scope_node_by_range(nodes, range)
+        or find_scope_node_inside_range(nodes, range)
+end
+
+
+local function find_deepest_expandable_node_in_path(node_path)
+    for index = #(node_path or {}), 1, -1 do
+        local node = node_path[index]
+
+        if node_has_children(node) then
+            return node, index
+        end
+    end
+
+    return nil, nil
+end
+
+
+local function reveal_path_and_toggle_best_node(section_id, node_path)
+    if not node_path or #node_path == 0 then
+        return false, nil
+    end
+
+    M.set_expanded(section_id, true)
+
+    local toggle_node, toggle_index = find_deepest_expandable_node_in_path(node_path)
+    local target_node = toggle_node or node_path[#node_path]
+    local target_node_id = target_node and target_node.id
+
+    for index, node in ipairs(node_path) do
+        if node_has_children(node) then
+            if index < (toggle_index or #node_path) then
+                hud_nodes.set_expanded(node.id, true)
+            elseif node == toggle_node then
+                local currently_expanded = hud_nodes.is_expanded(
+                    node.id,
+                    get_node_default_expanded(node)
+                )
+
+                hud_nodes.set_expanded(node.id, not currently_expanded)
+            end
+        end
+    end
+
+    return true, target_node_id
+end
+
 
 
 function M.inspect_scope_members(request)
@@ -520,7 +598,6 @@ function M.inspect_scope_members(request)
     local context = request.context
     local scope_member_nodes = build_scope_member_nodes_for_context(context, false)
 
-    -- Use the source cursor position to reveal/toggle the deepest matching Scope Members node.
     local node_path = find_deepest_node_path_for_position(
         scope_member_nodes,
         source_line,
@@ -537,35 +614,9 @@ function M.inspect_scope_members(request)
         node_path = fallback and fallback.path or nil
     end
 
-    if not node_path or #node_path == 0 then
-        return false
-    end
-
-    M.set_expanded("scope_members", true)
-
-    local target_index = #node_path
-    local target_node = node_path[target_index]
-    local target_node_id = target_node and target_node.id
-
-    for index, node in ipairs(node_path) do
-        if node_has_children(node) then
-            if index < target_index then
-                -- Ancestors must stay open so the target remains visible.
-                hud_nodes.set_expanded(node.id, true)
-            else
-                -- The target itself toggles open/closed.
-                local currently_expanded = hud_nodes.is_expanded(
-                    node.id,
-                    get_node_default_expanded(node)
-                )
-
-                hud_nodes.set_expanded(node.id, not currently_expanded)
-            end
-        end
-    end
-
-    return true, target_node_id
+    return reveal_path_and_toggle_best_node("scope_members", node_path)
 end
+
 
 
 local function build_register_nodes_for_context(context)
@@ -614,32 +665,7 @@ local function inspect_hud_nodes_for_source_position(request, section_id, nodes)
         node_path = fallback and fallback.path or nil
     end
 
-    if not node_path or #node_path == 0 then
-        return false
-    end
-
-    M.set_expanded(section_id, true)
-
-    local target_index = #node_path
-    local target_node = node_path[target_index]
-    local target_node_id = target_node and target_node.id
-
-    for index, node in ipairs(node_path) do
-        if node_has_children(node) then
-            if index < target_index then
-                hud_nodes.set_expanded(node.id, true)
-            else
-                local currently_expanded = hud_nodes.is_expanded(
-                    node.id,
-                    get_node_default_expanded(node)
-                )
-
-                hud_nodes.set_expanded(node.id, not currently_expanded)
-            end
-        end
-    end
-
-    return true, target_node_id
+    return reveal_path_and_toggle_best_node(section_id, node_path)
 end
 
 
@@ -700,6 +726,69 @@ function M.inspect_stack(request)
     return true, nil
 end
 
+local function get_section_nodes(context, section_id, use_all_members)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    if section_id == "scope_members" then
+        return build_scope_member_nodes_for_context(context, use_all_members == true)
+    end
+
+    if section_id == "registers" then
+        return build_register_nodes_for_context(context)
+    end
+
+    if section_id == "stack" then
+        return build_stack_nodes_for_context(context)
+    end
+
+    return {}
+end
+
+
+function M.expand_section_tree(request, section_id)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local nodes = get_section_nodes(request.context, section_id, true)
+
+    if not nodes or #nodes == 0 then
+        return false
+    end
+
+    M.set_expanded(section_id, true)
+
+    for _, node in ipairs(nodes) do
+        hud_nodes.expand_tree(node)
+    end
+
+    return true, nodes[1] and nodes[1].id
+end
+
+
+function M.collapse_section_tree(request, section_id)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local nodes = get_section_nodes(request.context, section_id, true)
+
+    if not nodes or #nodes == 0 then
+        return false
+    end
+
+    M.set_expanded(section_id, true)
+
+    for _, node in ipairs(nodes) do
+        hud_nodes.collapse_tree(node)
+    end
+
+    return true, nodes[1] and nodes[1].id
+end
+
+
 function M.expand_scope_members_in_current_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
@@ -713,7 +802,7 @@ function M.expand_scope_members_in_current_scope(request)
     end
 
     local scope_member_nodes = build_scope_member_nodes_for_context(context, true)
-    local target_scope_node = find_scope_node_by_range(scope_member_nodes, scope_range)
+    local target_scope_node = find_scope_node_for_range(scope_member_nodes, scope_range)
 
     if not target_scope_node then
         return false
@@ -724,6 +813,7 @@ function M.expand_scope_members_in_current_scope(request)
 
     return true, target_scope_node.id
 end
+
 
 
 function M.collapse_scope_members_in_current_scope(request)
@@ -739,7 +829,7 @@ function M.collapse_scope_members_in_current_scope(request)
     end
 
     local scope_member_nodes = build_scope_member_nodes_for_context(context, true)
-    local target_scope_node = find_scope_node_by_range(scope_member_nodes, scope_range)
+    local target_scope_node = find_scope_node_for_range(scope_member_nodes, scope_range)
 
     if not target_scope_node then
         return false
@@ -748,12 +838,11 @@ function M.collapse_scope_members_in_current_scope(request)
     M.set_expanded("scope_members", true)
     hud_nodes.collapse_tree(target_scope_node)
 
-    -- Keep the owning scope itself visible/open so the section does not feel like it vanished.
+    -- Keep the owning scope visible/open so the section does not feel like it vanished.
     hud_nodes.expand(target_scope_node.id)
 
     return true, target_scope_node.id
 end
-
 
 function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
