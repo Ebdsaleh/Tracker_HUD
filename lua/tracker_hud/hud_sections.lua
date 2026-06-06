@@ -654,11 +654,21 @@ function M.inspect_registers(request)
         return false
     end
 
-    return inspect_hud_nodes_for_source_position(
+    local ok, target_node_id = inspect_hud_nodes_for_source_position(
         request,
         "registers",
         register_nodes
     )
+
+    if ok then
+        return true, target_node_id
+    end
+
+    -- Fallback: Registers may contain static architecture rows that do not map
+    -- to the current source position. In that case, still open the section.
+    M.set_expanded("registers", true)
+
+    return true, nil
 end
 
 
@@ -673,14 +683,22 @@ function M.inspect_stack(request)
         return false
     end
 
-    return inspect_hud_nodes_for_source_position(
+    local ok, target_node_id = inspect_hud_nodes_for_source_position(
         request,
         "stack",
         stack_nodes
     )
+
+    if ok then
+        return true, target_node_id
+    end
+
+    -- Fallback: Stack v1 is mostly static architecture data right now, so it
+    -- often has no source-specific node to target yet. Still open the section.
+    M.set_expanded("stack", true)
+
+    return true, nil
 end
-
-
 
 function M.expand_scope_members_in_current_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
