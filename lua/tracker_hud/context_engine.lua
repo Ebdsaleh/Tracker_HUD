@@ -1007,9 +1007,36 @@ local function operand_value_matches(operand, operand_spec)
     return operand.text:lower() == operand_spec.value:lower()
 end
 
+local function stack_operand_matches_spec(adapter, operand, operand_spec)
+    if not core.is_table(operand) or not core.is_table(operand_spec) then
+        return false
+    end
 
-local function stack_operands_match_effect(instruction, effect_spec)
-    if not core.is_table(instruction) or not core.is_table(effect_spec) then
+    if type(operand_spec.kind) == "string"
+        and operand.kind ~= operand_spec.kind
+    then
+        -- ASM registers can sometimes appear as symbol-like words depending
+        -- on the exact instruction shape. Treat known architecture registers
+        -- as registers for stack-effect matching.
+        if operand_spec.kind == "register"
+            and core.is_non_empty_string(operand.text)
+            and get_static_register_spec(adapter, operand.text)
+        then
+            return true
+        end
+
+        return false
+    end
+
+    return true
+end
+
+
+local function stack_operands_match_effect(adapter, instruction, effect_spec)
+    if not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
         return false
     end
 
@@ -1022,7 +1049,7 @@ local function stack_operands_match_effect(instruction, effect_spec)
 
         local operand = instruction.operands and instruction.operands[index]
 
-        if not operand_matches_spec(operand, operand_spec) then
+        if not stack_operand_matches_spec(adapter, operand, operand_spec) then
             return false
         end
 
@@ -1134,7 +1161,7 @@ local function apply_stack_effect(facts, adapter, instruction, effect_spec)
         return
     end
 
-    if not stack_operands_match_effect(instruction, effect_spec) then
+    if not stack_operands_match_effect(adapter, instruction, effect_spec) then
         return
     end
 
