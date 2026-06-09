@@ -173,6 +173,7 @@ local function apply_variant(variant)
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
     M.register_effects = variant.register_effects or {}
+    M.stack_effects = variant.stack_effects or {}
 
     -- Optional override point if a future ASM variant needs different grammar specs.
     if type(variant.construct_specs) == "table" then

@@ -138,6 +138,101 @@ M.register_effects = {
 }
 
 
+M.stack_effects = {
+    {
+        node_type = "instruction",
+        mnemonic = "push",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "pushed_value",
+            },
+        },
+
+        effect = {
+            kind = "stack_push",
+            name = "push_register",
+            value_operand = 1,
+            size = 8,
+            offset_delta = -8,
+            role = "pushed register onto stack",
+        },
+    },
+    {
+        node_type = "instruction",
+        mnemonic = "pop",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "stack_pop",
+            name = "pop_register",
+            value_operand = 1,
+            size = 8,
+            offset_delta = 8,
+            role = "popped stack value into register",
+        },
+    },
+    {
+        node_type = "instruction",
+        mnemonic = "sub",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "stack_pointer",
+                value = "rsp",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "allocation_size",
+            },
+        },
+
+        effect = {
+            kind = "stack_allocate",
+            name = "sub_rsp_immediate",
+            size_operand = 2,
+            role = "allocated stack space",
+        },
+    },
+    {
+        node_type = "instruction",
+        mnemonic = "add",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "stack_pointer",
+                value = "rsp",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "deallocation_size",
+            },
+        },
+
+        effect = {
+            kind = "stack_deallocate",
+            name = "add_rsp_immediate",
+            size_operand = 2,
+            role = "released stack space",
+        },
+    },
+}
+
 M.registers = {
     static = {
         -- General purpose registers

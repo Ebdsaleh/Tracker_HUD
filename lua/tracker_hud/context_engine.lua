@@ -995,4 +995,211 @@ function M.collect_register_effects(context, adapter, opts)
 end
 
 
+local function operand_value_matches(operand, operand_spec)
+    if type(operand_spec.value) ~= "string" then
+        return true
+    end
+
+    if not core.is_table(operand) or not core.is_non_empty_string(operand.text) then
+        return false
+    end
+
+    return operand.text:lower() == operand_spec.value:lower()
+end
+
+
+local function stack_operands_match_effect(instruction, effect_spec)
+    if not core.is_table(instruction) or not core.is_table(effect_spec) then
+        return false
+    end
+
+    for _, operand_spec in ipairs(effect_spec.operands or {}) do
+        local index = tonumber(operand_spec.index)
+
+        if not index then
+            return false
+        end
+
+        local operand = instruction.operands and instruction.operands[index]
+
+        if not operand_matches_spec(operand, operand_spec) then
+            return false
+        end
+
+        if not operand_value_matches(operand, operand_spec) then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function make_stack_fact(adapter, instruction, effect_spec)
+    if not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+        or not core.is_table(effect_spec.effect)
+    then
+        return nil
+    end
+
+    local effect = effect_spec.effect
+    local value = nil
+    local size = effect.size
+    local source_operand = nil
+
+    if tonumber(effect.value_operand) then
+        source_operand = instruction.operands[tonumber(effect.value_operand)]
+
+        if source_operand then
+            value = source_operand.text
+        end
+    end
+
+    if tonumber(effect.size_operand) then
+        local size_operand = instruction.operands[tonumber(effect.size_operand)]
+
+        if size_operand then
+            size = tonumber(size_operand.text) or size_operand.text
+            source_operand = size_operand
+        end
+    end
+
+    source_operand = source_operand or instruction.operands[1]
+
+    local source_line = instruction.source_line
+    local source_column = 0
+    local source_start_line = instruction.source_line
+    local source_start_column = 0
+    local source_end_line = instruction.source_line
+    local source_end_column = 0
+
+    if source_operand then
+        source_line = source_operand.source_line
+        source_column = source_operand.source_column or 0
+        source_start_line = source_operand.source_start_line
+        source_start_column = source_operand.source_start_column or 0
+        source_end_line = source_operand.source_end_line
+        source_end_column = source_operand.source_end_column or source_column
+    end
+
+    local name = effect.name or effect.kind or instruction.mnemonic or "stack_effect"
+
+    if value ~= nil then
+        name = tostring(name) .. " " .. tostring(value)
+    elseif size ~= nil then
+        name = tostring(name) .. " " .. tostring(size)
+    end
+
+    return {
+        name = name,
+        kind = effect.kind or "stack_effect",
+        value = value,
+        offset = effect.offset,
+        offset_delta = effect.offset_delta,
+        size = size,
+        role = effect.role,
+        source = "instruction",
+
+        source_line = source_line,
+        source_column = source_column,
+
+        source_start_line = source_start_line,
+        source_start_column = source_start_column,
+        source_end_line = source_end_line,
+        source_end_column = source_end_column,
+
+        metadata = {
+            adapter = adapter.name,
+            architecture = adapter.architecture,
+            variant = adapter.active_variant_name,
+            mnemonic = instruction.mnemonic,
+            effect = effect.name,
+        },
+    }
+end
+
+
+local function apply_stack_effect(facts, adapter, instruction, effect_spec)
+    if not core.is_table(facts)
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
+        return
+    end
+
+    if instruction.mnemonic ~= effect_spec.mnemonic then
+        return
+    end
+
+    if not stack_operands_match_effect(instruction, effect_spec) then
+        return
+    end
+
+    if not condition_matches(instruction, effect_spec.condition) then
+        return
+    end
+
+    local fact = make_stack_fact(adapter, instruction, effect_spec)
+
+    if fact then
+        table.insert(facts, fact)
+    end
+end
+
+
+function M.collect_stack_effects(context, adapter, opts)
+    opts = opts or {}
+
+    local bufnr = opts.bufnr
+    local root_node = opts.root_node
+
+    if not bufnr
+        or not root_node
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.stack_effects)
+    then
+        return {}
+    end
+
+    local cursor_line = context
+        and context.cursor
+        and context.cursor.line
+
+    local facts = {}
+
+    for _, effect_spec in ipairs(adapter.stack_effects) do
+        if core.is_table(effect_spec)
+            and core.is_non_empty_string(effect_spec.node_type)
+            and core.is_non_empty_string(effect_spec.mnemonic)
+        then
+            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+
+            for _, node in ipairs(nodes) do
+                local node_line = node:start() + 1
+
+                if not cursor_line or node_line <= cursor_line then
+                    local instruction = collect_instruction_operands(
+                        node,
+                        bufnr,
+                        effect_spec
+                    )
+
+                    apply_stack_effect(
+                        facts,
+                        adapter,
+                        instruction,
+                        effect_spec
+                    )
+                end
+            end
+        end
+    end
+
+    return facts
+end
+
+
 return M
