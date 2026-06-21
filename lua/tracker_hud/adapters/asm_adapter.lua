@@ -169,6 +169,7 @@ local function apply_variant(variant)
 
     -- Variant-owned descriptive specs.
     M.registers = variant.registers or { static = {} }
+    M.register_families = variant.register_families or {}
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
@@ -182,7 +183,7 @@ local function apply_variant(variant)
 end
 
 
-function M.configure_for_buffer(bufnr, _config)
+function M.configure_adapter_for_buffer(bufnr, _config)
     local variant_name = detect_variant_from_source(bufnr) or M.default_variant
     local variant = load_variant(variant_name)
 
@@ -191,7 +192,7 @@ end
 
 
 -- Default variant so the adapter still exposes useful specs before
--- configure_for_buffer() is called.
+-- configure_adapter_for_buffer() is called.
 apply_variant(load_variant(M.default_variant))
 
 

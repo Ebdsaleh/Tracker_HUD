@@ -7,14 +7,18 @@
 -- It describes:
 --   - public architecture name
 --   - aliases
+--   - register families / register aliases
 --   - registers
 --   - stack concepts
 --   - scope member declarations
+--   - instruction effects
 --
 -- Behaviour belongs in:
 --   - asm_adapter.lua
---   - scope_members.lua
+--   - context_engine.lua
 --   - registers.lua
+--   - register_model.lua
+--   - register_tree.lua
 --   - stack.lua
 --   - asm_instruction_utils.lua
 
@@ -79,6 +83,7 @@ M.scope_members = {
         },
     },
 }
+
 
 M.register_effects = {
     {
@@ -233,27 +238,235 @@ M.stack_effects = {
     },
 }
 
+
+M.register_families = {
+    rax = {
+        canonical = "rax",
+        bits = 64,
+        kind = "general",
+        role = "accumulator / return value",
+        aliases = {
+            rax = { name = "rax", bits = 64, offset = 0, write_mode = "full" },
+            eax = { name = "eax", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            ax  = { name = "ax",  bits = 16, offset = 0, write_mode = "partial" },
+            ah  = { name = "ah",  bits = 8,  offset = 8, write_mode = "partial" },
+            al  = { name = "al",  bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rax", "eax", "ax", "ah", "al" },
+    },
+
+    rbx = {
+        canonical = "rbx",
+        bits = 64,
+        kind = "general",
+        role = "callee-saved general register",
+        aliases = {
+            rbx = { name = "rbx", bits = 64, offset = 0, write_mode = "full" },
+            ebx = { name = "ebx", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            bx  = { name = "bx",  bits = 16, offset = 0, write_mode = "partial" },
+            bh  = { name = "bh",  bits = 8,  offset = 8, write_mode = "partial" },
+            bl  = { name = "bl",  bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rbx", "ebx", "bx", "bh", "bl" },
+    },
+
+    rcx = {
+        canonical = "rcx",
+        bits = 64,
+        kind = "general",
+        role = "counter / argument register",
+        aliases = {
+            rcx = { name = "rcx", bits = 64, offset = 0, write_mode = "full" },
+            ecx = { name = "ecx", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            cx  = { name = "cx",  bits = 16, offset = 0, write_mode = "partial" },
+            ch  = { name = "ch",  bits = 8,  offset = 8, write_mode = "partial" },
+            cl  = { name = "cl",  bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rcx", "ecx", "cx", "ch", "cl" },
+    },
+
+    rdx = {
+        canonical = "rdx",
+        bits = 64,
+        kind = "general",
+        role = "data / argument register",
+        aliases = {
+            rdx = { name = "rdx", bits = 64, offset = 0, write_mode = "full" },
+            edx = { name = "edx", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            dx  = { name = "dx",  bits = 16, offset = 0, write_mode = "partial" },
+            dh  = { name = "dh",  bits = 8,  offset = 8, write_mode = "partial" },
+            dl  = { name = "dl",  bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rdx", "edx", "dx", "dh", "dl" },
+    },
+
+    rsi = {
+        canonical = "rsi",
+        bits = 64,
+        kind = "general",
+        role = "source index / argument register",
+        aliases = {
+            rsi = { name = "rsi", bits = 64, offset = 0, write_mode = "full" },
+            esi = { name = "esi", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            si  = { name = "si",  bits = 16, offset = 0, write_mode = "partial" },
+            sil = { name = "sil", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rsi", "esi", "si", "sil" },
+    },
+
+    rdi = {
+        canonical = "rdi",
+        bits = 64,
+        kind = "general",
+        role = "destination index / argument register",
+        aliases = {
+            rdi = { name = "rdi", bits = 64, offset = 0, write_mode = "full" },
+            edi = { name = "edi", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            di  = { name = "di",  bits = 16, offset = 0, write_mode = "partial" },
+            dil = { name = "dil", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rdi", "edi", "di", "dil" },
+    },
+
+    rbp = {
+        canonical = "rbp",
+        bits = 64,
+        kind = "base_pointer",
+        role = "frame/base pointer",
+        aliases = {
+            rbp = { name = "rbp", bits = 64, offset = 0, write_mode = "full" },
+            ebp = { name = "ebp", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            bp  = { name = "bp",  bits = 16, offset = 0, write_mode = "partial" },
+            bpl = { name = "bpl", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rbp", "ebp", "bp", "bpl" },
+    },
+
+    rsp = {
+        canonical = "rsp",
+        bits = 64,
+        kind = "stack_pointer",
+        role = "stack pointer",
+        aliases = {
+            rsp = { name = "rsp", bits = 64, offset = 0, write_mode = "full" },
+            esp = { name = "esp", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            sp  = { name = "sp",  bits = 16, offset = 0, write_mode = "partial" },
+            spl = { name = "spl", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "rsp", "esp", "sp", "spl" },
+    },
+
+    r8 = {
+        canonical = "r8", bits = 64, kind = "general", role = "argument / general register",
+        aliases = {
+            r8  = { name = "r8",  bits = 64, offset = 0, write_mode = "full" },
+            r8d = { name = "r8d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r8w = { name = "r8w", bits = 16, offset = 0, write_mode = "partial" },
+            r8b = { name = "r8b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r8", "r8d", "r8w", "r8b" },
+    },
+
+    r9 = {
+        canonical = "r9", bits = 64, kind = "general", role = "argument / general register",
+        aliases = {
+            r9  = { name = "r9",  bits = 64, offset = 0, write_mode = "full" },
+            r9d = { name = "r9d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r9w = { name = "r9w", bits = 16, offset = 0, write_mode = "partial" },
+            r9b = { name = "r9b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r9", "r9d", "r9w", "r9b" },
+    },
+
+    r10 = {
+        canonical = "r10", bits = 64, kind = "general", role = "temporary general register",
+        aliases = {
+            r10  = { name = "r10",  bits = 64, offset = 0, write_mode = "full" },
+            r10d = { name = "r10d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r10w = { name = "r10w", bits = 16, offset = 0, write_mode = "partial" },
+            r10b = { name = "r10b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r10", "r10d", "r10w", "r10b" },
+    },
+
+    r11 = {
+        canonical = "r11", bits = 64, kind = "general", role = "temporary general register",
+        aliases = {
+            r11  = { name = "r11",  bits = 64, offset = 0, write_mode = "full" },
+            r11d = { name = "r11d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r11w = { name = "r11w", bits = 16, offset = 0, write_mode = "partial" },
+            r11b = { name = "r11b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r11", "r11d", "r11w", "r11b" },
+    },
+
+    r12 = {
+        canonical = "r12", bits = 64, kind = "general", role = "callee-saved general register",
+        aliases = {
+            r12  = { name = "r12",  bits = 64, offset = 0, write_mode = "full" },
+            r12d = { name = "r12d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r12w = { name = "r12w", bits = 16, offset = 0, write_mode = "partial" },
+            r12b = { name = "r12b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r12", "r12d", "r12w", "r12b" },
+    },
+
+    r13 = {
+        canonical = "r13", bits = 64, kind = "general", role = "callee-saved general register",
+        aliases = {
+            r13  = { name = "r13",  bits = 64, offset = 0, write_mode = "full" },
+            r13d = { name = "r13d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r13w = { name = "r13w", bits = 16, offset = 0, write_mode = "partial" },
+            r13b = { name = "r13b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r13", "r13d", "r13w", "r13b" },
+    },
+
+    r14 = {
+        canonical = "r14", bits = 64, kind = "general", role = "callee-saved general register",
+        aliases = {
+            r14  = { name = "r14",  bits = 64, offset = 0, write_mode = "full" },
+            r14d = { name = "r14d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r14w = { name = "r14w", bits = 16, offset = 0, write_mode = "partial" },
+            r14b = { name = "r14b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r14", "r14d", "r14w", "r14b" },
+    },
+
+    r15 = {
+        canonical = "r15", bits = 64, kind = "general", role = "callee-saved general register",
+        aliases = {
+            r15  = { name = "r15",  bits = 64, offset = 0, write_mode = "full" },
+            r15d = { name = "r15d", bits = 32, offset = 0, write_mode = "zero_extend_64" },
+            r15w = { name = "r15w", bits = 16, offset = 0, write_mode = "partial" },
+            r15b = { name = "r15b", bits = 8,  offset = 0, write_mode = "partial" },
+        },
+        alias_order = { "r15", "r15d", "r15w", "r15b" },
+    },
+}
+
+
 M.registers = {
     static = {
         -- General purpose registers
-        { name = "rax", kind = "general", role = "accumulator / return value" },
-        { name = "rbx", kind = "general", role = "callee-saved general register" },
-        { name = "rcx", kind = "general", role = "counter / argument register" },
-        { name = "rdx", kind = "general", role = "data / argument register" },
-        { name = "rsi", kind = "general", role = "source index / argument register" },
-        { name = "rdi", kind = "general", role = "destination index / argument register" },
-        { name = "r8", kind = "general", role = "argument / general register" },
-        { name = "r9", kind = "general", role = "argument / general register" },
-        { name = "r10", kind = "general", role = "temporary general register" },
-        { name = "r11", kind = "general", role = "temporary general register" },
-        { name = "r12", kind = "general", role = "callee-saved general register" },
-        { name = "r13", kind = "general", role = "callee-saved general register" },
-        { name = "r14", kind = "general", role = "callee-saved general register" },
-        { name = "r15", kind = "general", role = "callee-saved general register" },
+        { name = "rax", kind = "general", role = "accumulator / return value", family = "rax" },
+        { name = "rbx", kind = "general", role = "callee-saved general register", family = "rbx" },
+        { name = "rcx", kind = "general", role = "counter / argument register", family = "rcx" },
+        { name = "rdx", kind = "general", role = "data / argument register", family = "rdx" },
+        { name = "rsi", kind = "general", role = "source index / argument register", family = "rsi" },
+        { name = "rdi", kind = "general", role = "destination index / argument register", family = "rdi" },
+        { name = "r8",  kind = "general", role = "argument / general register", family = "r8" },
+        { name = "r9",  kind = "general", role = "argument / general register", family = "r9" },
+        { name = "r10", kind = "general", role = "temporary general register", family = "r10" },
+        { name = "r11", kind = "general", role = "temporary general register", family = "r11" },
+        { name = "r12", kind = "general", role = "callee-saved general register", family = "r12" },
+        { name = "r13", kind = "general", role = "callee-saved general register", family = "r13" },
+        { name = "r14", kind = "general", role = "callee-saved general register", family = "r14" },
+        { name = "r15", kind = "general", role = "callee-saved general register", family = "r15" },
 
         -- Special registers
-        { name = "rsp", kind = "stack_pointer", role = "stack pointer" },
-        { name = "rbp", kind = "base_pointer", role = "frame/base pointer" },
+        { name = "rsp", kind = "stack_pointer", role = "stack pointer", family = "rsp" },
+        { name = "rbp", kind = "base_pointer", role = "frame/base pointer", family = "rbp" },
         { name = "rip", kind = "instruction_pointer", role = "instruction pointer" },
         { name = "rflags", kind = "flags", role = "status/control flags" },
     },
