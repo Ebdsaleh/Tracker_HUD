@@ -82,6 +82,15 @@ M.scope_members = {
             },
         },
     },
+    declarations = {
+        {
+            node_type = "instruction",
+            member = {
+                kind = "instruction",
+                owner_scope = "lexical",
+            },
+        },
+    },
 }
 
 
