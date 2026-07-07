@@ -182,6 +182,7 @@ M.scope_members = {
 
 
 M.register_effects = {
+    -- 'mov'
     {
         node_type = "instruction",
         mnemonic = "mov",
@@ -207,6 +208,34 @@ M.register_effects = {
             role = "written by mov",
         },
     },
+    -- More 'mov'
+    {
+        node_type = "instruction",
+        mnemonic = "mov",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mov_register_register",
+            target_operand = 1,
+            value_operand = 2,
+            role = "copied from register",
+        },
+    },
+
+    -- 'xor'
     {
         node_type = "instruction",
         mnemonic = "xor",
@@ -234,6 +263,100 @@ M.register_effects = {
             target_operand = 1,
             value = "0",
             role = "zeroed by xor",
+        },
+    },
+    -- 'add'
+    {
+        node_type = "instruction",
+        mnemonic = "add",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "increment_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "add_register_immediate",
+            target_operand = 1,
+            value_operand = 2,
+            role = "increased by immediate",
+        },
+    },
+    -- 'sub'
+    {
+        node_type = "instruction",
+        mnemonic = "sub",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "decrement_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sub_register_immediate",
+            target_operand = 1,
+            value_operand = 2,
+            role = "decreased by immediate",
+        },
+    },
+    -- 'inc'
+    {
+        node_type = "instruction",
+        mnemonic = "inc",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "inc_register",
+            target_operand = 1,
+            value = "+1",
+            role = "incremented",
+        },
+    },
+    -- 'dec'
+    {
+        node_type = "instruction",
+        mnemonic = "dec",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "dec_register",
+            target_operand = 1,
+            value = "-1",
+            role = "decremented",
         },
     },
 }
