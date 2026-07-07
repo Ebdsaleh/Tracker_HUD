@@ -363,6 +363,7 @@ M.register_effects = {
 
 
 M.stack_effects = {
+    -- 'push'
     {
         node_type = "instruction",
         mnemonic = "push",
@@ -384,6 +385,7 @@ M.stack_effects = {
             role = "pushed register onto stack",
         },
     },
+    -- 'pop'
     {
         node_type = "instruction",
         mnemonic = "pop",
@@ -405,6 +407,7 @@ M.stack_effects = {
             role = "popped stack value into register",
         },
     },
+    -- 'sub'
     {
         node_type = "instruction",
         mnemonic = "sub",
@@ -430,6 +433,7 @@ M.stack_effects = {
             role = "allocated stack space",
         },
     },
+    -- 'add'
     {
         node_type = "instruction",
         mnemonic = "add",
@@ -453,6 +457,58 @@ M.stack_effects = {
             name = "add_rsp_immediate",
             size_operand = 2,
             role = "released stack space",
+        },
+    },
+    -- 'call'
+    {
+        node_type = "instruction",
+        mnemonic = "call",
+
+        operands = {
+            {
+                index = 1,
+                kind = "symbol",
+                role = "call_target",
+            },
+        },
+
+        effect = {
+            kind = "stack_call",
+            name = "call_symbol",
+            value_operand = 1,
+            size = 8,
+            offset_delta = -8,
+            role = "pushed return address and transferred control",
+        },
+    },
+
+    -- 'ret'
+    {
+        node_type = "instruction",
+        mnemonic = "ret",
+
+        operands = {},
+
+        effect = {
+            kind = "stack_return",
+            name = "ret",
+            size = 8,
+            offset_delta = 8,
+            role = "popped return address and returned to caller",
+        },
+    },
+
+    -- 'leave'
+    {
+        node_type = "instruction",
+        mnemonic = "leave",
+
+        operands = {},
+
+        effect = {
+            kind = "stack_frame_restore",
+            name = "leave",
+            role = "restored previous stack frame",
         },
     },
 }
