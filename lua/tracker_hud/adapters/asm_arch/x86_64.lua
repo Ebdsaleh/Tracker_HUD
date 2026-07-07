@@ -459,6 +459,7 @@ M.stack_effects = {
             role = "released stack space",
         },
     },
+
     -- 'call'
     {
         node_type = "instruction",
@@ -467,7 +468,6 @@ M.stack_effects = {
         operands = {
             {
                 index = 1,
-                kind = "symbol",
                 role = "call_target",
             },
         },
