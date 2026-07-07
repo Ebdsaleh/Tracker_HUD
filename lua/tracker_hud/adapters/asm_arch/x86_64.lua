@@ -513,6 +513,32 @@ M.stack_effects = {
     },
 }
 
+M.syscall = {
+    instruction = "syscall",
+
+    convention = {
+        number_register = "rax",
+        return_register = "rax",
+        
+        argument_registers = {
+            "rdi",
+            "rsi",
+            "rdx",
+            "r10",
+            "r8",
+            "r9",
+        },
+    },
+
+    known_numbers = {
+        ["0"] = "read",
+        ["1"] = "write",
+        ["9"] = "mmap",
+        ["11"] = "munmap",
+        ["12"] = "brk",
+        ["60"] = "exit",
+    },
+}
 
 M.register_families = {
     rax = {
