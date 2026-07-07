@@ -50,6 +50,93 @@ M.range_scopes = {
 }
 
 
+M.construct_specs = {
+    ["label"] = {
+        construct = {
+            kind = "label",
+            label = "Label",
+        },
+
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+
+        value = {
+            kind = "reference",
+            type_label = "label",
+        },
+    },
+
+    ["instruction"] = {
+        construct = {
+            kind = "instruction",
+            label = "Instruction",
+        },
+
+        scope = {
+            kind = "structural",
+            affects_visibility = false,
+            owns_members = false,
+        },
+        
+        value = {
+            kind = "unknown",
+            type_label = "instruction",
+        },
+    },
+
+    ["reg"] = {
+        construct = {
+            kind = "register",
+            label = "Register",
+        },
+
+        value = {
+            kind = "reference",
+            type_label = "register",
+        },
+    },
+
+    ["int"] = {
+        construct = {
+            kind = "immediate",
+            label = "Immediate",
+        },
+
+        value = {
+            kind = "scalar",
+            type_label = "integer",
+        },
+    },
+
+    ["ident"] = {
+        construct = {
+            kind = "symbol",
+            label = "Symbol",
+        },
+
+        value = {
+            kind = "reference",
+            type_label = "symbol",
+        },
+    },
+
+    ["word"] = {
+        construct = {
+            kind = "mnemonic",
+            label = "Mnemonic",
+        },
+
+        value = {
+            kind = "symbol",
+            type_label = "instruction",
+        },
+    },
+}
+
+
 M.scope_members = {
     symbols = {
         {

@@ -16,6 +16,16 @@ M.construct_kinds = {
     literal = true,
     expression = true,
     statement = true,
+
+    -- Low-level / token-like constructs.
+    instruction = true,
+    mnemonic = true,
+    operand = true,
+    register = true,
+    immediate = true,
+    symbol = true,
+    label = true,
+    label_reference = true,
 }
 
 M.scope_kinds = {
@@ -35,6 +45,14 @@ M.member_kinds = {
     return_value = true,
     assignment = true,
     loop_variable = true,
+
+    -- Low-level / ASM-friendly members.
+    label = true,
+    global = true,
+    instruction = true,
+    register = true,
+    immediate = true,
+    symbol = true,
 }
 
 M.owner_scope_kinds = {
@@ -51,6 +69,9 @@ M.value_kinds = {
     call = true,
     reference = true,
     unknown = true,
+
+    -- Low-level / symbolic values.
+    symbol = true,
 }
 
 function M.validate_construct_kind(kind)
