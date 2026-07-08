@@ -17,6 +17,7 @@ local section_state = {
     scope_members = false,
     registers = false,
     stack = false,
+    heap = false,
     warnings = false,
 }
 
@@ -921,6 +922,13 @@ function M.build(context, opts)
             lines = stack_render.lines,
             line_targets = stack_render.targets,
             empty_text = "<no stack entries tracked yet>",
+        },
+        {
+            id = "heap",
+            title = "Heap",
+            expanded = M.is_expanded("heap"),
+            lines = context.heap or {},
+            empty_text = "<no heap entries tracked yet>",
         },
         {
             id = "warnings",

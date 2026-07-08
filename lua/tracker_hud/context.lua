@@ -253,6 +253,11 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         }
     )
 
+    -- Heap is intentionally a shell for now.
+    -- Later, boundary effects such as mmap/brk/munmap/malloc/free/new/delete
+    -- can populate this section.
+    context.heap = {}
+
     return context
 end
 
