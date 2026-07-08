@@ -519,7 +519,7 @@ M.syscall = {
     convention = {
         number_register = "rax",
         return_register = "rax",
-        
+
         argument_registers = {
             "rdi",
             "rsi",
@@ -539,6 +539,68 @@ M.syscall = {
         ["60"] = "exit",
     },
 }
+
+
+M.boundary_effects = {
+    {
+        kind = "syscall",
+        category = "system",
+        node_type = "instruction",
+        mnemonic = "syscall",
+
+        reads = {
+            number_register = "rax",
+            argument_registers = {
+                "rdi",
+                "rsi",
+                "rdx",
+                "r10",
+                "r8",
+                "r9",
+            },
+        },
+
+        writes = {
+            return_register = "rax",
+        },
+
+        known_effects = {
+            ["0"] = {
+                name = "read",
+                category = "io",
+            },
+            ["1"] = {
+                name = "write",
+                category = "io",
+            },
+            ["9"] = {
+                name = "mmap",
+                category = "heap",
+                produces = {
+                    kind = "memory_region",
+                    result_register = "rax",
+                },
+            },
+            ["11"] = {
+                name = "munmap",
+                category = "heap",
+                consumes = {
+                    pointer_register = "rdi",
+                    size_register = "rsi",
+                },
+            },
+            ["12"] = {
+                name = "brk",
+                category = "heap",
+            },
+            ["60"] = {
+                name = "exit",
+                category = "process",
+            },
+        },
+    },
+}
+
 
 M.register_families = {
     rax = {
