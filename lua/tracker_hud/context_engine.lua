@@ -994,6 +994,263 @@ function M.collect_register_effects(context, adapter, opts)
     return facts
 end
 
+local function get_register_fact_from_context(context, register_name)
+    if not core.is_table(context)
+        or not core.is_non_empty_string(register_name)
+    then
+        return nil
+    end
+
+    local wanted = register_name:lower()
+
+    for _, register in ipairs(context.registers or {}) do
+        if core.is_table(register)
+            and core.is_non_empty_string(register.name)
+            and register.name:lower() == wanted
+        then
+            return register
+        end
+    end
+
+    return nil
+end
+
+
+local function get_register_value_from_context(context, register_name)
+    local fact = get_register_fact_from_context(context, register_name)
+
+    if fact then
+        return fact.value
+    end
+
+    return nil
+end
+
+
+local function build_boundary_reads(context, effect_spec)
+    local reads = {}
+    local read_spec = effect_spec.reads or {}
+
+    if core.is_non_empty_string(read_spec.number_register) then
+        table.insert(reads, {
+            role = "number",
+            register = read_spec.number_register,
+            value = get_register_value_from_context(
+                context,
+                read_spec.number_register
+            ),
+        })
+    end
+
+    for index, register_name in ipairs(read_spec.argument_registers or {}) do
+        table.insert(reads, {
+            role = "argument",
+            index = index,
+            register = register_name,
+            value = get_register_value_from_context(context, register_name),
+        })
+    end
+
+    return reads
+end
+
+
+local function build_boundary_writes(context, effect_spec)
+    local writes = {}
+    local write_spec = effect_spec.writes or {}
+
+    if core.is_non_empty_string(write_spec.return_register) then
+        table.insert(writes, {
+            role = "return",
+            register = write_spec.return_register,
+            value = get_register_value_from_context(
+                context,
+                write_spec.return_register
+            ),
+        })
+    end
+
+    return writes
+end
+
+
+local function get_boundary_effect_key(context, effect_spec)
+    local read_spec = effect_spec.reads or {}
+    local number_register = read_spec.number_register
+
+    if not core.is_non_empty_string(number_register) then
+        return nil
+    end
+
+    local value = get_register_value_from_context(context, number_register)
+
+    if value == nil then
+        return nil
+    end
+
+    return tostring(value)
+end
+
+
+local function resolve_known_boundary_effect(context, effect_spec)
+    local key = get_boundary_effect_key(context, effect_spec)
+
+    if not key then
+        return nil, nil
+    end
+
+    local known_effects = effect_spec.known_effects or {}
+
+    return known_effects[key], key
+end
+
+
+local function boundary_instruction_matches(instruction, effect_spec)
+    if not core.is_table(instruction) or not core.is_table(effect_spec) then
+        return false
+    end
+
+    if core.is_non_empty_string(effect_spec.mnemonic)
+        and instruction.mnemonic ~= effect_spec.mnemonic
+    then
+        return false
+    end
+
+    return true
+end
+
+
+local function make_boundary_effect_fact(context, adapter, instruction, effect_spec)
+    if not core.is_table(context)
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
+        return nil
+    end
+
+    local known_effect, effect_key = resolve_known_boundary_effect(
+        context,
+        effect_spec
+    )
+
+    local name = effect_spec.kind or "boundary_effect"
+    local category = effect_spec.category or "unknown"
+
+    if core.is_table(known_effect) then
+        name = known_effect.name or name
+        category = known_effect.category or category
+    end
+
+    return {
+        kind = effect_spec.kind or "boundary_effect",
+        category = category,
+        name = name,
+        effect_key = effect_key,
+        known_effect = known_effect,
+
+        reads = build_boundary_reads(context, effect_spec),
+        writes = build_boundary_writes(context, effect_spec),
+
+        source = "instruction",
+        source_line = instruction.source_line,
+        source_column = 0,
+
+        source_start_line = instruction.source_line,
+        source_start_column = 0,
+        source_end_line = instruction.source_line,
+        source_end_column = 0,
+
+        metadata = {
+            adapter = adapter.name,
+            architecture = adapter.architecture,
+            variant = adapter.active_variant_name,
+            mnemonic = instruction.mnemonic,
+        },
+    }
+end
+
+
+local function apply_boundary_effect(facts, context, adapter, instruction, effect_spec)
+    if not core.is_table(facts)
+        or not core.is_table(context)
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
+        return
+    end
+
+    if not boundary_instruction_matches(instruction, effect_spec) then
+        return
+    end
+
+    local fact = make_boundary_effect_fact(
+        context,
+        adapter,
+        instruction,
+        effect_spec
+    )
+
+    if fact then
+        table.insert(facts, fact)
+    end
+end
+
+
+function M.collect_boundary_effects(context, adapter, opts)
+    opts = opts or {}
+
+    local bufnr = opts.bufnr
+    local root_node = opts.root_node
+
+    if not bufnr
+        or not root_node
+        or not core.is_table(context)
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.boundary_effects)
+    then
+        return {}
+    end
+
+    local cursor_line = context
+        and context.cursor
+        and context.cursor.line
+
+    local facts = {}
+
+    for _, effect_spec in ipairs(adapter.boundary_effects) do
+        if core.is_table(effect_spec)
+            and core.is_non_empty_string(effect_spec.node_type)
+            and core.is_non_empty_string(effect_spec.mnemonic)
+        then
+            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+
+            for _, node in ipairs(nodes) do
+                local node_line = node:start() + 1
+
+                if not cursor_line or node_line <= cursor_line then
+                    local instruction = collect_instruction_operands(
+                        node,
+                        bufnr,
+                        effect_spec
+                    )
+
+                    apply_boundary_effect(
+                        facts,
+                        context,
+                        adapter,
+                        instruction,
+                        effect_spec
+                    )
+                end
+            end
+        end
+    end
+
+    return facts
+end
+
 
 local function operand_value_matches(operand, operand_spec)
     if type(operand_spec.value) ~= "string" then

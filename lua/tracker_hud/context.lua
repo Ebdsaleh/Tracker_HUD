@@ -239,10 +239,20 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         root_node = root_node,
     })
 
-   context.stack = stack.collect(context, adapter, {
+    context.stack = stack.collect(context, adapter, {
         bufnr = bufnr,
         root_node = root_node,
     })
+
+    context.boundary_effects = context_engine.collect_boundary_effects(
+        context,
+        adapter,
+        {
+            bufnr = bufnr,
+            root_node = root_node,
+        }
+    )
+
     return context
 end
 
