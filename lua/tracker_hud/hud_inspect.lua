@@ -78,6 +78,19 @@ local function inspect_scope(request)
     return make_result(true, nil, nil)
 end
 
+local function inspect_section_shell(section_id, section_label, request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no " .. tostring(section_label) .. " context available for current source position"
+        )
+    end
+
+    hud_sections.set_expanded(section_id, true)
+
+    return make_result(true, nil, nil)
+end
 
 local function expand_scope_members(request)
     local ok, target_node_id = hud_sections.expand_scope_members_in_current_scope(request)
@@ -156,13 +169,20 @@ function M.inspect(mode, request)
         return inspect_stack(request)
     end
 
+    if mode == "heap" then
+        return inspect_section_shell("heap", "Heap", request)
+    end
+
+    if mode == "warnings" then
+        return inspect_section_shell("warnings", "Warnings", request)
+    end
+
     return make_result(
         false,
         nil,
         "tracker_hud: source inspect for " .. tostring(mode) .. " is not implemented yet"
     )
 end
-
 
 function M.expand_all(mode, request)
     if mode == "scope_members" then
@@ -173,13 +193,17 @@ function M.expand_all(mode, request)
         return expand_section_tree(mode, request)
     end
 
+    if mode == "heap" or mode == "warnings" then
+        hud_sections.set_expanded(mode, true)
+        return make_result(true, nil, nil)
+    end
+
     return make_result(
         false,
         nil,
         "tracker_hud: expand all for " .. tostring(mode) .. " is not implemented yet"
     )
 end
-
 
 function M.collapse_all(mode, request)
     if mode == "scope_members" then
@@ -190,12 +214,16 @@ function M.collapse_all(mode, request)
         return collapse_section_tree(mode, request)
     end
 
+    if mode == "heap" or mode == "warnings" then
+        hud_sections.set_expanded(mode, false)
+        return make_result(true, nil, nil)
+    end
+
     return make_result(
         false,
         nil,
         "tracker_hud: collapse all for " .. tostring(mode) .. " is not implemented yet"
     )
 end
-
 
 return M
