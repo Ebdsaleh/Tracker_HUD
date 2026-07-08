@@ -189,11 +189,11 @@ function M.expand_all(mode, request)
         return expand_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" then
+    if mode == "registers" or mode == "stack" or mode == "heap" then
         return expand_section_tree(mode, request)
     end
 
-    if mode == "heap" or mode == "warnings" then
+    if mode == "warnings" then
         hud_sections.set_expanded(mode, true)
         return make_result(true, nil, nil)
     end
@@ -210,15 +210,14 @@ function M.collapse_all(mode, request)
         return collapse_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" then
+    if mode == "registers" or mode == "stack" or mode == "heap" then
         return collapse_section_tree(mode, request)
     end
 
-    if mode == "heap" or mode == "warnings" then
+    if mode == "warnings" then
         hud_sections.set_expanded(mode, false)
         return make_result(true, nil, nil)
     end
-
     return make_result(
         false,
         nil,
