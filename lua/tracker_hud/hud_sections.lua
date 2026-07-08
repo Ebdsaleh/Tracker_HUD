@@ -886,7 +886,10 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
-    local heap_render = render_tree(heap_tree.build_tree(context.heap or {}), opts)
+    local heap_root = heap_tree.build_tree(context.heap or {})
+    local heap_render = build_hud_tree_lines(heap_root.children or {}, {
+        panel_width = opts.panel_width,
+    })
 
     local sections = {
         {
