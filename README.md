@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side Scope Members inspect controls, and a Contract v2 spec-driven adapter architecture.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register and stack tracking, generic boundary-effect collection, and early Heap routing from heap-category boundary effects.
 
 ---
 
@@ -64,6 +64,19 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Scope Members expansion state persists as cursor-filtered members become visible
 - Identifier return values can resolve to visible scope members where possible
 - Scope Members filtering uses the nearest member-owning scope instead of the nearest syntax construct
+- ASM adapter architecture with x86-64 variant support
+- x86-64 architecture directive detection using `; arch=x86-64;`
+- ASM label range scopes for label-local context
+- x86-64 register section with canonical register families and aliases
+- x86-64 register write effects for common instructions such as `mov`, `xor`, `add`, `sub`, `inc`, and `dec`
+- x86-64 stack section with stack concepts and stack effects such as `push`, `pop`, `call`, `ret`, `leave`, `sub rsp`, and `add rsp`
+- Generic boundary-effect collection for adapter-described runtime/system boundaries
+- x86-64 syscall convention spec with syscall-number, return, and argument registers
+- Heap HUD section between Stack and Warnings
+- Heap model/tree/rendering pipeline using `heap.lua`, `heap_model.lua`, and `heap_tree.lua`
+- Heap entries routed from heap-category boundary effects such as `mmap`, `munmap`, and `brk`
+- Heap included in Inspect Mode cycling
+- Heap supports source-side inspect, expand-all, collapse-all, and panel-row expansion
 
 ---
 
@@ -87,7 +100,8 @@ Current adapter support:
 
 | Filetype | Status |
 |---|---|
-| `lua` | Supported: scopes, branches, fields, locals, return values, scalar values, calls, and structural table values |
+| `lua` | Supported: scopes, branches, fields, locals, return values, scalar values, calls, assignments, and structural table values |
+| `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter with x86-64 variant facts: labels, scope members, registers, register aliases, register effects, stack effects, syscall boundary effects, and early heap boundary routing |
 | other filetypes | HUD appears, but structural adapter support is not yet implemented |
 
 Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, value metadata routing, and context output.
@@ -102,6 +116,31 @@ value
 ```
 
 This keeps the engine language-neutral. For example, Lua tables, JavaScript objects, Python dictionaries, Rust structs, C structs, and custom DSL object blocks can all be described as structural values/scopes by their adapters without requiring engine changes.
+
+
+### ASM / x86-64 adapter
+
+Tracker HUD includes an ASM adapter with an x86-64 architecture variant.
+
+Add this directive near the top of an ASM file to select the x86-64 variant:
+
+```asm
+; arch=x86-64;
+```
+
+The x86-64 variant currently describes:
+
+- label range scopes
+- labels and `global` declarations as scope members
+- canonical registers such as `rax`, `rbx`, `rcx`, `rsp`, and `rbp`
+- register alias families such as `rax` / `eax` / `ax` / `ah` / `al`
+- register effects for common instructions
+- stack effects for push/pop/call/return/frame operations
+- syscall convention data
+- generic boundary effects for syscall-style runtime/system boundaries
+- heap-category syscall effects such as `mmap`, `munmap`, and `brk`
+
+This is still static and syntax/effect based. It is not an emulator and does not calculate full runtime values.
 
 ---
 
@@ -195,6 +234,7 @@ Scope
 Scope Members
 Registers
 Stack
+Heap
 Warnings
 ```
 
@@ -247,6 +287,29 @@ When `Inspect Mode` is set to `Scope Members`, pressing the source inspect keyma
 Inspect targeting is column-aware. If the cursor is not directly on a symbol or value, Tracker HUD falls back to the nearest Scope Members node on the current line.
 
 Tracker HUD can also expand or collapse all Scope Members inside the current owning scope. This updates the HUD node expansion state without disabling cursor-based visibility filtering. Members that appear later in the scope remain hidden until the source cursor reaches them, but when they become visible they use the stored expanded/collapsed state.
+
+
+### Registers, Stack, and Heap
+
+For supported low-level adapters, Tracker HUD can display register, stack, and heap-oriented facts.
+
+For ASM/x86-64, the `Registers` section currently tracks architecture registers, register alias families, and static instruction effects up to the cursor position. The `Stack` section tracks architecture stack concepts and common stack effects such as pushes, pops, calls, returns, and frame restoration.
+
+The `Heap` section is now a real tree-backed HUD section. It is populated from generic boundary effects whose resolved category is `heap`. In the x86-64 adapter, this includes syscall boundary effects such as `mmap`, `munmap`, and `brk`.
+
+Example Heap output:
+
+```text
+Heap [-]
+[-] (memory region) mmap #9 -> rax
+    kind: memory_region
+    category: heap
+    effect key: 9
+    result register: rax
+    source line: 9
+```
+
+The Heap section supports panel-row expansion, source-side inspect mode, expand-all, and collapse-all using the same tree navigation model as Registers and Stack.
 
 ---
 
@@ -422,8 +485,16 @@ Tracker HUD registers normal-mode panel resize keymaps by default.
 | `<leader><CR>` | Auto-size HUD panel |
 | `<leader><leader>` | Cycle active Inspect Mode |
 | `<leader>t` | Inspect/reveal/toggle current source cursor in the active HUD section |
-| `<leader>.` | Expand all Scope Members in the current owning scope |
-| `<leader>,` | Collapse all Scope Members in the current owning scope |
+| `<leader>.` | Expand all entries for the active Inspect Mode where supported |
+| `<leader>,` | Collapse all entries for the active Inspect Mode where supported |
+
+Inspect Mode currently cycles through:
+
+```text
+Scope -> Scope Members -> Registers -> Stack -> Heap -> Warnings
+```
+
+`<leader>.` and `<leader>,` are tree-aware for Scope Members, Registers, Stack, and Heap. Warnings is currently a shell section and only opens/closes as a section.
 
 The size change amount is controlled by:
 
@@ -544,9 +615,10 @@ Current functionality is focused on structural awareness:
 - Scope Members tracks adapter-described values, not runtime values
 - Local initializer tracking is currently syntax-based and depends on adapter support
 - Scope Members does not yet fully model shadowing, lifetime, mutation, or control-flow visibility
-- Registers, Stack, and Warnings are placeholder sections
+- Registers, Stack, and Heap are early static/effect-based sections, not full runtime analysis
+- Warnings is currently a placeholder/shell section
 
-It does **not yet** perform full memory, ownership, lifetime, stack, or heap analysis.
+It does **not yet** perform full memory, ownership, lifetime, stack, heap, alias, or control-flow analysis.
 
 ---
 
@@ -562,7 +634,9 @@ Planned future work:
 - Additional Contract v2 adapter documentation
 - HUD highlights/colors for section headers, controls, warnings, and muted text
 - Rust ownership and lifetime hints
-- ASM stack pointer / heap tracking
+- More complete ASM stack pointer / heap tracking
+- Heap-state transitions for allocate/free/unmap/invalidated memory
+- Warning generation from Heap/Register/Stack facts
 - C/C++ pointer allocation/free tracking
 - Diagnostics integration
 - Optional virtual text warnings
@@ -585,16 +659,29 @@ lua/tracker_hud/
     scope_member_model.lua
     scope_member_tree.lua
     symbol_state.lua
+    registers.lua
+    register_model.lua
+    register_tree.lua
+    stack.lua
+    stack_model.lua
+    stack_tree.lua
+    heap.lua
+    heap_model.lua
+    heap_tree.lua
     hud.lua
     hud_sections.lua
     hud_controls.lua
     hud_nodes.lua
+    hud_inspect.lua
     constructs/
         contract.lua
     adapters/
         loader.lua
         registry.lua
         lua_adapter.lua
+        asm_adapter.lua
+        asm_arch/
+            x86_64.lua
 ```
 ---
 
@@ -607,6 +694,21 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.4`
+
+- Added ASM/x86-64 architecture facts for register aliases, register effects, stack effects, syscall convention data, and boundary effects
+- Added generic `boundary_effects` collection in the shared context engine
+- Added `context.boundary_effects` as an internal adapter-driven effect stream
+- Added the Heap HUD section between Stack and Warnings
+- Added Heap to Inspect Mode cycling
+- Added Heap and Warnings shell handling for source-side inspect commands
+- Added `heap.lua`, `heap_model.lua`, and `heap_tree.lua` to keep Heap structurally aligned with Registers and Stack
+- Routed heap-category boundary effects into `context.heap`
+- Rendered Heap as a tree-backed HUD section with expandable entries and source targets
+- Wired Heap into source-side inspect tree navigation, expand-all, and collapse-all behavior
+- Added initial x86-64 syscall heap routing for `mmap`, `munmap`, and `brk`
+- Preserved the visible HUD section order: Scope, Scope Members, Registers, Stack, Heap, Warnings
 
 ### `v0.7.3`
 
