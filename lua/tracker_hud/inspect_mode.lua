@@ -14,6 +14,8 @@ local modes = {
     "scope_members",
     "registers",
     "stack",
+    "heap",
+    "warnings",
 }
 
 
@@ -22,6 +24,8 @@ local labels = {
     scope_members = "Scope Members",
     registers = "Registers",
     stack = "Stack",
+    heap = "Heap",
+    warnings = "Warnings",
 }
 
 
@@ -37,7 +41,7 @@ local function normalize_mode(mode_id)
     if not core.is_non_empty_string(mode_id) then
         return nil
     end
-    
+
 
     if not mode_index_by_id[mode_id] then
         return nil
@@ -53,7 +57,7 @@ function M.get_modes()
     for _, mode_id in ipairs(modes) do
         table.insert(result, mode_id)
     end
-    
+
     return result
 end
 
@@ -73,7 +77,7 @@ function M.get_label(mode_id)
     if not mode_id then
         return "<unknown>"
     end
-    
+
     return labels[mode_id] or mode_id
 end
 
