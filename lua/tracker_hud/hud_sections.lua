@@ -656,6 +656,21 @@ local function build_stack_nodes_for_context(context)
 end
 
 
+local function build_heap_nodes_for_context(context)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    local heap_root = heap_tree.build_tree(context.heap or {})
+
+    if type(heap_root) ~= "table" then
+        return {}
+    end
+
+    return heap_root.children or {}
+end
+
+
 local function inspect_hud_nodes_for_source_position(request, section_id, nodes)
     if type(request) ~= "table" then
         return false
@@ -741,6 +756,30 @@ function M.inspect_stack(request)
     return toggle_section_fallback("stack")
 end
 
+function M.inspect_heap(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local heap_nodes = build_heap_nodes_for_context(request.context)
+
+    if not heap_nodes or #heap_nodes == 0 then
+        return false
+    end
+
+    local ok, target_node_id = inspect_hud_nodes_for_source_position(
+        request,
+        "heap",
+        heap_nodes
+    )
+
+    if ok then
+        return true, target_node_id
+    end
+
+    return toggle_section_fallback("heap")
+end
+
 local function get_section_nodes(context, section_id, use_all_members)
     if type(context) ~= "table" then
         return {}
@@ -756,6 +795,10 @@ local function get_section_nodes(context, section_id, use_all_members)
 
     if section_id == "stack" then
         return build_stack_nodes_for_context(context)
+    end
+
+    if section_id == "heap" then
+        return build_heap_nodes_for_context(context)
     end
 
     return {}

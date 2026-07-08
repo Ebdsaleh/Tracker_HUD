@@ -63,6 +63,19 @@ local function inspect_stack(request)
     return make_result(true, target_node_id, nil)
 end
 
+local function inspect_heap(request)
+    local ok, target_node_id = hud_sections.inspect_heap(request)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Heap node found for current source position"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
 
 local function inspect_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
@@ -170,7 +183,7 @@ function M.inspect(mode, request)
     end
 
     if mode == "heap" then
-        return inspect_section_shell("heap", "Heap", request)
+        return inspect_heap(request)
     end
 
     if mode == "warnings" then
@@ -218,6 +231,7 @@ function M.collapse_all(mode, request)
         hud_sections.set_expanded(mode, false)
         return make_result(true, nil, nil)
     end
+
     return make_result(
         false,
         nil,
