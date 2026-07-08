@@ -6,6 +6,7 @@ local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
 local register_tree = require("tracker_hud.register_tree")
 local stack_tree = require("tracker_hud.stack_tree")
+local heap_tree = require("tracker_hud.heap_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local symbol_state = require("tracker_hud.symbol_state")
 
@@ -885,6 +886,8 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
+    local heap_render = render_tree(heap_tree.build_tree(context.heap or {}), opts)
+
     local sections = {
         {
             id = "scope",
@@ -927,7 +930,8 @@ function M.build(context, opts)
             id = "heap",
             title = "Heap",
             expanded = M.is_expanded("heap"),
-            lines = context.heap or {},
+            lines = heap_render.lines,
+            line_targets = heap_render.targets,
             empty_text = "<no heap entries tracked yet>",
         },
         {
