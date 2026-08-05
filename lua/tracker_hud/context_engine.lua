@@ -10,6 +10,33 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 
 local M = {}
 
+local function parse_instruction_with_adapter(adapter, bufnr, node, effect_spec)
+    if type(adapter) ~= "table" or type(adapter.instruction_parser) ~= "table" then
+        return nil
+    end
+
+    local parser_spec = adapter.instruction_parser
+    local module_name = parser_spec.module
+    local function_name = parser_spec.function_name or "parse_instruction"
+
+    if type(module_name) ~= "string" or module_name == "" then
+        return nil
+    end
+
+    local ok, parser_module = pcall(require, module_name)
+
+    if not ok or type(parser_module) ~= "table" then
+        return nil
+    end
+
+    local parser_fn = parser_module[function_name]
+
+    if type(parser_fn) ~= "function" then
+        return nil
+    end
+
+    return parser_fn(bufnr, node, effect_spec)
+end
 
 function M.make_global_context()
     return {
@@ -706,7 +733,18 @@ local function build_operand(node, bufnr, effect_spec)
 end
 
 
-local function collect_instruction_operands(node, bufnr, effect_spec)
+local function collect_instruction_operands(adapter, node, bufnr, effect_spec)
+    local adapter_instruction = parse_instruction_with_adapter(
+        adapter,
+        bufnr,
+        node,
+        effect_spec
+    )
+
+    if adapter_instruction then
+        return adapter_instruction
+    end
+
     local operands = {}
     local mnemonic = nil
     local mnemonic_seen = false
@@ -969,6 +1007,7 @@ function M.collect_register_effects(context, adapter, opts)
 
                 if not cursor_line or node_line <= cursor_line then
                     local instruction = collect_instruction_operands(
+                        adapter,
                         node,
                         bufnr,
                         effect_spec
@@ -1231,6 +1270,7 @@ function M.collect_boundary_effects(context, adapter, opts)
 
                 if not cursor_line or node_line <= cursor_line then
                     local instruction = collect_instruction_operands(
+                        adapter,
                         node,
                         bufnr,
                         effect_spec
@@ -1466,6 +1506,7 @@ function M.collect_stack_effects(context, adapter, opts)
 
                 if not cursor_line or node_line <= cursor_line then
                     local instruction = collect_instruction_operands(
+                        adapter,
                         node,
                         bufnr,
                         effect_spec

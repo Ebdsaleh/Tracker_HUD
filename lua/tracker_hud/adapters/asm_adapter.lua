@@ -85,6 +85,13 @@ M.construct_specs = {
     },
 }
 
+local default_instruction_parser = {
+    module = "tracker_hud.adapters.asm_instruction_utils",
+    function_name = "parse_instruction",
+}
+
+M.instruction_parser = default_instruction_parser
+
 
 local function normalize_variant_name(name)
     if type(name) ~= "string" then
@@ -179,6 +186,11 @@ local function apply_variant(variant)
     M.stack_effects = variant.stack_effects or {}
     M.boundary_effects = variant.boundary_effects or {}
     M.syscall = variant.syscall
+
+    -- Additional Parsing rules
+    -- Variants may override the default ASM instruction parser if their
+    -- grammar shape needs different handling.
+    M.instruction_parser = variant.instruction_parser or default_instruction_parser
 
     -- Optional override point if a future ASM variant needs different grammar specs.
     if type(variant.construct_specs) == "table" then
