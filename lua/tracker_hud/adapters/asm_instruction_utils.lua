@@ -118,10 +118,20 @@ local function classify_operand(bufnr, node)
         kind = "symbol"
     end
 
+    local start_row, start_column, end_row, end_column = node:range()
+
     return {
         text = text,
         kind = kind,
         node_type = node_type,
+
+        source_line = start_row + 1,
+        source_column = start_column,
+
+        source_start_line = start_row + 1,
+        source_start_column = start_column,
+        source_end_line = end_row + 1,
+        source_end_column = end_column,
     }
 end
 
@@ -178,10 +188,19 @@ function M.parse_instruction(bufnr, instruction_node)
         return nil
     end
 
+    local start_row, start_column, end_row, end_column = instruction_node:range()
+
     return {
         mnemonic = mnemonic,
         operands = operands,
+
         source_line = instruction_node:start() + 1,
+        source_column = start_column,
+
+        source_start_line = start_row + 1,
+        source_start_column = start_column,
+        source_end_line = end_row + 1,
+        source_end_column = end_column,
     }
 end
 
