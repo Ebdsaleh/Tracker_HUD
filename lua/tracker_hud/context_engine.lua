@@ -1107,33 +1107,75 @@ function M.collect_register_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
-    local facts_by_register = {}
+    local effect_specs = {}
+    local node_types = {}
 
     for _, effect_spec in ipairs(adapter.register_effects) do
         if core.is_table(effect_spec)
             and core.is_non_empty_string(effect_spec.node_type)
             and core.is_non_empty_string(effect_spec.mnemonic)
         then
-            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+            table.insert(effect_specs, effect_spec)
+            node_types[effect_spec.node_type] = true
+        end
+    end
 
-            for _, node in ipairs(nodes) do
-                local node_line = node:start() + 1
+    local nodes = {}
+    local seen_nodes = {}
 
-                if not cursor_line or node_line <= cursor_line then
-                    local instruction = collect_instruction_operands(
-                        adapter,
-                        node,
-                        bufnr,
-                        effect_spec
-                    )
+    for node_type, _ in pairs(node_types) do
+        for _, node in ipairs(collect_nodes_by_type(root_node, node_type)) do
+            local start_row, start_column, end_row, end_column = node:range()
+            local node_line = start_row + 1
 
-                    apply_register_effect(
-                        facts_by_register,
-                        adapter,
-                        instruction,
-                        effect_spec
-                    )
+            if not cursor_line or node_line <= cursor_line then
+                local key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[key] then
+                    seen_nodes[key] = true
+
+                    table.insert(nodes, {
+                        node = node,
+                        line = node_line,
+                        column = start_column,
+                    })
                 end
+            end
+        end
+    end
+
+    table.sort(nodes, function(left, right)
+        if left.line == right.line then
+            return left.column < right.column
+        end
+
+        return left.line < right.line
+    end)
+
+    local facts_by_register = {}
+
+    for _, entry in ipairs(nodes) do
+        for _, effect_spec in ipairs(effect_specs) do
+            if entry.node:type() == effect_spec.node_type then
+                local instruction = collect_instruction_operands(
+                    adapter,
+                    entry.node,
+                    bufnr,
+                    effect_spec
+                )
+
+                apply_register_effect(
+                    facts_by_register,
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
             end
         end
     end
@@ -1146,6 +1188,7 @@ function M.collect_register_effects(context, adapter, opts)
 
     return facts
 end
+
 
 local function get_register_fact_from_context(context, register_name)
     if not core.is_table(context)
