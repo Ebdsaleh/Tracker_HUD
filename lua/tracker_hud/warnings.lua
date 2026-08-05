@@ -180,7 +180,7 @@ local function make_warning_from_rule(rule, fact, read)
 
         metadata = {
             rule_check = rule.check,
-            source = rule.source,
+            rule_source = rule.source,
 
             boundary_kind = fact.kind,
             boundary_name = fact.name,
