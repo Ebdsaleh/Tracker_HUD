@@ -7,6 +7,7 @@ local scope_member_tree = require("tracker_hud.scope_member_tree")
 local register_tree = require("tracker_hud.register_tree")
 local stack_tree = require("tracker_hud.stack_tree")
 local heap_tree = require("tracker_hud.heap_tree")
+local warning_tree = require("tracker_hud.warning_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local symbol_state = require("tracker_hud.symbol_state")
 
@@ -29,29 +30,6 @@ local function validate_section(section_id)
 end
 
 
-local function build_warning_lines(warnings)
-    local lines = {}
-
-
-    for _, warning in ipairs(warnings or {}) do
-        if type(warning) == "table" then
-            local message = warning.message or "<warning>"
-
-            if warning.source_line then
-                table.insert(
-                    lines,
-                    "  [line " .. tostring(warning.source_line) .. "] " .. message
-                )
-            else
-                table.insert(lines, " " .. message)
-            end
-        elseif type(warning) == "string" then
-            table.insert(lines, " " .. warning)
-        end
-    end
-
-    return lines
-end
 
 function M.toggle(section_id)
     if not validate_section(section_id) then
@@ -958,7 +936,10 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
-    local warning_lines = build_warning_lines(context.warnings or {})
+    local warning_nodes = warning_tree.build(context.warnings or {})
+    local warning_render = build_hud_tree_lines(warning_nodes, {
+        panel_width = opts.panel_width,
+    })
 
     local sections = {
         {
@@ -1010,7 +991,8 @@ function M.build(context, opts)
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
-            lines = warning_lines,
+            lines = warning_render.lines,
+            line_targets = warning_render.targets,
             empty_text = "<no warnings>",
         },
     }
