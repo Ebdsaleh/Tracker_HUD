@@ -29,6 +29,30 @@ local function validate_section(section_id)
 end
 
 
+local function build_warning_lines(warnings)
+    local lines = {}
+
+
+    for _, warning in ipairs(warnings or {}) do
+        if type(warning) == "table" then
+            local message = warning.message or "<warning>"
+
+            if warning.source_line then
+                table.insert(
+                    lines,
+                    "  [line " .. tostring(warning.source_line) .. "] " .. message
+                )
+            else
+                table.insert(lines, " " .. message)
+            end
+        elseif type(warning) == "string" then
+            table.insert(lines, " " .. warning)
+        end
+    end
+
+    return lines
+end
+
 function M.toggle(section_id)
     if not validate_section(section_id) then
         return false
@@ -934,6 +958,8 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
+    local warning_lines = build_warning_lines(context.warnings or {})
+
     local sections = {
         {
             id = "scope",
@@ -984,7 +1010,7 @@ function M.build(context, opts)
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
-            lines = {},
+            lines = warning_lines,
             empty_text = "<no warnings>",
         },
     }

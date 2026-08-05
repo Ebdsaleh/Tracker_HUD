@@ -8,6 +8,7 @@ local scope_members = require("tracker_hud.scope_members")
 local registers = require("tracker_hud.registers")
 local stack = require("tracker_hud.stack")
 local heap = require("tracker_hud.heap")
+local warnings = require("tracker_hud.warnings")
 local ts_utils = require("tracker_hud.treesitter_utils")
 
 
@@ -260,6 +261,12 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
     context.heap = heap.collect(context, adapter, {
         bufnr = bufnr,
         root_node = root_node,
+    })
+
+    -- warnings are derived after boundary/heap facts exist.
+    context.warnings = warnings.collect(context, adapter, {
+        bufnr = bufnr,
+        root_node = root_node
     })
 
     return context
