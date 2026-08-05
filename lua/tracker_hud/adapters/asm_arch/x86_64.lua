@@ -603,6 +603,53 @@ M.boundary_effects = {
 }
 
 
+M.warning_rules = {
+    {
+        source = "boundary_effects",
+        check = "missing_read_value",
+
+        match = {
+            kind = "syscall",
+        },
+
+        read = {
+            role = "number",
+        },
+
+        category = "boundary",
+        message = "syscall number register {register} has no known value",
+    },
+
+    {
+        source = "boundary_effects",
+        check = "missing_known_effect",
+
+        match = {
+            value_read = "number",
+        },
+
+        category = "boundary",
+        message = "unknown syscall number #{value}",
+    },
+
+    {
+        source = "boundary_effects",
+        check = "missing_read_values",
+
+        match = {
+            kind = "syscall",
+            category = "heap",
+        },
+        read = {
+            role = "argument",
+        },
+
+        category = "heap",
+        message = "{name} argument {index} register {register} has no known value",
+    },
+}
+
+
 M.register_families = {
     rax = {
         canonical = "rax",

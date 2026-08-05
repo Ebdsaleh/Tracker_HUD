@@ -5,6 +5,9 @@
 -- Warnings are derived from already-collected context facts.
 -- This module should not parse source directly and should not hard-code
 -- architecture-specific parsing behavior.
+--
+-- Adapters describe warning rules.
+-- This module interprets those rules generically.
 
 local core = require("tracker_hud.core")
 
@@ -33,13 +36,66 @@ local function make_warning(message, opts)
 end
 
 
-local function find_boundary_read(reads, role)
+local function fact_matches(fact, match_spec)
+    if not core.is_table(match_spec) then
+        return true
+    end
+
+    if not core.is_table(fact) then
+        return false
+    end
+
+    for key, expected in pairs(match_spec) do
+        if fact[key] ~= expected then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function get_context_source(context, source_name)
+    if not core.is_table(context) or not core.is_non_empty_string(source_name) then
+        return {}
+    end
+
+    local source = context[source_name]
+
+    if core.is_table(source) then
+        return source
+    end
+
+    return {}
+end
+
+
+local function read_matches(read, read_spec)
+    if not core.is_table(read_spec) then
+        return true
+    end
+
+    if not core.is_table(read) then
+        return false
+    end
+
+    for key, expected in pairs(read_spec) do
+        if read[key] ~= expected then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function find_first_read(reads, read_spec)
     if not core.is_table(reads) then
         return nil
     end
 
     for _, read in ipairs(reads) do
-        if core.is_table(read) and read.role == role then
+        if read_matches(read, read_spec) then
             return read
         end
     end
@@ -48,106 +104,156 @@ local function find_boundary_read(reads, role)
 end
 
 
-local function append_unknown_syscall_number_warning(warnings, boundary_effect)
-    if not core.is_table(boundary_effect) then
+local function collect_matching_reads(reads, read_spec)
+    local matches = {}
+
+    if not core.is_table(reads) then
+        return matches
+    end
+
+    for _, read in ipairs(reads) do
+        if read_matches(read, read_spec) then
+            table.insert(matches, read)
+        end
+    end
+
+    return matches
+end
+
+
+local function build_message_context(fact, read)
+    local values = {}
+
+    if core.is_table(fact) then
+        for key, value in pairs(fact) do
+            if type(value) ~= "table" then
+                values[key] = value
+            end
+        end
+    end
+
+    if core.is_table(read) then
+        for key, value in pairs(read) do
+            if type(value) ~= "table" then
+                values[key] = value
+            end
+        end
+    end
+
+    return values
+end
+
+
+local function interpolate_message(template, values)
+    if not core.is_non_empty_string(template) then
+        return "warning"
+    end
+
+    values = values or {}
+
+    return (template:gsub("{([%w_]+)}", function(key)
+        local value = values[key]
+
+        if value == nil then
+            return "<unknown>"
+        end
+
+        return tostring(value)
+    end))
+end
+
+
+local function make_warning_from_rule(rule, fact, read)
+    local values = build_message_context(fact, read)
+    local message = interpolate_message(rule.message, values)
+
+    return make_warning(message, {
+        category = rule.category or fact.category or "state",
+
+        source_line = fact.source_line,
+        source_column = fact.source_column,
+
+        source_start_line = fact.source_start_line,
+        source_start_column = fact.source_start_column,
+        source_end_line = fact.source_end_line,
+        source_end_column = fact.source_end_column,
+
+        metadata = {
+            rule_check = rule.check,
+            source = rule.source,
+
+            boundary_kind = fact.kind,
+            boundary_name = fact.name,
+
+            argument_index = read and read.index,
+            register = read and read.register,
+            value = read and read.value,
+        },
+    })
+end
+
+
+local function apply_missing_read_value_rule(warnings, rule, fact)
+    local read = find_first_read(fact.reads, rule.read)
+
+    if not core.is_table(read) then
         return
     end
 
-    if boundary_effect.kind ~= "syscall" then
+    if read.value ~= nil then
         return
     end
 
-    local number_read = find_boundary_read(boundary_effect.reads, "number")
+    table.insert(warnings, make_warning_from_rule(rule, fact, read))
+end
 
-    if not core.is_table(number_read) then
-        return
-    end
 
-    if number_read.value == nil then
-        table.insert(warnings, make_warning(
-            "syscall number register "
-                .. tostring(number_read.register or "<unknown>")
-                .. " has no known value",
-            {
-                category = "boundary",
-                source_line = boundary_effect.source_line,
-                source_column = boundary_effect.source_column,
-                source_start_line = boundary_effect.source_start_line,
-                source_start_column = boundary_effect.source_start_column,
-                source_end_line = boundary_effect.source_end_line,
-                source_end_column = boundary_effect.source_end_column,
-                metadata = {
-                    boundary_kind = boundary_effect.kind,
-                    register = number_read.register,
-                },
-            }
-        ))
+local function apply_missing_read_values_rule(warnings, rule, fact)
+    local reads = collect_matching_reads(fact.reads, rule.read)
 
-        return
-    end
-
-    if not core.is_table(boundary_effect.known_effect) then
-        table.insert(warnings, make_warning(
-            "unknown syscall number #" .. tostring(number_read.value),
-            {
-                category = "boundary",
-                source_line = boundary_effect.source_line,
-                source_column = boundary_effect.source_column,
-                source_start_line = boundary_effect.source_start_line,
-                source_start_column = boundary_effect.source_start_column,
-                source_end_line = boundary_effect.source_end_line,
-                source_end_column = boundary_effect.source_end_column,
-                metadata = {
-                    boundary_kind = boundary_effect.kind,
-                    syscall_number = number_read.value,
-                },
-            }
-        ))
+    for _, read in ipairs(reads) do
+        if core.is_table(read) and read.value == nil then
+            table.insert(warnings, make_warning_from_rule(rule, fact, read))
+        end
     end
 end
 
 
-local function append_heap_argument_warnings(warnings, boundary_effect)
-    if not core.is_table(boundary_effect) then
+local function apply_missing_known_effect_rule(warnings, rule, fact)
+    if core.is_table(fact.known_effect) then
         return
     end
 
-    if boundary_effect.category ~= "heap" then
+    local read = find_first_read(fact.reads, rule.value_read)
+
+    if not core.is_table(read) then
         return
     end
 
-    if not core.is_table(boundary_effect.known_effect) then
+    if read.value == nil then
         return
     end
 
-    for _, read in ipairs(boundary_effect.reads or {}) do
-        if core.is_table(read)
-            and read.role == "argument"
-            and read.value == nil
-        then
-            table.insert(warnings, make_warning(
-                tostring(boundary_effect.name or "heap syscall")
-                    .. " argument "
-                    .. tostring(read.index or "?")
-                    .. " register "
-                    .. tostring(read.register or "<unknown>")
-                    .. " has no known value",
-                {
-                    category = "heap",
-                    source_line = boundary_effect.source_line,
-                    source_column = boundary_effect.source_column,
-                    source_start_line = boundary_effect.source_start_line,
-                    source_start_column = boundary_effect.source_start_column,
-                    source_end_line = boundary_effect.source_end_line,
-                    source_end_column = boundary_effect.source_end_column,
-                    metadata = {
-                        boundary_kind = boundary_effect.kind,
-                        boundary_name = boundary_effect.name,
-                        argument_index = read.index,
-                        register = read.register,
-                    },
-                }
-            ))
+    table.insert(warnings, make_warning_from_rule(rule, fact, read))
+end
+
+
+local function apply_warning_rule(warnings, context, rule)
+    if not core.is_table(rule) or not core.is_non_empty_string(rule.source) then
+        return
+    end
+
+    local facts = get_context_source(context, rule.source)
+
+    for _, fact in ipairs(facts) do
+        if fact_matches(fact, rule.match) then
+            if rule.check == "missing_read_value" then
+                apply_missing_read_value_rule(warnings, rule, fact)
+            elseif rule.check == "missing_read_values" then
+                apply_missing_read_values_rule(warnings, rule, fact)
+            elseif rule.check == "missing_known_effect" then
+                apply_missing_known_effect_rule(warnings, rule, fact)
+            end
         end
     end
 end
@@ -160,9 +266,8 @@ function M.collect(context, adapter, _opts)
         return warnings
     end
 
-    for _, boundary_effect in ipairs(context.boundary_effects or {}) do
-        append_unknown_syscall_number_warning(warnings, boundary_effect)
-        append_heap_argument_warnings(warnings, boundary_effect)
+    for _, rule in ipairs(adapter.warning_rules or {}) do
+        apply_warning_rule(warnings, context, rule)
     end
 
     return warnings

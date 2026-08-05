@@ -185,6 +185,7 @@ local function apply_variant(variant)
     M.register_effects = variant.register_effects or {}
     M.stack_effects = variant.stack_effects or {}
     M.boundary_effects = variant.boundary_effects or {}
+    M.warning_rules = variant.warning_rules or {}
     M.syscall = variant.syscall
 
     -- Additional Parsing rules
