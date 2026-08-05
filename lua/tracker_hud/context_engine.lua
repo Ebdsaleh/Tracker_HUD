@@ -894,16 +894,6 @@ local function get_register_fact_from_map(facts_by_register, register_name)
     return facts_by_register[register_name:lower()]
 end
 
-local function get_register_value_from_map(facts_by_register, register_name)
-    local fact = get_register_fact_from_map(facts_by_register, register_name)
-
-    if fact then
-        return fact.value
-    end
-
-    return nil
-end
-
 
 local function parse_numeric_value(value)
     if value == nil then
@@ -928,35 +918,48 @@ local function parse_numeric_value(value)
 end
 
 
+
+local function register_fact_is_resolved(fact)
+    return core.is_table(fact)
+        and fact.value ~= nil
+        and fact.resolved ~= false
+end
+
+
 local function resolve_register_effect_value(facts_by_register, instruction, effect)
     local value = effect.value
+    local resolved = value ~= nil
 
     if tonumber(effect.value_from_register_operand) then
         local source_operand = instruction.operands[tonumber(effect.value_from_register_operand)]
 
         if source_operand and core.is_non_empty_string(source_operand.text) then
-            local known_value = get_register_value_from_map(
+            local source_fact = get_register_fact_from_map(
                 facts_by_register,
                 source_operand.text
             )
 
-            if known_value ~= nil then
-                return known_value
+            if register_fact_is_resolved(source_fact) then
+                return source_fact.value, true
             end
 
-            return source_operand.text
+            return source_operand.text, false
         end
     end
 
     if tonumber(effect.value_delta_operand) or effect.value_delta ~= nil then
         local target_operand = instruction.operands[tonumber(effect.target_operand)]
-        local current_value = target_operand
-            and get_register_value_from_map(facts_by_register, target_operand.text)
+        local target_fact = target_operand
+            and get_register_fact_from_map(facts_by_register, target_operand.text)
 
-        local current_number = parse_numeric_value(current_value)
+        if not register_fact_is_resolved(target_fact) then
+            return nil, false
+        end
+
+        local current_number = parse_numeric_value(target_fact.value)
 
         if not current_number then
-            return value
+            return nil, false
         end
 
         local delta = effect.value_delta
@@ -972,12 +975,12 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
         local delta_number = parse_numeric_value(delta)
 
         if not delta_number then
-            return value
+            return nil, false
         end
 
         local sign = tonumber(effect.value_delta_sign) or 1
 
-        return tostring(current_number + (delta_number * sign))
+        return tostring(current_number + (delta_number * sign)), true
     end
 
     if value == nil and tonumber(effect.value_operand) then
@@ -985,13 +988,26 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
 
         if value_operand then
             value = value_operand.text
+
+            if value_operand.kind == "register" then
+                local source_fact = get_register_fact_from_map(
+                    facts_by_register,
+                    value_operand.text
+                )
+
+                resolved = register_fact_is_resolved(source_fact)
+
+                if resolved then
+                    value = source_fact.value
+                end
+            else
+                resolved = value ~= nil
+            end
         end
     end
 
-    return value
+    return value, resolved
 end
-
-
 
 
 local function make_register_fact(facts_by_register, adapter, instruction, effect_spec)
@@ -1020,7 +1036,7 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         return nil
     end
 
-    local value = resolve_register_effect_value(
+    local value, resolved = resolve_register_effect_value(
         facts_by_register,
         instruction,
         effect
@@ -1032,6 +1048,7 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         name = target_operand.text:lower(),
         kind = static_spec.kind or "unknown",
         value = value,
+        resolved = resolved ~= false,
         role = effect.role or static_spec.role,
         source = "instruction",
 
@@ -1223,6 +1240,17 @@ local function get_register_value_from_context(context, register_name)
 end
 
 
+local function get_register_resolved_from_context(context, register_name)
+    local fact = get_register_fact_from_context(context, register_name)
+
+    if not fact then
+        return false
+    end
+
+    return fact.value ~= nil and fact.resolved ~= false
+end
+
+
 local function build_boundary_reads(context, effect_spec)
     local reads = {}
     local read_spec = effect_spec.reads or {}
@@ -1235,6 +1263,10 @@ local function build_boundary_reads(context, effect_spec)
                 context,
                 read_spec.number_register
             ),
+            resolved = get_register_resolved_from_context(
+                context,
+                read_spec.number_register
+            ),
         })
     end
 
@@ -1244,6 +1276,7 @@ local function build_boundary_reads(context, effect_spec)
             index = index,
             register = register_name,
             value = get_register_value_from_context(context, register_name),
+            resolved = get_register_resolved_from_context(context, register_name),
         })
     end
 

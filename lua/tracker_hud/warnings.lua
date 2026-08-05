@@ -202,7 +202,7 @@ local function apply_missing_read_value_rule(warnings, rule, fact)
         return
     end
 
-    if read.value ~= nil then
+    if read.value ~= nil and read.resolved ~= false then
         return
     end
 
@@ -214,7 +214,9 @@ local function apply_missing_read_values_rule(warnings, rule, fact)
     local reads = collect_matching_reads(fact.reads, rule.read)
 
     for _, read in ipairs(reads) do
-        if core.is_table(read) and read.value == nil then
+        if core.is_table(read)
+            and (read.value == nil or read.resolved == false)
+        then
             table.insert(warnings, make_warning_from_rule(rule, fact, read))
         end
     end
@@ -232,7 +234,7 @@ local function apply_missing_known_effect_rule(warnings, rule, fact)
         return
     end
 
-    if read.value == nil then
+    if read.value == nil or read.resolved == false then
         return
     end
 
