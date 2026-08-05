@@ -61,7 +61,7 @@ end
 local function append_metadata_children(children, warning)
     local metadata = warning.metadata
 
-    if type(metadata) ~- "table" then
+    if type(metadata) ~= "table" then
         return
     end
 

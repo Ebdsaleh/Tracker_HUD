@@ -936,7 +936,7 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
-    local warning_nodes = warning_tree.build(context.warnings or {})
+    local warning_nodes = warning_tree.build(context.warnings or {}, context)
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
     })
