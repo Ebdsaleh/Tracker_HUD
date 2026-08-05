@@ -58,6 +58,8 @@ M.capabilities = {
     source_jump = true,
     registers = true,
     stack = true,
+    boundary_effects = true,
+    heap = true,
 }
 
 
