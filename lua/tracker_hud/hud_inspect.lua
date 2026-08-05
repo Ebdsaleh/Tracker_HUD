@@ -61,7 +61,9 @@ local function inspect_stack(request)
     end
 
     return make_result(true, target_node_id, nil)
+
 end
+
 
 local function inspect_heap(request)
     local ok, target_node_id = hud_sections.inspect_heap(request)
@@ -76,6 +78,21 @@ local function inspect_heap(request)
 
     return make_result(true, target_node_id, nil)
 end
+
+local function inspect_warnings(request)
+    local ok, target_node_id = hud_sections.inspect_warnings(request)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Warnings node found for current source position"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
 
 local function inspect_scope(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
@@ -187,7 +204,7 @@ function M.inspect(mode, request)
     end
 
     if mode == "warnings" then
-        return inspect_section_shell("warnings", "Warnings", request)
+        return inspect_warnings(request)
     end
 
     return make_result(
@@ -202,13 +219,8 @@ function M.expand_all(mode, request)
         return expand_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" or mode == "heap" then
+    if mode == "registers" or mode == "stack" or mode == "heap" or mode == "warnings" then
         return expand_section_tree(mode, request)
-    end
-
-    if mode == "warnings" then
-        hud_sections.set_expanded(mode, true)
-        return make_result(true, nil, nil)
     end
 
     return make_result(
@@ -223,13 +235,8 @@ function M.collapse_all(mode, request)
         return collapse_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" or mode == "heap" then
+    if mode == "registers" or mode == "stack" or mode == "heap" or mode == "warnings" then
         return collapse_section_tree(mode, request)
-    end
-
-    if mode == "warnings" then
-        hud_sections.set_expanded(mode, false)
-        return make_result(true, nil, nil)
     end
 
     return make_result(

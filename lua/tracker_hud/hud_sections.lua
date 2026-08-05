@@ -673,6 +673,15 @@ local function build_heap_nodes_for_context(context)
 end
 
 
+local function build_warning_nodes_for_context(context)
+    if type(context) ~= "table" then
+        return {}
+    end
+
+    return warning_tree.build(context.warnings or {}, context)
+end
+
+
 local function inspect_hud_nodes_for_source_position(request, section_id, nodes)
     if type(request) ~= "table" then
         return false
@@ -782,6 +791,31 @@ function M.inspect_heap(request)
     return toggle_section_fallback("heap")
 end
 
+function M.inspect_warnings(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local warning_nodes = build_warning_nodes_for_context(request.context)
+
+    if not warning_nodes or #warning_nodes == 0 then
+        return false
+    end
+
+    local ok, target_node_id = inspect_hud_nodes_for_source_position(
+        request,
+        "warnings",
+        warning_nodes
+    )
+
+    if ok then
+        return true, target_node_id
+    end
+
+    return toggle_section_fallback("warnings")
+end
+
+
 local function get_section_nodes(context, section_id, use_all_members)
     if type(context) ~= "table" then
         return {}
@@ -801,6 +835,10 @@ local function get_section_nodes(context, section_id, use_all_members)
 
     if section_id == "heap" then
         return build_heap_nodes_for_context(context)
+    end
+
+    if section_id == "warnings" then
+        return build_warning_nodes_for_context(context)
     end
 
     return {}
@@ -936,7 +974,7 @@ function M.build(context, opts)
         panel_width = opts.panel_width,
     })
 
-    local warning_nodes = warning_tree.build(context.warnings or {}, context)
+    local warning_nodes = build_warning_nodes_for_context(context)
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
     })
