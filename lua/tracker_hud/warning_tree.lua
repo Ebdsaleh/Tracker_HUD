@@ -25,10 +25,16 @@ end
 
 
 local function build_warning_label(warning)
+    local severity = warning.severity or "warning"
     local category = warning.category or "state"
     local message = warning.message or "<warning>"
 
-    return "(" .. tostring(category) .. ") " .. tostring(message)
+    return "("
+        .. tostring(severity)
+        .. " "
+        .. tostring(category)
+        .. ") "
+        .. tostring(message)
 end
 
 

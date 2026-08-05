@@ -20,6 +20,7 @@ local function make_warning(message, opts)
     return {
         message = message,
         kind = opts.kind or "warning",
+        severity = opts.severity or "warning",
         category = opts.category or "state",
         source = opts.source or "analysis",
 
@@ -168,6 +169,7 @@ local function make_warning_from_rule(rule, fact, read)
     local message = interpolate_message(rule.message, values)
 
     return make_warning(message, {
+        severity = rule.severity or "warning",
         category = rule.category or fact.category or "state",
 
         source_line = fact.source_line,

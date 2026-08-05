@@ -607,6 +607,7 @@ M.warning_rules = {
     {
         source = "boundary_effects",
         check = "missing_read_value",
+        severity = "state",
 
         match = {
             kind = "syscall",
@@ -623,6 +624,7 @@ M.warning_rules = {
     {
         source = "boundary_effects",
         check = "missing_known_effect",
+        severity = "state",
 
         match = {
             value_read = "number",
@@ -635,11 +637,13 @@ M.warning_rules = {
     {
         source = "boundary_effects",
         check = "missing_read_values",
+        severity = "state",
 
         match = {
             kind = "syscall",
             category = "heap",
         },
+
         read = {
             role = "argument",
         },
