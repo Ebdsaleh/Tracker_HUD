@@ -884,8 +884,120 @@ local function get_static_register_spec(adapter, name)
 end
 
 
-local function make_register_fact(adapter, instruction, effect_spec)
-    if not core.is_table(adapter)
+local function get_register_fact_from_map(facts_by_register, register_name)
+    if not core.is_table(facts_by_register)
+        or not core.is_non_empty_string(register_name)
+    then
+        return nil
+    end
+
+    return facts_by_register[register_name:lower()]
+end
+
+local function get_register_value_from_map(facts_by_register, register_name)
+    local fact = get_register_fact_from_map(facts_by_register, register_name)
+
+    if fact then
+        return fact.value
+    end
+
+    return nil
+end
+
+
+local function parse_numeric_value(value)
+    if value == nil then
+        return nil
+    end
+
+    if type(value) == "number" then
+        return value
+    end
+
+    if type(value) ~= "string" then
+        return nil
+    end
+
+    local normalized = value:gsub("^%s+", ""):gsub("%s+$", "")
+
+    if normalized == "" then
+        return nil
+    end
+
+    return tonumber(normalized)
+end
+
+
+local function resolve_register_effect_value(facts_by_register, instruction, effect)
+    local value = effect.value
+
+    if tonumber(effect.value_from_register_operand) then
+        local source_operand = instruction.operands[tonumber(effect.value_from_register_operand)]
+
+        if source_operand and core.is_non_empty_string(source_operand.text) then
+            local known_value = get_register_value_from_map(
+                facts_by_register,
+                source_operand.text
+            )
+
+            if known_value ~= nil then
+                return known_value
+            end
+
+            return source_operand.text
+        end
+    end
+
+    if tonumber(effect.value_delta_operand) or effect.value_delta ~= nil then
+        local target_operand = instruction.operands[tonumber(effect.target_operand)]
+        local current_value = target_operand
+            and get_register_value_from_map(facts_by_register, target_operand.text)
+
+        local current_number = parse_numeric_value(current_value)
+
+        if not current_number then
+            return value
+        end
+
+        local delta = effect.value_delta
+
+        if delta == nil and tonumber(effect.value_delta_operand) then
+            local delta_operand = instruction.operands[tonumber(effect.value_delta_operand)]
+
+            if delta_operand then
+                delta = delta_operand.text
+            end
+        end
+
+        local delta_number = parse_numeric_value(delta)
+
+        if not delta_number then
+            return value
+        end
+
+        local sign = tonumber(effect.value_delta_sign) or 1
+
+        return tostring(current_number + (delta_number * sign))
+    end
+
+    if value == nil and tonumber(effect.value_operand) then
+        local value_operand = instruction.operands[tonumber(effect.value_operand)]
+
+        if value_operand then
+            value = value_operand.text
+        end
+    end
+
+    return value
+end
+
+
+
+
+local function make_register_fact(facts_by_register, adapter, instruction, effect_spec)
+
+    if not core.is_table(facts_by_register)
+        or not core.is_table(adapter)
         or not core.is_table(instruction)
         or not core.is_table(effect_spec)
         or not core.is_table(effect_spec.effect)
@@ -908,15 +1020,11 @@ local function make_register_fact(adapter, instruction, effect_spec)
         return nil
     end
 
-    local value = effect.value
-
-    if value == nil and tonumber(effect.value_operand) then
-        local value_operand = instruction.operands[tonumber(effect.value_operand)]
-
-        if value_operand then
-            value = value_operand.text
-        end
-    end
+    local value = resolve_register_effect_value(
+        facts_by_register,
+        instruction,
+        effect
+    )
 
     local static_spec = get_static_register_spec(adapter, target_operand.text) or {}
 
@@ -943,6 +1051,7 @@ local function make_register_fact(adapter, instruction, effect_spec)
             effect = effect.name,
         },
     }
+
 end
 
 
@@ -967,7 +1076,12 @@ local function apply_register_effect(facts_by_register, adapter, instruction, ef
         return
     end
 
-    local fact = make_register_fact(adapter, instruction, effect_spec)
+    local fact = make_register_fact(
+        facts_by_register,
+        adapter,
+        instruction,
+        effect_spec
+    )
 
     if fact then
         facts_by_register[fact.name] = fact
