@@ -274,6 +274,35 @@ M.register_effects = {
         },
      },
 
+    -- 'mov rsp, rbp' restores the stack pointer from the frame base.
+    {
+        node_type = "instruction",
+        mnemonic = "mov",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "stack_pointer",
+                value = "rsp",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "frame_pointer",
+                value = "rbp",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mov_rsp_rbp_restore_stack",
+            target_operand = 1,
+            value_from_register_operand = 2,
+            role = "restored stack pointer from frame base",
+        },
+    },
+
     -- 'xor'
     {
         node_type = "instruction",
