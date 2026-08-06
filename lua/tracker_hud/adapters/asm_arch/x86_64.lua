@@ -494,7 +494,22 @@ M.register_effects = {
         },
     },
 
+    -- Linux x86-64 'syscall' writes its return value to rax.
+    {
+        node_type = "instruction",
+        mnemonic = "syscall",
 
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "syscall_return_rax",
+            target_register = "rax",
+            role = "receives Linux syscall return value",
+            platform = "linux",
+            abi = "linux_syscall",
+        },
+    },
 
     -- 'add'
     {
