@@ -448,7 +448,7 @@ M.register_effects = {
 
     -- 'cmp' updates rflags.
     {
-        node_type = "istruction",
+        node_type = "instruction",
         mnemonic = "cmp",
 
         operands = {
