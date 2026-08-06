@@ -412,6 +412,86 @@ M.register_effects = {
         },
     },
 
+    -- 'push' decreases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "push",
+        operands = {
+            {
+                index = 1,
+                role = "pushed_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "push_updates_rsp",
+            target_register = "rsp",
+            value_delta = -8,
+            role = "decreased by push",
+        },
+    },
+
+    -- 'pop' increases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "pop",
+
+        operands = {
+            {
+                index = 1,
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "pop_updates_rsp",
+            target_register = "rsp",
+            value_delta = 8,
+            role = "increased by pop",
+        },
+    },
+
+    -- 'call' decreases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "call",
+
+        operands = {
+            {
+                index = 1,
+                role = "call_target",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "call_updates_rsp",
+            target_register = "rsp",
+            value_delta = -8,
+            role = "decreased by call",
+        },
+    },
+
+
+    -- 'ret' increase rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "ret",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "ret_updates_rsp",
+            target_register = "rsp",
+            value_delta = 8,
+            role = "increased by ret",
+        },
+    },
+
+
     -- Linux x86-64 'syscall' clobbers rcx.
     {
         node_type = "instruction",

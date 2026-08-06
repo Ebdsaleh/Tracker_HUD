@@ -975,9 +975,19 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
     end
 
     if tonumber(effect.value_delta_operand) or effect.value_delta ~= nil then
-        local target_operand = instruction.operands[tonumber(effect.target_operand)]
-        local target_fact = target_operand
-            and get_register_fact_from_map(facts_by_register, target_operand.text)
+        local target_operand = nil
+        local target_register = effect.target_register
+
+        if tonumber(effect.target_operand) then
+            target_operand = instruction.operands[tonumber(effect.target_operand)]
+
+            if target_operand then
+                target_register = target_operand.text
+            end
+        end
+
+        local target_fact = target_register
+            and get_register_fact_from_map(facts_by_register, target_register)
 
         if not register_fact_is_resolved(target_fact) then
             return nil, false
