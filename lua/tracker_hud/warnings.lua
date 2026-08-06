@@ -122,6 +122,47 @@ local function collect_matching_reads(reads, read_spec)
 end
 
 
+local function read_index_is_required(index, required_indexes)
+    if not index or not core.is_table(required_indexes) then
+        return false
+    end
+
+    for _, required_index in ipairs(required_indexes) do
+        if tonumber(required_index) == tonumber(index) then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function get_read_argument_name(fact, read)
+    if not core.is_table(fact)
+        or not core.is_table(fact.known_effect)
+        or not core.is_table(read)
+        or read.index == nil
+    then
+        return nil
+    end
+
+    local argument_names = fact.known_effect.argument_names
+
+    if not core.is_table(argument_names) then
+        return nil
+    end
+
+    return argument_names[tonumber(read.index)]
+end
+
+
+local function read_is_unresolved(read)
+    return not core.is_table(read)
+    or read.value == nil
+    or read.resolved == false
+end
+
+
 local function build_message_context(fact, read)
     local values = {}
 
@@ -140,6 +181,8 @@ local function build_message_context(fact, read)
             end
         end
     end
+
+    values.argument_name = get_read_argument_name(fact, read)
 
     return values
 end
@@ -188,8 +231,10 @@ local function make_warning_from_rule(rule, fact, read)
             boundary_name = fact.name,
 
             argument_index = read and read.index,
+            argument_name = get_read_argument_name(fact, read),
             register = read and read.register,
             value = read and read.value,
+            resolved = read and read.resolved,
         },
     })
 end
@@ -216,6 +261,30 @@ local function apply_missing_read_values_rule(warnings, rule, fact)
     for _, read in ipairs(reads) do
         if core.is_table(read)
             and (read.value == nil or read.resolved == false)
+        then
+            table.insert(warnings, make_warning_from_rule(rule, fact, read))
+        end
+    end
+end
+
+
+local function apply_missing_required_reads_rule(warnings, rule, fact)
+    if not core.is_table(fact)
+        or not core.is_table(fact.known_effect)
+        or not core.is_table(fact.known_effect.required_arguments)
+    then
+        return
+    end
+
+    local reads = collect_matching_reads(fact.reads, rule.read)
+
+    for _, read in ipairs(reads) do
+        if core.is_table(read)
+            and read_index_is_required(
+                read.index,
+                fact.known_effect.required_arguments
+            )
+            and read_is_unresolved(read)
         then
             table.insert(warnings, make_warning_from_rule(rule, fact, read))
         end
@@ -255,6 +324,8 @@ local function apply_warning_rule(warnings, context, rule)
                 apply_missing_read_value_rule(warnings, rule, fact)
             elseif rule.check == "missing_read_values" then
                 apply_missing_read_values_rule(warnings, rule, fact)
+            elseif rule.check == "missing_required_reads" then
+                apply_missing_required_reads_rule(warnings, rule, fact)
             elseif rule.check == "missing_known_effect" then
                 apply_missing_known_effect_rule(warnings, rule, fact)
             end
