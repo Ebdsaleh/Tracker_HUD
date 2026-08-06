@@ -245,6 +245,35 @@ M.register_effects = {
         },
     },
 
+     -- 'mov rbp, rsp' establishes a stack frame base.
+     {
+        node_type = "instruction",
+        mnemonic = "mov",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "frame_pointer",
+                value = "rbp",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "stack_pointer",
+                value = "rsp",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mov_rbp_rsp_frame_base",
+            target_operand = 1,
+            value_from_register_operand = 2,
+            role = "established frame base from rsp",
+        },
+     },
+
     -- 'xor'
     {
         node_type = "instruction",
