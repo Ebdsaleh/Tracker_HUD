@@ -275,11 +275,11 @@ M.register_effects = {
             role = "zeroed by xor",
         },
     },
-    
+
     -- sub reg, reg
     {
         node_type = "instruction",
-        mnemonic ="sub",
+        mnemonic = "sub",
 
         operands = {
             {
@@ -295,7 +295,7 @@ M.register_effects = {
         },
 
         condition = {
-            operands_equal = { 1, 2},
+            operands_equal = { 1, 2 },
         },
 
         effect = {
@@ -331,7 +331,7 @@ M.register_effects = {
             kind = "register_write",
             name = "and_register_zero",
             target_operand = 1,
-            value = 0,
+            value = "0",
             role = "zeroed by and",
         },
     },
@@ -377,8 +377,8 @@ M.register_effects = {
             },
             {
                 index = 2,
-                lind = "symbol",
-                role = "source_addres",
+                kind = "symbol",
+                role = "source_address",
             },
         },
 
