@@ -513,6 +513,53 @@ M.stack_effects = {
             role = "pushed register onto stack",
         },
     },
+
+    -- 'push immediate'
+    {
+        node_type = "instruction",
+        mnemonic = "push",
+
+        operands = {
+            {
+                index = 1,
+                kind = "interger",
+                role = "pushed_value",
+            },
+        },
+
+        effect = {
+            kind = "stack_push",
+            name = "push_immediate",
+            value_operand = 1,
+            size = 8,
+            offset_delta = -8,
+            role = "pushed immediate onto stack",
+        },
+    },
+
+    -- 'push symbol'
+    {
+        node_type = "instruction",
+        mnemonic = "push",
+
+        operands = {
+            {
+                index = 1,
+                kind = "symbol",
+                role = "pushed_value",
+            },
+        },
+
+        effect = {
+            kind = "stack_push",
+            name = "pushed_symbol",
+            value_operand = 1,
+            size = 8,
+            offset_delta = -8,
+            role = "pushed symbol onto stack",
+        },
+    },
+
     -- 'pop'
     {
         node_type = "instruction",
