@@ -767,6 +767,7 @@ function M.inspect_stack(request)
     return toggle_section_fallback("stack")
 end
 
+
 function M.inspect_heap(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
@@ -775,7 +776,7 @@ function M.inspect_heap(request)
     local heap_nodes = build_heap_nodes_for_context(request.context)
 
     if not heap_nodes or #heap_nodes == 0 then
-        return false
+        return toggle_section_fallback("heap")
     end
 
     local ok, target_node_id = inspect_hud_nodes_for_source_position(
@@ -791,6 +792,7 @@ function M.inspect_heap(request)
     return toggle_section_fallback("heap")
 end
 
+
 function M.inspect_warnings(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
@@ -799,7 +801,7 @@ function M.inspect_warnings(request)
     local warning_nodes = build_warning_nodes_for_context(request.context)
 
     if not warning_nodes or #warning_nodes == 0 then
-        return false
+        return toggle_section_fallback("warnings")
     end
 
     local ok, target_node_id = inspect_hud_nodes_for_source_position(
