@@ -43,6 +43,56 @@ local function node_range(node)
 end
 
 
+local function line_is_comment(bufnr, line_number, comment_spec)
+    if not bufnr
+        or not line_number
+        or not core.is_table(comment_spec)
+        or not core.is_table(comment_spec.line)
+    then
+        return false
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(
+        bufnr,
+        line_number - 1,
+        line_number,
+        false
+    )
+
+    local line = lines[1]
+
+    if not core.is_non_empty_string(line) then
+        return false
+    end
+
+    local trimmed = line:match("^%s*(.-)%s*$") or ""
+
+    for _, line_comment in ipairs(comment_spec.line) do
+        if core.is_table(line_comment)
+            and core.is_non_empty_string(line_comment.prefix)
+            and trimmed:sub(1, #line_comment.prefix) == line_comment.prefix
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function warning_is_inside_comment(bufnr, range, opts)
+    if not range then
+        return false
+    end
+
+    return line_is_comment(
+        bufnr,
+        range.source_line,
+        opts and opts.comments
+    )
+end
+
+
 local function classify_warning_location(range, opts)
     opts = opts or {}
 
@@ -136,9 +186,12 @@ local function collect_from_node(node, warnings, opts)
     if is_error or is_missing then
         local range = node_range(node)
 
-        if not opts.cursor_line
-            or not range
-            or range.source_line <= opts.cursor_line
+        if not warning_is_inside_comment(opts.bufnr, range, opts)
+            and (
+                not opts.cursor_line
+                or not range
+                or range.source_line <= opts.cursor_line
+            )
         then
             table.insert(warnings, make_syntax_warning(node, opts))
         end
@@ -160,10 +213,12 @@ function M.collect(bufnr, root_node, opts)
     end
 
     collect_from_node(root_node, warnings, {
+        bufnr = bufnr,
         cursor_line = opts.cursor_line,
         scope_start_line = opts.scope_start_line,
         scope_end_line = opts.scope_end_line,
         filetype = opts.filetype,
+        comments = opts.comments,
     })
 
     return warnings

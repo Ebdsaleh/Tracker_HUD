@@ -34,6 +34,16 @@ M.aliases = {
 }
 
 
+M.comments = {
+    line = {
+        {
+            prefix = ";",
+            role = "line comment",
+        },
+    },
+}
+
+
 M.range_scopes = {
     {
         node_type = "label",

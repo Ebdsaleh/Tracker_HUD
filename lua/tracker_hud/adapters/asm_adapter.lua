@@ -176,6 +176,9 @@ local function apply_variant(variant)
     -- Keep architecture as an alias for older code paths and HUD metadata.
     M.architecture = M.active_variant_name
 
+    -- Comments
+    M.comments = variant.comments or {}
+
     -- Variant-owned descriptive specs.
     M.registers = variant.registers or { static = {} }
     M.register_families = variant.register_families or {}

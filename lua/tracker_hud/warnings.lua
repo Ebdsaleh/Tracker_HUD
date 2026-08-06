@@ -370,6 +370,7 @@ function M.collect(context, adapter, opts)
             scope_end_line = context and context.end_line,
 
             filetype = opts.filetype,
+            comments = core.is_table(adapter) and adapter.comments or nil,
         })
     )
 
