@@ -10,6 +10,8 @@
 -- This module interprets those rules generically.
 
 local core = require("tracker_hud.core")
+local treesitter_errors = require("tracker_hud.treesitter_errors")
+
 
 local M = {}
 
@@ -334,16 +336,38 @@ local function apply_warning_rule(warnings, context, rule)
 end
 
 
-function M.collect(context, adapter, _opts)
+local function append_warnings(target, source)
+    if not core.is_table(target) or not core.is_table(source) then
+        return
+    end
+
+    for _, warning in ipairs(source) do
+        table.insert(target, warning)
+    end
+end
+
+
+
+function M.collect(context, adapter, opts)
+    opts = opts or {}
+
     local warnings = {}
 
-    if not core.is_table(context) or not core.is_table(adapter) then
-        return warnings
+    if core.is_table(context) and core.is_table(adapter) then
+        for _, rule in ipairs(adapter.warning_rules or {}) do
+            apply_warning_rule(warnings, context, rule)
+        end
     end
 
-    for _, rule in ipairs(adapter.warning_rules or {}) do
-        apply_warning_rule(warnings, context, rule)
-    end
+    append_warnings(
+        warnings,
+        treesitter_errors.collect(opts.bufnr, opts.root_node, {
+            cursor_line = context
+                and context.cursor
+                and context.cursor.line,
+            filetype = opts.filetype,
+        })
+    )
 
     return warnings
 end

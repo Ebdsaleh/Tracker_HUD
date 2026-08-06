@@ -266,7 +266,8 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
     -- warnings are derived after boundary/heap facts exist.
     context.warnings = warnings.collect(context, adapter, {
         bufnr = bufnr,
-        root_node = root_node
+        root_node = root_node,
+        filetype = vim.bo[bufnr].filetype,
     })
 
     return context

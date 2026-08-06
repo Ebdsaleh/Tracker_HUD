@@ -681,23 +681,21 @@ M.warning_rules = {
 
     {
         source = "boundary_effects",
-        check = "missing_read_values",
+        check = "missing_required_reads",
         severity = "state",
 
         match = {
             kind = "syscall",
-            category = "heap",
         },
 
         read = {
             role = "argument",
         },
 
-        category = "heap",
-        message = "{name} argument {index} register {register} has no known value",
+        category = "boundary",
+        message = "{name} argument {index} ({argument_name}) register {register} has no known value",
     },
 }
-
 
 M.register_families = {
     rax = {
