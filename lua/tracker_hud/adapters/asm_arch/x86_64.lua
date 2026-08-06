@@ -321,7 +321,7 @@ M.register_effects = {
 
             {
                 index = 2,
-                kind ="integer",
+                kind = "integer",
                 role = "mask",
                 value = "0",
             },
@@ -391,6 +391,27 @@ M.register_effects = {
         },
     },
 
+    -- 'pop reg' writes an unknown stack value into the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "pop",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "pop_register_unknown",
+            target_operand = 1,
+            role = "loaded from stack by pop",
+        },
+    },
+
     -- 'add'
     {
         node_type = "instruction",
@@ -444,7 +465,7 @@ M.register_effects = {
             role = "decreased by immediate",
         },
     },
- 
+
     -- 'inc'
     {
         node_type = "instruction",
@@ -522,7 +543,7 @@ M.stack_effects = {
         operands = {
             {
                 index = 1,
-                kind = "interger",
+                kind = "integer",
                 role = "pushed_value",
             },
         },
@@ -552,7 +573,7 @@ M.stack_effects = {
 
         effect = {
             kind = "stack_push",
-            name = "pushed_symbol",
+            name = "push_symbol",
             value_operand = 1,
             size = 8,
             offset_delta = -8,
