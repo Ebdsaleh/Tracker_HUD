@@ -446,6 +446,55 @@ M.register_effects = {
         },
     },
 
+    -- 'cmp' updates rflags.
+    {
+        node_type = "istruction",
+        mnemonic = "cmp",
+
+        operands = {
+            {
+                index = 1,
+                role = "left",
+            },
+            {
+                index = 2,
+                role = "right",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmp_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmp",
+        },
+    },
+
+    -- 'test' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "test",
+
+        operands = {
+            {
+                index = 1,
+                role = "left",
+            },
+            {
+                index = 2,
+                role = "right",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "test_updates_rflags",
+            target_register = "rflags",
+            role = "updated by test",
+        },
+    },
+
+
 
     -- 'add'
     {
