@@ -1031,9 +1031,9 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
 
         if not core.is_table(target_operand)
             or not core.is_non_empty_string(target_operand.text)
-        then
-            return nil
-        end
+            then
+                return nil
+            end
 
         target_register = target_operand.text
     end
