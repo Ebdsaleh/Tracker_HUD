@@ -275,6 +275,122 @@ M.register_effects = {
             role = "zeroed by xor",
         },
     },
+    
+    -- sub reg, reg
+    {
+        node_type = "instruction",
+        mnemonic ="sub",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source",
+            },
+        },
+
+        condition = {
+            operands_equal = { 1, 2},
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sub_register_self_zero",
+            target_operand = 1,
+            value = "0",
+            role = "zeroed by sub",
+        },
+    },
+
+    -- 'and reg, 0' zeroes the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "and",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+
+            {
+                index = 2,
+                kind ="integer",
+                role = "mask",
+                value = "0",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "and_register_zero",
+            target_operand = 1,
+            value = 0,
+            role = "zeroed by and",
+        },
+    },
+
+    -- 'mov reg, symbol' tracks symbolic values.
+    {
+        node_type = "instruction",
+        mnemonic = "mov",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+
+            {
+                index = 2,
+                kind = "symbol",
+                role = "source_symbol",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mov_register_symbol",
+            target_operand = 1,
+            value_operand = 2,
+            role = "loaded symbol by mov",
+        },
+    },
+
+    -- 'lea reg, symbol' tracks symbolic addresses.
+    {
+        node_type = "instruction",
+        mnemonic = "lea",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                lind = "symbol",
+                role = "source_addres",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "lea_register_symbol",
+            target_operand = 1,
+            value_operand = 2,
+            role = "loaded address by lea",
+        },
+    },
+
     -- 'add'
     {
         node_type = "instruction",
@@ -328,6 +444,7 @@ M.register_effects = {
             role = "decreased by immediate",
         },
     },
+ 
     -- 'inc'
     {
         node_type = "instruction",
