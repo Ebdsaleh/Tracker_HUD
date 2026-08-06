@@ -1023,16 +1023,22 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
 
     local effect = effect_spec.effect
     local target_index = tonumber(effect.target_operand)
+    local target_operand = nil
+    local target_register = effect.target_register
 
-    if not target_index then
-        return nil
+    if target_index then
+        target_operand = instruction.operands and instruction.operands[target_index]
+
+        if not core.is_table(target_operand)
+            or not core.is_non_empty_string(target_operand.text)
+        then
+            return nil
+        end
+
+        target_register = target_operand.text
     end
 
-    local target_operand = instruction.operands and instruction.operands[target_index]
-
-    if not core.is_table(target_operand)
-        or not core.is_non_empty_string(target_operand.text)
-    then
+    if not core.is_non_empty_string(target_register) then
         return nil
     end
 
@@ -1042,23 +1048,46 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         effect
     )
 
-    local static_spec = get_static_register_spec(adapter, target_operand.text) or {}
+    local static_spec = get_static_register_spec(adapter, target_register) or {}
 
     return {
-        name = target_operand.text:lower(),
+        name = target_register:lower(),
         kind = static_spec.kind or "unknown",
         value = value,
         resolved = resolved ~= false,
         role = effect.role or static_spec.role,
         source = "instruction",
 
-        source_line = target_operand.source_line,
-        source_column = target_operand.source_column,
+        source_line = target_operand
+            and target_operand.source_line
+            or instruction.source_line,
 
-        source_start_line = target_operand.source_start_line,
-        source_start_column = target_operand.source_start_column,
-        source_end_line = target_operand.source_end_line,
-        source_end_column = target_operand.source_end_column,
+        source_column = target_operand
+            and target_operand.source_column
+            or instruction.source_column
+            or 0,
+
+        source_start_line = target_operand
+            and target_operand.source_start_line
+            or instruction.source_start_line
+            or instruction.source_line,
+
+        source_start_column = target_operand
+            and target_operand.source_start_column
+            or instruction.source_start_column
+            or instruction.source_column
+            or 0,
+
+        source_end_line = target_operand
+            and target_operand.source_end_line
+            or instruction.source_end_line
+            or instruction.source_line,
+
+        source_end_column = target_operand
+            and target_operand.source_end_column
+            or instruction.source_end_column
+            or instruction.source_column
+            or 0,
 
         metadata = {
             adapter = adapter.name,

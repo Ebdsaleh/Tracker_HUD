@@ -412,6 +412,41 @@ M.register_effects = {
         },
     },
 
+    -- Linux x86-64 'syscall' clobbers rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "syscall",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "syscall_clobber_rcx",
+            target_register = "rcx",
+            role = "clobbered by Linux syscall",
+            platform = "linux",
+            abi = "linux_syscall",
+        },
+    },
+
+    -- Linux x86-64 'syscall' clobbers r11.
+    {
+        node_type = "instruction",
+        mnemonic = "syscall",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "syscall_clobber_r11",
+            target_register = "r11",
+            role = "clobbered by Linux syscall",
+            platform = "linux",
+            abi = "linux_syscall",
+        },
+    },
+
+
     -- 'add'
     {
         node_type = "instruction",
@@ -711,6 +746,8 @@ M.stack_effects = {
 
 M.syscall = {
     instruction = "syscall",
+    platform = "linux",
+    abi = "linux_syscall",
 
     convention = {
         number_register = "rax",
@@ -741,6 +778,8 @@ M.boundary_effects = {
     {
         kind = "syscall",
         category = "system",
+        platform = "linux",
+        abi = "linux_syscall",
         node_type = "instruction",
         mnemonic = "syscall",
 
