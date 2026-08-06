@@ -365,6 +365,10 @@ function M.collect(context, adapter, opts)
             cursor_line = context
                 and context.cursor
                 and context.cursor.line,
+
+            scope_start_line = context and context.start_line,
+            scope_end_line = context and context.end_line,
+
             filetype = opts.filetype,
         })
     )

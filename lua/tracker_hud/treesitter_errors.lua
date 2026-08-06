@@ -43,6 +43,44 @@ local function node_range(node)
 end
 
 
+local function classify_warning_location(range, opts)
+    opts = opts or {}
+
+    if not range then
+        return "unknown"
+    end
+
+    local cursor_line = opts.cursor_line
+    local scope_start_line = opts.scope_start_line
+    local scope_end_line = opts.scope_end_line
+
+    local start_line = range.source_start_line or range.source_line
+    local end_line = range.source_end_line or range.source_line
+
+    if not start_line or not end_line then
+        return "unknown"
+    end
+
+    if cursor_line and cursor_line >= start_line and cursor_line <= end_line then
+        return "current"
+    end
+
+    if scope_start_line
+        and scope_end_line
+        and start_line >= scope_start_line
+        and start_line <= scope_end_line
+    then
+        return "scope"
+    end
+
+    if cursor_line and start_line < cursor_line then
+        return "earlier"
+    end
+
+    return "file"
+end
+
+
 local function make_syntax_warning(node, opts)
     opts = opts or {}
 
@@ -56,6 +94,8 @@ local function make_syntax_warning(node, opts)
         message = "Tree-sitter missing node: " .. tostring(node_type)
     end
 
+    local location = classify_warning_location(range, opts)
+
     return {
         message = message,
         kind = "warning",
@@ -64,7 +104,7 @@ local function make_syntax_warning(node, opts)
         source = "treesitter",
 
         source_line = range.source_line,
-        source_column= range.source_column,
+        source_column = range.source_column,
 
         source_start_line = range.source_start_line,
         source_start_column = range.source_start_column,
@@ -76,6 +116,7 @@ local function make_syntax_warning(node, opts)
             node_type = node_type,
             missing = is_missing,
             filetype = opts.filetype,
+            location = location,
         },
     }
 end
@@ -120,6 +161,8 @@ function M.collect(bufnr, root_node, opts)
 
     collect_from_node(root_node, warnings, {
         cursor_line = opts.cursor_line,
+        scope_start_line = opts.scope_start_line,
+        scope_end_line = opts.scope_end_line,
         filetype = opts.filetype,
     })
 
