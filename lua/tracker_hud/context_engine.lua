@@ -895,6 +895,7 @@ local function get_register_fact_from_map(facts_by_register, register_name)
 end
 
 
+
 local function parse_numeric_value(value)
     if value == nil then
         return nil
@@ -914,9 +915,35 @@ local function parse_numeric_value(value)
         return nil
     end
 
-    return tonumber(normalized)
-end
+    local sign = 1
 
+    if normalized:sub(1, 1) == "-" then
+        sign = -1
+        normalized = normalized:sub(2)
+    elseif normalized:sub(1, 1) == "+" then
+        normalized = normalized:sub(2)
+    end
+
+    local hex = normalized:match("^0[xX]([%da-fA-F]+)$")
+
+    if hex then
+        return sign * tonumber(hex, 16)
+    end
+
+    local binary = normalized:match("^0[bB]([01]+)$")
+
+    if binary then
+        return sign * tonumber(binary, 2)
+    end
+
+    local decimal = tonumber(normalized)
+
+    if decimal then
+        return sign * decimal
+    end
+
+    return nil
+end
 
 
 local function register_fact_is_resolved(fact)
@@ -985,26 +1012,35 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
 
     if value == nil and tonumber(effect.value_operand) then
         local value_operand = instruction.operands[tonumber(effect.value_operand)]
+            if value_operand then
+                value = value_operand.text
 
-        if value_operand then
-            value = value_operand.text
+                if value_operand.kind == "register" then
+                    local source_fact = get_register_fact_from_map(
+                        facts_by_register,
+                        value_operand.text
+                    )
 
-            if value_operand.kind == "register" then
-                local source_fact = get_register_fact_from_map(
-                    facts_by_register,
-                    value_operand.text
-                )
+                    resolved = register_fact_is_resolved(source_fact)
 
-                resolved = register_fact_is_resolved(source_fact)
+                    if resolved then
+                        value = source_fact.value
+                    end
+                elseif value_operand.kind == "integer" then
+                    local numeric_value = parse_numeric_value(value_operand.text)
 
-                if resolved then
-                    value = source_fact.value
+                    if numeric_value ~= nil then
+                        value = tostring(numeric_value)
+                        resolved = true
+                    else
+                        resolved = false
+                    end
+                else
+                    resolved = value ~= nil
                 end
-            else
-                resolved = value ~= nil
             end
+
         end
-    end
 
     return value, resolved
 end
