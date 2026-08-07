@@ -4088,6 +4088,284 @@ M.register_effects = {
         },
     },
 
+
+    -- Conditional jump effects.
+    {
+        node_type = "instruction",
+        mnemonic = "ja",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "ja_updates_rip",
+            target_register = "rip",
+            role = "conditional jump above by ja",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jae",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jae_updates_rip",
+            target_register = "rip",
+            role = "conditional jump above-or-equal by jae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jb",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jb_updates_rip",
+            target_register = "rip",
+            role = "conditional jump below by jb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jbe",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jbe_updates_rip",
+            target_register = "rip",
+            role = "conditional jump below-or-equal by jbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jc",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jc_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on carry by jc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnc",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnc_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on not-carry by jnc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "je",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "je_updates_rip",
+            target_register = "rip",
+            role = "conditional jump equal by je",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jne",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jne_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-equal by jne",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jz",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump zero by jz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnz",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-zero by jnz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jg",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jg_updates_rip",
+            target_register = "rip",
+            role = "conditional jump greater-than by jg",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jge",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jge_updates_rip",
+            target_register = "rip",
+            role = "conditional jump greater-or-equal by jge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jl",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jl_updates_rip",
+            target_register = "rip",
+            role = "conditional jump less-than by jl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jle",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jle_updates_rip",
+            target_register = "rip",
+            role = "conditional jump less-or-equal by jle",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jo",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jo_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on overflow by jo",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jno",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jno_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on not-overflow by jno",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "js",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "js_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on sign by js",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jns",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jns_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on not-sign by jns",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jp",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jp_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on parity by jp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnp",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnp_updates_rip",
+            target_register = "rip",
+            role = "conditional jump on not-parity by jnp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jcxz",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jcxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if cx is zero by jcxz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jecxz",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jecxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if ecx is zero by jecxz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jrcxz",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jrcxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if rcx is zero by jrcxz",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
