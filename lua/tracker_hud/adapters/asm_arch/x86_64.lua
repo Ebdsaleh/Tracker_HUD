@@ -1026,6 +1026,146 @@ M.register_effects = {
         },
     },
 
+    -- 'add' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "add",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "add_updates_rflags",
+            target_register = "rflags",
+            role = "updated by add",
+        },
+    },
+
+    -- 'sub' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "sub",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sub_updates_rflags",
+            target_register = "rflags",
+            role = "updated by sub",
+        },
+    },
+
+    -- 'inc' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "inc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "inc_updates_rflags",
+            target_register = "rflags",
+            role = "updated by inc",
+        },
+    },
+
+    -- 'dec' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "dec",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "dec_updates_rflags",
+            target_register = "rflags",
+            role = "updated by dec",
+        },
+    },
+
+    -- 'and' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "and",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "and_updates_rflags",
+            target_register = "rflags",
+            role = "updated by and",
+        },
+    },
+
+    -- 'or' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "or",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "or_updates_rflags",
+            target_register = "rflags",
+            role = "updated by or",
+        },
+    },
+
+    -- 'xor' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "xor",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xor_updates_rflags",
+            target_register = "rflags",
+            role = "updated by xor",
+        },
+    },
+
+    -- 'neg' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "neg",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "neg_updates_rflags",
+            target_register = "rflags",
+            role = "updated by neg",
+        },
+    },
 
 
     -- 'mov rbp, rsp' establishes a stack frame base.
