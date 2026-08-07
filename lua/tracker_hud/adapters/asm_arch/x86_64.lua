@@ -1443,6 +1443,36 @@ M.register_effects = {
         },
     },
 
+    -- 'lahf' loads status flags into AH.
+    {
+        node_type = "instruction",
+        mnemonic = "lahf",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lahf_writes_rax_family",
+            target_register = "rax",
+            role = "loaded status flags into ah by lahf",
+        },
+    },
+
+    -- 'sahf' stores AH into status flags.
+    {
+        node_type = "instruction",
+        mnemonic = "sahf",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sahf_updates_rflags",
+            target_register = "rflags",
+            role = "loaded status flags from ah by sahf",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
