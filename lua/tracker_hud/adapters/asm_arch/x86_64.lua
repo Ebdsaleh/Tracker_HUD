@@ -1197,6 +1197,151 @@ M.register_effects = {
         },
     },
 
+
+    -- 'shl' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "shl",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "shift_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "shl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by shl",
+        },
+    },
+
+    -- 'sal' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "sal",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "shift_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sal_updates_rflags",
+            target_register = "rflags",
+            role = "updated by sal",
+        },
+    },
+
+    -- 'shr' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "shr",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "shift_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "shr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by shr",
+        },
+    },
+
+    -- 'sar' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "sar",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "shift_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sar_updates_rflags",
+            target_register = "rflags",
+            role = "updated by sar",
+        },
+    },
+
+    -- 'rol' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "rol",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "rotate_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rol_updates_rflags",
+            target_register = "rflags",
+            role = "updated by rol",
+        },
+    },
+
+    -- 'ror' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "ror",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "rotate_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "ror_updates_rflags",
+            target_register = "rflags",
+            role = "updated by ror",
+        },
+    },
+
+    -- 'rcl' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "rcl",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "rotate_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rcl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by rcl",
+        },
+    },
+
+    -- 'rcr' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "rcr",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "rotate_count" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rcr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by rcr",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
