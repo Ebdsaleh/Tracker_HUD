@@ -612,16 +612,14 @@ M.register_effects = {
 
         operands = {
             {
-                {
-                    index = 1,
-                    kind = "register",
-                    role = "destination",
-                },
-                {
-                    index = 2,
-                    kind = "integer",
-                    role = "rotate_count",
-                },
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "rotate_count",
             },
         },
 
