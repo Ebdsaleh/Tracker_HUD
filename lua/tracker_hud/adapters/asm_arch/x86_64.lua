@@ -20667,6 +20667,878 @@ M.register_effects = {
     },
 
 
+    -- SSE / SSE2 / SSE3 / SSSE3 / SSE4 legacy SIMD utility visibility effects.
+    -- Phase-one model: no vector register file yet, so most vector-only effects are exposed as RIP-side activity.
+
+    -- SSE3 floating horizontal / add-sub helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "addsubps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addsubps_vector_arithmetic",
+            target_register = "rip",
+            role = "alternating added and subtracted packed single-precision values by addsubps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addsubpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addsubpd_vector_arithmetic",
+            target_register = "rip",
+            role = "alternating added and subtracted packed double-precision values by addsubpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "haddps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "haddps_vector_horizontal",
+            target_register = "rip",
+            role = "horizontally added packed single-precision values by haddps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "haddpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "haddpd_vector_horizontal",
+            target_register = "rip",
+            role = "horizontally added packed double-precision values by haddpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "hsubps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "hsubps_vector_horizontal",
+            target_register = "rip",
+            role = "horizontally subtracted packed single-precision values by hsubps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "hsubpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "hsubpd_vector_horizontal",
+            target_register = "rip",
+            role = "horizontally subtracted packed double-precision values by hsubpd",
+        },
+    },
+
+    -- SSE3 duplication / unaligned load helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsldup",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsldup_vector_duplicate",
+            target_register = "rip",
+            role = "duplicated low packed single-precision lanes by movsldup",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movshdup",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movshdup_vector_duplicate",
+            target_register = "rip",
+            role = "duplicated high packed single-precision lanes by movshdup",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movddup",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movddup_vector_duplicate",
+            target_register = "rip",
+            role = "duplicated low scalar double-precision lane by movddup",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lddqu",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lddqu_vector_load",
+            target_register = "rip",
+            role = "loaded unaligned double-quadword integer data by lddqu",
+        },
+    },
+
+    -- SSE4 blend helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "blendps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blendps_vector_blend",
+            target_register = "rip",
+            role = "blended packed single-precision values by blendps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blendpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blendpd_vector_blend",
+            target_register = "rip",
+            role = "blended packed double-precision values by blendpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blendvps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blendvps_vector_blend",
+            target_register = "rip",
+            role = "variable-blended packed single-precision values by blendvps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blendvpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blendvpd_vector_blend",
+            target_register = "rip",
+            role = "variable-blended packed double-precision values by blendvpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pblendw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pblendw_vector_blend",
+            target_register = "rip",
+            role = "blended packed words by pblendw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pblendvb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pblendvb_vector_blend",
+            target_register = "rip",
+            role = "variable-blended packed bytes by pblendvb",
+        },
+    },
+
+    -- SSE4 insert / extract helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "extractps",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "extractps_writes_gpr",
+            target_operand = 1,
+            role = "written with extracted single-precision lane by extractps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "insertps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "insertps_vector_insert",
+            target_register = "rip",
+            role = "inserted single-precision lane by insertps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pinsrb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pinsrb_vector_insert",
+            target_register = "rip",
+            role = "inserted byte into packed integer vector by pinsrb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pinsrd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pinsrd_vector_insert",
+            target_register = "rip",
+            role = "inserted doubleword into packed integer vector by pinsrd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pinsrq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pinsrq_vector_insert",
+            target_register = "rip",
+            role = "inserted quadword into packed integer vector by pinsrq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pextrb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pextrb_writes_gpr",
+            target_operand = 1,
+            role = "written with extracted byte by pextrb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pextrd",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pextrd_writes_gpr",
+            target_operand = 1,
+            role = "written with extracted doubleword by pextrd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pextrq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pextrq_writes_gpr",
+            target_operand = 1,
+            role = "written with extracted quadword by pextrq",
+        },
+    },
+
+    -- SSE4 packed min/max extended forms.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pminsb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pminsb_vector_minmax",
+            target_register = "rip",
+            role = "selected packed signed byte minimums by pminsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pminsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pminsd_vector_minmax",
+            target_register = "rip",
+            role = "selected packed signed doubleword minimums by pminsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pminuw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pminuw_vector_minmax",
+            target_register = "rip",
+            role = "selected packed unsigned word minimums by pminuw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pminud",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pminud_vector_minmax",
+            target_register = "rip",
+            role = "selected packed unsigned doubleword minimums by pminud",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaxsb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaxsb_vector_minmax",
+            target_register = "rip",
+            role = "selected packed signed byte maximums by pmaxsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaxsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaxsd_vector_minmax",
+            target_register = "rip",
+            role = "selected packed signed doubleword maximums by pmaxsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaxuw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaxuw_vector_minmax",
+            target_register = "rip",
+            role = "selected packed unsigned word maximums by pmaxuw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaxud",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaxud_vector_minmax",
+            target_register = "rip",
+            role = "selected packed unsigned doubleword maximums by pmaxud",
+        },
+    },
+
+    -- SSE4 packed sign/zero extension helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxbw_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed bytes to words by pmovsxbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxbd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxbd_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed bytes to doublewords by pmovsxbd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxbq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxbq_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed bytes to quadwords by pmovsxbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxwd_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed words to doublewords by pmovsxwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxwq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxwq_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed words to quadwords by pmovsxwq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovsxdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovsxdq_vector_extend",
+            target_register = "rip",
+            role = "sign-extended packed doublewords to quadwords by pmovsxdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxbw_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed bytes to words by pmovzxbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxbd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxbd_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed bytes to doublewords by pmovzxbd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxbq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxbq_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed bytes to quadwords by pmovzxbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxwd_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed words to doublewords by pmovzxwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxwq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxwq_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed words to quadwords by pmovzxwq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovzxdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovzxdq_vector_extend",
+            target_register = "rip",
+            role = "zero-extended packed doublewords to quadwords by pmovzxdq",
+        },
+    },
+
+    -- SSE4 packed multiply / test helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmuldq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmuldq_vector_multiply",
+            target_register = "rip",
+            role = "multiplied packed signed doublewords to quadwords by pmuldq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmulld",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmulld_vector_multiply",
+            target_register = "rip",
+            role = "multiplied packed signed doublewords low by pmulld",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ptest",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ptest_updates_rflags",
+            target_register = "rflags",
+            role = "updated by packed integer test ptest",
+        },
+    },
+
+    -- SSE4 string / text comparison helpers.
+    -- These affect implicit integer/vector state, flags, and string-comparison result state.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpestri",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "left_length" },
+            { index = 3, role = "right" },
+            { index = 4, role = "right_length" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpestri_updates_rcx",
+            target_register = "rcx",
+            role = "written with explicit-length string comparison index by pcmpestri",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpestri",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "left_length" },
+            { index = 3, role = "right" },
+            { index = 4, role = "right_length" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpestri_updates_rflags",
+            target_register = "rflags",
+            role = "updated by explicit-length string comparison pcmpestri",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpestrm",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "left_length" },
+            { index = 3, role = "right" },
+            { index = 4, role = "right_length" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpestrm_updates_mask_state",
+            target_register = "rip",
+            role = "produced explicit-length string comparison mask by pcmpestrm",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpestrm",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "left_length" },
+            { index = 3, role = "right" },
+            { index = 4, role = "right_length" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpestrm_updates_rflags",
+            target_register = "rflags",
+            role = "updated by explicit-length string comparison mask pcmpestrm",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpistri",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpistri_updates_rcx",
+            target_register = "rcx",
+            role = "written with implicit-length string comparison index by pcmpistri",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpistri",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpistri_updates_rflags",
+            target_register = "rflags",
+            role = "updated by implicit-length string comparison pcmpistri",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpistrm",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpistrm_updates_mask_state",
+            target_register = "rip",
+            role = "produced implicit-length string comparison mask by pcmpistrm",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpistrm",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpistrm_updates_rflags",
+            target_register = "rflags",
+            role = "updated by implicit-length string comparison mask pcmpistrm",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
