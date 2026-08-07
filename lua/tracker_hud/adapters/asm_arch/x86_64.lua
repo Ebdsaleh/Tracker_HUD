@@ -245,8 +245,87 @@ M.register_effects = {
         },
     },
 
-     -- 'mov rbp, rsp' establishes a stack frame base.
-     {
+    -- 'movzx reg, reg' writes a zero-extended source register value.
+    {
+        node_type = "instruction",
+        mnemonic = "movzx",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "movzx_register_register",
+            target_operand = 1,
+            role = "zero-extended from register by movzx",
+        },
+    },
+
+    -- 'movsx reg, reg' writes a sign-extended source register value.
+    {
+        node_type = "instruction",
+        mnemonic - "movsx",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "movsx_register_register",
+            target_operand = 1,
+            role = "sign-extended from register by movsx",
+        },
+    },
+
+
+    -- 'movsxd reg, reg' writes a sign-extended dword source register value.
+    {
+        node_type = "instruction",
+        mnemonic = "movsxd",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destintion",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxd_register_register",
+            target_operand = 1,
+            role = "sign-extended dword from register by movsxd",
+        },
+    },
+
+
+    -- 'mov rbp, rsp' establishes a stack frame base.
+    {
         node_type = "instruction",
         mnemonic = "mov",
 
@@ -272,7 +351,7 @@ M.register_effects = {
             value_from_register_operand = 2,
             role = "established frame base from rsp",
         },
-     },
+    },
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
