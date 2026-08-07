@@ -4808,6 +4808,270 @@ M.register_effects = {
         },
     },
 
+    -- 'movsw' advances the string source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "movsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movsw_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsw",
+        },
+    },
+
+    -- 'movsw' advances the string destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "movsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movsw_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsw",
+        },
+    },
+
+    -- 'movsd' advances the string source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "movsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movsd_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsd",
+        },
+    },
+
+    -- 'movsd' advances the string destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "movsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movsd_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsd",
+        },
+    },
+
+    -- 'lodsw' loads a word into ax.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lodsw_writes_rax",
+            target_register = "rax",
+            role = "loaded word into ax by lodsw",
+            written_alias = "ax",
+        },
+    },
+
+    -- 'lodsw' advances the string source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lodsw_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsw",
+        },
+    },
+
+    -- 'lodsd' loads a doubleword into eax.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lodsd_writes_rax",
+            target_register = "rax",
+            role = "loaded doubleword into eax by lodsd",
+            written_alias = "eax",
+        },
+    },
+
+    -- 'lodsd' advances the string source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lodsd_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsd",
+        },
+    },
+
+    -- 'stosw' stores ax and advances the string destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "stosw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "stosw_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosw",
+        },
+    },
+
+    -- 'stosd' stores eax and advances the string destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "stosd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "stosd_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosd",
+        },
+    },
+
+    -- 'scasw' compares ax with memory and advances the destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "scasw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scasw_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasw",
+        },
+    },
+
+    -- 'scasw' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scasw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasw",
+        },
+    },
+
+    -- 'scasd' compares eax with memory and advances the destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "scasd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scasd_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasd",
+        },
+    },
+
+    -- 'scasd' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scasd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasd",
+        },
+    },
+
+    -- 'cmpsw' compares words and advances the source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsw",
+        },
+    },
+
+    -- 'cmpsw' compares words and advances the destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsw",
+        },
+    },
+
+    -- 'cmpsw' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsw",
+        },
+    },
+
+    -- 'cmpsd' compares doublewords and advances the source pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_advances_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsd",
+        },
+    },
+
+    -- 'cmpsd' compares doublewords and advances the destination pointer.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_advances_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsd",
+        },
+    },
+
+    -- 'cmpsd' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsd",
+        },
+    },
+
+
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
