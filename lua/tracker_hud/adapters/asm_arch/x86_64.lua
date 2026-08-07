@@ -796,6 +796,176 @@ M.register_effects = {
         },
     },
 
+
+    -- 'mul reg' implicitly writes rax.
+    {
+        node_type = "instruction",
+        mnemonic = "mul",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "multiplier",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mul_writes_rax",
+            target_register = "rax",
+            role = "written by unsigned multiply",
+        },
+    },
+
+    -- 'mul reg' implicitly writes rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "mul",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "multiplier",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "mul_writes_rdx",
+            target_register = "rdx",
+            role = "written by unsigned multiply high result",
+        },
+    },
+
+    -- 'imul reg' implicitly writes rax.
+    {
+        node_type = "instruction",
+        mnemonic = "imul",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "multiplier",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "imul_writes_rax",
+            target_register = "rax",
+            role = "written by signed multiply",
+        },
+    },
+
+    -- 'imul reg' implicitly writes rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "imul",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "multiplier",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "imul_writes_rdx",
+            target_register = "rdx",
+            role = "written by signed multiply high result",
+        },
+    },
+
+    -- 'div reg' implicitly writes quotient to rax.
+    {
+        node_type = "instruction",
+        mnemonic = "div",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "divisor",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "div_writes_rax",
+            target_register = "rax",
+            role = "written with unsigned division quotient",
+        },
+    },
+
+    -- 'div reg' implicitly writes remainder to rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "div",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "divisor",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "div_writes_rdx",
+            target_register = "rdx",
+            role = "written with unsigned division remainder",
+        },
+    },
+
+    -- 'idiv reg' implicitly writes quotient to rax.
+    {
+        node_type = "instruction",
+        mnemonic = "idiv",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "divisor",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "idiv_writes_rax",
+            target_register = "rax",
+            role = "written with signed division quotient",
+        },
+    },
+
+    -- 'idiv reg' implicitly writes remainder to rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "idiv",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "divisor",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "idiv_writes_rdx",
+            target_register = "rdx",
+            role = "written with signed division remainder",
+        },
+    },
+
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
