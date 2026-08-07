@@ -19637,6 +19637,1036 @@ M.register_effects = {
     },
 
 
+    -- AVX-512 special floating-point math / rotate / variable-shift / accelerator visibility effects.
+    -- Phase-one model: no vector register file yet, so vector-only effects are exposed as RIP-side activity.
+
+    -- AVX-512 range / reduction helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrangeps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrangeps_vector_range",
+            target_register = "rip",
+            role = "computed packed single-precision range values by vrangeps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrangepd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrangepd_vector_range",
+            target_register = "rip",
+            role = "computed packed double-precision range values by vrangepd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrangess",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrangess_scalar_range",
+            target_register = "rip",
+            role = "computed scalar single-precision range value by vrangess",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrangesd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrangesd_scalar_range",
+            target_register = "rip",
+            role = "computed scalar double-precision range value by vrangesd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vreduceps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vreduceps_vector_reduce",
+            target_register = "rip",
+            role = "reduced packed single-precision values by vreduceps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vreducepd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vreducepd_vector_reduce",
+            target_register = "rip",
+            role = "reduced packed double-precision values by vreducepd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vreducess",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vreducess_scalar_reduce",
+            target_register = "rip",
+            role = "reduced scalar single-precision value by vreducess",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vreducesd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vreducesd_scalar_reduce",
+            target_register = "rip",
+            role = "reduced scalar double-precision value by vreducesd",
+        },
+    },
+
+    -- AVX-512 exponent / mantissa helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetexpps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetexpps_vector_extract_exponent",
+            target_register = "rip",
+            role = "extracted packed single-precision exponents by vgetexpps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetexppd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetexppd_vector_extract_exponent",
+            target_register = "rip",
+            role = "extracted packed double-precision exponents by vgetexppd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetexpss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetexpss_scalar_extract_exponent",
+            target_register = "rip",
+            role = "extracted scalar single-precision exponent by vgetexpss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetexpsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetexpsd_scalar_extract_exponent",
+            target_register = "rip",
+            role = "extracted scalar double-precision exponent by vgetexpsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetmantps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetmantps_vector_extract_mantissa",
+            target_register = "rip",
+            role = "extracted packed single-precision mantissas by vgetmantps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetmantpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetmantpd_vector_extract_mantissa",
+            target_register = "rip",
+            role = "extracted packed double-precision mantissas by vgetmantpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetmantss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetmantss_scalar_extract_mantissa",
+            target_register = "rip",
+            role = "extracted scalar single-precision mantissa by vgetmantss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgetmantsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgetmantsd_scalar_extract_mantissa",
+            target_register = "rip",
+            role = "extracted scalar double-precision mantissa by vgetmantsd",
+        },
+    },
+
+    -- AVX-512 fixup immediate helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfixupimmps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfixupimmps_vector_fixup",
+            target_register = "rip",
+            role = "fixed up packed single-precision special values by vfixupimmps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfixupimmpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfixupimmpd_vector_fixup",
+            target_register = "rip",
+            role = "fixed up packed double-precision special values by vfixupimmpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfixupimmss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfixupimmss_scalar_fixup",
+            target_register = "rip",
+            role = "fixed up scalar single-precision special value by vfixupimmss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfixupimmsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfixupimmsd_scalar_fixup",
+            target_register = "rip",
+            role = "fixed up scalar double-precision special value by vfixupimmsd",
+        },
+    },
+
+    -- AVX-512 reciprocal / reciprocal-square-root approximation helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp14ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp14ps_vector_reciprocal",
+            target_register = "rip",
+            role = "computed approximate packed single-precision reciprocals by vrcp14ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp14pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp14pd_vector_reciprocal",
+            target_register = "rip",
+            role = "computed approximate packed double-precision reciprocals by vrcp14pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp14ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp14ss_scalar_reciprocal",
+            target_register = "rip",
+            role = "computed approximate scalar single-precision reciprocal by vrcp14ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp14sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp14sd_scalar_reciprocal",
+            target_register = "rip",
+            role = "computed approximate scalar double-precision reciprocal by vrcp14sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt14ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt14ps_vector_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed approximate packed single-precision reciprocal square roots by vrsqrt14ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt14pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt14pd_vector_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed approximate packed double-precision reciprocal square roots by vrsqrt14pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt14ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt14ss_scalar_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed approximate scalar single-precision reciprocal square root by vrsqrt14ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt14sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt14sd_scalar_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed approximate scalar double-precision reciprocal square root by vrsqrt14sd",
+        },
+    },
+
+    -- AVX-512ER approximate math helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp28ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp28ps_vector_reciprocal",
+            target_register = "rip",
+            role = "computed high-precision approximate packed single-precision reciprocals by vrcp28ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp28pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp28pd_vector_reciprocal",
+            target_register = "rip",
+            role = "computed high-precision approximate packed double-precision reciprocals by vrcp28pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp28ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp28ss_scalar_reciprocal",
+            target_register = "rip",
+            role = "computed high-precision approximate scalar single-precision reciprocal by vrcp28ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrcp28sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrcp28sd_scalar_reciprocal",
+            target_register = "rip",
+            role = "computed high-precision approximate scalar double-precision reciprocal by vrcp28sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt28ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt28ps_vector_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed high-precision approximate packed single-precision reciprocal square roots by vrsqrt28ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt28pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt28pd_vector_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed high-precision approximate packed double-precision reciprocal square roots by vrsqrt28pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt28ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt28ss_scalar_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed high-precision approximate scalar single-precision reciprocal square root by vrsqrt28ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vrsqrt28sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vrsqrt28sd_scalar_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed high-precision approximate scalar double-precision reciprocal square root by vrsqrt28sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vexp2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vexp2ps_vector_exponential",
+            target_register = "rip",
+            role = "computed approximate packed single-precision powers of two by vexp2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vexp2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vexp2pd_vector_exponential",
+            target_register = "rip",
+            role = "computed approximate packed double-precision powers of two by vexp2pd",
+        },
+    },
+
+    -- AVX-512 scale floating-point values.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscalefps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "scale" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscalefps_vector_scale",
+            target_register = "rip",
+            role = "scaled packed single-precision values by powers of two by vscalefps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscalefpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "scale" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscalefpd_vector_scale",
+            target_register = "rip",
+            role = "scaled packed double-precision values by powers of two by vscalefpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscalefss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "scale" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscalefss_scalar_scale",
+            target_register = "rip",
+            role = "scaled scalar single-precision value by power of two by vscalefss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscalefsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "scale" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscalefsd_scalar_scale",
+            target_register = "rip",
+            role = "scaled scalar double-precision value by power of two by vscalefsd",
+        },
+    },
+
+    -- AVX-512 integer rotates.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprold",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprold_vector_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords left by vprold",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprolq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprolq_vector_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords left by vprolq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprord",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprord_vector_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords right by vprord",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprorq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprorq_vector_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords right by vprorq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprolvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprolvd_vector_variable_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords left by variable counts by vprolvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprolvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprolvq_vector_variable_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords left by variable counts by vprolvq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprorvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprorvd_vector_variable_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords right by variable counts by vprorvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprorvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprorvq_vector_variable_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords right by variable counts by vprorvq",
+        },
+    },
+
+    -- AVX-512 variable vector shifts.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsllvw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsllvw_vector_variable_shift",
+            target_register = "rip",
+            role = "shifted packed words left by variable counts by vpsllvw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsllvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsllvd_vector_variable_shift",
+            target_register = "rip",
+            role = "shifted packed doublewords left by variable counts by vpsllvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsllvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsllvq_vector_variable_shift",
+            target_register = "rip",
+            role = "shifted packed quadwords left by variable counts by vpsllvq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsrlvw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsrlvw_vector_variable_shift",
+            target_register = "rip",
+            role = "logically shifted packed words right by variable counts by vpsrlvw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsrlvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsrlvd_vector_variable_shift",
+            target_register = "rip",
+            role = "logically shifted packed doublewords right by variable counts by vpsrlvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsrlvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsrlvq_vector_variable_shift",
+            target_register = "rip",
+            role = "logically shifted packed quadwords right by variable counts by vpsrlvq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsravw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsravw_vector_variable_shift",
+            target_register = "rip",
+            role = "arithmetically shifted packed words right by variable counts by vpsravw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsravd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsravd_vector_variable_shift",
+            target_register = "rip",
+            role = "arithmetically shifted packed doublewords right by variable counts by vpsravd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpsravq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpsravq_vector_variable_shift",
+            target_register = "rip",
+            role = "arithmetically shifted packed quadwords right by variable counts by vpsravq",
+        },
+    },
+
+    -- Rare AVX-512 accelerator helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "v4fmaddps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source_group" },
+            { index = 3, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "v4fmaddps_vector_accelerator",
+            target_register = "rip",
+            role = "performed four packed single-precision fused multiply-adds by v4fmaddps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "v4fnmaddps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source_group" },
+            { index = 3, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "v4fnmaddps_vector_accelerator",
+            target_register = "rip",
+            role = "performed four negative packed single-precision fused multiply-adds by v4fnmaddps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vp4dpwssd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source_group" },
+            { index = 3, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vp4dpwssd_vector_accelerator",
+            target_register = "rip",
+            role = "performed four signed word dot-products into doublewords by vp4dpwssd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vp4dpwssds",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source_group" },
+            { index = 3, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vp4dpwssds_vector_accelerator",
+            target_register = "rip",
+            role = "performed four saturating signed word dot-products into doublewords by vp4dpwssds",
+        },
+    },
+
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
