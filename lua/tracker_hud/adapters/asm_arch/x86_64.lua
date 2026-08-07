@@ -2397,6 +2397,1221 @@ M.register_effects = {
         },
     },
 
+
+    -- 'bswap reg' byte-swaps a register.
+    {
+        node_type = "instruction",
+        mnemonic = "bswap",
+
+        operands = {
+            { index = 1, kind = "register", role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "bswap_register",
+            target_operand = 1,
+            role = "byte-swapped by bswap",
+        },
+    },
+
+    -- 'xadd dest, src' exchanges and adds, mutating the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "xadd",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xadd_mutates_destination",
+            target_operand = 1,
+            role = "exchanged and added by xadd",
+        },
+    },
+
+    -- 'xadd dest, src' exchanges and adds, also writing the source register.
+    {
+        node_type = "instruction",
+        mnemonic = "xadd",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xadd_writes_source",
+            target_operand = 2,
+            role = "received original destination by xadd",
+        },
+    },
+
+    -- 'cmpxchg dest, src' conditionally writes the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg_conditional_destination",
+            target_operand = 1,
+            role = "conditionally exchanged by cmpxchg",
+        },
+    },
+
+    -- 'cmpxchg dest, src' can update rax/eax/ax/al on comparison failure.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg",
+
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg_updates_accumulator",
+            target_register = "rax",
+            role = "conditionally updated by cmpxchg comparison",
+        },
+    },
+
+    -- 'cmpxchg' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg",
+
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpxchg",
+        },
+    },
+
+    -- 'cmpxchg8b' uses eax/edx as comparison input/output.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg8b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg8b_updates_rax",
+            target_register = "rax",
+            role = "updated by cmpxchg8b comparison",
+        },
+    },
+
+    -- 'cmpxchg8b' uses edx as comparison input/output.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg8b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg8b_updates_rdx",
+            target_register = "rdx",
+            role = "updated by cmpxchg8b comparison",
+        },
+    },
+
+    -- 'cmpxchg8b' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg8b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg8b_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpxchg8b",
+        },
+    },
+
+    -- 'cmpxchg16b' uses rax as comparison input/output.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg16b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg16b_updates_rax",
+            target_register = "rax",
+            role = "updated by cmpxchg16b comparison",
+        },
+    },
+
+    -- 'cmpxchg16b' uses rdx as comparison input/output.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg16b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg16b_updates_rdx",
+            target_register = "rdx",
+            role = "updated by cmpxchg16b comparison",
+        },
+    },
+
+    -- 'cmpxchg16b' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpxchg16b",
+
+        operands = {
+            { index = 1, role = "memory" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "cmpxchg16b_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpxchg16b",
+        },
+    },
+
+    -- 'rdtsc' writes the low timestamp bits to eax/rax.
+    {
+        node_type = "instruction",
+        mnemonic = "rdtsc",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "rdtsc_writes_rax",
+            target_register = "rax",
+            role = "written with timestamp low result by rdtsc",
+        },
+    },
+
+    -- 'rdtsc' writes the high timestamp bits to edx/rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "rdtsc",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "rdtsc_writes_rdx",
+            target_register = "rdx",
+            role = "written with timestamp high result by rdtsc",
+        },
+    },
+
+    -- 'rdtscp' writes the low timestamp bits to eax/rax.
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rax",
+            target_register = "rax",
+            role = "written with timestamp low result by rdtscp",
+        },
+    },
+
+    -- 'rdtscp' writes the high timestamp bits to edx/rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rdx",
+            target_register = "rdx",
+            role = "written with timestamp high result by rdtscp",
+        },
+    },
+
+    -- 'rdtscp' writes the processor id/result metadata to ecx/rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rcx",
+            target_register = "rcx",
+            role = "written with processor id by rdtscp",
+        },
+    },
+
+    -- 'rdrand reg' writes a hardware random value to the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "rdrand",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rdrand_register",
+            target_operand = 1,
+            role = "written with hardware random value by rdrand",
+        },
+    },
+
+    -- 'rdrand' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "rdrand",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rdrand_updates_rflags",
+            target_register = "rflags",
+            role = "updated by rdrand",
+        },
+    },
+
+    -- 'rdseed reg' writes a hardware seed value to the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "rdseed",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rdseed_register",
+            target_operand = 1,
+            role = "written with hardware seed value by rdseed",
+        },
+    },
+
+    -- 'rdseed' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "rdseed",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rdseed_updates_rflags",
+            target_register = "rflags",
+            role = "updated by rdseed",
+        },
+    },
+
+    -- 'xlatb' writes a translated table byte into al.
+    {
+        node_type = "instruction",
+        mnemonic = "xlatb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "xlatb_writes_rax",
+            target_register = "rax",
+            role = "loaded translated byte into al by xlatb",
+        },
+    },
+
+    -- 'in dest, port' writes input-port data to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "in",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "port" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "in_writes_register",
+            target_operand = 1,
+            role = "written from input port by in",
+        },
+    },
+
+    -- 'outsb' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "outsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "outsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by outsb",
+        },
+    },
+
+    -- 'outsw' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "outsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "outsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by outsw",
+        },
+    },
+
+    -- 'outsd' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "outsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "outsd_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by outsd",
+        },
+    },
+
+    -- 'insb' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "insb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "insb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by insb",
+        },
+    },
+
+    -- 'insw' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "insw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "insw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by insw",
+        },
+    },
+
+    -- 'insd' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "insd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "insd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by insd",
+        },
+    },
+
+    -- 'movsb' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsb",
+        },
+    },
+
+    -- 'movsb' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsb",
+        },
+    },
+
+    -- 'movsw' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsw",
+        },
+    },
+
+    -- 'movsw' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsw",
+        },
+    },
+
+    -- 'movsd' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsd_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsd",
+        },
+    },
+
+    -- 'movsd' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsd",
+        },
+    },
+
+    -- 'movsq' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by movsq",
+        },
+    },
+
+    -- 'movsq' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "movsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "movsq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by movsq",
+        },
+    },
+
+    -- 'stosb' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "stosb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stosb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosb",
+        },
+    },
+
+    -- 'stosw' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "stosw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stosw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosw",
+        },
+    },
+
+    -- 'stosd' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "stosd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stosd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosd",
+        },
+    },
+
+    -- 'stosq' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "stosq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stosq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by stosq",
+        },
+    },
+
+    -- 'lodsb' loads a byte into al.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsb_writes_rax",
+            target_register = "rax",
+            role = "loaded byte into al by lodsb",
+        },
+    },
+
+    -- 'lodsb' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsb",
+        },
+    },
+
+    -- 'lodsw' loads a word into ax.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsw_writes_rax",
+            target_register = "rax",
+            role = "loaded word into ax by lodsw",
+        },
+    },
+
+    -- 'lodsw' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsw",
+        },
+    },
+
+    -- 'lodsd' loads a dword into eax.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsd_writes_rax",
+            target_register = "rax",
+            role = "loaded dword into eax by lodsd",
+        },
+    },
+
+    -- 'lodsd' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsd_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsd",
+        },
+    },
+
+    -- 'lodsq' loads a qword into rax.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsq_writes_rax",
+            target_register = "rax",
+            role = "loaded qword into rax by lodsq",
+        },
+    },
+
+    -- 'lodsq' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "lodsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "lodsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by lodsq",
+        },
+    },
+
+    -- 'scasb' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "scasb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasb",
+        },
+    },
+
+    -- 'scasb' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasb",
+        },
+    },
+
+    -- 'scasw' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "scasw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasw",
+        },
+    },
+
+    -- 'scasw' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasw",
+        },
+    },
+
+    -- 'scasd' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "scasd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasd",
+        },
+    },
+
+    -- 'scasd' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasd",
+        },
+    },
+
+    -- 'scasq' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "scasq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by scasq",
+        },
+    },
+
+    -- 'scasq' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "scasq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "scasq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scasq",
+        },
+    },
+
+    -- 'cmpsb' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsb",
+        },
+    },
+
+    -- 'cmpsb' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsb",
+        },
+    },
+
+    -- 'cmpsb' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsb",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsb",
+        },
+    },
+
+    -- 'cmpsw' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsw",
+        },
+    },
+
+    -- 'cmpsw' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsw",
+        },
+    },
+
+    -- 'cmpsw' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsw",
+        },
+    },
+
+    -- 'cmpsd' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsd",
+        },
+    },
+
+    -- 'cmpsd' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsd",
+        },
+    },
+
+    -- 'cmpsd' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsd",
+        },
+    },
+
+    -- 'cmpsq' advances rsi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by cmpsq",
+        },
+    },
+
+    -- 'cmpsq' advances rdi.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by cmpsq",
+        },
+    },
+
+    -- 'cmpsq' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmpsq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by cmpsq",
+        },
+    },
+
+    -- 'loop' decrements rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "loop",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "loop_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loop",
+        },
+    },
+
+    -- 'loope' decrements rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "loope",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "loope_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loope",
+        },
+    },
+
+    -- 'loopz' decrements rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "loopz",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "loopz_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopz",
+        },
+    },
+
+    -- 'loopne' decrements rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "loopne",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "loopne_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopne",
+        },
+    },
+
+    -- 'loopnz' decrements rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "loopnz",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "loopnz_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopnz",
+        },
+    },
+
+    -- 'call target' changes rip.
+    {
+        node_type = "instruction",
+        mnemonic = "call",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "call_updates_rip",
+            target_register = "rip",
+            role = "changed by call",
+        },
+    },
+
+    -- 'ret' changes rip.
+    {
+        node_type = "instruction",
+        mnemonic = "ret",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "ret_updates_rip",
+            target_register = "rip",
+            role = "restored from return address by ret",
+        },
+    },
+
+    -- 'jmp target' changes rip.
+    {
+        node_type = "instruction",
+        mnemonic = "jmp",
+
+        operands = {
+            { index = 1, role = "target" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "jmp_updates_rip",
+            target_register = "rip",
+            role = "changed by jmp",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
