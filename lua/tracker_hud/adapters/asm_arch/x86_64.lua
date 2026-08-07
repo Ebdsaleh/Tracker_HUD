@@ -23060,7 +23060,6 @@ M.register_effects = {
     },
 
 
-
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
