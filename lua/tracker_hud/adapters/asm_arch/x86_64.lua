@@ -14843,6 +14843,1526 @@ M.register_effects = {
     },
 
 
+    -- AVX-512 / EVEX / mask-register visibility effects.
+    -- Phase-one model: no k-register or zmm-register file yet, so most effects are exposed as RIP-side activity.
+
+    -- Mask register moves and logic.
+
+    {
+        node_type = "instruction",
+        mnemonic = "kmovb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kmovb_mask_move",
+            target_register = "rip",
+            role = "moved byte mask register state by kmovb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kmovw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kmovw_mask_move",
+            target_register = "rip",
+            role = "moved word mask register state by kmovw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kmovd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kmovd_mask_move",
+            target_register = "rip",
+            role = "moved doubleword mask register state by kmovd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kmovq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kmovq_mask_move",
+            target_register = "rip",
+            role = "moved quadword mask register state by kmovq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandb_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and byte mask state by kandb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandw_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and word mask state by kandw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandd_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and doubleword mask state by kandd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandq_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and quadword mask state by kandq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandnb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandnb_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and-not byte mask state by kandnb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandnw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandnw_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and-not word mask state by kandnw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandnd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandnd_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and-not doubleword mask state by kandnd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kandnq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kandnq_mask_logic",
+            target_register = "rip",
+            role = "bitwise-and-not quadword mask state by kandnq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "korb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "korb_mask_logic",
+            target_register = "rip",
+            role = "bitwise-or byte mask state by korb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "korw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "korw_mask_logic",
+            target_register = "rip",
+            role = "bitwise-or word mask state by korw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kord",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kord_mask_logic",
+            target_register = "rip",
+            role = "bitwise-or doubleword mask state by kord",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "korq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "korq_mask_logic",
+            target_register = "rip",
+            role = "bitwise-or quadword mask state by korq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kxorb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kxorb_mask_logic",
+            target_register = "rip",
+            role = "bitwise-xor byte mask state by kxorb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kxorw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kxorw_mask_logic",
+            target_register = "rip",
+            role = "bitwise-xor word mask state by kxorw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kxord",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kxord_mask_logic",
+            target_register = "rip",
+            role = "bitwise-xor doubleword mask state by kxord",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kxorq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kxorq_mask_logic",
+            target_register = "rip",
+            role = "bitwise-xor quadword mask state by kxorq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "knotb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "knotb_mask_logic",
+            target_register = "rip",
+            role = "bitwise-inverted byte mask state by knotb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "knotw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "knotw_mask_logic",
+            target_register = "rip",
+            role = "bitwise-inverted word mask state by knotw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "knotd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "knotd_mask_logic",
+            target_register = "rip",
+            role = "bitwise-inverted doubleword mask state by knotd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "knotq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "knotq_mask_logic",
+            target_register = "rip",
+            role = "bitwise-inverted quadword mask state by knotq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kaddb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kaddb_mask_add",
+            target_register = "rip",
+            role = "added byte mask state by kaddb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kaddw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kaddw_mask_add",
+            target_register = "rip",
+            role = "added word mask state by kaddw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kaddd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kaddd_mask_add",
+            target_register = "rip",
+            role = "added doubleword mask state by kaddd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kaddq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kaddq_mask_add",
+            target_register = "rip",
+            role = "added quadword mask state by kaddq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftlb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftlb_mask_shift",
+            target_register = "rip",
+            role = "shifted byte mask state left by kshiftlb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftlw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftlw_mask_shift",
+            target_register = "rip",
+            role = "shifted word mask state left by kshiftlw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftld",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftld_mask_shift",
+            target_register = "rip",
+            role = "shifted doubleword mask state left by kshiftld",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftlq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftlq_mask_shift",
+            target_register = "rip",
+            role = "shifted quadword mask state left by kshiftlq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftrb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftrb_mask_shift",
+            target_register = "rip",
+            role = "shifted byte mask state right by kshiftrb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftrw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftrw_mask_shift",
+            target_register = "rip",
+            role = "shifted word mask state right by kshiftrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftrd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftrd_mask_shift",
+            target_register = "rip",
+            role = "shifted doubleword mask state right by kshiftrd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kshiftrq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kshiftrq_mask_shift",
+            target_register = "rip",
+            role = "shifted quadword mask state right by kshiftrq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kortestb",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kortestb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte mask or-test kortestb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kortestw",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kortestw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word mask or-test kortestw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kortestd",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kortestd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by doubleword mask or-test kortestd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "kortestq",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "kortestq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword mask or-test kortestq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ktestb",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ktestb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte mask test ktestb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ktestw",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ktestw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word mask test ktestw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ktestd",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ktestd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by doubleword mask test ktestd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ktestq",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ktestq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword mask test ktestq",
+        },
+    },
+
+    -- AVX-512 compress / expand.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcompressps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcompressps_vector_compress",
+            target_register = "rip",
+            role = "compressed packed single-precision values by vcompressps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcompresspd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcompresspd_vector_compress",
+            target_register = "rip",
+            role = "compressed packed double-precision values by vcompresspd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcompressd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcompressd_vector_compress",
+            target_register = "rip",
+            role = "compressed packed doubleword integers by vpcompressd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcompressq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcompressq_vector_compress",
+            target_register = "rip",
+            role = "compressed packed quadword integers by vpcompressq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vexpandps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vexpandps_vector_expand",
+            target_register = "rip",
+            role = "expanded packed single-precision values by vexpandps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vexpandpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vexpandpd_vector_expand",
+            target_register = "rip",
+            role = "expanded packed double-precision values by vexpandpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpexpandd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpexpandd_vector_expand",
+            target_register = "rip",
+            role = "expanded packed doubleword integers by vpexpandd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpexpandq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpexpandq_vector_expand",
+            target_register = "rip",
+            role = "expanded packed quadword integers by vpexpandq",
+        },
+    },
+
+    -- AVX-512 scatter.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscatterdps",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscatterdps_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed single-precision values by vscatterdps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscatterdpd",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscatterdpd_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed double-precision values by vscatterdpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscatterqps",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscatterqps_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed single-precision values with quadword indices by vscatterqps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vscatterqpd",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vscatterqpd_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed double-precision values with quadword indices by vscatterqpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpscatterdd",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpscatterdd_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed doubleword integers by vpscatterdd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpscatterdq",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpscatterdq_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed quadword integers with doubleword indices by vpscatterdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpscatterqd",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpscatterqd_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed doubleword integers with quadword indices by vpscatterqd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpscatterqq",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "mask" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpscatterqq_vector_scatter",
+            target_register = "rip",
+            role = "scattered packed quadword integers by vpscatterqq",
+        },
+    },
+
+    -- AVX-512 conflict / ternary logic / leading-zero helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpconflictd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpconflictd_vector_conflict",
+            target_register = "rip",
+            role = "detected packed doubleword conflicts by vpconflictd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpconflictq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpconflictq_vector_conflict",
+            target_register = "rip",
+            role = "detected packed quadword conflicts by vpconflictq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpternlogd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "truth_table" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpternlogd_vector_logic",
+            target_register = "rip",
+            role = "applied ternary logic to packed doublewords by vpternlogd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpternlogq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "truth_table" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpternlogq_vector_logic",
+            target_register = "rip",
+            role = "applied ternary logic to packed quadwords by vpternlogq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vplzcntd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vplzcntd_vector_count",
+            target_register = "rip",
+            role = "counted leading zero bits in packed doublewords by vplzcntd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vplzcntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vplzcntq_vector_count",
+            target_register = "rip",
+            role = "counted leading zero bits in packed quadwords by vplzcntq",
+        },
+    },
+
+    -- AVX-512 broadcast extensions.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpbroadcastb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpbroadcastb_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast byte integer by vpbroadcastb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpbroadcastw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpbroadcastw_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast word integer by vpbroadcastw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpbroadcastd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpbroadcastd_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast doubleword integer by vpbroadcastd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpbroadcastq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpbroadcastq_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast quadword integer by vpbroadcastq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastf32x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastf32x2_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast two packed single-precision values by vbroadcastf32x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastf32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastf32x4_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast four packed single-precision values by vbroadcastf32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastf32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastf32x8_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast eight packed single-precision values by vbroadcastf32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastf64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastf64x2_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast two packed double-precision values by vbroadcastf64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastf64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastf64x4_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast four packed double-precision values by vbroadcastf64x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti32x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti32x2_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast two packed doubleword integers by vbroadcasti32x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti32x4_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast four packed doubleword integers by vbroadcasti32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti32x8_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast eight packed doubleword integers by vbroadcasti32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti64x2_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast two packed quadword integers by vbroadcasti64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti64x4_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast four packed quadword integers by vbroadcasti64x4",
+        },
+    },
+
+    -- AVX-512 insert/extract wider lanes.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextractf32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextractf32x4_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit single-precision lane by vextractf32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextractf32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextractf32x8_vector_extract",
+            target_register = "rip",
+            role = "extracted 256-bit single-precision lane by vextractf32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextractf64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextractf64x2_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit double-precision lane by vextractf64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextractf64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextractf64x4_vector_extract",
+            target_register = "rip",
+            role = "extracted 256-bit double-precision lane by vextractf64x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextracti32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextracti32x4_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit doubleword integer lane by vextracti32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextracti32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextracti32x8_vector_extract",
+            target_register = "rip",
+            role = "extracted 256-bit doubleword integer lane by vextracti32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextracti64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextracti64x2_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit quadword integer lane by vextracti64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextracti64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextracti64x4_vector_extract",
+            target_register = "rip",
+            role = "extracted 256-bit quadword integer lane by vextracti64x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinsertf32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinsertf32x4_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit single-precision lane by vinsertf32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinsertf32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinsertf32x8_vector_insert",
+            target_register = "rip",
+            role = "inserted 256-bit single-precision lane by vinsertf32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinsertf64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinsertf64x2_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit double-precision lane by vinsertf64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinsertf64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinsertf64x4_vector_insert",
+            target_register = "rip",
+            role = "inserted 256-bit double-precision lane by vinsertf64x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinserti32x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinserti32x4_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit doubleword integer lane by vinserti32x4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinserti32x8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinserti32x8_vector_insert",
+            target_register = "rip",
+            role = "inserted 256-bit doubleword integer lane by vinserti32x8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinserti64x2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinserti64x2_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit quadword integer lane by vinserti64x2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinserti64x4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+            { index = 4, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinserti64x4_vector_insert",
+            target_register = "rip",
+            role = "inserted 256-bit quadword integer lane by vinserti64x4",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
