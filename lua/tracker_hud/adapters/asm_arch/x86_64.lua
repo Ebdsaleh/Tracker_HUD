@@ -1473,6 +1473,516 @@ M.register_effects = {
         },
     },
 
+    -- 'seto reg' writes a byte from overflow-flag condition.
+    {
+        node_type = "instruction",
+        mnemonic = "seto",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "seto_register",
+            target_operand = 1,
+            role = "set byte from overflow condition",
+        },
+    },
+
+    -- 'setno reg' writes a byte from not-overflow condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setno",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setno_register",
+            target_operand = 1,
+            role = "set byte from not-overflow condition",
+        },
+    },
+
+    -- 'setb reg' writes a byte from below/carry condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setb",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setb_register",
+            target_operand = 1,
+            role = "set byte from below condition",
+        },
+    },
+
+    -- 'setnae reg' writes a byte from not-above-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnae",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnae_register",
+            target_operand = 1,
+            role = "set byte from not-above-or-equal condition",
+        },
+    },
+
+    -- 'setc reg' writes a byte from carry condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setc_register",
+            target_operand = 1,
+            role = "set byte from carry condition",
+        },
+    },
+
+    -- 'setae reg' writes a byte from above-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setae",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setae_register",
+            target_operand = 1,
+            role = "set byte from above-or-equal condition",
+        },
+    },
+
+    -- 'setnb reg' writes a byte from not-below condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnb",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnb_register",
+            target_operand = 1,
+            role = "set byte from not-below condition",
+        },
+    },
+
+    -- 'setnc reg' writes a byte from not-carry condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnc_register",
+            target_operand = 1,
+            role = "set byte from not-carry condition",
+        },
+    },
+
+    -- 'sete reg' writes a byte from equal/zero condition.
+    {
+        node_type = "instruction",
+        mnemonic = "sete",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sete_register",
+            target_operand = 1,
+            role = "set byte from equal condition",
+        },
+    },
+
+    -- 'setz reg' writes a byte from zero condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setz",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setz_register",
+            target_operand = 1,
+            role = "set byte from zero condition",
+        },
+    },
+
+    -- 'setne reg' writes a byte from not-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setne",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setne_register",
+            target_operand = 1,
+            role = "set byte from not-equal condition",
+        },
+    },
+
+    -- 'setnz reg' writes a byte from not-zero condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnz",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnz_register",
+            target_operand = 1,
+            role = "set byte from not-zero condition",
+        },
+    },
+
+    -- 'setbe reg' writes a byte from below-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setbe",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setbe_register",
+            target_operand = 1,
+            role = "set byte from below-or-equal condition",
+        },
+    },
+
+    -- 'setna reg' writes a byte from not-above condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setna",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setna_register",
+            target_operand = 1,
+            role = "set byte from not-above condition",
+        },
+    },
+
+    -- 'seta reg' writes a byte from above condition.
+    {
+        node_type = "instruction",
+        mnemonic = "seta",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "seta_register",
+            target_operand = 1,
+            role = "set byte from above condition",
+        },
+    },
+
+    -- 'setnbe reg' writes a byte from not-below-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnbe",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnbe_register",
+            target_operand = 1,
+            role = "set byte from not-below-or-equal condition",
+        },
+    },
+
+    -- 'sets reg' writes a byte from sign condition.
+    {
+        node_type = "instruction",
+        mnemonic = "sets",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sets_register",
+            target_operand = 1,
+            role = "set byte from sign condition",
+        },
+    },
+
+    -- 'setns reg' writes a byte from not-sign condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setns",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setns_register",
+            target_operand = 1,
+            role = "set byte from not-sign condition",
+        },
+    },
+
+    -- 'setp reg' writes a byte from parity condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setp",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setp_register",
+            target_operand = 1,
+            role = "set byte from parity condition",
+        },
+    },
+
+    -- 'setpe reg' writes a byte from parity-even condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setpe",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setpe_register",
+            target_operand = 1,
+            role = "set byte from parity-even condition",
+        },
+    },
+
+    -- 'setnp reg' writes a byte from not-parity condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnp",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnp_register",
+            target_operand = 1,
+            role = "set byte from not-parity condition",
+        },
+    },
+
+    -- 'setpo reg' writes a byte from parity-odd condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setpo",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setpo_register",
+            target_operand = 1,
+            role = "set byte from parity-odd condition",
+        },
+    },
+
+    -- 'setl reg' writes a byte from less-than condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setl",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setl_register",
+            target_operand = 1,
+            role = "set byte from less-than condition",
+        },
+    },
+
+    -- 'setnge reg' writes a byte from not-greater-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnge",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnge_register",
+            target_operand = 1,
+            role = "set byte from not-greater-or-equal condition",
+        },
+    },
+
+    -- 'setge reg' writes a byte from greater-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setge",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setge_register",
+            target_operand = 1,
+            role = "set byte from greater-or-equal condition",
+        },
+    },
+
+    -- 'setnl reg' writes a byte from not-less-than condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnl",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnl_register",
+            target_operand = 1,
+            role = "set byte from not-less-than condition",
+        },
+    },
+
+    -- 'setle reg' writes a byte from less-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setle",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setle_register",
+            target_operand = 1,
+            role = "set byte from less-or-equal condition",
+        },
+    },
+
+    -- 'setng reg' writes a byte from not-greater-than condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setng",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setng_register",
+            target_operand = 1,
+            role = "set byte from not-greater-than condition",
+        },
+    },
+
+    -- 'setg reg' writes a byte from greater-than condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setg",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setg_register",
+            target_operand = 1,
+            role = "set byte from greater-than condition",
+        },
+    },
+
+    -- 'setnle reg' writes a byte from not-less-or-equal condition.
+    {
+        node_type = "instruction",
+        mnemonic = "setnle",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "setnle_register",
+            target_operand = 1,
+            role = "set byte from not-less-or-equal condition",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
