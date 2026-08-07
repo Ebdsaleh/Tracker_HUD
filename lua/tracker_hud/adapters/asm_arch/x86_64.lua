@@ -23870,7 +23870,755 @@ M.register_effects = {
         },
     },
 
+    -- SGX / GETSEC / WAITPKG / platform-security / system-extension visibility effects.
+    -- Phase-one model: most privileged/platform state is exposed as RIP-side activity.
 
+    -- Intel SGX enclave instructions.
+
+    {
+        node_type = "instruction",
+        mnemonic = "encls",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "encls_updates_enclave_state",
+            target_register = "rip",
+            role = "entered privileged sgx enclave instruction path by encls",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enclu",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "enclu_updates_enclave_state",
+            target_register = "rip",
+            role = "entered user sgx enclave instruction path by enclu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enclv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "enclv_updates_enclave_state",
+            target_register = "rip",
+            role = "entered virtualized sgx enclave instruction path by enclv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eaccept",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eaccept_updates_enclave_state",
+            target_register = "rip",
+            role = "accepted sgx enclave page by eaccept",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eacceptcopy",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eacceptcopy_updates_enclave_state",
+            target_register = "rip",
+            role = "accepted copied sgx enclave page by eacceptcopy",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eaug",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eaug_updates_enclave_state",
+            target_register = "rip",
+            role = "augmented sgx enclave page by eaug",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eblock",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eblock_updates_enclave_state",
+            target_register = "rip",
+            role = "blocked sgx enclave page by eblock",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ecreate",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ecreate_updates_enclave_state",
+            target_register = "rip",
+            role = "created sgx enclave control structure by ecreate",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "edbgrd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "edbgrd_updates_enclave_state",
+            target_register = "rip",
+            role = "debug-read sgx enclave memory by edbgrd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "edbgwr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "edbgwr_updates_enclave_state",
+            target_register = "rip",
+            role = "debug-wrote sgx enclave memory by edbgwr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eenter",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eenter_updates_rip",
+            target_register = "rip",
+            role = "entered sgx enclave by eenter",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eexit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eexit_updates_rip",
+            target_register = "rip",
+            role = "exited sgx enclave by eexit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "egetkey",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "egetkey_updates_enclave_state",
+            target_register = "rip",
+            role = "derived sgx enclave key by egetkey",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "einit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "einit_updates_enclave_state",
+            target_register = "rip",
+            role = "initialized sgx enclave by einit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eldb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eldb_updates_enclave_state",
+            target_register = "rip",
+            role = "loaded blocked sgx enclave page by eldb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eldu",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eldu_updates_enclave_state",
+            target_register = "rip",
+            role = "loaded unblocked sgx enclave page by eldu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "emodpe",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "emodpe_updates_enclave_state",
+            target_register = "rip",
+            role = "modified sgx enclave page permissions by emodpe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "emodpr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "emodpr_updates_enclave_state",
+            target_register = "rip",
+            role = "restricted sgx enclave page permissions by emodpr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "emodt",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "emodt_updates_enclave_state",
+            target_register = "rip",
+            role = "modified sgx enclave page type by emodt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "epa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "epa_updates_enclave_state",
+            target_register = "rip",
+            role = "created sgx version array page by epa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "erdinfo",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "erdinfo_updates_enclave_state",
+            target_register = "rip",
+            role = "read sgx enclave report information by erdinfo",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eremove",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eremove_updates_enclave_state",
+            target_register = "rip",
+            role = "removed sgx enclave page by eremove",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eresume",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eresume_updates_rip",
+            target_register = "rip",
+            role = "resumed sgx enclave by eresume",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "etrack",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "etrack_updates_enclave_state",
+            target_register = "rip",
+            role = "tracked sgx enclave page invalidation by etrack",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "eextend",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "eextend_updates_enclave_state",
+            target_register = "rip",
+            role = "extended sgx enclave measurement by eextend",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "egetsec",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "egetsec_updates_security_state",
+            target_register = "rip",
+            role = "entered measured security operation by egetsec",
+        },
+    },
+
+    -- Intel GETSEC / measured launch helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "getsec",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "getsec_updates_security_state",
+            target_register = "rip",
+            role = "entered measured security operation by getsec",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "senter",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "senter_updates_security_state",
+            target_register = "rip",
+            role = "entered measured launch environment by senter",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sexit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sexit_updates_security_state",
+            target_register = "rip",
+            role = "exited measured launch environment by sexit",
+        },
+    },
+
+    -- WAITPKG / timed wait helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "umonitor",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "umonitor_updates_wait_state",
+            target_register = "rip",
+            role = "armed user-mode monitor address by umonitor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "umwait",
+        operands = {
+            { index = 1, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "umwait_updates_wait_state",
+            target_register = "rip",
+            role = "entered user-mode wait state by umwait",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tpause",
+        operands = {
+            { index = 1, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tpause_updates_wait_state",
+            target_register = "rip",
+            role = "entered timed pause state by tpause",
+        },
+    },
+
+    -- Processor trace / identity / invalidation helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "ptwrite",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ptwrite_updates_trace_state",
+            target_register = "rip",
+            role = "wrote value to processor trace stream by ptwrite",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpid",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdpid_writes_destination",
+            target_operand = 1,
+            role = "written with processor id by rdpid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "invpcid",
+        operands = {
+            { index = 1, role = "descriptor" },
+            { index = 2, role = "type" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "invpcid_updates_translation_state",
+            target_register = "rip",
+            role = "invalidated process-context translations by invpcid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cldemote",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cldemote_updates_cache_state",
+            target_register = "rip",
+            role = "demoted cache line by cldemote",
+        },
+    },
+
+    -- Platform configuration / entropy / firmware-ish helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pconfig",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pconfig_updates_platform_state",
+            target_register = "rip",
+            role = "configured platform feature state by pconfig",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdrand",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdrand_updates_rflags",
+            target_register = "rflags",
+            role = "updated by hardware random value generation rdrand",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdseed",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdseed_updates_rflags",
+            target_register = "rflags",
+            role = "updated by hardware seed generation rdseed",
+        },
+    },
+
+    -- Lightweight profiling / monitoring helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "llwpcb",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "llwpcb_updates_profiling_state",
+            target_register = "rip",
+            role = "loaded lightweight profiling control block by llwpcb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "slwpcb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "slwpcb_writes_destination",
+            target_operand = 1,
+            role = "written with lightweight profiling control block address by slwpcb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lwpins",
+        operands = {
+            { index = 1, role = "event_id" },
+            { index = 2, role = "event_data" },
+            { index = 3, role = "flags" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lwpins_updates_profiling_state",
+            target_register = "rip",
+            role = "inserted lightweight profiling event by lwpins",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lwpval",
+        operands = {
+            { index = 1, role = "event_id" },
+            { index = 2, role = "event_data" },
+            { index = 3, role = "flags" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lwpval_updates_profiling_state",
+            target_register = "rip",
+            role = "validated lightweight profiling event by lwpval",
+        },
+    },
+
+    -- VIA PadLock / old x86 crypto helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "xstore",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xstore_updates_crypto_state",
+            target_register = "rip",
+            role = "stored hardware random bytes by xstore",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xcryptecb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xcryptecb_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware aes ecb operation by xcryptecb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xcryptcbc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xcryptcbc_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware aes cbc operation by xcryptcbc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xcryptcfb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xcryptcfb_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware aes cfb operation by xcryptcfb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xcryptofb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xcryptofb_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware aes ofb operation by xcryptofb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xcryptctr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xcryptctr_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware aes ctr operation by xcryptctr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsha1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xsha1_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware sha1 operation by xsha1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsha256",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xsha256_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware sha256 operation by xsha256",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "montmul",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "montmul_updates_crypto_state",
+            target_register = "rip",
+            role = "performed hardware montgomery multiply by montmul",
+        },
+    },
+
+    -- System-call aliases / compatibility spellings.
+
+    {
+        node_type = "instruction",
+        mnemonic = "sysretl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sysretl_updates_rip",
+            target_register = "rip",
+            role = "returned from system call in compatibility form by sysretl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sysretl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sysretl_clobbers_rcx",
+            target_register = "rcx",
+            role = "clobbered by system call return sysretl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sysretl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sysretl_clobbers_r11",
+            target_register = "r11",
+            role = "clobbered by system call return sysretl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sysexitl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sysexitl_updates_rip",
+            target_register = "rip",
+            role = "returned from fast system call in compatibility form by sysexitl",
+        },
+    },
+
+    -- Real-mode / system-management-ish compatibility spellings.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rsm",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rsm_updates_rip",
+            target_register = "rip",
+            role = "resumed from system management mode by rsm",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "smi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "smi_updates_rip",
+            target_register = "rip",
+            role = "entered system management interrupt path by smi",
+        },
+    },
+
+    
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
