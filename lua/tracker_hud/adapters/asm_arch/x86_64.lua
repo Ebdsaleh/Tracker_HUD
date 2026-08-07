@@ -26764,6 +26764,703 @@ M.register_effects = {
     },
 
 
+    -- Carry arithmetic / unary / shift / rotate suffix aliases.
+    -- These improve recognition of GAS/objdump-style width-explicit mnemonics.
+
+    -- ADC suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcb_writes_destination",
+            target_operand = 1,
+            role = "added byte source with carry by adcb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte add with carry adcb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcw_writes_destination",
+            target_operand = 1,
+            role = "added word source with carry by adcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word add with carry adcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcl_writes_destination",
+            target_operand = 1,
+            role = "added long source with carry by adcl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long add with carry adcl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcq_writes_destination",
+            target_operand = 1,
+            role = "added quadword source with carry by adcq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "adcq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword add with carry adcq",
+        },
+    },
+
+    -- SBB suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbb_writes_destination",
+            target_operand = 1,
+            role = "subtracted byte source with borrow by sbbb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte subtract with borrow sbbb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbw_writes_destination",
+            target_operand = 1,
+            role = "subtracted word source with borrow by sbbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word subtract with borrow sbbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbl_writes_destination",
+            target_operand = 1,
+            role = "subtracted long source with borrow by sbbl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long subtract with borrow sbbl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbq_writes_destination",
+            target_operand = 1,
+            role = "subtracted quadword source with borrow by sbbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sbbq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sbbq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword subtract with borrow sbbq",
+        },
+    },
+
+    -- NEG suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "negb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negb_writes_destination",
+            target_operand = 1,
+            role = "arithmetically negated byte by negb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negb",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte negate negb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negw_writes_destination",
+            target_operand = 1,
+            role = "arithmetically negated word by negw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word negate negw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negl_writes_destination",
+            target_operand = 1,
+            role = "arithmetically negated long by negl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negl",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long negate negl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negq_writes_destination",
+            target_operand = 1,
+            role = "arithmetically negated quadword by negq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "negq",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "negq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword negate negq",
+        },
+    },
+
+    -- NOT suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "notb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "notb_writes_destination",
+            target_operand = 1,
+            role = "bitwise inverted byte by notb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "notw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "notw_writes_destination",
+            target_operand = 1,
+            role = "bitwise inverted word by notw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "notl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "notl_writes_destination",
+            target_operand = 1,
+            role = "bitwise inverted long by notl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "notq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "notq_writes_destination",
+            target_operand = 1,
+            role = "bitwise inverted quadword by notq",
+        },
+    },
+
+    -- SHL / SAL suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlb_writes_destination",
+            target_operand = 1,
+            role = "shifted byte left by shlb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte shift left shlb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlw_writes_destination",
+            target_operand = 1,
+            role = "shifted word left by shlw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shll",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shll_writes_destination",
+            target_operand = 1,
+            role = "shifted long left by shll",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlq_writes_destination",
+            target_operand = 1,
+            role = "shifted quadword left by shlq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword shift left shlq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "salb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salb_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted byte left by salb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "salq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salq_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted quadword left by salq",
+        },
+    },
+
+    -- SHR / SAR suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrb_writes_destination",
+            target_operand = 1,
+            role = "logically shifted byte right by shrb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrw_writes_destination",
+            target_operand = 1,
+            role = "logically shifted word right by shrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrl_writes_destination",
+            target_operand = 1,
+            role = "logically shifted long right by shrl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrq_writes_destination",
+            target_operand = 1,
+            role = "logically shifted quadword right by shrq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarq_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted quadword right by sarq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword arithmetic shift right sarq",
+        },
+    },
+
+    -- ROL / ROR suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rolb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rolb_writes_destination",
+            target_operand = 1,
+            role = "rotated byte left by rolb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rolq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rolq_writes_destination",
+            target_operand = 1,
+            role = "rotated quadword left by rolq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorb_writes_destination",
+            target_operand = 1,
+            role = "rotated byte right by rorb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorq_writes_destination",
+            target_operand = 1,
+            role = "rotated quadword right by rorq",
+        },
+    },
+
+
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
