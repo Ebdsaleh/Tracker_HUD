@@ -21539,6 +21539,1526 @@ M.register_effects = {
         },
     },
 
+    -- F16C / legacy FMA / AMD XOP / 3DNow! / legacy multimedia visibility effects.
+    -- Phase-one model: no vector/MMX/3DNow register file yet, so vector-only effects are exposed as RIP-side activity.
+
+    -- F16C half-precision conversion helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2ps_vector_f16c_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to single-precision values by vcvtph2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtps2ph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rounding" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtps2ph_vector_f16c_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to half-precision values by vcvtps2ph",
+        },
+    },
+
+    -- Legacy FMA4-style AMD fused multiply-add helpers.
+    -- These are vendor-specific / older extension forms, useful for recognition in disassembly.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddps_vector_fma4",
+            target_register = "rip",
+            role = "fused multiply-added packed single-precision values by vfmaddps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddpd_vector_fma4",
+            target_register = "rip",
+            role = "fused multiply-added packed double-precision values by vfmaddpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddss_scalar_fma4",
+            target_register = "rip",
+            role = "fused multiply-added scalar single-precision value by vfmaddss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddsd_scalar_fma4",
+            target_register = "rip",
+            role = "fused multiply-added scalar double-precision value by vfmaddsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubps_vector_fma4",
+            target_register = "rip",
+            role = "fused multiply-subtracted packed single-precision values by vfmsubps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubpd_vector_fma4",
+            target_register = "rip",
+            role = "fused multiply-subtracted packed double-precision values by vfmsubpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubss_scalar_fma4",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar single-precision value by vfmsubss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubsd_scalar_fma4",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar double-precision value by vfmsubsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmaddps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmaddps_vector_fma4",
+            target_register = "rip",
+            role = "negative fused multiply-added packed single-precision values by vfnmaddps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmaddpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "addend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmaddpd_vector_fma4",
+            target_register = "rip",
+            role = "negative fused multiply-added packed double-precision values by vfnmaddpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsubps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsubps_vector_fma4",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted packed single-precision values by vfnmsubps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsubpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "subtrahend" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsubpd_vector_fma4",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted packed double-precision values by vfnmsubpd",
+        },
+    },
+
+    -- AMD XOP integer compare / conditional move / permutation helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomb_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed signed bytes by vpcomb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomw_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed signed words by vpcomw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomd_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed signed doublewords by vpcomd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomq_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed signed quadwords by vpcomq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomub",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomub_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed unsigned bytes by vpcomub",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomuw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomuw_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed unsigned words by vpcomuw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomud",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomud_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed unsigned doublewords by vpcomud",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcomuq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcomuq_vector_xop_compare",
+            target_register = "rip",
+            role = "compared packed unsigned quadwords by vpcomuq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmov",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "true_source" },
+            { index = 3, role = "false_source" },
+            { index = 4, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmov_vector_xop_select",
+            target_register = "rip",
+            role = "conditionally selected packed values by vpcmov",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpperm",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpperm_vector_xop_permute",
+            target_register = "rip",
+            role = "permuted packed bytes by vpperm",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermil2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "selector" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermil2ps_vector_xop_permute",
+            target_register = "rip",
+            role = "permuted two packed single-precision sources by vpermil2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermil2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "selector" },
+            { index = 5, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermil2pd_vector_xop_permute",
+            target_register = "rip",
+            role = "permuted two packed double-precision sources by vpermil2pd",
+        },
+    },
+
+    -- AMD XOP multiply / accumulate helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacsdd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacsdd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-accumulated signed doublewords by vpmacsdd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacsdqh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacsdqh_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-accumulated signed doublewords to high quadwords by vpmacsdqh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacsdql",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacsdql_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-accumulated signed doublewords to low quadwords by vpmacsdql",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacssdd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacssdd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "saturating multiply-accumulated signed doublewords by vpmacssdd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacsswd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacsswd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "saturating multiply-accumulated signed words to doublewords by vpmacsswd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacssww",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacssww_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "saturating multiply-accumulated signed words by vpmacssww",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacswd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacswd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-accumulated signed words to doublewords by vpmacswd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmacsww",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmacsww_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-accumulated signed words by vpmacsww",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmadcsswd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmadcsswd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "saturating multiply-add accumulated signed words to doublewords by vpmadcsswd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmadcswd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "accumulator" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmadcswd_vector_xop_multiply_accumulate",
+            target_register = "rip",
+            role = "multiply-add accumulated signed words to doublewords by vpmadcswd",
+        },
+    },
+
+    -- AMD XOP integer horizontal add/subtract and rotate helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddbd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddbd_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed bytes to doublewords by vphaddbd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddbq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddbq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed bytes to quadwords by vphaddbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddbw_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed bytes to words by vphaddbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphadddq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphadddq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed doublewords to quadwords by vphadddq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddubd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddubd_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned bytes to doublewords by vphaddubd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddubq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddubq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned bytes to quadwords by vphaddubq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddubw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddubw_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned bytes to words by vphaddubw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddudq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddudq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned doublewords to quadwords by vphaddudq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphadduwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphadduwd_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned words to doublewords by vphadduwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphadduwq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphadduwq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added unsigned words to quadwords by vphadduwq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddwd_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed words to doublewords by vphaddwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphaddwq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphaddwq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally added signed words to quadwords by vphaddwq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphsubbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphsubbw_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally subtracted signed bytes to words by vphsubbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphsubdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphsubdq_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally subtracted signed doublewords to quadwords by vphsubdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vphsubwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vphsubwd_vector_xop_horizontal",
+            target_register = "rip",
+            role = "horizontally subtracted signed words to doublewords by vphsubwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotbi",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotbi_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed bytes by immediate count by vprotbi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotdi",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotdi_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords by immediate count by vprotdi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotqi",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotqi_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords by immediate count by vprotqi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotwi",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotwi_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed words by immediate count by vprotwi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotb_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed bytes by variable counts by vprotb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotd_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed doublewords by variable counts by vprotd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotq_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed quadwords by variable counts by vprotq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vprotw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "counts" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vprotw_vector_xop_rotate",
+            target_register = "rip",
+            role = "rotated packed words by variable counts by vprotw",
+        },
+    },
+
+    -- 3DNow! / Enhanced 3DNow! visibility.
+    -- These are old AMD multimedia instructions, but useful for broad disassembly recognition.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pavgusb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pavgusb_3dnow_average",
+            target_register = "rip",
+            role = "averaged packed unsigned bytes by pavgusb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pf2id",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pf2id_3dnow_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to doubleword integers by pf2id",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pf2iw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pf2iw_3dnow_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to word integers by pf2iw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfacc",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfacc_3dnow_accumulate",
+            target_register = "rip",
+            role = "accumulated packed single-precision values by pfacc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfadd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfadd_3dnow_arithmetic",
+            target_register = "rip",
+            role = "added packed single-precision values by pfadd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfcmpeq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfcmpeq_3dnow_compare",
+            target_register = "rip",
+            role = "compared packed single-precision values for equality by pfcmpeq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfcmpge",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfcmpge_3dnow_compare",
+            target_register = "rip",
+            role = "compared packed single-precision values greater-or-equal by pfcmpge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfcmpgt",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfcmpgt_3dnow_compare",
+            target_register = "rip",
+            role = "compared packed single-precision values greater-than by pfcmpgt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfmax",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfmax_3dnow_select",
+            target_register = "rip",
+            role = "selected packed single-precision maximum values by pfmax",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfmin",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfmin_3dnow_select",
+            target_register = "rip",
+            role = "selected packed single-precision minimum values by pfmin",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfmul",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfmul_3dnow_arithmetic",
+            target_register = "rip",
+            role = "multiplied packed single-precision values by pfmul",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfrcp",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfrcp_3dnow_reciprocal",
+            target_register = "rip",
+            role = "computed approximate packed reciprocal by pfrcp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfrcpit1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfrcpit1_3dnow_reciprocal",
+            target_register = "rip",
+            role = "refined approximate packed reciprocal step one by pfrcpit1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfrcpit2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfrcpit2_3dnow_reciprocal",
+            target_register = "rip",
+            role = "refined approximate packed reciprocal step two by pfrcpit2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfrsqit1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfrsqit1_3dnow_reciprocal_sqrt",
+            target_register = "rip",
+            role = "refined approximate packed reciprocal square root by pfrsqit1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfrsqrt",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfrsqrt_3dnow_reciprocal_sqrt",
+            target_register = "rip",
+            role = "computed approximate packed reciprocal square root by pfrsqrt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfsub",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfsub_3dnow_arithmetic",
+            target_register = "rip",
+            role = "subtracted packed single-precision values by pfsub",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pfsubr",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pfsubr_3dnow_arithmetic",
+            target_register = "rip",
+            role = "reverse-subtracted packed single-precision values by pfsubr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pi2fd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pi2fd_3dnow_convert",
+            target_register = "rip",
+            role = "converted packed doubleword integers to single-precision values by pi2fd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pi2fw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pi2fw_3dnow_convert",
+            target_register = "rip",
+            role = "converted packed word integers to single-precision values by pi2fw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmulhrw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmulhrw_3dnow_multiply",
+            target_register = "rip",
+            role = "multiplied packed words with rounding high result by pmulhrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pswapd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pswapd_3dnow_shuffle",
+            target_register = "rip",
+            role = "swapped packed doublewords by pswapd",
+        },
+    },
+
+    -- Legacy MMX/SSE state and move helpers that are common in older disassembly.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movd_mmx_sse_move",
+            target_register = "rip",
+            role = "moved doubleword between integer and multimedia state by movd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movq_mmx_sse_move",
+            target_register = "rip",
+            role = "moved quadword between integer and multimedia state by movq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdq2q",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movdq2q_sse_mmx_bridge",
+            target_register = "rip",
+            role = "moved low quadword from xmm state to mmx state by movdq2q",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movq2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movq2dq_mmx_sse_bridge",
+            target_register = "rip",
+            role = "moved quadword from mmx state to xmm state by movq2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maskmovq",
+        operands = {
+            { index = 1, role = "source" },
+            { index = 2, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "maskmovq_masked_store",
+            target_register = "rip",
+            role = "masked-stored bytes from mmx state by maskmovq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maskmovdqu",
+        operands = {
+            { index = 1, role = "source" },
+            { index = 2, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "maskmovdqu_masked_store",
+            target_register = "rip",
+            role = "masked-stored bytes from xmm state by maskmovdqu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntq_nontemporal_store",
+            target_register = "rip",
+            role = "stored mmx quadword non-temporally by movntq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntsd_nontemporal_store",
+            target_register = "rip",
+            role = "stored scalar double-precision value non-temporally by movntsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntss_nontemporal_store",
+            target_register = "rip",
+            role = "stored scalar single-precision value non-temporally by movntss",
+        },
+    },
+
+    -- Older prefetch aliases / hints.
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetch0",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetch0_cache_hint",
+            target_register = "rip",
+            role = "prefetched data with level-zero locality hint by prefetch0",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetch1",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetch1_cache_hint",
+            target_register = "rip",
+            role = "prefetched data with level-one locality hint by prefetch1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetch2",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetch2_cache_hint",
+            target_register = "rip",
+            role = "prefetched data with level-two locality hint by prefetch2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetchit0",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetchit0_code_prefetch_hint",
+            target_register = "rip",
+            role = "prefetched code with level-zero locality hint by prefetchit0",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetchit1",
+        operands = {
+            { index = 1, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetchit1_code_prefetch_hint",
+            target_register = "rip",
+            role = "prefetched code with level-one locality hint by prefetchit1",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
