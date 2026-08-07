@@ -324,6 +324,59 @@ M.register_effects = {
     },
 
 
+    -- 'xchg reg, reg' writes the first register with the swapped value.
+    {
+        node_type = "instruction",
+        mnemonic = "xchg",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "left",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "right",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xchg_register_register_left",
+            taget_operand = 1,
+            role = "swapped with register by xchg",
+        },
+    },
+
+    -- 'xchg reg, reg' writes the second register with the swapped value.
+    {
+        node_type = "instruction",
+        mnemonic = "xchg",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "left",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "right",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xchg_register_register_right",
+            target_operand = 2,
+            role = "swapped with register by xchg",
+        },
+    },
+
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
