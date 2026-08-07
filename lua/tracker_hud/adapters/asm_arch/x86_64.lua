@@ -1168,6 +1168,115 @@ M.register_effects = {
     },
 
 
+    -- 'adc reg, reg' adds with carry into the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "adc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source_register" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "adc_register_register",
+            target_operand = 1,
+            role = "added with carry from register",
+        },
+    },
+
+    -- 'adc reg, imm' adds an immediate with carry into the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "adc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "integer", role = "source_value" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "adc_register_immediate",
+            target_operand = 1,
+            role = "added with carry from immediate",
+        },
+    },
+
+    -- 'adc' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "adc",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "adc_updates_rflags",
+            target_register = "rflags",
+            role = "updated by adc",
+        },
+    },
+
+    -- 'sbb reg, reg' subtracts with borrow from the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "sbb",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source_register" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sbb_register_register",
+            target_operand = 1,
+            role = "subtracted with borrow from register",
+        },
+    },
+
+    -- 'sbb reg, imm' subtracts an immediate with borrow from the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "sbb",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "integer", role = "source_value" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sbb_register_immediate",
+            target_operand = 1,
+            role = "subtracted with borrow from immediate",
+        },
+    },
+
+    -- 'sbb' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "sbb",
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sbb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by sbb",
+        },
+    },
+
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
