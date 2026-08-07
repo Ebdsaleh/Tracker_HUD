@@ -274,7 +274,7 @@ M.register_effects = {
     -- 'movsx reg, reg' writes a sign-extended source register value.
     {
         node_type = "instruction",
-        mnemonic - "movsx",
+        mnemonic = "movsx",
 
         operands = {
             {
@@ -307,7 +307,7 @@ M.register_effects = {
             {
                 index = 1,
                 kind = "register",
-                role = "destintion",
+                role = "destination",
             },
             {
                 index = 2,
