@@ -3612,6 +3612,21 @@ M.register_effects = {
         },
     },
 
+
+    -- 'nop' intentionally performs no operation.
+    {
+        node_type = "instruction",
+        mnemonic = "nop",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "nop_no_operation",
+            target_register = "rip",
+            role = "advanced by nop",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
