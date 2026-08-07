@@ -9056,6 +9056,1017 @@ M.register_effects = {
     },
 
 
+    -- SIMD/MMX/SSE/AVX visibility effects.
+    -- Phase-one model: no SIMD register file yet, so these are exposed as RIP-side activity.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movaps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movaps_simd_move",
+            target_register = "rip",
+            role = "moved aligned packed single-precision values by movaps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movups",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movups_simd_move",
+            target_register = "rip",
+            role = "moved unaligned packed single-precision values by movups",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movapd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movapd_simd_move",
+            target_register = "rip",
+            role = "moved aligned packed double-precision values by movapd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movupd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movupd_simd_move",
+            target_register = "rip",
+            role = "moved unaligned packed double-precision values by movupd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdqa",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movdqa_simd_move",
+            target_register = "rip",
+            role = "moved aligned packed integer values by movdqa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdqu",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movdqu_simd_move",
+            target_register = "rip",
+            role = "moved unaligned packed integer values by movdqu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntdq",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movntdq_simd_store",
+            target_register = "rip",
+            role = "stored packed integer values non-temporally by movntdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntdqa",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movntdqa_simd_load",
+            target_register = "rip",
+            role = "loaded aligned packed integer values non-temporally by movntdqa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movntps_simd_store",
+            target_register = "rip",
+            role = "stored packed single-precision values non-temporally by movntps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movntpd_simd_store",
+            target_register = "rip",
+            role = "stored packed double-precision values non-temporally by movntpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movss_scalar_simd_move",
+            target_register = "rip",
+            role = "moved scalar single-precision value by movss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movsd_scalar_simd_move",
+            target_register = "rip",
+            role = "moved scalar double-precision value by movsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "addps_simd_arithmetic",
+            target_register = "rip",
+            role = "added packed single-precision values by addps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "addpd_simd_arithmetic",
+            target_register = "rip",
+            role = "added packed double-precision values by addpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "addss_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "added scalar single-precision values by addss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "addsd_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "added scalar double-precision values by addsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "subps_simd_arithmetic",
+            target_register = "rip",
+            role = "subtracted packed single-precision values by subps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "subpd_simd_arithmetic",
+            target_register = "rip",
+            role = "subtracted packed double-precision values by subpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "subss_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "subtracted scalar single-precision values by subss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "subsd_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "subtracted scalar double-precision values by subsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "mulps_simd_arithmetic",
+            target_register = "rip",
+            role = "multiplied packed single-precision values by mulps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "mulpd_simd_arithmetic",
+            target_register = "rip",
+            role = "multiplied packed double-precision values by mulpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "mulss_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "multiplied scalar single-precision values by mulss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "mulsd_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "multiplied scalar double-precision values by mulsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "divps_simd_arithmetic",
+            target_register = "rip",
+            role = "divided packed single-precision values by divps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "divpd_simd_arithmetic",
+            target_register = "rip",
+            role = "divided packed double-precision values by divpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "divss_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "divided scalar single-precision values by divss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "divsd_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "divided scalar double-precision values by divsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "sqrtps_simd_arithmetic",
+            target_register = "rip",
+            role = "square-rooted packed single-precision values by sqrtps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "sqrtpd_simd_arithmetic",
+            target_register = "rip",
+            role = "square-rooted packed double-precision values by sqrtpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "sqrtss_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "square-rooted scalar single-precision value by sqrtss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "sqrtsd_scalar_simd_arithmetic",
+            target_register = "rip",
+            role = "square-rooted scalar double-precision value by sqrtsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "maxps_simd_compare_select",
+            target_register = "rip",
+            role = "selected packed single-precision maximum values by maxps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "maxpd_simd_compare_select",
+            target_register = "rip",
+            role = "selected packed double-precision maximum values by maxpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "maxss_scalar_simd_compare_select",
+            target_register = "rip",
+            role = "selected scalar single-precision maximum value by maxss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "maxsd_scalar_simd_compare_select",
+            target_register = "rip",
+            role = "selected scalar double-precision maximum value by maxsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "minps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "minps_simd_compare_select",
+            target_register = "rip",
+            role = "selected packed single-precision minimum values by minps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "minpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "minpd_simd_compare_select",
+            target_register = "rip",
+            role = "selected packed double-precision minimum values by minpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "minss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "minss_scalar_simd_compare_select",
+            target_register = "rip",
+            role = "selected scalar single-precision minimum value by minss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "minsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "minsd_scalar_simd_compare_select",
+            target_register = "rip",
+            role = "selected scalar double-precision minimum value by minsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "andps_simd_logic",
+            target_register = "rip",
+            role = "bitwise-and packed single-precision lanes by andps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "andpd_simd_logic",
+            target_register = "rip",
+            role = "bitwise-and packed double-precision lanes by andpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andnps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "andnps_simd_logic",
+            target_register = "rip",
+            role = "bitwise-and-not packed single-precision lanes by andnps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andnpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "andnpd_simd_logic",
+            target_register = "rip",
+            role = "bitwise-and-not packed double-precision lanes by andnpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "orps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "orps_simd_logic",
+            target_register = "rip",
+            role = "bitwise-or packed single-precision lanes by orps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "orpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "orpd_simd_logic",
+            target_register = "rip",
+            role = "bitwise-or packed double-precision lanes by orpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xorps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "xorps_simd_logic",
+            target_register = "rip",
+            role = "bitwise-xor packed single-precision lanes by xorps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xorpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "xorpd_simd_logic",
+            target_register = "rip",
+            role = "bitwise-xor packed double-precision lanes by xorpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "predicate" } },
+        effect = {
+            kind = "register_write",
+            name = "cmpps_simd_compare",
+            target_register = "rip",
+            role = "compared packed single-precision values by cmpps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmppd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "predicate" } },
+        effect = {
+            kind = "register_write",
+            name = "cmppd_simd_compare",
+            target_register = "rip",
+            role = "compared packed double-precision values by cmppd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "predicate" } },
+        effect = {
+            kind = "register_write",
+            name = "cmpss_scalar_simd_compare",
+            target_register = "rip",
+            role = "compared scalar single-precision values by cmpss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "predicate" } },
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_scalar_simd_compare",
+            target_register = "rip",
+            role = "compared scalar double-precision values by cmpsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "comiss",
+        operands = { { index = 1, role = "left" }, { index = 2, role = "right" } },
+        effect = {
+            kind = "register_write",
+            name = "comiss_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scalar single-precision compare comiss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ucomiss",
+        operands = { { index = 1, role = "left" }, { index = 2, role = "right" } },
+        effect = {
+            kind = "register_write",
+            name = "ucomiss_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered scalar single-precision compare ucomiss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "comisd",
+        operands = { { index = 1, role = "left" }, { index = 2, role = "right" } },
+        effect = {
+            kind = "register_write",
+            name = "comisd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scalar double-precision compare comisd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ucomisd",
+        operands = { { index = 1, role = "left" }, { index = 2, role = "right" } },
+        effect = {
+            kind = "register_write",
+            name = "ucomisd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered scalar double-precision compare ucomisd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shufps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "control" } },
+        effect = {
+            kind = "register_write",
+            name = "shufps_simd_shuffle",
+            target_register = "rip",
+            role = "shuffled packed single-precision values by shufps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shufpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" }, { index = 3, role = "control" } },
+        effect = {
+            kind = "register_write",
+            name = "shufpd_simd_shuffle",
+            target_register = "rip",
+            role = "shuffled packed double-precision values by shufpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpckhps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "unpckhps_simd_unpack",
+            target_register = "rip",
+            role = "unpacked high packed single-precision values by unpckhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpcklps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "unpcklps_simd_unpack",
+            target_register = "rip",
+            role = "unpacked low packed single-precision values by unpcklps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpckhpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "unpckhpd_simd_unpack",
+            target_register = "rip",
+            role = "unpacked high packed double-precision values by unpckhpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpcklpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "unpcklpd_simd_unpack",
+            target_register = "rip",
+            role = "unpacked low packed double-precision values by unpcklpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhlps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movhlps_simd_shuffle",
+            target_register = "rip",
+            role = "moved high packed single-precision lanes by movhlps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlhps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movlhps_simd_shuffle",
+            target_register = "rip",
+            role = "moved low packed single-precision lanes by movlhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movhps_simd_move",
+            target_register = "rip",
+            role = "moved high packed single-precision lanes by movhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movlps_simd_move",
+            target_register = "rip",
+            role = "moved low packed single-precision lanes by movlps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movhpd_simd_move",
+            target_register = "rip",
+            role = "moved high packed double-precision lane by movhpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlpd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "movlpd_simd_move",
+            target_register = "rip",
+            role = "moved low packed double-precision lane by movlpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtss2sd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtss2sd_simd_convert",
+            target_register = "rip",
+            role = "converted scalar single to scalar double by cvtss2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsd2ss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtsd2ss_simd_convert",
+            target_register = "rip",
+            role = "converted scalar double to scalar single by cvtsd2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttps2dq",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvttps2dq_simd_convert",
+            target_register = "rip",
+            role = "converted packed single to integers with truncation by cvttps2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtps2dq",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtps2dq_simd_convert",
+            target_register = "rip",
+            role = "converted packed single to integers by cvtps2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtdq2ps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtdq2ps_simd_convert",
+            target_register = "rip",
+            role = "converted packed integers to single-precision by cvtdq2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtpd2ps",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtpd2ps_simd_convert",
+            target_register = "rip",
+            role = "converted packed double to packed single by cvtpd2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtps2pd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtps2pd_simd_convert",
+            target_register = "rip",
+            role = "converted packed single to packed double by cvtps2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttpd2dq",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvttpd2dq_simd_convert",
+            target_register = "rip",
+            role = "converted packed double to integers with truncation by cvttpd2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtpd2dq",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtpd2dq_simd_convert",
+            target_register = "rip",
+            role = "converted packed double to integers by cvtpd2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtdq2pd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtdq2pd_simd_convert",
+            target_register = "rip",
+            role = "converted packed integers to double-precision by cvtdq2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsi2ss",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtsi2ss_simd_convert",
+            target_register = "rip",
+            role = "converted integer to scalar single by cvtsi2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsi2sd",
+        operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtsi2sd_simd_convert",
+            target_register = "rip",
+            role = "converted integer to scalar double by cvtsi2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtss2si",
+        operands = { { index = 1, kind = "register", role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtss2si_writes_gpr",
+            target_operand = 1,
+            role = "written with converted scalar single integer by cvtss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsd2si",
+        operands = { { index = 1, kind = "register", role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvtsd2si_writes_gpr",
+            target_operand = 1,
+            role = "written with converted scalar double integer by cvtsd2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttss2si",
+        operands = { { index = 1, kind = "register", role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvttss2si_writes_gpr",
+            target_operand = 1,
+            role = "written with truncated scalar single integer by cvttss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttsd2si",
+        operands = { { index = 1, kind = "register", role = "destination" }, { index = 2, role = "source" } },
+        effect = {
+            kind = "register_write",
+            name = "cvttsd2si_writes_gpr",
+            target_operand = 1,
+            role = "written with truncated scalar double integer by cvttsd2si",
+        },
+    },
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
