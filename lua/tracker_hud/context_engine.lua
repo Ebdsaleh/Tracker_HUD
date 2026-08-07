@@ -957,6 +957,20 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
     local value = effect.value
     local resolved = value ~= nil
 
+
+    if core.is_non_empty_string(effect.value_from_register) then
+        local source_fact = get_register_fact_from_map(
+            facts_by_register,
+            effect.value_from_register
+        )
+
+        if register_fact_is_resolved(source_fact) then
+            return source_fact.value, true
+        end
+
+        return effect.value_from_register, false
+    end
+
     if tonumber(effect.value_from_register_operand) then
         local source_operand = instruction.operands[tonumber(effect.value_from_register_operand)]
 

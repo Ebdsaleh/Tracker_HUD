@@ -549,6 +549,37 @@ M.register_effects = {
         },
     },
 
+    -- 'leave' restores rsp from rbp.
+    {
+        node_type = "instruction",
+        mnemonic = "leave",
+        
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "leave_restores_rsp",
+            target_register = "rsp",
+            value_from_register = "rbp",
+            role = "restored stack pointer from  frame base by leave",
+        },
+    },
+
+    -- 'leave' pops the previous frame pointer into rbp.
+    {
+        node_type = "instruction",
+        mnemonic = "leave",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "leave_restores_rbp",
+            target_register = "rbp",
+            role = "loaded previous frame base from stack by leave",
+        },
+    },
+
 
     -- Linux x86-64 'syscall' clobbers rcx.
     {
