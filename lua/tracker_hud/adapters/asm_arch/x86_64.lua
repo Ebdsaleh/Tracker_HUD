@@ -966,6 +966,68 @@ M.register_effects = {
     },
 
 
+        -- 'cpuid' writes processor information into rax.
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rax",
+            target_register = "rax",
+            role = "written by cpuid",
+        },
+    },
+
+    -- 'cpuid' writes processor information into rbx.
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rbx",
+            target_register = "rbx",
+            role = "written by cpuid",
+        },
+    },
+
+    -- 'cpuid' writes processor information into rcx.
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rcx",
+            target_register = "rcx",
+            role = "written by cpuid",
+        },
+    },
+
+    -- 'cpuid' writes processor information into rdx.
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rdx",
+            target_register = "rdx",
+            role = "written by cpuid",
+        },
+    },
+
+
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
