@@ -418,6 +418,113 @@ M.register_effects = {
         },
     },
 
+    -- 'shl reg, imm' shifts the destination register left.
+    {
+        node_type = "instruction",
+        mnemonic = "shl",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "shift_count",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "shl_register_immediate",
+            target_operand = 1,
+            role = "shifted left by shl",
+        },
+    },
+
+    -- 'sal reg, imm' arithmetically shifts the destination register left.
+    {
+        node_type = "instruction",
+        mnemonic = "sal",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "shift_count",
+            },
+
+        },
+
+
+        effect = {
+            kind = "register_write",
+            name = "sal_register_immediate",
+            target_operand = 1,
+            role = "arithmetically shifted left by sal",
+        },
+    },
+
+    -- 'shr reg, imm' logically shifts the destination register right.
+    {
+        node_type = "instruction",
+        mnemonic = "shr",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "shift_count",
+            },
+        },
+
+        effect = {
+                    kind = "register_write",
+                    name = "shr_register_immediate",
+                    target_operand = 1,
+                    role = "logically shifted right by shr",
+        },
+    },
+
+
+    -- 'sar reg, imm' arithmetically shifts the destination register right.
+    {
+        node_type = "instruction",
+        mnemonic = "sar",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "shift_count",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "sar_register_immediate",
+            target_operand = 1,
+            role = "arithmetically shifted right by sar", 
+        },
+    },
+
 
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
