@@ -23059,6 +23059,818 @@ M.register_effects = {
         },
     },
 
+    -- Legacy scalar / alias / protected-mode visibility effects.
+    -- Some of these are invalid in 64-bit long mode but useful for broad x86-family disassembly recognition.
+
+    -- Unsuffixed string-operation aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movs_advances_rsi",
+            target_register = "rsi",
+            role = "advanced by unsuffixed string move movs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "movs_advances_rdi",
+            target_register = "rdi",
+            role = "advanced by unsuffixed string move movs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmps",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmps_advances_rsi",
+            target_register = "rsi",
+            role = "advanced by unsuffixed string compare cmps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmps",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmps_advances_rdi",
+            target_register = "rdi",
+            role = "advanced by unsuffixed string compare cmps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmps",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cmps_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unsuffixed string compare cmps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "scas",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scas_advances_rdi",
+            target_register = "rdi",
+            role = "advanced by unsuffixed string scan scas",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "scas",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "scas_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unsuffixed string scan scas",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lods",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lods_writes_rax",
+            target_register = "rax",
+            role = "loaded by unsuffixed string load lods",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lods",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lods_advances_rsi",
+            target_register = "rsi",
+            role = "advanced by unsuffixed string load lods",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "stos",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "stos_advances_rdi",
+            target_register = "rdi",
+            role = "advanced by unsuffixed string store stos",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ins",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ins_advances_rdi",
+            target_register = "rdi",
+            role = "advanced by unsuffixed port input string ins",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "outs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "outs_advances_rsi",
+            target_register = "rsi",
+            role = "advanced by unsuffixed port output string outs",
+        },
+    },
+
+    -- Explicit short aliases sometimes emitted by assemblers/disassemblers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsxw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxw_writes_destination",
+            target_operand = 1,
+            role = "written with sign-extended word by movsxw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsxb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxb_writes_destination",
+            target_operand = 1,
+            role = "written with sign-extended byte by movsxb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzxw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzxw_writes_destination",
+            target_operand = 1,
+            role = "written with zero-extended word by movzxw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzxb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzxb_writes_destination",
+            target_operand = 1,
+            role = "written with zero-extended byte by movzxb",
+        },
+    },
+
+    -- Legacy push/pop all-register aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pusha",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pusha_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by legacy push-all pusha",
+            value_delta = -32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushad",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pushad_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by legacy push-all doubleword pushad",
+            value_delta = -32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushal",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pushal_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by legacy push-all long pushal",
+            value_delta = -32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushaw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pushaw_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by legacy push-all word pushaw",
+            value_delta = -16,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popa_increases_rsp",
+            target_register = "rsp",
+            role = "increased by legacy pop-all popa",
+            value_delta = 32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popad",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popad_increases_rsp",
+            target_register = "rsp",
+            role = "increased by legacy pop-all doubleword popad",
+            value_delta = 32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popal",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popal_increases_rsp",
+            target_register = "rsp",
+            role = "increased by legacy pop-all long popal",
+            value_delta = 32,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popaw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popaw_increases_rsp",
+            target_register = "rsp",
+            role = "increased by legacy pop-all word popaw",
+            value_delta = 16,
+        },
+    },
+
+    -- Legacy flags aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushfd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pushfd_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by push flags doubleword pushfd",
+            value_delta = -4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushfw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pushfw_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by push flags word pushfw",
+            value_delta = -2,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popfd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popfd_increases_rsp",
+            target_register = "rsp",
+            role = "increased by pop flags doubleword popfd",
+            value_delta = 4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popfd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popfd_updates_rflags",
+            target_register = "rflags",
+            role = "restored by pop flags doubleword popfd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popfw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popfw_increases_rsp",
+            target_register = "rsp",
+            role = "increased by pop flags word popfw",
+            value_delta = 2,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popfw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "popfw_updates_rflags",
+            target_register = "rflags",
+            role = "restored by pop flags word popfw",
+        },
+    },
+
+    -- Near/far return aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "retn",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retn_updates_rip",
+            target_register = "rip",
+            role = "returned near by retn",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retn",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retn_increases_rsp",
+            target_register = "rsp",
+            role = "increased by near return retn",
+            value_delta = 8,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retf_updates_rip",
+            target_register = "rip",
+            role = "returned far by retf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retf_increases_rsp",
+            target_register = "rsp",
+            role = "increased by far return retf",
+            value_delta = 16,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retfq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retfq_updates_rip",
+            target_register = "rip",
+            role = "returned far quadword by retfq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retfq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retfq_increases_rsp",
+            target_register = "rsp",
+            role = "increased by far quadword return retfq",
+            value_delta = 16,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retfw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retfw_updates_rip",
+            target_register = "rip",
+            role = "returned far word by retfw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retfw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retfw_increases_rsp",
+            target_register = "rsp",
+            role = "increased by far word return retfw",
+            value_delta = 4,
+        },
+    },
+
+    -- Interrupt return aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "iretw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "iretw_updates_rip",
+            target_register = "rip",
+            role = "returned from word interrupt by iretw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "iretd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "iretd_updates_rip",
+            target_register = "rip",
+            role = "returned from doubleword interrupt by iretd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "iretq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "iretq_updates_rip",
+            target_register = "rip",
+            role = "returned from quadword interrupt by iretq",
+        },
+    },
+
+    -- Legacy segment-load helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "lds",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lds_writes_destination",
+            target_operand = 1,
+            role = "written from far pointer by lds",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lds",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lds_updates_segment_state",
+            target_register = "rip",
+            role = "loaded ds segment state by lds",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "les",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "les_writes_destination",
+            target_operand = 1,
+            role = "written from far pointer by les",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "les",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "les_updates_segment_state",
+            target_register = "rip",
+            role = "loaded es segment state by les",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lfs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lfs_writes_destination",
+            target_operand = 1,
+            role = "written from far pointer by lfs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lfs",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lfs_updates_segment_state",
+            target_register = "rip",
+            role = "loaded fs segment state by lfs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lgs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lgs_writes_destination",
+            target_operand = 1,
+            role = "written from far pointer by lgs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lgs",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lgs_updates_segment_state",
+            target_register = "rip",
+            role = "loaded gs segment state by lgs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lss",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lss_writes_destination",
+            target_operand = 1,
+            role = "written from far pointer by lss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "far_pointer" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lss_updates_segment_state",
+            target_register = "rip",
+            role = "loaded ss segment state by lss",
+        },
+    },
+
+    -- Protected-mode / descriptor helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "arpl",
+        operands = {
+            { index = 1, role = "selector" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "arpl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by access-rights privilege adjustment arpl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bound",
+        operands = {
+            { index = 1, role = "index" },
+            { index = 2, role = "bounds" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bound_checks_bounds",
+            target_register = "rip",
+            role = "checked array bounds by bound",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lsl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lsl_writes_destination",
+            target_operand = 1,
+            role = "written with segment limit by lsl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lar",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lar_writes_destination",
+            target_operand = 1,
+            role = "written with access rights by lar",
+        },
+    },
+
+    -- Miscellaneous legacy control / undefined / invalid aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "icebp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "icebp_updates_rip",
+            target_register = "rip",
+            role = "entered one-byte debug interrupt by icebp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "int1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "int1_updates_rip",
+            target_register = "rip",
+            role = "entered debug interrupt by int1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ud0",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ud0_invalid_instruction",
+            target_register = "rip",
+            role = "entered invalid-instruction path by ud0",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ud1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ud1_invalid_instruction",
+            target_register = "rip",
+            role = "entered invalid-instruction path by ud1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ud2a",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ud2a_invalid_instruction",
+            target_register = "rip",
+            role = "entered invalid-instruction path by ud2a",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
