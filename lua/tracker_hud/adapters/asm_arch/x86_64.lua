@@ -1277,6 +1277,96 @@ M.register_effects = {
     },
 
 
+    -- 'cbw' sign-extends al into ax.
+    {
+        node_type = "instruction",
+        mnemonic = "cbw",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cbw_writes_rax_family",
+            target_register = "rax",
+            role = "sign-extended al into ax by cbw",
+        },
+    },
+
+    -- 'cwde' sign-extends ax into eax.
+    {
+        node_type = "instruction",
+        mnemonic = "cwde",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cwde_writes_rax_family",
+            target_register = "rax",
+            role = "sign-extended ax into eax by cwde",
+        },
+    },
+
+    -- 'cdqe' sign-extends eax into rax.
+    {
+        node_type = "instruction",
+        mnemonic = "cdqe",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cdqe_writes_rax",
+            target_register = "rax",
+            role = "sign-extended eax into rax by cdqe",
+        },
+    },
+
+    -- 'cwd' sign-extends ax into dx:ax.
+    {
+        node_type = "instruction",
+        mnemonic = "cwd",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cwd_writes_rdx_family",
+            target_register = "rdx",
+            role = "sign-extended ax into dx by cwd",
+        },
+    },
+
+    -- 'cdq' sign-extends eax into edx:eax.
+    {
+        node_type = "instruction",
+        mnemonic = "cdq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cdq_writes_rdx_family",
+            target_register = "rdx",
+            role = "sign-extended eax into edx by cdq",
+        },
+    },
+
+    -- 'cqo' sign-extends rax into rdx:rax.
+    {
+        node_type = "instruction",
+        mnemonic = "cqo",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cqo_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended rax into rdx by cqo",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
