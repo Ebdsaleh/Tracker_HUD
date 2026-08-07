@@ -376,6 +376,48 @@ M.register_effects = {
         },
     },
 
+    -- 'not reg' bitwise-inverts the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "not",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "not_register",
+            target_operand = 1,
+            role = "bitwise inverted by not",
+        },
+    },
+
+    -- 'neg reg' arithmetically negates the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "neg",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "neg_register",
+            target_operand = 1,
+            role = "arithmetically negated by neg",
+        },
+    },
+
 
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
