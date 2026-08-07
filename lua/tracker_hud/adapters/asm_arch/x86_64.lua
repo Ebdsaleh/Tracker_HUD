@@ -521,9 +521,118 @@ M.register_effects = {
             kind = "register_write",
             name = "sar_register_immediate",
             target_operand = 1,
-            role = "arithmetically shifted right by sar", 
+            role = "arithmetically shifted right by sar",
         },
     },
+
+    -- 'rol reg, imm' rotates the destination register left.
+    {
+        node_type = "instruction",
+        mnemonic ="rol",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "rotate_count",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rol_register_immediate",
+            target_operand = 1,
+            role = "rotated left by rol",
+        },
+    },
+
+
+    -- 'ror reg, imm' rotates the destination register right.
+    {
+        node_type = "instruction",
+        mnemonic = "ror",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "rotate_count",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "ror_register_immediate",
+            target_operand = 1,
+            role = "rotated right by ror",
+        },
+    },
+
+    -- 'rcl reg, imm' rotates the destination register left through carry.
+    {
+        node_type = "instruction",
+        mnemonic = "rcl",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "rotate_count",
+            },
+        },
+
+
+        effect = {
+            kind = "register_write",
+            name = "rcl_register_immediate",
+            target_operand = 1,
+            role = "rotate left through carry by rcl",
+        },
+    },
+
+    -- 'rcr reg, imm' rotates the destination register right through carry.
+    {
+        node_type = "instruction",
+        mnemonic = "rcr",
+
+        operands = {
+            {
+                {
+                    index = 1,
+                    kind = "register",
+                    role = "destination",
+                },
+                {
+                    index = 2,
+                    kind = "integer",
+                    role = "rotate_count",
+                },
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "rcr_register_immediate",
+            target_operand = 1,
+            role = "rotated right through carry by rcr",
+        },
+    },
+
 
 
     -- 'mov rbp, rsp' establishes a stack frame base.
