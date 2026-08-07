@@ -24618,7 +24618,498 @@ M.register_effects = {
         },
     },
 
-    
+    -- FMA3 completion pass.
+    -- Phase-one model: no vector register file yet, so vector-only effects are exposed as RIP-side activity.
+
+    -- VFMSUB scalar forms.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub132ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub132ss_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar single-precision value by vfmsub132ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub213ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub213ss_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar single-precision value by vfmsub213ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub231ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub231ss_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar single-precision value by vfmsub231ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub132sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub132sd_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar double-precision value by vfmsub132sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub213sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub213sd_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar double-precision value by vfmsub213sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsub231sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsub231sd_scalar_fma",
+            target_register = "rip",
+            role = "fused multiply-subtracted scalar double-precision value by vfmsub231sd",
+        },
+    },
+
+    -- VFNMADD packed/scalar completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd132pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd132pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added packed double-precision values by vfnmadd132pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd213pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd213pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added packed double-precision values by vfnmadd213pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd231pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd231pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added packed double-precision values by vfnmadd231pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd132ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd132ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar single-precision value by vfnmadd132ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd213ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd213ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar single-precision value by vfnmadd213ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd231ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd231ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar single-precision value by vfnmadd231ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd132sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd132sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar double-precision value by vfnmadd132sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd213sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd213sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar double-precision value by vfnmadd213sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmadd231sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmadd231sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-added scalar double-precision value by vfnmadd231sd",
+        },
+    },
+
+    -- VFNMSUB packed/scalar completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub132pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub132pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted packed double-precision values by vfnmsub132pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub213pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub213pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted packed double-precision values by vfnmsub213pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub231pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub231pd_vector_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted packed double-precision values by vfnmsub231pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub132ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub132ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar single-precision value by vfnmsub132ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub213ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub213ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar single-precision value by vfnmsub213ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub231ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub231ss_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar single-precision value by vfnmsub231ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub132sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub132sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar double-precision value by vfnmsub132sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub213sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub213sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar double-precision value by vfnmsub213sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfnmsub231sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfnmsub231sd_scalar_fma",
+            target_register = "rip",
+            role = "negative fused multiply-subtracted scalar double-precision value by vfnmsub231sd",
+        },
+    },
+
+    -- VFMADDSUB / VFMSUBADD packed double completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddsub132pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddsub132pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply add-subtracted packed double-precision values by vfmaddsub132pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddsub213pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddsub213pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply add-subtracted packed double-precision values by vfmaddsub213pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmaddsub231pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmaddsub231pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply add-subtracted packed double-precision values by vfmaddsub231pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubadd132pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubadd132pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply sub-added packed double-precision values by vfmsubadd132pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubadd213pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubadd213pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply sub-added packed double-precision values by vfmsubadd213pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfmsubadd231pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfmsubadd231pd_vector_fma",
+            target_register = "rip",
+            role = "fused multiply sub-added packed double-precision values by vfmsubadd231pd",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
