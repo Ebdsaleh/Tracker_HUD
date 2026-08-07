@@ -4653,6 +4653,161 @@ M.register_effects = {
         },
     },
 
+    -- 'bsf reg, value' writes the bit-scan-forward result to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "bsf",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bsf_writes_destination",
+            target_operand = 1,
+            role = "written with bit scan forward result by bsf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bsf",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bsf_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bsf",
+        },
+    },
+
+    -- 'bsr reg, value' writes the bit-scan-reverse result to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "bsr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bsr_writes_destination",
+            target_operand = 1,
+            role = "written with bit scan reverse result by bsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bsr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bsr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bsr",
+        },
+    },
+
+    -- 'tzcnt reg, value' writes the trailing-zero count to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "tzcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcnt_writes_destination",
+            target_operand = 1,
+            role = "written with trailing-zero count by tzcnt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcnt_updates_rflags",
+            target_register = "rflags",
+            role = "updated by tzcnt",
+        },
+    },
+
+    -- 'lzcnt reg, value' writes the leading-zero count to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "lzcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcnt_writes_destination",
+            target_operand = 1,
+            role = "written with leading-zero count by lzcnt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcnt_updates_rflags",
+            target_register = "rflags",
+            role = "updated by lzcnt",
+        },
+    },
+
+    -- 'popcnt reg, value' writes the population count to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "popcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcnt_writes_destination",
+            target_operand = 1,
+            role = "written with population count by popcnt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcnt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcnt_updates_rflags",
+            target_register = "rflags",
+            role = "updated by popcnt",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
