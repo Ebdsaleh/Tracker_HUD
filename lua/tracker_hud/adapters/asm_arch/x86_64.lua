@@ -345,7 +345,7 @@ M.register_effects = {
         effect = {
             kind = "register_write",
             name = "xchg_register_register_left",
-            taget_operand = 1,
+            target_operand = 1,
             role = "swapped with register by xchg",
         },
     },
