@@ -2303,6 +2303,100 @@ M.register_effects = {
         },
     },
 
+    -- 'pushfq' pushes rflags onto the stack and decreases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "pushfq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "pushfq_updates_rsp",
+            target_register = "rsp",
+            value_delta = -8,
+            role = "decreased by pushfq",
+        },
+    },
+
+    -- 'popfq' pops rflags from the stack and increases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "popfq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "popfq_updates_rsp",
+            target_register = "rsp",
+            value_delta = 8,
+            role = "increased by popfq",
+        },
+    },
+
+    -- 'popfq' restores rflags from the stack.
+    {
+        node_type = "instruction",
+        mnemonic = "popfq",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "popfq_updates_rflags",
+            target_register = "rflags",
+            role = "restored from stack by popfq",
+        },
+    },
+
+    -- 'pushf' pushes flags onto the stack and decreases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "pushf",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "pushf_updates_rsp",
+            target_register = "rsp",
+            value_delta = -8,
+            role = "decreased by pushf",
+        },
+    },
+
+    -- 'popf' pops flags from the stack and increases rsp.
+    {
+        node_type = "instruction",
+        mnemonic = "popf",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "popf_updates_rsp",
+            target_register = "rsp",
+            value_delta = 8,
+            role = "increased by popf",
+        },
+    },
+
+    -- 'popf' restores rflags from the stack.
+    {
+        node_type = "instruction",
+        mnemonic = "popf",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "popf_updates_rflags",
+            target_register = "rflags",
+            role = "restored from stack by popf",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
