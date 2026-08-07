@@ -18397,6 +18397,1246 @@ M.register_effects = {
         },
     },
 
+    -- x86_64 security / crypto / bit / vendor-extension visibility effects.
+    -- Phase-one model: most feature-specific state is exposed as RIP-side activity.
+
+    -- CET / indirect branch tracking.
+
+    {
+        node_type = "instruction",
+        mnemonic = "endbr32",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "endbr32_cet_branch_target",
+            target_register = "rip",
+            role = "marked valid 32-bit indirect branch target by endbr32",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "endbr64",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "endbr64_cet_branch_target",
+            target_register = "rip",
+            role = "marked valid 64-bit indirect branch target by endbr64",
+        },
+    },
+
+    -- CET shadow-stack helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdsspd",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdsspd_writes_gpr",
+            target_operand = 1,
+            role = "written with 32-bit shadow stack pointer by rdsspd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdsspq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdsspq_writes_gpr",
+            target_operand = 1,
+            role = "written with 64-bit shadow stack pointer by rdsspq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "incsspd",
+        operands = {
+            { index = 1, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "incsspd_updates_shadow_stack",
+            target_register = "rip",
+            role = "incremented 32-bit shadow stack pointer by incsspd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "incsspq",
+        operands = {
+            { index = 1, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "incsspq_updates_shadow_stack",
+            target_register = "rip",
+            role = "incremented 64-bit shadow stack pointer by incsspq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rstorssp",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rstorssp_updates_shadow_stack",
+            target_register = "rip",
+            role = "restored shadow stack pointer by rstorssp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "saveprevssp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "saveprevssp_updates_shadow_stack",
+            target_register = "rip",
+            role = "saved previous shadow stack pointer by saveprevssp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setssbsy",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "setssbsy_updates_shadow_stack",
+            target_register = "rip",
+            role = "marked shadow stack busy by setssbsy",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clrssbsy",
+        operands = {
+            { index = 1, role = "token" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clrssbsy_updates_shadow_stack",
+            target_register = "rip",
+            role = "cleared shadow stack busy token by clrssbsy",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrssd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrssd_updates_shadow_stack",
+            target_register = "rip",
+            role = "wrote 32-bit shadow stack memory by wrssd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrssq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrssq_updates_shadow_stack",
+            target_register = "rip",
+            role = "wrote 64-bit shadow stack memory by wrssq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrussd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrussd_updates_shadow_stack",
+            target_register = "rip",
+            role = "wrote 32-bit user shadow stack memory by wrussd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrussq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrussq_updates_shadow_stack",
+            target_register = "rip",
+            role = "wrote 64-bit user shadow stack memory by wrussq",
+        },
+    },
+
+    -- User interrupt / low-latency interrupt helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "senduipi",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "senduipi_updates_user_interrupt_state",
+            target_register = "rip",
+            role = "sent user interprocessor interrupt by senduipi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "uiret",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "uiret_updates_rip",
+            target_register = "rip",
+            role = "returned from user interrupt by uiret",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clui",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "clui_updates_user_interrupt_state",
+            target_register = "rflags",
+            role = "cleared user interrupt flag by clui",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "stui",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "stui_updates_user_interrupt_state",
+            target_register = "rflags",
+            role = "set user interrupt flag by stui",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "testui",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "testui_updates_rflags",
+            target_register = "rflags",
+            role = "tested user interrupt flag by testui",
+        },
+    },
+
+    -- Direct store / enqueue / cache extension helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdiri",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movdiri_direct_store",
+            target_register = "rip",
+            role = "direct-stored integer value by movdiri",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdir64b",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movdir64b_direct_store",
+            target_register = "rip",
+            role = "direct-stored 64-byte value by movdir64b",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enqcmd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enqcmd_device_enqueue",
+            target_register = "rflags",
+            role = "updated by device enqueue command enqcmd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enqcmds",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enqcmds_device_enqueue",
+            target_register = "rflags",
+            role = "updated by supervisor device enqueue command enqcmds",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wbnoinvd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wbnoinvd_cache_writeback",
+            target_register = "rip",
+            role = "wrote back caches without invalidation by wbnoinvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clzero",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "clzero_cache_zero",
+            target_register = "rip",
+            role = "zeroed cache line by clzero",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "monitorx",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "monitorx_updates_monitor_state",
+            target_register = "rip",
+            role = "armed extended monitor address by monitorx",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mwaitx",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "mwaitx_updates_wait_state",
+            target_register = "rip",
+            role = "entered extended monitor wait state by mwaitx",
+        },
+    },
+
+    -- TSX load tracking.
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsusldtrk",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xsusldtrk_updates_transaction_state",
+            target_register = "rip",
+            role = "suspended transactional load tracking by xsusldtrk",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xresldtrk",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xresldtrk_updates_transaction_state",
+            target_register = "rip",
+            role = "resumed transactional load tracking by xresldtrk",
+        },
+    },
+
+    -- Key Locker.
+
+    {
+        node_type = "instruction",
+        mnemonic = "loadiwkey",
+        operands = {
+            { index = 1, role = "control" },
+            { index = 2, role = "key_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loadiwkey_updates_key_locker_state",
+            target_register = "rip",
+            role = "loaded internal wrapping key by loadiwkey",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "encodekey128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "encodekey128_key_locker",
+            target_register = "rip",
+            role = "encoded 128-bit aes key handle by encodekey128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "encodekey256",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "encodekey256_key_locker",
+            target_register = "rip",
+            role = "encoded 256-bit aes key handle by encodekey256",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesenc128kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesenc128kl_key_locker",
+            target_register = "rip",
+            role = "encrypted block using 128-bit key locker handle by aesenc128kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesdec128kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesdec128kl_key_locker",
+            target_register = "rip",
+            role = "decrypted block using 128-bit key locker handle by aesdec128kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesenc256kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesenc256kl_key_locker",
+            target_register = "rip",
+            role = "encrypted block using 256-bit key locker handle by aesenc256kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesdec256kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesdec256kl_key_locker",
+            target_register = "rip",
+            role = "decrypted block using 256-bit key locker handle by aesdec256kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesencwide128kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesencwide128kl_key_locker",
+            target_register = "rip",
+            role = "encrypted wide block using 128-bit key locker handle by aesencwide128kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesdecwide128kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesdecwide128kl_key_locker",
+            target_register = "rip",
+            role = "decrypted wide block using 128-bit key locker handle by aesdecwide128kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesencwide256kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesencwide256kl_key_locker",
+            target_register = "rip",
+            role = "encrypted wide block using 256-bit key locker handle by aesencwide256kl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aesdecwide256kl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "key_handle" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "aesdecwide256kl_key_locker",
+            target_register = "rip",
+            role = "decrypted wide block using 256-bit key locker handle by aesdecwide256kl",
+        },
+    },
+
+    -- SM3 / SM4 crypto extensions.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsm3msg1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsm3msg1_crypto",
+            target_register = "rip",
+            role = "performed sm3 message schedule step by vsm3msg1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsm3msg2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsm3msg2_crypto",
+            target_register = "rip",
+            role = "performed sm3 message schedule step by vsm3msg2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsm3rnds2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "round_selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsm3rnds2_crypto",
+            target_register = "rip",
+            role = "performed two sm3 rounds by vsm3rnds2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsm4key4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsm4key4_crypto",
+            target_register = "rip",
+            role = "performed four sm4 key schedule rounds by vsm4key4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsm4rnds4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsm4rnds4_crypto",
+            target_register = "rip",
+            role = "performed four sm4 encryption rounds by vsm4rnds4",
+        },
+    },
+
+    -- AVX-512 IFMA / integer fused multiply-add.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmadd52luq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmadd52luq_vector_ifma",
+            target_register = "rip",
+            role = "multiply-added low unsigned 52-bit integers by vpmadd52luq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmadd52huq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmadd52huq_vector_ifma",
+            target_register = "rip",
+            role = "multiply-added high unsigned 52-bit integers by vpmadd52huq",
+        },
+    },
+
+    -- AVX-512 BITALG / VPOPCNT / VP2INTERSECT.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpopcntb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpopcntb_vector_count",
+            target_register = "rip",
+            role = "counted set bits in packed bytes by vpopcntb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpopcntw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpopcntw_vector_count",
+            target_register = "rip",
+            role = "counted set bits in packed words by vpopcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpopcntd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpopcntd_vector_count",
+            target_register = "rip",
+            role = "counted set bits in packed doublewords by vpopcntd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpopcntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpopcntq_vector_count",
+            target_register = "rip",
+            role = "counted set bits in packed quadwords by vpopcntq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshufbitqmb",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshufbitqmb_vector_bit_shuffle",
+            target_register = "rip",
+            role = "shuffled bits from packed quadwords into mask by vpshufbitqmb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmultishiftqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmultishiftqb_vector_multishift",
+            target_register = "rip",
+            role = "multi-shifted packed quadword bytes by vpmultishiftqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vp2intersectd",
+        operands = {
+            { index = 1, role = "mask_destination_a" },
+            { index = 2, role = "mask_destination_b" },
+            { index = 3, role = "left" },
+            { index = 4, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vp2intersectd_vector_intersect",
+            target_register = "rip",
+            role = "computed packed doubleword intersection masks by vp2intersectd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vp2intersectq",
+        operands = {
+            { index = 1, role = "mask_destination_a" },
+            { index = 2, role = "mask_destination_b" },
+            { index = 3, role = "left" },
+            { index = 4, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vp2intersectq_vector_intersect",
+            target_register = "rip",
+            role = "computed packed quadword intersection masks by vp2intersectq",
+        },
+    },
+
+    -- MPX bounds instructions.
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndmk",
+        operands = {
+            { index = 1, role = "bounds_destination" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndmk_updates_bounds_state",
+            target_register = "rip",
+            role = "made bounds register from address by bndmk",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndcl",
+        operands = {
+            { index = 1, role = "bounds" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndcl_checks_bounds",
+            target_register = "rip",
+            role = "checked lower bound by bndcl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndcu",
+        operands = {
+            { index = 1, role = "bounds" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndcu_checks_bounds",
+            target_register = "rip",
+            role = "checked upper bound by bndcu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndcn",
+        operands = {
+            { index = 1, role = "bounds" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndcn_checks_bounds",
+            target_register = "rip",
+            role = "checked upper bound with complement by bndcn",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndmov",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndmov_updates_bounds_state",
+            target_register = "rip",
+            role = "moved bounds register state by bndmov",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndldx",
+        operands = {
+            { index = 1, role = "bounds_destination" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndldx_updates_bounds_state",
+            target_register = "rip",
+            role = "loaded bounds using address translation by bndldx",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bndstx",
+        operands = {
+            { index = 1, role = "address" },
+            { index = 2, role = "bounds_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndstx_updates_bounds_state",
+            target_register = "rip",
+            role = "stored bounds using address translation by bndstx",
+        },
+    },
+
+    -- AMD TBM-style bit manipulation leftovers.
+    -- These write a GPR destination and usually update flags.
+
+    {
+        node_type = "instruction",
+        mnemonic = "blcfill",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blcfill_writes_destination",
+            target_operand = 1,
+            role = "written with lowest clear bit filled by blcfill",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blcfill",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blcfill_updates_rflags",
+            target_register = "rflags",
+            role = "updated by blcfill",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blci",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blci_writes_destination",
+            target_operand = 1,
+            role = "written with lowest clear bit isolated by blci",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blci",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blci_updates_rflags",
+            target_register = "rflags",
+            role = "updated by blci",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blcic",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blcic_writes_destination",
+            target_operand = 1,
+            role = "written with inverted lowest clear bit isolated by blcic",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blcmsk",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blcmsk_writes_destination",
+            target_operand = 1,
+            role = "written with mask from lowest clear bit by blcmsk",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blcs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blcs_writes_destination",
+            target_operand = 1,
+            role = "written with lowest clear bit set by blcs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blsfill",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsfill_writes_destination",
+            target_operand = 1,
+            role = "written with lowest set bit filled by blsfill",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "blsic",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsic_writes_destination",
+            target_operand = 1,
+            role = "written with inverted lowest set bit isolated by blsic",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "t1mskc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "t1mskc_writes_destination",
+            target_operand = 1,
+            role = "written with trailing-one mask complement by t1mskc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzmsk",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzmsk_writes_destination",
+            target_operand = 1,
+            role = "written with trailing-zero mask by tzmsk",
+        },
+    },
+
+    -- AMD / x86_64 virtualization and platform helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmrun",
+        operands = {
+            { index = 1, role = "vmcb_address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmrun_updates_rip",
+            target_register = "rip",
+            role = "entered virtual machine by vmrun",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "invlpga",
+        operands = {
+            { index = 1, role = "address" },
+            { index = 2, role = "asid" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "invlpga_updates_translation_state",
+            target_register = "rip",
+            role = "invalidated guest TLB entry by invlpga",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpru",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpru_writes_rax",
+            target_register = "rax",
+            role = "written with processor register value low by rdpru",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpru",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpru_writes_rdx",
+            target_register = "rdx",
+            role = "written with processor register value high by rdpru",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pvalidate",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "pvalidate_updates_rflags",
+            target_register = "rflags",
+            role = "updated by page validation pvalidate",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rmpadjust",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rmpadjust_updates_platform_state",
+            target_register = "rip",
+            role = "adjusted reverse map table state by rmpadjust",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rmpupdate",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rmpupdate_updates_platform_state",
+            target_register = "rip",
+            role = "updated reverse map table state by rmpupdate",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psmash",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "psmash_updates_platform_state",
+            target_register = "rip",
+            role = "split secure nested paging mapping by psmash",
+        },
+    },
+
+    -- TDX / SEAM-style platform transition helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdcall",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "tdcall_updates_rip",
+            target_register = "rip",
+            role = "called trusted domain module by tdcall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "seamcall",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "seamcall_updates_rip",
+            target_register = "rip",
+            role = "called seam module by seamcall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "seamret",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "seamret_updates_rip",
+            target_register = "rip",
+            role = "returned from seam module by seamret",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "seamops",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "seamops_updates_platform_state",
+            target_register = "rip",
+            role = "performed seam operation by seamops",
+        },
+    },
+
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
