@@ -25109,6 +25109,761 @@ M.register_effects = {
         },
     },
 
+    -- Scalar suffix aliases / disassembler compatibility / data movement cleanup.
+    -- These help recognize common GAS/objdump-style spellings and legacy width-explicit aliases.
+
+    -- Call aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "callq",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callq_updates_rip",
+            target_register = "rip",
+            role = "called quadword target by callq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "callq",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callq_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by quadword call return-address push callq",
+            value_delta = -8,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "calll",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "calll_updates_rip",
+            target_register = "rip",
+            role = "called long target by calll",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "calll",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "calll_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by long call return-address push calll",
+            value_delta = -4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "callw",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callw_updates_rip",
+            target_register = "rip",
+            role = "called word target by callw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "callw",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callw_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by word call return-address push callw",
+            value_delta = -2,
+        },
+    },
+
+    -- Jump aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "jmpq",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jmpq_updates_rip",
+            target_register = "rip",
+            role = "jumped to quadword target by jmpq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jmpl",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jmpl_updates_rip",
+            target_register = "rip",
+            role = "jumped to long target by jmpl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jmpw",
+        operands = {
+            { index = 1, role = "target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jmpw_updates_rip",
+            target_register = "rip",
+            role = "jumped to word target by jmpw",
+        },
+    },
+
+    -- Return aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "retq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retq_updates_rip",
+            target_register = "rip",
+            role = "returned quadword by retq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retq_increases_rsp",
+            target_register = "rsp",
+            role = "increased by quadword return retq",
+            value_delta = 8,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retl_updates_rip",
+            target_register = "rip",
+            role = "returned long by retl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retl_increases_rsp",
+            target_register = "rsp",
+            role = "increased by long return retl",
+            value_delta = 4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retw_updates_rip",
+            target_register = "rip",
+            role = "returned word by retw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retw_increases_rsp",
+            target_register = "rsp",
+            role = "increased by word return retw",
+            value_delta = 2,
+        },
+    },
+
+    -- Push aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushq",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pushq_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by quadword push pushq",
+            value_delta = -8,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushl",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pushl_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by long push pushl",
+            value_delta = -4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pushw",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pushw_decreases_rsp",
+            target_register = "rsp",
+            role = "decreased by word push pushw",
+            value_delta = -2,
+        },
+    },
+
+    -- Pop aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "popq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popq_writes_destination",
+            target_operand = 1,
+            role = "written by quadword pop popq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popq",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popq_increases_rsp",
+            target_register = "rsp",
+            role = "increased by quadword pop popq",
+            value_delta = 8,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popl_writes_destination",
+            target_operand = 1,
+            role = "written by long pop popl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popl",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popl_increases_rsp",
+            target_register = "rsp",
+            role = "increased by long pop popl",
+            value_delta = 4,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popw_writes_destination",
+            target_operand = 1,
+            role = "written by word pop popw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popw_increases_rsp",
+            target_register = "rsp",
+            role = "increased by word pop popw",
+            value_delta = 2,
+        },
+    },
+
+    -- Leave aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "leaveq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leaveq_restores_rsp",
+            target_register = "rsp",
+            role = "restored from frame pointer by leaveq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leaveq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leaveq_restores_rbp",
+            target_register = "rbp",
+            role = "restored by frame teardown leaveq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leavel",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leavel_restores_rsp",
+            target_register = "rsp",
+            role = "restored from frame pointer by leavel",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leavel",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leavel_restores_rbp",
+            target_register = "rbp",
+            role = "restored by frame teardown leavel",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leavew",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leavew_restores_rsp",
+            target_register = "rsp",
+            role = "restored from frame pointer by leavew",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leavew",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leavew_restores_rbp",
+            target_register = "rbp",
+            role = "restored by frame teardown leavew",
+        },
+    },
+
+    -- Enter aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterq",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterq_updates_rsp",
+            target_register = "rsp",
+            role = "updated by quadword stack frame setup enterq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterq",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterq_updates_rbp",
+            target_register = "rbp",
+            role = "updated by quadword stack frame setup enterq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterl",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterl_updates_rsp",
+            target_register = "rsp",
+            role = "updated by long stack frame setup enterl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterl",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterl_updates_rbp",
+            target_register = "rbp",
+            role = "updated by long stack frame setup enterl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterw",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterw_updates_rsp",
+            target_register = "rsp",
+            role = "updated by word stack frame setup enterw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enterw",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enterw_updates_rbp",
+            target_register = "rbp",
+            role = "updated by word stack frame setup enterw",
+        },
+    },
+
+    -- Move aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movabs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movabs_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with absolute move by movabs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movb_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            written_alias = "byte",
+            role = "written by byte move movb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movw_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            written_alias = "word",
+            role = "written by word move movw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movl_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            written_alias = "dword",
+            role = "written by long move movl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movq_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            written_alias = "qword",
+            role = "written by quadword move movq",
+        },
+    },
+
+    -- MOVBE byte-swap move.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movbe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movbe_writes_destination",
+            target_operand = 1,
+            role = "written with byte-swapped value by movbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movbe",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movbe_stores_byteswapped_source",
+            target_register = "rip",
+            role = "stored byte-swapped register value by movbe",
+        },
+    },
+
+    -- XCHG suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgb",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgb_writes_left",
+            target_operand = 1,
+            role = "swapped byte value with register by xchgb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgb",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgb_writes_right",
+            target_operand = 2,
+            role = "swapped byte value with register by xchgb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgw",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgw_writes_left",
+            target_operand = 1,
+            role = "swapped word value with register by xchgw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgw",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgw_writes_right",
+            target_operand = 2,
+            role = "swapped word value with register by xchgw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgl",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgl_writes_left",
+            target_operand = 1,
+            role = "swapped long value with register by xchgl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgl",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgl_writes_right",
+            target_operand = 2,
+            role = "swapped long value with register by xchgl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgq",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgq_writes_left",
+            target_operand = 1,
+            role = "swapped quadword value with register by xchgq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xchgq",
+        operands = {
+            { index = 1, kind = "register", role = "left" },
+            { index = 2, kind = "register", role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xchgq_writes_right",
+            target_operand = 2,
+            role = "swapped quadword value with register by xchgq",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
