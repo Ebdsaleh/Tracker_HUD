@@ -7061,6 +7061,2001 @@ M.register_effects = {
         },
     },
 
+    -- 'xlat' loads a translated byte into al.
+    {
+        node_type = "instruction",
+        mnemonic = "xlat",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xlat_writes_rax",
+            target_register = "rax",
+            written_alias = "al",
+            role = "loaded translated byte into al by xlat",
+        },
+    },
+
+    -- 'salc' sets al from carry flag.
+    {
+        node_type = "instruction",
+        mnemonic = "salc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "salc_writes_rax",
+            target_register = "rax",
+            written_alias = "al",
+            role = "set al from carry flag by salc",
+        },
+    },
+
+    -- ASCII/decimal adjust instructions. Legacy, but useful to recognize.
+    {
+        node_type = "instruction",
+        mnemonic = "aaa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aaa_updates_rax",
+            target_register = "rax",
+            written_alias = "ax",
+            role = "adjusted ascii addition result by aaa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aaa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aaa_updates_rflags",
+            target_register = "rflags",
+            role = "updated by aaa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aas",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aas_updates_rax",
+            target_register = "rax",
+            written_alias = "ax",
+            role = "adjusted ascii subtraction result by aas",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aas",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aas_updates_rflags",
+            target_register = "rflags",
+            role = "updated by aas",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aam",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aam_updates_rax",
+            target_register = "rax",
+            written_alias = "ax",
+            role = "adjusted ascii multiply result by aam",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aam",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aam_updates_rflags",
+            target_register = "rflags",
+            role = "updated by aam",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aad",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aad_updates_rax",
+            target_register = "rax",
+            written_alias = "ax",
+            role = "adjusted ascii division result by aad",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "aad",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "aad_updates_rflags",
+            target_register = "rflags",
+            role = "updated by aad",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "daa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "daa_updates_rax",
+            target_register = "rax",
+            written_alias = "al",
+            role = "decimal-adjusted al after addition by daa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "daa",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "daa_updates_rflags",
+            target_register = "rflags",
+            role = "updated by daa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "das",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "das_updates_rax",
+            target_register = "rax",
+            written_alias = "al",
+            role = "decimal-adjusted al after subtraction by das",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "das",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "das_updates_rflags",
+            target_register = "rflags",
+            role = "updated by das",
+        },
+    },
+
+    -- BCD / flag stack helpers.
+    {
+        node_type = "instruction",
+        mnemonic = "sahf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sahf_updates_rflags_alias",
+            target_register = "rflags",
+            role = "loaded status flags from ah by sahf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lahf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lahf_writes_rax_alias",
+            target_register = "rax",
+            written_alias = "ah",
+            role = "loaded status flags into ah by lahf",
+        },
+    },
+
+    -- Far calls/jumps. Modeled as RIP-visible control transfers.
+    {
+        node_type = "instruction",
+        mnemonic = "callf",
+        operands = {
+            { index = 1, role = "far_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callf_updates_rip",
+            target_register = "rip",
+            role = "far call changed instruction pointer by callf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "callf",
+        operands = {
+            { index = 1, role = "far_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "callf_updates_rsp",
+            target_register = "rsp",
+            role = "far call adjusted stack pointer by callf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ljmp",
+        operands = {
+            { index = 1, role = "far_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ljmp_updates_rip",
+            target_register = "rip",
+            role = "far jump changed instruction pointer by ljmp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jmpf",
+        operands = {
+            { index = 1, role = "far_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jmpf_updates_rip",
+            target_register = "rip",
+            role = "far jump changed instruction pointer by jmpf",
+        },
+    },
+
+    -- Segment/base helpers.
+    {
+        node_type = "instruction",
+        mnemonic = "rdfsbase",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdfsbase_writes_destination",
+            target_operand = 1,
+            role = "written with fs base by rdfsbase",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdgsbase",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdgsbase_writes_destination",
+            target_operand = 1,
+            role = "written with gs base by rdgsbase",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrfsbase",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrfsbase_updates_system_state",
+            target_register = "rip",
+            role = "wrote fs base by wrfsbase",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrgsbase",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "wrgsbase_updates_system_state",
+            target_register = "rip",
+            role = "wrote gs base by wrgsbase",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "swapgs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "swapgs_updates_system_state",
+            target_register = "rip",
+            role = "swapped gs base by swapgs",
+        },
+    },
+
+    -- Model/control writes.
+    {
+        node_type = "instruction",
+        mnemonic = "wrmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wrmsr_updates_system_state",
+            target_register = "rip",
+            role = "wrote model-specific register by wrmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xsetbv_updates_system_state",
+            target_register = "rip",
+            role = "wrote extended control register by xsetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrpkru",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wrpkru_updates_system_state",
+            target_register = "rip",
+            role = "wrote protection-key rights by wrpkru",
+        },
+    },
+
+    -- Descriptor / control table writers.
+    {
+        node_type = "instruction",
+        mnemonic = "lgdt",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lgdt_updates_system_state",
+            target_register = "rip",
+            role = "loaded global descriptor table register by lgdt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lidt",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lidt_updates_system_state",
+            target_register = "rip",
+            role = "loaded interrupt descriptor table register by lidt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lldt",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lldt_updates_system_state",
+            target_register = "rip",
+            role = "loaded local descriptor table register by lldt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ltr",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ltr_updates_system_state",
+            target_register = "rip",
+            role = "loaded task register by ltr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lmsw",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lmsw_updates_system_state",
+            target_register = "rip",
+            role = "loaded machine status word by lmsw",
+        },
+    },
+
+    -- Invalidation / serialization / privilege-state helpers.
+    {
+        node_type = "instruction",
+        mnemonic = "invd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "invd_invalidates_cache",
+            target_register = "rip",
+            role = "invalidated internal caches by invd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wbinvd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wbinvd_writes_back_cache",
+            target_register = "rip",
+            role = "wrote back and invalidated caches by wbinvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "serialize",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "serialize_serializes_execution",
+            target_register = "rip",
+            role = "serialized instruction execution by serialize",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_serializes_execution",
+            target_register = "rip",
+            role = "serialized instruction execution by cpuid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rsm",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rsm_updates_rip",
+            target_register = "rip",
+            role = "resumed from system management mode by rsm",
+        },
+    },
+
+    -- VMX/SVM virtualization instructions. Modeled as system-state/RFLAGS visibility.
+    {
+        node_type = "instruction",
+        mnemonic = "vmcall",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vmcall_updates_rip",
+            target_register = "rip",
+            role = "virtual machine call by vmcall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmlaunch",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vmlaunch_updates_rip",
+            target_register = "rip",
+            role = "launched virtual machine by vmlaunch",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmresume",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vmresume_updates_rip",
+            target_register = "rip",
+            role = "resumed virtual machine by vmresume",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmxoff",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vmxoff_updates_system_state",
+            target_register = "rip",
+            role = "left vmx operation by vmxoff",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmxon",
+        operands = {
+            { index = 1, role = "vmxon_region" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmxon_updates_system_state",
+            target_register = "rip",
+            role = "entered vmx operation by vmxon",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmclear",
+        operands = {
+            { index = 1, role = "vmcs_region" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmclear_updates_rflags",
+            target_register = "rflags",
+            role = "updated by vmclear",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmptrld",
+        operands = {
+            { index = 1, role = "vmcs_region" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmptrld_updates_rflags",
+            target_register = "rflags",
+            role = "updated by vmptrld",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmptrst",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmptrst_updates_system_state",
+            target_register = "rip",
+            role = "stored current vmcs pointer by vmptrst",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmread",
+        operands = {
+            { index = 1, role = "field" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmread_writes_destination",
+            target_operand = 2,
+            role = "written with vmcs field by vmread",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmread",
+        operands = {
+            { index = 1, role = "field" },
+            { index = 2, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmread_updates_rflags",
+            target_register = "rflags",
+            role = "updated by vmread",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmwrite",
+        operands = {
+            { index = 1, role = "source" },
+            { index = 2, role = "field" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmwrite_updates_rflags",
+            target_register = "rflags",
+            role = "updated by vmwrite",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "invept",
+        operands = {
+            { index = 1, role = "type" },
+            { index = 2, role = "descriptor" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "invept_updates_rflags",
+            target_register = "rflags",
+            role = "updated by invept",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "invvpid",
+        operands = {
+            { index = 1, role = "type" },
+            { index = 2, role = "descriptor" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "invvpid_updates_rflags",
+            target_register = "rflags",
+            role = "updated by invvpid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "skinit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "skinit_updates_system_state",
+            target_register = "rip",
+            role = "secure initialization by skinit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "stgi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "stgi_updates_system_state",
+            target_register = "rflags",
+            role = "global interrupt flag set by stgi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clgi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "clgi_updates_system_state",
+            target_register = "rflags",
+            role = "global interrupt flag cleared by clgi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmload",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmload_updates_system_state",
+            target_register = "rip",
+            role = "loaded virtual machine control state by vmload",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmsave_updates_system_state",
+            target_register = "rip",
+            role = "saved virtual machine control state by vmsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmmcall",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vmmcall_updates_rip",
+            target_register = "rip",
+            role = "virtual machine monitor call by vmmcall",
+        },
+    },
+
+    -- XSAVE / XRSTOR / FPU/SIMD state management.
+    {
+        node_type = "instruction",
+        mnemonic = "fxsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxsave_stores_processor_state",
+            target_register = "rip",
+            role = "saved fpu and simd state by fxsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxsave64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxsave64_stores_processor_state",
+            target_register = "rip",
+            role = "saved 64-bit fpu and simd state by fxsave64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxrstor",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxrstor_restores_processor_state",
+            target_register = "rip",
+            role = "restored fpu and simd state by fxrstor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxrstor64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxrstor64_restores_processor_state",
+            target_register = "rip",
+            role = "restored 64-bit fpu and simd state by fxrstor64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsave_stores_processor_state",
+            target_register = "rip",
+            role = "saved extended processor state by xsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsave64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsave64_stores_processor_state",
+            target_register = "rip",
+            role = "saved 64-bit extended processor state by xsave64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaveopt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaveopt_stores_processor_state",
+            target_register = "rip",
+            role = "optimally saved extended processor state by xsaveopt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaveopt64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaveopt64_stores_processor_state",
+            target_register = "rip",
+            role = "optimally saved 64-bit extended processor state by xsaveopt64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsavec",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsavec_stores_processor_state",
+            target_register = "rip",
+            role = "compacted saved extended processor state by xsavec",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsavec64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsavec64_stores_processor_state",
+            target_register = "rip",
+            role = "compacted saved 64-bit extended processor state by xsavec64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaves",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaves_stores_processor_state",
+            target_register = "rip",
+            role = "supervisor saved extended processor state by xsaves",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaves64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaves64_stores_processor_state",
+            target_register = "rip",
+            role = "supervisor saved 64-bit extended processor state by xsaves64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstor",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstor_restores_processor_state",
+            target_register = "rip",
+            role = "restored extended processor state by xrstor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstor64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstor64_restores_processor_state",
+            target_register = "rip",
+            role = "restored 64-bit extended processor state by xrstor64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstors",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstors_restores_processor_state",
+            target_register = "rip",
+            role = "restored supervisor extended processor state by xrstors",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstors64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstors64_restores_processor_state",
+            target_register = "rip",
+            role = "restored supervisor 64-bit extended processor state by xrstors64",
+        },
+    },
+
+    -- MXCSR / x87 control-state helpers.
+    {
+        node_type = "instruction",
+        mnemonic = "stmxcsr",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "stmxcsr_stores_control_state",
+            target_register = "rip",
+            role = "stored mxcsr by stmxcsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ldmxcsr",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ldmxcsr_loads_control_state",
+            target_register = "rip",
+            role = "loaded mxcsr by ldmxcsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstcw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstcw_stores_control_word",
+            target_register = "rip",
+            role = "stored x87 control word by fstcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnstcw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnstcw_stores_control_word",
+            target_register = "rip",
+            role = "stored x87 control word by fnstcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldcw",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fldcw_loads_control_word",
+            target_register = "rip",
+            role = "loaded x87 control word by fldcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstsw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstsw_stores_status_word",
+            target_register = "rip",
+            role = "stored x87 status word by fstsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnstsw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnstsw_stores_status_word",
+            target_register = "rip",
+            role = "stored x87 status word by fnstsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstsw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstsw_writes_register",
+            target_operand = 1,
+            role = "written with x87 status word by fstsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnstsw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnstsw_writes_register",
+            target_operand = 1,
+            role = "written with x87 status word by fnstsw",
+        },
+    },
+
+    -- x87 environment save/restore/init/clear.
+    {
+        node_type = "instruction",
+        mnemonic = "finit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "finit_initializes_fpu",
+            target_register = "rip",
+            role = "initialized x87 fpu by finit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fninit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fninit_initializes_fpu",
+            target_register = "rip",
+            role = "initialized x87 fpu by fninit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fclex",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fclex_clears_exceptions",
+            target_register = "rip",
+            role = "cleared x87 exceptions by fclex",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnclex",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fnclex_clears_exceptions",
+            target_register = "rip",
+            role = "cleared x87 exceptions by fnclex",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fsave_stores_fpu_state",
+            target_register = "rip",
+            role = "saved x87 fpu state by fsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnsave_stores_fpu_state",
+            target_register = "rip",
+            role = "saved x87 fpu state by fnsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "frstor",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "frstor_restores_fpu_state",
+            target_register = "rip",
+            role = "restored x87 fpu state by frstor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstenv",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstenv_stores_fpu_environment",
+            target_register = "rip",
+            role = "stored x87 environment by fstenv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnstenv",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnstenv_stores_fpu_environment",
+            target_register = "rip",
+            role = "stored x87 environment by fnstenv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldenv",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fldenv_loads_fpu_environment",
+            target_register = "rip",
+            role = "loaded x87 environment by fldenv",
+        },
+    },
+
+    -- x87 stack/math visibility. No x87 register model yet, so expose as RIP-side FPU activity.
+    {
+        node_type = "instruction",
+        mnemonic = "fld",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fld_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 value by fld",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fst",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fst_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored x87 value by fst",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstp",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstp_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored and popped x87 value by fstp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fild",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fild_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded integer into x87 stack by fild",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fist",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fist_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored integer from x87 stack by fist",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fistp",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fistp_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored integer and popped x87 stack by fistp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fisttp",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fisttp_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored truncated integer and popped x87 stack by fisttp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fbld",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fbld_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded bcd value into x87 stack by fbld",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fbstp",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fbstp_updates_fpu_stack",
+            target_register = "rip",
+            role = "stored bcd value and popped x87 stack by fbstp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fadd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fadd_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated x87 stack by fadd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "faddp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "faddp_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated and popped x87 stack by faddp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fiadd",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fiadd_updates_fpu_stack",
+            target_register = "rip",
+            role = "added integer to x87 stack by fiadd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsub",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fsub_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated x87 stack by fsub",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsubp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fsubp_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated and popped x87 stack by fsubp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fisub",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fisub_updates_fpu_stack",
+            target_register = "rip",
+            role = "subtracted integer from x87 stack by fisub",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fisubr",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fisubr_updates_fpu_stack",
+            target_register = "rip",
+            role = "reverse-subtracted integer with x87 stack by fisubr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fmul",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fmul_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated x87 stack by fmul",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fmulp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fmulp_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated and popped x87 stack by fmulp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fimul",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fimul_updates_fpu_stack",
+            target_register = "rip",
+            role = "multiplied integer with x87 stack by fimul",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fdiv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fdiv_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated x87 stack by fdiv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fdivp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fdivp_updates_fpu_stack",
+            target_register = "rip",
+            role = "updated and popped x87 stack by fdivp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fidiv",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fidiv_updates_fpu_stack",
+            target_register = "rip",
+            role = "divided x87 stack by integer with fidiv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fidivr",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fidivr_updates_fpu_stack",
+            target_register = "rip",
+            role = "reverse-divided integer with x87 stack by fidivr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcom",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcom_updates_fpu_status",
+            target_register = "rip",
+            role = "compared x87 values by fcom",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcomp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcomp_updates_fpu_status",
+            target_register = "rip",
+            role = "compared and popped x87 value by fcomp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcompp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcompp_updates_fpu_status",
+            target_register = "rip",
+            role = "compared and popped two x87 values by fcompp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fucom",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fucom_updates_fpu_status",
+            target_register = "rip",
+            role = "unordered-compared x87 values by fucom",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fucomp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fucomp_updates_fpu_status",
+            target_register = "rip",
+            role = "unordered-compared and popped x87 value by fucomp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fucompp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fucompp_updates_fpu_status",
+            target_register = "rip",
+            role = "unordered-compared and popped two x87 values by fucompp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcomi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcomi_updates_rflags",
+            target_register = "rflags",
+            role = "updated by x87 compare fcomi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcomip",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcomip_updates_rflags",
+            target_register = "rflags",
+            role = "updated by x87 compare-and-pop fcomip",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fucomi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fucomi_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered x87 compare fucomi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fucomip",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fucomip_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered x87 compare-and-pop fucomip",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ftst",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "ftst_updates_fpu_status",
+            target_register = "rip",
+            role = "tested x87 value against zero by ftst",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxam",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fxam_updates_fpu_status",
+            target_register = "rip",
+            role = "examined x87 value by fxam",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxch",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fxch_updates_fpu_stack",
+            target_register = "rip",
+            role = "exchanged x87 stack registers by fxch",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fabs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fabs_updates_fpu_stack",
+            target_register = "rip",
+            role = "absolute-valued x87 top by fabs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fchs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fchs_updates_fpu_stack",
+            target_register = "rip",
+            role = "changed sign of x87 top by fchs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "frndint",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "frndint_updates_fpu_stack",
+            target_register = "rip",
+            role = "rounded x87 top to integer by frndint",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsqrt",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fsqrt_updates_fpu_stack",
+            target_register = "rip",
+            role = "square-rooted x87 top by fsqrt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fscale",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fscale_updates_fpu_stack",
+            target_register = "rip",
+            role = "scaled x87 value by fscale",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fprem",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fprem_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed x87 partial remainder by fprem",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fprem1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fprem1_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed ieee x87 partial remainder by fprem1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fyl2x",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fyl2x_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed y times log2 x by fyl2x",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fyl2xp1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fyl2xp1_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed y times log2 x-plus-one by fyl2xp1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "f2xm1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "f2xm1_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed two-power-x-minus-one by f2xm1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsin",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fsin_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed sine by fsin",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fcos",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fcos_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed cosine by fcos",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fsincos",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fsincos_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed sine and cosine by fsincos",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fptan",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fptan_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed partial tangent by fptan",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fpatan",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fpatan_updates_fpu_stack",
+            target_register = "rip",
+            role = "computed partial arctangent by fpatan",
+        },
+    },
+
+    -- x87 constants.
+    {
+        node_type = "instruction",
+        mnemonic = "fld1",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fld1_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant one by fld1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldz",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldz_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant zero by fldz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldpi",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldpi_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant pi by fldpi",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldl2e",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldl2e_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant log2 e by fldl2e",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldl2t",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldl2t_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant log2 ten by fldl2t",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldlg2",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldlg2_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant log10 two by fldlg2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fldln2",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fldln2_updates_fpu_stack",
+            target_register = "rip",
+            role = "loaded x87 constant ln two by fldln2",
+        },
+    },
+
+    -- MMX state bridge.
+    {
+        node_type = "instruction",
+        mnemonic = "emms",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "emms_updates_mmx_state",
+            target_register = "rip",
+            role = "emptied mmx state by emms",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "femms",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "femms_updates_mmx_state",
+            target_register = "rip",
+            role = "fast-emptied mmx state by femms",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
