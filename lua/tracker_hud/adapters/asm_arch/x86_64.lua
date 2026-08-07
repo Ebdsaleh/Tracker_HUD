@@ -1367,6 +1367,82 @@ M.register_effects = {
         },
     },
 
+
+     -- 'clc' clears the carry flag.
+    {
+        node_type = "instruction",
+        mnemonic = "clc",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "clc_updates_rflags",
+            target_register = "rflags",
+            role = "carry flag cleared by clc",
+        },
+    },
+
+    -- 'stc' sets the carry flag.
+    {
+        node_type = "instruction",
+        mnemonic = "stc",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stc_updates_rflags",
+            target_register = "rflags",
+            role = "carry flag set by stc",
+        },
+    },
+
+    -- 'cmc' complements the carry flag.
+    {
+        node_type = "instruction",
+        mnemonic = "cmc",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cmc_updates_rflags",
+            target_register = "rflags",
+            role = "carry flag complemented by cmc",
+        },
+    },
+
+    -- 'cld' clears the direction flag.
+    {
+        node_type = "instruction",
+        mnemonic = "cld",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cld_updates_rflags",
+            target_register = "rflags",
+            role = "direction flag cleared by cld",
+        },
+    },
+
+    -- 'std' sets the direction flag.
+    {
+        node_type = "instruction",
+        mnemonic = "std",
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "std_updates_rflags",
+            target_register = "rflags",
+            role = "direction flag set by std",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
