@@ -17515,6 +17515,888 @@ M.register_effects = {
     },
 
 
+    -- AVX-512 VNNI / BF16 / FP16 / AMX visibility effects.
+    -- Phase-one model: no vector, mask, or tile register file yet, so most effects are exposed as RIP-side activity.
+
+    -- AVX-512 VNNI dot-product / neural-network integer operations.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpdpbusd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "unsigned_bytes" },
+            { index = 3, role = "signed_bytes" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpdpbusd_vector_vnni",
+            target_register = "rip",
+            role = "dot-product accumulated unsigned bytes with signed bytes into doublewords by vpdpbusd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpdpbusds",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "unsigned_bytes" },
+            { index = 3, role = "signed_bytes" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpdpbusds_vector_vnni",
+            target_register = "rip",
+            role = "saturating dot-product accumulated unsigned bytes with signed bytes into doublewords by vpdpbusds",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpdpwssd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left_words" },
+            { index = 3, role = "right_words" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpdpwssd_vector_vnni",
+            target_register = "rip",
+            role = "dot-product accumulated signed words into doublewords by vpdpwssd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpdpwssds",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left_words" },
+            { index = 3, role = "right_words" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpdpwssds_vector_vnni",
+            target_register = "rip",
+            role = "saturating dot-product accumulated signed words into doublewords by vpdpwssds",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vdpbf16ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left_bfloat16" },
+            { index = 3, role = "right_bfloat16" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vdpbf16ps_vector_bf16",
+            target_register = "rip",
+            role = "dot-product accumulated bfloat16 pairs into single-precision values by vdpbf16ps",
+        },
+    },
+
+    -- AVX-512 BF16 conversion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtneps2bf16",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtneps2bf16_vector_bf16_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to nearest-even bfloat16 by vcvtneps2bf16",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtne2ps2bf16",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left_source" },
+            { index = 3, role = "right_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtne2ps2bf16_vector_bf16_convert",
+            target_register = "rip",
+            role = "converted two packed single-precision sources to nearest-even bfloat16 by vcvtne2ps2bf16",
+        },
+    },
+
+    -- AVX-512 FP16 / half-precision arithmetic.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaddph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaddph_vector_fp16_arithmetic",
+            target_register = "rip",
+            role = "added packed half-precision values by vaddph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaddsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaddsh_scalar_fp16_arithmetic",
+            target_register = "rip",
+            role = "added scalar half-precision values by vaddsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsubph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsubph_vector_fp16_arithmetic",
+            target_register = "rip",
+            role = "subtracted packed half-precision values by vsubph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsubsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsubsh_scalar_fp16_arithmetic",
+            target_register = "rip",
+            role = "subtracted scalar half-precision values by vsubsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmulph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmulph_vector_fp16_arithmetic",
+            target_register = "rip",
+            role = "multiplied packed half-precision values by vmulph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmulsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmulsh_scalar_fp16_arithmetic",
+            target_register = "rip",
+            role = "multiplied scalar half-precision values by vmulsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vdivph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vdivph_vector_fp16_arithmetic",
+            target_register = "rip",
+            role = "divided packed half-precision values by vdivph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vdivsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vdivsh_scalar_fp16_arithmetic",
+            target_register = "rip",
+            role = "divided scalar half-precision values by vdivsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsqrtph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsqrtph_vector_fp16_arithmetic",
+            target_register = "rip",
+            role = "square-rooted packed half-precision values by vsqrtph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsqrtsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsqrtsh_scalar_fp16_arithmetic",
+            target_register = "rip",
+            role = "square-rooted scalar half-precision value by vsqrtsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmaxph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmaxph_vector_fp16_select",
+            target_register = "rip",
+            role = "selected packed half-precision maximum values by vmaxph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmaxsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmaxsh_scalar_fp16_select",
+            target_register = "rip",
+            role = "selected scalar half-precision maximum value by vmaxsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vminph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vminph_vector_fp16_select",
+            target_register = "rip",
+            role = "selected packed half-precision minimum values by vminph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vminsh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vminsh_scalar_fp16_select",
+            target_register = "rip",
+            role = "selected scalar half-precision minimum value by vminsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcmpph",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcmpph_vector_fp16_compare",
+            target_register = "rip",
+            role = "compared packed half-precision values into mask by vcmpph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcmpsh",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcmpsh_scalar_fp16_compare",
+            target_register = "rip",
+            role = "compared scalar half-precision values into mask by vcmpsh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcomish",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcomish_updates_rflags",
+            target_register = "rflags",
+            role = "updated by scalar half-precision compare vcomish",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vucomish",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vucomish_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered scalar half-precision compare vucomish",
+        },
+    },
+
+    -- AVX-512 FP16 conversion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2psx",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2psx_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to single-precision values by vcvtph2psx",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtps2phx",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtps2phx_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to half-precision values by vcvtps2phx",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtsh2ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtsh2ss_scalar_fp16_convert",
+            target_register = "rip",
+            role = "converted scalar half-precision value to single-precision value by vcvtsh2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtss2sh",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtss2sh_scalar_fp16_convert",
+            target_register = "rip",
+            role = "converted scalar single-precision value to half-precision value by vcvtss2sh",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2dq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to signed doubleword integers by vcvtph2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2qq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to signed quadword integers by vcvtph2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2udq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to unsigned doubleword integers by vcvtph2udq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtph2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtph2uqq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to unsigned quadword integers by vcvtph2uqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtdq2ph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtdq2ph_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed signed doubleword integers to half-precision values by vcvtdq2ph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtqq2ph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtqq2ph_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed signed quadword integers to half-precision values by vcvtqq2ph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtudq2ph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtudq2ph_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed unsigned doubleword integers to half-precision values by vcvtudq2ph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtuqq2ph",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtuqq2ph_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed unsigned quadword integers to half-precision values by vcvtuqq2ph",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttph2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttph2dq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to signed doubleword integers with truncation by vcvttph2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttph2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttph2qq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to signed quadword integers with truncation by vcvttph2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttph2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttph2udq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to unsigned doubleword integers with truncation by vcvttph2udq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttph2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttph2uqq_vector_fp16_convert",
+            target_register = "rip",
+            role = "converted packed half-precision values to unsigned quadword integers with truncation by vcvttph2uqq",
+        },
+    },
+
+    -- AMX tile configuration / release.
+
+    {
+        node_type = "instruction",
+        mnemonic = "ldtilecfg",
+        operands = {
+            { index = 1, role = "tile_config" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ldtilecfg_updates_tile_state",
+            target_register = "rip",
+            role = "loaded AMX tile configuration by ldtilecfg",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sttilecfg",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sttilecfg_updates_tile_state",
+            target_register = "rip",
+            role = "stored AMX tile configuration by sttilecfg",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tilerelease",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "tilerelease_updates_tile_state",
+            target_register = "rip",
+            role = "released AMX tile state by tilerelease",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tilezero",
+        operands = {
+            { index = 1, role = "tile_destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tilezero_updates_tile_state",
+            target_register = "rip",
+            role = "zeroed AMX tile by tilezero",
+        },
+    },
+
+    -- AMX tile load/store.
+
+    {
+        node_type = "instruction",
+        mnemonic = "tileloadd",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tileloadd_updates_tile_state",
+            target_register = "rip",
+            role = "loaded AMX tile rows by tileloadd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tileloaddt1",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tileloaddt1_updates_tile_state",
+            target_register = "rip",
+            role = "loaded AMX tile rows with temporal hint by tileloaddt1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tilestored",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "tile_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tilestored_updates_tile_state",
+            target_register = "rip",
+            role = "stored AMX tile rows by tilestored",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tileloadd64",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tileloadd64_updates_tile_state",
+            target_register = "rip",
+            role = "loaded AMX tile rows in 64-bit form by tileloadd64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tilestored64",
+        operands = {
+            { index = 1, role = "memory" },
+            { index = 2, role = "tile_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tilestored64_updates_tile_state",
+            target_register = "rip",
+            role = "stored AMX tile rows in 64-bit form by tilestored64",
+        },
+    },
+
+    -- AMX tile compute.
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpbssd",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpbssd_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated signed bytes into AMX tile doublewords by tdpbssd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpbsud",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpbsud_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated signed bytes with unsigned bytes into AMX tile doublewords by tdpbsud",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpbusd",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpbusd_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated unsigned bytes with signed bytes into AMX tile doublewords by tdpbusd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpbuud",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpbuud_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated unsigned bytes into AMX tile doublewords by tdpbuud",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpbf16ps",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpbf16ps_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated bfloat16 values into AMX tile single-precision values by tdpbf16ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tdpfp16ps",
+        operands = {
+            { index = 1, role = "tile_destination" },
+            { index = 2, role = "left_tile" },
+            { index = 3, role = "right_tile" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tdpfp16ps_updates_tile_state",
+            target_register = "rip",
+            role = "dot-product accumulated fp16 values into AMX tile single-precision values by tdpfp16ps",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
