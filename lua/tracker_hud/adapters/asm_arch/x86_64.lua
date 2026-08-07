@@ -5530,6 +5530,1007 @@ M.register_effects = {
         },
     },
 
+        -- Additional SETcc alias effects.
+    {
+        node_type = "instruction",
+        mnemonic = "seta",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "seta_writes_destination",
+            target_operand = 1,
+            role = "set byte from above condition by seta",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setae",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setae_writes_destination",
+            target_operand = 1,
+            role = "set byte from above-or-equal condition by setae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setb",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setb_writes_destination",
+            target_operand = 1,
+            role = "set byte from below condition by setb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setbe",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setbe_writes_destination",
+            target_operand = 1,
+            role = "set byte from below-or-equal condition by setbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setz",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setz_writes_destination",
+            target_operand = 1,
+            role = "set byte from zero condition by setz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnz",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnz_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-zero condition by setnz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setge",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setge_writes_destination",
+            target_operand = 1,
+            role = "set byte from greater-or-equal condition by setge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setle",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setle_writes_destination",
+            target_operand = 1,
+            role = "set byte from less-or-equal condition by setle",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sets",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "sets_writes_destination",
+            target_operand = 1,
+            role = "set byte from sign condition by sets",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setns",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setns_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-sign condition by setns",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setp",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setp_writes_destination",
+            target_operand = 1,
+            role = "set byte from parity condition by setp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnp",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnp_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-parity condition by setnp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setpe",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setpe_writes_destination",
+            target_operand = 1,
+            role = "set byte from parity-even condition by setpe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setpo",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setpo_writes_destination",
+            target_operand = 1,
+            role = "set byte from parity-odd condition by setpo",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setna",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setna_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-above condition by setna",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnbe",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnbe_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-below-or-equal condition by setnbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnae",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnae_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-above-or-equal condition by setnae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnb",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnb_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-below condition by setnb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnge",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnge_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-greater-or-equal condition by setnge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setng",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setng_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-greater condition by setng",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnl",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnl_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-less condition by setnl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnle",
+        operands = { { index = 1, kind = "register", role = "destination" } },
+        effect = {
+            kind = "register_write",
+            name = "setnle_writes_destination",
+            target_operand = 1,
+            role = "set byte from not-less-or-equal condition by setnle",
+        },
+    },
+
+    -- Additional CMOVcc alias effects.
+    {
+        node_type = "instruction",
+        mnemonic = "cmova",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmova_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from above condition by cmova",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovae",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovae_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from above-or-equal condition by cmovae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovb_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from below condition by cmovb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovbe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovbe_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from below-or-equal condition by cmovbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovz",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovz_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from zero condition by cmovz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnz",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnz_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-zero condition by cmovnz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovge",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovge_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from greater-or-equal condition by cmovge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovle",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovle_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from less-or-equal condition by cmovle",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovo",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovo_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from overflow condition by cmovo",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovno",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovno_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-overflow condition by cmovno",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovs_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from sign condition by cmovs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovns",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovns_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-sign condition by cmovns",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovp_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from parity condition by cmovp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnp_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-parity condition by cmovnp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpe_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from parity-even condition by cmovpe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpo",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpo_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from parity-odd condition by cmovpo",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovna",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovna_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-above condition by cmovna",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnbe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnbe_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-below-or-equal condition by cmovnbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnae",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnae_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-above-or-equal condition by cmovnae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnb_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-below condition by cmovnb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnge",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnge_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-greater-or-equal condition by cmovnge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovng",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovng_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-greater condition by cmovng",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnl_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-less condition by cmovnl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnle",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnle_writes_destination",
+            target_operand = 1,
+            role = "conditionally moved from not-less-or-equal condition by cmovnle",
+        },
+    },
+
+    -- REP-family prefixes. These are modeled as rcx-consuming repeat controls.
+    {
+        node_type = "instruction",
+        mnemonic = "rep",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_consumes_rcx",
+            target_register = "rcx",
+            role = "used as repeat count by rep",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repe",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repe_consumes_rcx",
+            target_register = "rcx",
+            role = "used as repeat count by repe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repz",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repz_consumes_rcx",
+            target_register = "rcx",
+            role = "used as repeat count by repz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repne",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repne_consumes_rcx",
+            target_register = "rcx",
+            role = "used as repeat count by repne",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repnz",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repnz_consumes_rcx",
+            target_register = "rcx",
+            role = "used as repeat count by repnz",
+        },
+    },
+
+    -- Descriptor / protection helper instructions.
+    {
+        node_type = "instruction",
+        mnemonic = "lar",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lar_writes_destination",
+            target_operand = 1,
+            role = "written with access rights by lar",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lar",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lar_updates_rflags",
+            target_register = "rflags",
+            role = "updated by lar",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lsl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lsl_writes_destination",
+            target_operand = 1,
+            role = "written with segment limit by lsl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lsl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lsl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by lsl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "verr",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "verr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by readable-segment test verr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "verw",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "verw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by writable-segment test verw",
+        },
+    },
+
+    -- Model/control read instructions that write general-purpose result registers.
+    {
+        node_type = "instruction",
+        mnemonic = "rdmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdmsr_writes_rax",
+            target_register = "rax",
+            role = "written with model-specific register low bits by rdmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdmsr_writes_rdx",
+            target_register = "rdx",
+            role = "written with model-specific register high bits by rdmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpmc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpmc_writes_rax",
+            target_register = "rax",
+            role = "written with performance counter low bits by rdpmc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpmc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpmc_writes_rdx",
+            target_register = "rdx",
+            role = "written with performance counter high bits by rdpmc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xgetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xgetbv_writes_rax",
+            target_register = "rax",
+            role = "written with extended control register low bits by xgetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xgetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xgetbv_writes_rdx",
+            target_register = "rdx",
+            role = "written with extended control register high bits by xgetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpkru",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpkru_writes_rax",
+            target_register = "rax",
+            role = "written with protection-key rights by rdpkru",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpkru",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpkru_writes_rdx",
+            target_register = "rdx",
+            role = "cleared high result by rdpkru",
+        },
+    },
+
+    -- Frame/control-transfer helpers.
+    {
+        node_type = "instruction",
+        mnemonic = "enter",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enter_updates_rsp",
+            target_register = "rsp",
+            role = "changed by stack frame entry enter",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "enter",
+        operands = {
+            { index = 1, role = "frame_size" },
+            { index = 2, role = "nesting_level" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "enter_updates_rbp",
+            target_register = "rbp",
+            role = "established frame base by enter",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leave",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leave_updates_rsp",
+            target_register = "rsp",
+            role = "restored stack pointer by leave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "leave",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "leave_updates_rbp",
+            target_register = "rbp",
+            role = "restored frame base by leave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retf_updates_rip",
+            target_register = "rip",
+            role = "far return changed instruction pointer by retf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "retf",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "retf_updates_rsp",
+            target_register = "rsp",
+            role = "far return adjusted stack pointer by retf",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lret",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lret_updates_rip",
+            target_register = "rip",
+            role = "far return changed instruction pointer by lret",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lret",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lret_updates_rsp",
+            target_register = "rsp",
+            role = "far return adjusted stack pointer by lret",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "iretw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "iretw_updates_rip",
+            target_register = "rip",
+            role = "returned from interrupt by iretw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "iretd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "iretd_updates_rip",
+            target_register = "rip",
+            role = "returned from interrupt by iretd",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
