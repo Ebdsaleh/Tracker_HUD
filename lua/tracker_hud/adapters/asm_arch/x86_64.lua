@@ -4366,6 +4366,128 @@ M.register_effects = {
         },
     },
 
+
+    -- Conditional jump alias effects.
+    {
+        node_type = "instruction",
+        mnemonic = "jna",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jna_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-above by jna",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnae",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnae_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-above-or-equal by jnae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnb",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnb_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-below by jnb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnbe",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnbe_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-below-or-equal by jnbe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnge",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnge_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-greater-or-equal by jnge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jng",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jng_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-greater by jng",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnl",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnl_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-less by jnl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jnle",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jnle_updates_rip",
+            target_register = "rip",
+            role = "conditional jump not-less-or-equal by jnle",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jpe",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jpe_updates_rip",
+            target_register = "rip",
+            role = "conditional jump parity-even by jpe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "jpo",
+        operands = { { index = 1, role = "jump_target" } },
+        effect = {
+            kind = "register_write",
+            name = "jpo_updates_rip",
+            target_register = "rip",
+            role = "conditional jump parity-odd by jpo",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
