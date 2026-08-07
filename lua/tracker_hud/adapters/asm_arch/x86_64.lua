@@ -1983,6 +1983,326 @@ M.register_effects = {
         },
     },
 
+    -- 'cmovo reg, source' conditionally moves on overflow.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovo",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovo_register",
+            target_operand = 1,
+            role = "conditionally moved from overflow condition",
+        },
+    },
+
+    -- 'cmovno reg, source' conditionally moves on not-overflow.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovno",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovno_register",
+            target_operand = 1,
+            role = "conditionally moved from not-overflow condition",
+        },
+    },
+
+    -- 'cmovb reg, source' conditionally moves on below/carry.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovb_register",
+            target_operand = 1,
+            role = "conditionally moved from below condition",
+        },
+    },
+
+    -- 'cmovc reg, source' conditionally moves on carry.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovc_register",
+            target_operand = 1,
+            role = "conditionally moved from carry condition",
+        },
+    },
+
+    -- 'cmovae reg, source' conditionally moves on above-or-equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovae",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovae_register",
+            target_operand = 1,
+            role = "conditionally moved from above-or-equal condition",
+        },
+    },
+
+    -- 'cmovnc reg, source' conditionally moves on not-carry.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnc_register",
+            target_operand = 1,
+            role = "conditionally moved from not-carry condition",
+        },
+    },
+
+    -- 'cmove reg, source' conditionally moves on equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmove",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmove_register",
+            target_operand = 1,
+            role = "conditionally moved from equal condition",
+        },
+    },
+
+    -- 'cmovz reg, source' conditionally moves on zero.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovz",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovz_register",
+            target_operand = 1,
+            role = "conditionally moved from zero condition",
+        },
+    },
+
+    -- 'cmovne reg, source' conditionally moves on not-equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovne",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovne_register",
+            target_operand = 1,
+            role = "conditionally moved from not-equal condition",
+        },
+    },
+
+    -- 'cmovnz reg, source' conditionally moves on not-zero.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnz",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnz_register",
+            target_operand = 1,
+            role = "conditionally moved from not-zero condition",
+        },
+    },
+
+    -- 'cmovbe reg, source' conditionally moves on below-or-equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovbe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovbe_register",
+            target_operand = 1,
+            role = "conditionally moved from below-or-equal condition",
+        },
+    },
+
+    -- 'cmova reg, source' conditionally moves on above.
+    {
+        node_type = "instruction",
+        mnemonic = "cmova",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmova_register",
+            target_operand = 1,
+            role = "conditionally moved from above condition",
+        },
+    },
+
+    -- 'cmovs reg, source' conditionally moves on sign.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovs",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovs_register",
+            target_operand = 1,
+            role = "conditionally moved from sign condition",
+        },
+    },
+
+    -- 'cmovns reg, source' conditionally moves on not-sign.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovns",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovns_register",
+            target_operand = 1,
+            role = "conditionally moved from not-sign condition",
+        },
+    },
+
+    -- 'cmovp reg, source' conditionally moves on parity.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovp_register",
+            target_operand = 1,
+            role = "conditionally moved from parity condition",
+        },
+    },
+
+    -- 'cmovnp reg, source' conditionally moves on not-parity.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnp_register",
+            target_operand = 1,
+            role = "conditionally moved from not-parity condition",
+        },
+    },
+
+    -- 'cmovl reg, source' conditionally moves on less-than.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovl_register",
+            target_operand = 1,
+            role = "conditionally moved from less-than condition",
+        },
+    },
+
+    -- 'cmovge reg, source' conditionally moves on greater-or-equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovge",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovge_register",
+            target_operand = 1,
+            role = "conditionally moved from greater-or-equal condition",
+        },
+    },
+
+    -- 'cmovle reg, source' conditionally moves on less-or-equal.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovle",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovle_register",
+            target_operand = 1,
+            role = "conditionally moved from less-or-equal condition",
+        },
+    },
+
+    -- 'cmovg reg, source' conditionally moves on greater-than.
+    {
+        node_type = "instruction",
+        mnemonic = "cmovg",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovg_register",
+            target_operand = 1,
+            role = "conditionally moved from greater-than condition",
+        },
+    },
+
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
         node_type = "instruction",
