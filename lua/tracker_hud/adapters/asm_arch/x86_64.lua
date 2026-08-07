@@ -632,6 +632,169 @@ M.register_effects = {
     },
 
 
+    -- 'and reg, reg' mutates the destination register with a bitwise AND.
+
+    {
+        node_type = "instruction",
+        mnemonic = "and",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "mask_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "and_register_register",
+            target_operand = 1,
+            role = "bitwise-and mutated by register",
+        },
+    },
+
+    -- 'and reg, imm' mutates the destination register with a bitwise AND mask.
+    {
+        node_type = "instruction",
+        mnemonic = "and",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "mask",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "and_register_immediate",
+            target_operand = 1,
+            role = "bitwise-and mutated by immediate",
+        },
+    },
+
+
+    -- 'or reg, reg' mutates the destination register with a bitwise OR.
+    {
+        node_type = "instruction",
+        mnemonic = "or",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "or_register_register",
+            target_operand = 1,
+            role = "bitwise-or mutated by register",
+        },
+    },
+
+    -- 'or reg, imm' mutates the destination register with a bitwise OR immediate.
+    {
+        node_type = "instruction",
+        mnemonic = "or",
+
+        operands =
+        {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "source_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "or_register_immediate",
+            target_operand = 1,
+            role = "bitwise-or mutated by immediate",
+        },
+    },
+
+
+    -- 'xor reg, reg' mutates the destination register with a bitwise XOR.
+    -- The self-zeroing form 'xor reg, reg' is handled by an earlier, more specific rule.
+
+    {
+        node_type = "instruction",
+        mnemonic = "xor",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "register",
+                role = "source_register",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xor_register_register",
+            target_operand = 1,
+            role = "bitwise-xor mutated by register",
+        },
+    },
+
+
+    -- 'xor reg, imm' mutates the destination register with a bitwise XOR immediate
+
+    {
+        node_type = "instruction",
+        mnemonic = "xor",
+
+        operands = {
+            {
+                index = 1,
+                kind = "register",
+                role = "destination",
+            },
+            {
+                index = 2,
+                kind = "integer",
+                role = "source_value",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "xor_register_register",
+            target_operand = 1,
+            role = "bitwise-xor mutated by immedate",
+        },
+    },
 
     -- 'mov rbp, rsp' establishes a stack frame base.
     {
