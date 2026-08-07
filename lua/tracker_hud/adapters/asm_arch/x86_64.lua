@@ -3801,6 +3801,293 @@ M.register_effects = {
         },
     },
 
+
+    -- 'int imm' transfers control to a software interrupt handler.
+    {
+        node_type = "instruction",
+        mnemonic = "int",
+
+        operands = {
+            {
+                index = 1,
+                role = "interrupt_vector",
+            },
+        },
+
+        effect = {
+            kind = "register_write",
+            name = "int_updates_rip",
+            target_register = "rip",
+            role = "software interrupt transfer by int",
+        },
+    },
+
+    -- 'int3' transfers control to the breakpoint interrupt handler.
+    {
+        node_type = "instruction",
+        mnemonic = "int3",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "int3_updates_rip",
+            target_register = "rip",
+            role = "breakpoint interrupt by int3",
+        },
+    },
+
+    -- 'into' transfers control on overflow.
+    {
+        node_type = "instruction",
+        mnemonic = "into",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "into_updates_rip",
+            target_register = "rip",
+            role = "overflow interrupt by into",
+        },
+    },
+
+    -- 'iret' returns from an interrupt.
+    {
+        node_type = "instruction",
+        mnemonic = "iret",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "iret_updates_rip",
+            target_register = "rip",
+            role = "returned from interrupt by iret",
+        },
+    },
+
+    -- 'iretq' returns from a 64-bit interrupt.
+    {
+        node_type = "instruction",
+        mnemonic = "iretq",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "iretq_updates_rip",
+            target_register = "rip",
+            role = "returned from interrupt by iretq",
+        },
+    },
+
+    -- 'sysenter' enters a fast system-call handler.
+    {
+        node_type = "instruction",
+        mnemonic = "sysenter",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sysenter_updates_rip",
+            target_register = "rip",
+            role = "entered system call by sysenter",
+        },
+    },
+
+    -- 'sysexit' returns from a fast system-call handler.
+    {
+        node_type = "instruction",
+        mnemonic = "sysexit",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sysexit_updates_rip",
+            target_register = "rip",
+            role = "returned from system call by sysexit",
+        },
+    },
+
+    -- 'sysret' returns from a system call.
+    {
+        node_type = "instruction",
+        mnemonic = "sysret",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sysret_updates_rip",
+            target_register = "rip",
+            role = "returned from system call by sysret",
+        },
+    },
+
+    -- 'sysretq' returns from a 64-bit system call.
+    {
+        node_type = "instruction",
+        mnemonic = "sysretq",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sysretq_updates_rip",
+            target_register = "rip",
+            role = "returned from system call by sysretq",
+        },
+    },
+
+    -- 'ud2' raises an invalid-instruction exception.
+    {
+        node_type = "instruction",
+        mnemonic = "ud2",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "ud2_updates_rip",
+            target_register = "rip",
+            role = "invalid instruction trap by ud2",
+        },
+    },
+
+    -- 'hlt' halts the processor until an external event.
+    {
+        node_type = "instruction",
+        mnemonic = "hlt",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "hlt_updates_rip",
+            target_register = "rip",
+            role = "halted by hlt",
+        },
+    },
+
+    -- 'pause' is a spin-wait hint.
+    {
+        node_type = "instruction",
+        mnemonic = "pause",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "pause_updates_rip",
+            target_register = "rip",
+            role = "spin-wait hint by pause",
+        },
+    },
+
+    -- 'wait' waits for the floating-point unit.
+    {
+        node_type = "instruction",
+        mnemonic = "wait",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "wait_updates_rip",
+            target_register = "rip",
+            role = "waited for floating-point unit by wait",
+        },
+    },
+
+    -- 'fwait' waits for the floating-point unit.
+    {
+        node_type = "instruction",
+        mnemonic = "fwait",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "fwait_updates_rip",
+            target_register = "rip",
+            role = "waited for floating-point unit by fwait",
+        },
+    },
+
+    -- 'cli' clears the interrupt flag.
+    {
+        node_type = "instruction",
+        mnemonic = "cli",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cli_updates_rflags",
+            target_register = "rflags",
+            role = "interrupt flag cleared by cli",
+        },
+    },
+
+    -- 'sti' sets the interrupt flag.
+    {
+        node_type = "instruction",
+        mnemonic = "sti",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "sti_updates_rflags",
+            target_register = "rflags",
+            role = "interrupt flag set by sti",
+        },
+    },
+
+    -- 'cld' clears the direction flag.
+    {
+        node_type = "instruction",
+        mnemonic = "cld",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cld_updates_rflags",
+            target_register = "rflags",
+            role = "direction flag cleared by cld",
+        },
+    },
+
+    -- 'std' sets the direction flag.
+    {
+        node_type = "instruction",
+        mnemonic = "std",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "std_updates_rflags",
+            target_register = "rflags",
+            role = "direction flag set by std",
+        },
+    },
+
+    -- 'clac' clears the alignment-check/access-control flag.
+    {
+        node_type = "instruction",
+        mnemonic = "clac",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "clac_updates_rflags",
+            target_register = "rflags",
+            role = "access-control flag cleared by clac",
+        },
+    },
+
+    -- 'stac' sets the alignment-check/access-control flag.
+    {
+        node_type = "instruction",
+        mnemonic = "stac",
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "stac_updates_rflags",
+            target_register = "rflags",
+            role = "access-control flag set by stac",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
