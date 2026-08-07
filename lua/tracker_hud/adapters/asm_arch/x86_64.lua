@@ -5070,6 +5070,465 @@ M.register_effects = {
         },
     },
 
+    -- 'imul reg, source' writes the signed multiply result to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "imul",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "imul_two_operand_writes_destination",
+            target_operand = 1,
+            role = "written with signed multiply result by imul",
+        },
+    },
+
+    -- 'imul reg, source, imm' writes the signed multiply result to the destination register.
+    {
+        node_type = "instruction",
+        mnemonic = "imul",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "multiplier" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "imul_three_operand_writes_destination",
+            target_operand = 1,
+            role = "written with signed multiply result by imul",
+        },
+    },
+
+    -- 'imul' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "imul",
+        operands = {
+            { index = 1, role = "destination_or_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "imul_updates_rflags",
+            target_register = "rflags",
+            role = "updated by imul",
+        },
+    },
+
+    -- 'shld reg, source, count' shifts the destination left through another source.
+    {
+        node_type = "instruction",
+        mnemonic = "shld",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shld_writes_destination",
+            target_operand = 1,
+            role = "double-precision shifted left by shld",
+        },
+    },
+
+    -- 'shld' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "shld",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shld_updates_rflags",
+            target_register = "rflags",
+            role = "updated by shld",
+        },
+    },
+
+    -- 'shrd reg, source, count' shifts the destination right through another source.
+    {
+        node_type = "instruction",
+        mnemonic = "shrd",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrd_writes_destination",
+            target_operand = 1,
+            role = "double-precision shifted right by shrd",
+        },
+    },
+
+    -- 'shrd' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "shrd",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by shrd",
+        },
+    },
+
+    -- 'bt target, bit' tests a bit and updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "bt",
+        operands = {
+            { index = 1, role = "target" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bt_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bit test",
+        },
+    },
+
+    -- 'bts target, bit' tests and sets a bit in the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "bts",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bts_writes_destination",
+            target_operand = 1,
+            role = "bit tested and set by bts",
+        },
+    },
+
+    -- 'bts' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "bts",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bts_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bts",
+        },
+    },
+
+    -- 'btr target, bit' tests and resets a bit in the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "btr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btr_writes_destination",
+            target_operand = 1,
+            role = "bit tested and reset by btr",
+        },
+    },
+
+    -- 'btr' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "btr",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by btr",
+        },
+    },
+
+    -- 'btc target, bit' tests and complements a bit in the destination.
+    {
+        node_type = "instruction",
+        mnemonic = "btc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btc_writes_destination",
+            target_operand = 1,
+            role = "bit tested and complemented by btc",
+        },
+    },
+
+    -- 'btc' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "btc",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btc_updates_rflags",
+            target_register = "rflags",
+            role = "updated by btc",
+        },
+    },
+
+    -- 'pdep reg, source, mask' writes a parallel bit deposit result.
+    {
+        node_type = "instruction",
+        mnemonic = "pdep",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pdep_writes_destination",
+            target_operand = 1,
+            role = "written with parallel bit deposit result by pdep",
+        },
+    },
+
+    -- 'pext reg, source, mask' writes a parallel bit extract result.
+    {
+        node_type = "instruction",
+        mnemonic = "pext",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pext_writes_destination",
+            target_operand = 1,
+            role = "written with parallel bit extract result by pext",
+        },
+    },
+
+    -- 'andn reg, source, mask' writes inverted-source AND result.
+    {
+        node_type = "instruction",
+        mnemonic = "andn",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "andn_writes_destination",
+            target_operand = 1,
+            role = "written with inverted-source and result by andn",
+        },
+    },
+
+    -- 'andn' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "andn",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "andn_updates_rflags",
+            target_register = "rflags",
+            role = "updated by andn",
+        },
+    },
+
+    -- 'bextr reg, source, control' writes extracted bit-field result.
+    {
+        node_type = "instruction",
+        mnemonic = "bextr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bextr_writes_destination",
+            target_operand = 1,
+            role = "written with bit-field extract result by bextr",
+        },
+    },
+
+    -- 'bextr' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "bextr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bextr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bextr",
+        },
+    },
+
+    -- 'bzhi reg, source, index' writes zero-high-bits result.
+    {
+        node_type = "instruction",
+        mnemonic = "bzhi",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bzhi_writes_destination",
+            target_operand = 1,
+            role = "written with zero-high-bits result by bzhi",
+        },
+    },
+
+    -- 'bzhi' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "bzhi",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bzhi_updates_rflags",
+            target_register = "rflags",
+            role = "updated by bzhi",
+        },
+    },
+
+    -- 'blsi reg, source' writes isolated lowest set bit.
+    {
+        node_type = "instruction",
+        mnemonic = "blsi",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsi_writes_destination",
+            target_operand = 1,
+            role = "written with isolated lowest set bit by blsi",
+        },
+    },
+
+    -- 'blsi' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "blsi",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsi_updates_rflags",
+            target_register = "rflags",
+            role = "updated by blsi",
+        },
+    },
+
+    -- 'blsmsk reg, source' writes mask from lowest set bit.
+    {
+        node_type = "instruction",
+        mnemonic = "blsmsk",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsmsk_writes_destination",
+            target_operand = 1,
+            role = "written with lowest-set-bit mask by blsmsk",
+        },
+    },
+
+    -- 'blsmsk' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "blsmsk",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsmsk_updates_rflags",
+            target_register = "rflags",
+            role = "updated by blsmsk",
+        },
+    },
+
+    -- 'blsr reg, source' writes source with lowest set bit reset.
+    {
+        node_type = "instruction",
+        mnemonic = "blsr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsr_writes_destination",
+            target_operand = 1,
+            role = "written with lowest set bit reset by blsr",
+        },
+    },
+
+    -- 'blsr' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "blsr",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "blsr_updates_rflags",
+            target_register = "rflags",
+            role = "updated by blsr",
+        },
+    },
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
