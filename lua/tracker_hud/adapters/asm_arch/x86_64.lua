@@ -790,9 +790,9 @@ M.register_effects = {
 
         effect = {
             kind = "register_write",
-            name = "xor_register_register",
+            name = "xor_register_immediate",
             target_operand = 1,
-            role = "bitwise-xor mutated by immedate",
+            role = "bitwise-xor mutated by immediate",
         },
     },
 
