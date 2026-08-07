@@ -4488,6 +4488,171 @@ M.register_effects = {
         },
     },
 
+    -- 'loope target' decrements rcx and conditionally branches.
+    {
+        node_type = "instruction",
+        mnemonic = "loope",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loope_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loope",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "loope",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loope_updates_rip",
+            target_register = "rip",
+            role = "conditional loop branch by loope",
+        },
+    },
+
+    -- 'loopz target' is an alias form of loope.
+    {
+        node_type = "instruction",
+        mnemonic = "loopz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopz_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "loopz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopz_updates_rip",
+            target_register = "rip",
+            role = "conditional loop branch by loopz",
+        },
+    },
+
+    -- 'loopne target' decrements rcx and conditionally branches.
+    {
+        node_type = "instruction",
+        mnemonic = "loopne",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopne_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopne",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "loopne",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopne_updates_rip",
+            target_register = "rip",
+            role = "conditional loop branch by loopne",
+        },
+    },
+
+    -- 'loopnz target' is an alias form of loopne.
+    {
+        node_type = "instruction",
+        mnemonic = "loopnz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopnz_decrements_rcx",
+            target_register = "rcx",
+            value_delta = -1,
+            role = "decremented by loopnz",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "loopnz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "loopnz_updates_rip",
+            target_register = "rip",
+            role = "conditional loop branch by loopnz",
+        },
+    },
+
+    -- 'jrcxz target' conditionally branches when rcx is zero.
+    {
+        node_type = "instruction",
+        mnemonic = "jrcxz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jrcxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if rcx zero by jrcxz",
+        },
+    },
+
+    -- 'jecxz target' conditionally branches when ecx is zero.
+    {
+        node_type = "instruction",
+        mnemonic = "jecxz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jecxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if ecx zero by jecxz",
+        },
+    },
+
+    -- 'jcxz target' conditionally branches when cx is zero.
+    {
+        node_type = "instruction",
+        mnemonic = "jcxz",
+        operands = {
+            { index = 1, role = "jump_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "jcxz_updates_rip",
+            target_register = "rip",
+            role = "conditional jump if cx zero by jcxz",
+        },
+    },
+
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
         node_type = "instruction",
