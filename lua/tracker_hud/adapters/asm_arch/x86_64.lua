@@ -16362,6 +16362,1159 @@ M.register_effects = {
         },
     },
 
+    -- AVX-512 compare / class / mask-test / convert / narrow / widen / permute visibility effects.
+    -- Phase-one model: no k-register or zmm-register file yet, so most vector/mask effects are exposed as RIP-side activity.
+
+    -- AVX-512 packed integer compare-to-mask.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpb",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpb_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed signed bytes into mask by vpcmpb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpw",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpw_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed signed words into mask by vpcmpw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpd",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpd_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed signed doublewords into mask by vpcmpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpq",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpq_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed signed quadwords into mask by vpcmpq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpub",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpub_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed unsigned bytes into mask by vpcmpub",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpuw",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpuw_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed unsigned words into mask by vpcmpuw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpud",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpud_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed unsigned doublewords into mask by vpcmpud",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpcmpuq",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpcmpuq_vector_compare_mask",
+            target_register = "rip",
+            role = "compared packed unsigned quadwords into mask by vpcmpuq",
+        },
+    },
+
+    -- AVX-512 floating-point class tests.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfpclassps",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "class_mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfpclassps_vector_class_mask",
+            target_register = "rip",
+            role = "classified packed single-precision values into mask by vfpclassps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfpclasspd",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "class_mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfpclasspd_vector_class_mask",
+            target_register = "rip",
+            role = "classified packed double-precision values into mask by vfpclasspd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfpclassss",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "class_mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfpclassss_scalar_class_mask",
+            target_register = "rip",
+            role = "classified scalar single-precision value into mask by vfpclassss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vfpclasssd",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "class_mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vfpclasssd_scalar_class_mask",
+            target_register = "rip",
+            role = "classified scalar double-precision value into mask by vfpclasssd",
+        },
+    },
+
+    -- AVX-512 packed integer mask tests.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestmb",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestmb_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed byte masks by vptestmb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestmw",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestmw_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed word masks by vptestmw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestmd",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestmd_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed doubleword masks by vptestmd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestmq",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestmq_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed quadword masks by vptestmq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestnmb",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestnmb_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed byte inverted masks by vptestnmb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestnmw",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestnmw_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed word inverted masks by vptestnmw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestnmd",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestnmd_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed doubleword inverted masks by vptestnmd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vptestnmq",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vptestnmq_vector_mask_test",
+            target_register = "rip",
+            role = "tested packed quadword inverted masks by vptestnmq",
+        },
+    },
+
+    -- AVX-512 floating/integer conversion visibility.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtps2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtps2qq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to signed quadword integers by vcvtps2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtps2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtps2uqq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to unsigned quadword integers by vcvtps2uqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtpd2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtpd2qq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to signed quadword integers by vcvtpd2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtpd2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtpd2uqq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to unsigned quadword integers by vcvtpd2uqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtqq2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtqq2ps_vector_convert",
+            target_register = "rip",
+            role = "converted packed signed quadword integers to single-precision values by vcvtqq2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtuqq2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtuqq2ps_vector_convert",
+            target_register = "rip",
+            role = "converted packed unsigned quadword integers to single-precision values by vcvtuqq2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtqq2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtqq2pd_vector_convert",
+            target_register = "rip",
+            role = "converted packed signed quadword integers to double-precision values by vcvtqq2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtuqq2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtuqq2pd_vector_convert",
+            target_register = "rip",
+            role = "converted packed unsigned quadword integers to double-precision values by vcvtuqq2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttps2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttps2qq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to signed quadword integers with truncation by vcvttps2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttps2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttps2uqq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to unsigned quadword integers with truncation by vcvttps2uqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttpd2qq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttpd2qq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to signed quadword integers with truncation by vcvttpd2qq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttpd2uqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttpd2uqq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to unsigned quadword integers with truncation by vcvttpd2uqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtudq2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtudq2ps_vector_convert",
+            target_register = "rip",
+            role = "converted packed unsigned doubleword integers to single-precision values by vcvtudq2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtudq2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtudq2pd_vector_convert",
+            target_register = "rip",
+            role = "converted packed unsigned doubleword integers to double-precision values by vcvtudq2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtps2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtps2udq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to unsigned doubleword integers by vcvtps2udq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtpd2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtpd2udq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to unsigned doubleword integers by vcvtpd2udq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttps2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttps2udq_vector_convert",
+            target_register = "rip",
+            role = "converted packed single-precision values to unsigned doubleword integers with truncation by vcvttps2udq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttpd2udq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttpd2udq_vector_convert",
+            target_register = "rip",
+            role = "converted packed double-precision values to unsigned doubleword integers with truncation by vcvttpd2udq",
+        },
+    },
+
+    -- AVX-512 integer narrowing / widening move visibility.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovdb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovdb_vector_narrow",
+            target_register = "rip",
+            role = "narrowed packed doubleword integers to bytes by vpmovdb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovdw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovdw_vector_narrow",
+            target_register = "rip",
+            role = "narrowed packed doubleword integers to words by vpmovdw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovqb_vector_narrow",
+            target_register = "rip",
+            role = "narrowed packed quadword integers to bytes by vpmovqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovqw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovqw_vector_narrow",
+            target_register = "rip",
+            role = "narrowed packed quadword integers to words by vpmovqw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovqd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovqd_vector_narrow",
+            target_register = "rip",
+            role = "narrowed packed quadword integers to doublewords by vpmovqd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovsdb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovsdb_vector_signed_saturating_narrow",
+            target_register = "rip",
+            role = "signed-saturating narrowed packed doubleword integers to bytes by vpmovsdb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovsdw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovsdw_vector_signed_saturating_narrow",
+            target_register = "rip",
+            role = "signed-saturating narrowed packed doubleword integers to words by vpmovsdw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovsqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovsqb_vector_signed_saturating_narrow",
+            target_register = "rip",
+            role = "signed-saturating narrowed packed quadword integers to bytes by vpmovsqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovsqw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovsqw_vector_signed_saturating_narrow",
+            target_register = "rip",
+            role = "signed-saturating narrowed packed quadword integers to words by vpmovsqw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovsqd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovsqd_vector_signed_saturating_narrow",
+            target_register = "rip",
+            role = "signed-saturating narrowed packed quadword integers to doublewords by vpmovsqd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovusdb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovusdb_vector_unsigned_saturating_narrow",
+            target_register = "rip",
+            role = "unsigned-saturating narrowed packed doubleword integers to bytes by vpmovusdb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovusdw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovusdw_vector_unsigned_saturating_narrow",
+            target_register = "rip",
+            role = "unsigned-saturating narrowed packed doubleword integers to words by vpmovusdw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovusqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovusqb_vector_unsigned_saturating_narrow",
+            target_register = "rip",
+            role = "unsigned-saturating narrowed packed quadword integers to bytes by vpmovusqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovusqw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovusqw_vector_unsigned_saturating_narrow",
+            target_register = "rip",
+            role = "unsigned-saturating narrowed packed quadword integers to words by vpmovusqw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovusqd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovusqd_vector_unsigned_saturating_narrow",
+            target_register = "rip",
+            role = "unsigned-saturating narrowed packed quadword integers to doublewords by vpmovusqd",
+        },
+    },
+
+    -- AVX-512 mask extraction from vector lanes.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovb2m",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovb2m_vector_to_mask",
+            target_register = "rip",
+            role = "moved packed byte sign bits into mask by vpmovb2m",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovw2m",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovw2m_vector_to_mask",
+            target_register = "rip",
+            role = "moved packed word sign bits into mask by vpmovw2m",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovd2m",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovd2m_vector_to_mask",
+            target_register = "rip",
+            role = "moved packed doubleword sign bits into mask by vpmovd2m",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovq2m",
+        operands = {
+            { index = 1, role = "mask_destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovq2m_vector_to_mask",
+            target_register = "rip",
+            role = "moved packed quadword sign bits into mask by vpmovq2m",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovm2b",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "mask_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovm2b_mask_to_vector",
+            target_register = "rip",
+            role = "expanded mask bits into packed bytes by vpmovm2b",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovm2w",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "mask_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovm2w_mask_to_vector",
+            target_register = "rip",
+            role = "expanded mask bits into packed words by vpmovm2w",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovm2d",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "mask_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovm2d_mask_to_vector",
+            target_register = "rip",
+            role = "expanded mask bits into packed doublewords by vpmovm2d",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpmovm2q",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "mask_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpmovm2q_mask_to_vector",
+            target_register = "rip",
+            role = "expanded mask bits into packed quadwords by vpmovm2q",
+        },
+    },
+
+    -- AVX-512 permutation.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermb_vector_permute",
+            target_register = "rip",
+            role = "permuted packed bytes by vpermb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermw_vector_permute",
+            target_register = "rip",
+            role = "permuted packed words by vpermw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermd_vector_permute",
+            target_register = "rip",
+            role = "permuted packed doublewords by vpermd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermq_vector_permute",
+            target_register = "rip",
+            role = "permuted packed quadwords by vpermq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2b",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2b_vector_permute",
+            target_register = "rip",
+            role = "permuted packed bytes using two sources by vpermi2b",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2w",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2w_vector_permute",
+            target_register = "rip",
+            role = "permuted packed words using two sources by vpermi2w",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2d",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2d_vector_permute",
+            target_register = "rip",
+            role = "permuted packed doublewords using two sources by vpermi2d",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2q",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2q_vector_permute",
+            target_register = "rip",
+            role = "permuted packed quadwords using two sources by vpermi2q",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2b",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2b_vector_permute",
+            target_register = "rip",
+            role = "permuted packed bytes into second table by vpermt2b",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2w",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2w_vector_permute",
+            target_register = "rip",
+            role = "permuted packed words into second table by vpermt2w",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2d",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2d_vector_permute",
+            target_register = "rip",
+            role = "permuted packed doublewords into second table by vpermt2d",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2q",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "indices" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2q_vector_permute",
+            target_register = "rip",
+            role = "permuted packed quadwords into second table by vpermt2q",
+        },
+    },
+
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
