@@ -6530,6 +6530,536 @@ M.register_effects = {
         },
     },
 
+    -- 'crc32 reg, source' writes a CRC32 accumulation result.
+    {
+        node_type = "instruction",
+        mnemonic = "crc32",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "crc32_writes_destination",
+            target_operand = 1,
+            role = "written with crc32 accumulation result by crc32",
+        },
+    },
+
+    -- 'adcx reg, source' adds with carry and writes destination.
+    {
+        node_type = "instruction",
+        mnemonic = "adcx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcx_writes_destination",
+            target_operand = 1,
+            role = "added with carry by adcx",
+        },
+    },
+
+    -- 'adcx' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "adcx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adcx_updates_rflags",
+            target_register = "rflags",
+            role = "updated by adcx",
+        },
+    },
+
+    -- 'adox reg, source' adds with overflow and writes destination.
+    {
+        node_type = "instruction",
+        mnemonic = "adox",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adox_writes_destination",
+            target_operand = 1,
+            role = "added with overflow by adox",
+        },
+    },
+
+    -- 'adox' updates rflags.
+    {
+        node_type = "instruction",
+        mnemonic = "adox",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "adox_updates_rflags",
+            target_register = "rflags",
+            role = "updated by adox",
+        },
+    },
+
+    -- 'mulx reg, reg, source' writes low-result destination.
+    {
+        node_type = "instruction",
+        mnemonic = "mulx",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulx_writes_low_destination",
+            target_operand = 1,
+            role = "written with unsigned multiply low result by mulx",
+        },
+    },
+
+    -- 'mulx reg, reg, source' writes high-result destination.
+    {
+        node_type = "instruction",
+        mnemonic = "mulx",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulx_writes_high_destination",
+            target_operand = 2,
+            role = "written with unsigned multiply high result by mulx",
+        },
+    },
+
+    -- 'rorx reg, source, imm' writes a rotate-right result without flags.
+    {
+        node_type = "instruction",
+        mnemonic = "rorx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rotate_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorx_writes_destination",
+            target_operand = 1,
+            role = "written with rotate-right result by rorx",
+        },
+    },
+
+    -- 'shlx reg, source, count' writes a variable shift-left result.
+    {
+        node_type = "instruction",
+        mnemonic = "shlx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlx_writes_destination",
+            target_operand = 1,
+            role = "written with variable shift-left result by shlx",
+        },
+    },
+
+    -- 'shrx reg, source, count' writes a variable logical shift-right result.
+    {
+        node_type = "instruction",
+        mnemonic = "shrx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrx_writes_destination",
+            target_operand = 1,
+            role = "written with variable logical shift-right result by shrx",
+        },
+    },
+
+    -- 'sarx reg, source, count' writes a variable arithmetic shift-right result.
+    {
+        node_type = "instruction",
+        mnemonic = "sarx",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "shift_count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarx_writes_destination",
+            target_operand = 1,
+            role = "written with variable arithmetic shift-right result by sarx",
+        },
+    },
+
+    -- 'xbegin target' conditionally transfers control and may write rax on abort.
+    {
+        node_type = "instruction",
+        mnemonic = "xbegin",
+        operands = {
+            { index = 1, role = "abort_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xbegin_updates_rip",
+            target_register = "rip",
+            role = "transactional branch started by xbegin",
+        },
+    },
+
+    -- 'xbegin' may write abort status to eax/rax.
+    {
+        node_type = "instruction",
+        mnemonic = "xbegin",
+        operands = {
+            { index = 1, role = "abort_target" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xbegin_may_write_rax",
+            target_register = "rax",
+            written_alias = "eax",
+            role = "may receive transaction abort status by xbegin",
+        },
+    },
+
+    -- 'xend' ends a transactional region.
+    {
+        node_type = "instruction",
+        mnemonic = "xend",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xend_updates_rip",
+            target_register = "rip",
+            role = "ended transactional region by xend",
+        },
+    },
+
+    -- 'xtest' updates flags according to transactional state.
+    {
+        node_type = "instruction",
+        mnemonic = "xtest",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xtest_updates_rflags",
+            target_register = "rflags",
+            role = "updated by transactional state test xtest",
+        },
+    },
+
+    -- 'xabort imm' aborts a transactional region and transfers control.
+    {
+        node_type = "instruction",
+        mnemonic = "xabort",
+        operands = {
+            { index = 1, role = "abort_code" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xabort_updates_rip",
+            target_register = "rip",
+            role = "transaction aborted by xabort",
+        },
+    },
+
+    -- Memory ordering fences.
+    {
+        node_type = "instruction",
+        mnemonic = "lfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lfence_orders_memory",
+            target_register = "rip",
+            role = "passed load fence by lfence",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sfence_orders_memory",
+            target_register = "rip",
+            role = "passed store fence by sfence",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "mfence_orders_memory",
+            target_register = "rip",
+            role = "passed memory fence by mfence",
+        },
+    },
+
+    -- Cache-line maintenance instructions.
+    {
+        node_type = "instruction",
+        mnemonic = "clflush",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clflush_touches_cache",
+            target_register = "rip",
+            role = "flushed cache line by clflush",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clflushopt",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clflushopt_touches_cache",
+            target_register = "rip",
+            role = "flushed cache line by clflushopt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clwb",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clwb_touches_cache",
+            target_register = "rip",
+            role = "wrote back cache line by clwb",
+        },
+    },
+
+    -- Prefetch hints.
+    {
+        node_type = "instruction",
+        mnemonic = "prefetch",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetch_touches_memory",
+            target_register = "rip",
+            role = "prefetched memory by prefetch",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht0",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht0_touches_memory",
+            target_register = "rip",
+            role = "prefetched memory into t0 cache by prefetcht0",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht1",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht1_touches_memory",
+            target_register = "rip",
+            role = "prefetched memory into t1 cache by prefetcht1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht2",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht2_touches_memory",
+            target_register = "rip",
+            role = "prefetched memory into t2 cache by prefetcht2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetchnta",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetchnta_touches_memory",
+            target_register = "rip",
+            role = "prefetched non-temporal memory by prefetchnta",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetchw",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetchw_touches_memory",
+            target_register = "rip",
+            role = "prefetched memory for write by prefetchw",
+        },
+    },
+
+    -- Monitor / wait hints.
+    {
+        node_type = "instruction",
+        mnemonic = "monitor",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "monitor_uses_address_registers",
+            target_register = "rip",
+            role = "armed monitored address by monitor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mwait",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "mwait_waits_for_monitor",
+            target_register = "rip",
+            role = "waited for monitored event by mwait",
+        },
+    },
+
+    -- TLB/cache/system-memory maintenance.
+    {
+        node_type = "instruction",
+        mnemonic = "invlpg",
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "invlpg_invalidates_translation",
+            target_register = "rip",
+            role = "invalidated page translation by invlpg",
+        },
+    },
+
+    -- Descriptor table reads / selector reads.
+    {
+        node_type = "instruction",
+        mnemonic = "sldt",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sldt_writes_destination",
+            target_operand = 1,
+            role = "written with local descriptor table selector by sldt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "str",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "str_writes_destination",
+            target_operand = 1,
+            role = "written with task register selector by str",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "smsw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "smsw_writes_destination",
+            target_operand = 1,
+            role = "written with machine status word by smsw",
+        },
+    },
+
+    -- Memory destination forms are represented as visible RIP-side effects for now.
+    {
+        node_type = "instruction",
+        mnemonic = "sgdt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sgdt_stores_descriptor_table",
+            target_register = "rip",
+            role = "stored global descriptor table register by sgdt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sidt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sidt_stores_descriptor_table",
+            target_register = "rip",
+            role = "stored interrupt descriptor table register by sidt",
+        },
+    },
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
