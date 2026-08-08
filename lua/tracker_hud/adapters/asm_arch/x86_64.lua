@@ -30680,6 +30680,533 @@ M.register_effects = {
         },
     },
 
+    -- SETcc / CMOVcc remaining condition alias completion.
+    -- This fills carry/parity/negated-condition aliases not covered by the previous batch.
+
+    -- SETcc carry / not-carry aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "setc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setc_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if carry by setc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnc",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnc_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not carry by setnc",
+        },
+    },
+
+    -- SETcc parity aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "setp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setp_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if parity by setp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnp",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnp_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not parity by setnp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setpe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setpe_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if parity even by setpe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setpo",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setpo_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if parity odd by setpo",
+        },
+    },
+
+    -- SETcc negated unsigned aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "setna",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setna_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not unsigned above by setna",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnae",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnae_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not unsigned above-or-equal by setnae",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnb_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not unsigned below by setnb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnbe",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnbe_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not unsigned below-or-equal by setnbe",
+        },
+    },
+
+    -- SETcc negated signed aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "setng",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setng_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not signed greater by setng",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnge",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnge_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not signed greater-or-equal by setnge",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnl_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not signed less by setnl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "setnle",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "setnle_writes_destination",
+            target_operand = 1,
+            written_alias = "byte",
+            role = "set byte if not signed less-or-equal by setnle",
+        },
+    },
+
+    -- CMOV negated unsigned aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnaq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnaq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned above by cmovnaq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnaeq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnaeq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned above-or-equal by cmovnaeq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnbq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnbq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned below by cmovnbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnbeq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnbeq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned below-or-equal by cmovnbeq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnal",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnal_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned above by cmovnal",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnael",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnael_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned above-or-equal by cmovnael",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnbl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnbl_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned below by cmovnbl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnbel",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnbel_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not unsigned below-or-equal by cmovnbel",
+        },
+    },
+
+    -- CMOV negated signed aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovngq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovngq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed greater by cmovngq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovngeq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovngeq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed greater-or-equal by cmovngeq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnlq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnlq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed less by cmovnlq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnleq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnleq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed less-or-equal by cmovnleq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovngl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovngl_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed greater by cmovngl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovngel",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovngel_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed greater-or-equal by cmovngel",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnll",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnll_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed less by cmovnll",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovnlel",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovnlel_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if not signed less-or-equal by cmovnlel",
+        },
+    },
+
+    -- CMOV parity even / odd width aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpeq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpeq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if parity even by cmovpeq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpoq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpoq_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if parity odd by cmovpoq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpel",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpel_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if parity even by cmovpel",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmovpol",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmovpol_writes_destination",
+            target_operand = 1,
+            role = "conditionally written if parity odd by cmovpol",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
