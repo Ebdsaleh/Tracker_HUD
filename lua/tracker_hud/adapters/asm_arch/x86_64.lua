@@ -31208,6 +31208,438 @@ M.register_effects = {
     },
 
 
+        -- Conversion / sign-extension / zero-extension suffix aliases.
+    -- These improve recognition of GAS/objdump-style extension mnemonics.
+
+    -- MOVSX-style sign-extension aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsbw",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsbw_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended byte to word by movsbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsbl",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsbl_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended byte to long by movsbl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsbq",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsbq_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended byte to quadword by movsbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movswl",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movswl_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended word to long by movswl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movswq",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movswq_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended word to quadword by movswq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movslq",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movslq_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with sign-extended long to quadword by movslq",
+        },
+    },
+
+    -- Intel-style aliases that some parsers/disassemblers may expose.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsxw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxw_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with sign-extended word by movsxw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxl_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with sign-extended long by movsxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movsxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movsxq_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with sign-extended quadword by movsxq",
+        },
+    },
+
+    -- MOVZX-style zero-extension aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzbw",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzbw_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with zero-extended byte to word by movzbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzbl",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzbl_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with zero-extended byte to long by movzbl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzbq",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzbq_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with zero-extended byte to quadword by movzbq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzwl",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzwl_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with zero-extended word to long by movzwl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzwq",
+        operands = {
+            { index = 1, kind = "register", role = "source" },
+            { index = 2, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzwq_writes_destination",
+            target_operand = 2,
+            source_operand = 1,
+            role = "written with zero-extended word to quadword by movzwq",
+        },
+    },
+
+    -- Intel-style zero-extension aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzxw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzxw_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with zero-extended word by movzxw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzxl_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with zero-extended long by movzxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movzxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movzxq_writes_destination",
+            target_operand = 1,
+            source_operand = 2,
+            role = "written with zero-extended quadword by movzxq",
+        },
+    },
+
+    -- Classic accumulator sign-extension aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cbtw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cbtw_writes_rax",
+            target_register = "rax",
+            role = "sign-extended byte accumulator to word by cbtw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cwtl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cwtl_writes_rax",
+            target_register = "rax",
+            role = "sign-extended word accumulator to long by cwtl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cltq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cltq_writes_rax",
+            target_register = "rax",
+            role = "sign-extended long accumulator to quadword by cltq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cwtd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cwtd_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended word accumulator into dx by cwtd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cltd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cltd_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended long accumulator into edx by cltd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cqto",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cqto_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended quadword accumulator into rdx by cqto",
+        },
+    },
+
+    -- Intel spellings, kept for parser/disassembler compatibility.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cbw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cbw_writes_rax",
+            target_register = "rax",
+            role = "sign-extended byte accumulator to word by cbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cwde",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cwde_writes_rax",
+            target_register = "rax",
+            role = "sign-extended word accumulator to doubleword by cwde",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cdqe",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cdqe_writes_rax",
+            target_register = "rax",
+            role = "sign-extended doubleword accumulator to quadword by cdqe",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cwd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cwd_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended word accumulator into dx by cwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cdq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cdq_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended doubleword accumulator into edx by cdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cqo",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cqo_writes_rdx",
+            target_register = "rdx",
+            role = "sign-extended quadword accumulator into rdx by cqo",
+        },
+    },
+
+
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
     {
