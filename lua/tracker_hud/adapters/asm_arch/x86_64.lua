@@ -28462,6 +28462,725 @@ M.register_effects = {
         },
     },
 
+    -- Remaining scalar suffix alias completion.
+    -- This fills gaps left from the previous GAS/objdump-style suffix batches.
+
+    -- DEC suffix aliases completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "decb",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "decb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte decrement decb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "decw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "decw_writes_destination",
+            target_operand = 1,
+            role = "decremented word by decw",
+            value_delta = -1,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "decw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "decw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word decrement decw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "decl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "decl_writes_destination",
+            target_operand = 1,
+            role = "decremented long by decl",
+            value_delta = -1,
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "decl",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "decl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long decrement decl",
+        },
+    },
+
+    -- SAL / SHL suffix flags completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "salb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte arithmetic shift left salb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "salw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salw_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted word left by salw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "salw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word arithmetic shift left salw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sall",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sall_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted long left by sall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sall",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sall_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long arithmetic shift left sall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "salq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "salq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword arithmetic shift left salq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word shift left shlw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shll",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shll_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long shift left shll",
+        },
+    },
+
+    -- SHR suffix flags completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte logical shift right shrb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word logical shift right shrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long logical shift right shrl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword logical shift right shrq",
+        },
+    },
+
+    -- SAR missing lower-width suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarb_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted byte right by sarb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte arithmetic shift right sarb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarw_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted word right by sarw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word arithmetic shift right sarw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarl_writes_destination",
+            target_operand = 1,
+            role = "arithmetically shifted long right by sarl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long arithmetic shift right sarl",
+        },
+    },
+
+    -- ROL / ROR missing widths and flags.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rolb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rolb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte rotate left rolb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rolw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rolw_writes_destination",
+            target_operand = 1,
+            role = "rotated word left by rolw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "roll",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "roll_writes_destination",
+            target_operand = 1,
+            role = "rotated long left by roll",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rolq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rolq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword rotate left rolq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by byte rotate right rorb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorw_writes_destination",
+            target_operand = 1,
+            role = "rotated word right by rorw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorl_writes_destination",
+            target_operand = 1,
+            role = "rotated long right by rorl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword rotate right rorq",
+        },
+    },
+
+    -- Bit-test word/long completion for mutating forms.
+
+    {
+        node_type = "instruction",
+        mnemonic = "btsw",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btsw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word bit test and set btsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btsl",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btsl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long bit test and set btsl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btrw",
+        operands = {
+            { index = 1, kind = "register", role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btrw_writes_base",
+            target_operand = 1,
+            role = "bit reset in word base by btrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btrw",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btrw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word bit test and reset btrw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btrl",
+        operands = {
+            { index = 1, kind = "register", role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btrl_writes_base",
+            target_operand = 1,
+            role = "bit reset in long base by btrl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btrl",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btrl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long bit test and reset btrl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btcw",
+        operands = {
+            { index = 1, kind = "register", role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btcw_writes_base",
+            target_operand = 1,
+            role = "bit complemented in word base by btcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btcw",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btcw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word bit test and complement btcw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btcl",
+        operands = {
+            { index = 1, kind = "register", role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btcl_writes_base",
+            target_operand = 1,
+            role = "bit complemented in long base by btcl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "btcl",
+        operands = {
+            { index = 1, role = "base" },
+            { index = 2, role = "bit_index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "btcl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long bit test and complement btcl",
+        },
+    },
+
+    -- XADD word/long completion.
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddw_writes_destination",
+            target_operand = 1,
+            role = "written by word exchange-add xaddw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddw_writes_source",
+            target_operand = 2,
+            role = "written with original word destination by xaddw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word exchange-add xaddw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddl_writes_destination",
+            target_operand = 1,
+            role = "written by long exchange-add xaddl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, kind = "register", role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddl_writes_source",
+            target_operand = 2,
+            role = "written with original long destination by xaddl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xaddl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xaddl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long exchange-add xaddl",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
