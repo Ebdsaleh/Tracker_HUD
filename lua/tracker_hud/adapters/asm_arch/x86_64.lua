@@ -31639,6 +31639,765 @@ M.register_effects = {
         },
     },
 
+    -- BMI / bit-count / CRC suffix alias completion.
+    -- These improve recognition of GAS/objdump-style width-explicit spellings.
+
+    -- BSWAP suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "bswapl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bswapl_writes_destination",
+            target_operand = 1,
+            role = "byte-swapped long register by bswapl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bswapq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bswapq_writes_destination",
+            target_operand = 1,
+            role = "byte-swapped quadword register by bswapq",
+        },
+    },
+
+    -- POPCNT suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntw_writes_destination",
+            target_operand = 1,
+            role = "written with word population count by popcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word population count popcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntl_writes_destination",
+            target_operand = 1,
+            role = "written with long population count by popcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long population count popcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword population count by popcntq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "popcntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "popcntq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword population count popcntq",
+        },
+    },
+
+    -- LZCNT suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntw_writes_destination",
+            target_operand = 1,
+            role = "written with word leading-zero count by lzcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word leading-zero count lzcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntl_writes_destination",
+            target_operand = 1,
+            role = "written with long leading-zero count by lzcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long leading-zero count lzcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword leading-zero count by lzcntq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lzcntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lzcntq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword leading-zero count lzcntq",
+        },
+    },
+
+    -- TZCNT suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntw",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntw_writes_destination",
+            target_operand = 1,
+            role = "written with word trailing-zero count by tzcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntw_updates_rflags",
+            target_register = "rflags",
+            role = "updated by word trailing-zero count tzcntw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntl_writes_destination",
+            target_operand = 1,
+            role = "written with long trailing-zero count by tzcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntl",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntl_updates_rflags",
+            target_register = "rflags",
+            role = "updated by long trailing-zero count tzcntl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword trailing-zero count by tzcntq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "tzcntq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "tzcntq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword trailing-zero count tzcntq",
+        },
+    },
+
+    -- CRC32 suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "crc32b",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "crc32b_writes_destination",
+            target_operand = 1,
+            role = "written with byte CRC32 accumulation by crc32b",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "crc32w",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "crc32w_writes_destination",
+            target_operand = 1,
+            role = "written with word CRC32 accumulation by crc32w",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "crc32l",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "crc32l_writes_destination",
+            target_operand = 1,
+            role = "written with long CRC32 accumulation by crc32l",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "crc32q",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "crc32q_writes_destination",
+            target_operand = 1,
+            role = "written with quadword CRC32 accumulation by crc32q",
+        },
+    },
+
+    -- BMI1/BMI2 suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "andnl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "andnl_writes_destination",
+            target_operand = 1,
+            role = "written with long bitwise and-not by andnl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andnq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "andnq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword bitwise and-not by andnq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "andnq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "andnq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword bitwise and-not andnq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bextrl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bextrl_writes_destination",
+            target_operand = 1,
+            role = "written with long bit-field extract by bextrl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bextrq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bextrq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword bit-field extract by bextrq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bextrq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "control" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bextrq_updates_rflags",
+            target_register = "rflags",
+            role = "updated by quadword bit-field extract bextrq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bzhil",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bzhil_writes_destination",
+            target_operand = 1,
+            role = "written with long zero-high-bits result by bzhil",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "bzhiq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "index" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bzhiq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword zero-high-bits result by bzhiq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pdepl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pdepl_writes_destination",
+            target_operand = 1,
+            role = "written with long parallel bit deposit by pdepl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pdepq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pdepq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword parallel bit deposit by pdepq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pextl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pextl_writes_destination",
+            target_operand = 1,
+            role = "written with long parallel bit extract by pextl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pextq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pextq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword parallel bit extract by pextq",
+        },
+    },
+
+    -- BMI arithmetic/shift suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulxl",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulxl_writes_low_destination",
+            target_operand = 1,
+            role = "written with long unsigned multiply low result by mulxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulxl",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulxl_writes_high_destination",
+            target_operand = 2,
+            role = "written with long unsigned multiply high result by mulxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulxq",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulxq_writes_low_destination",
+            target_operand = 1,
+            role = "written with quadword unsigned multiply low result by mulxq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulxq",
+        operands = {
+            { index = 1, kind = "register", role = "low_destination" },
+            { index = 2, kind = "register", role = "high_destination" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulxq_writes_high_destination",
+            target_operand = 2,
+            role = "written with quadword unsigned multiply high result by mulxq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlxl_writes_destination",
+            target_operand = 1,
+            role = "written with long variable shift-left result by shlxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shlxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shlxq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword variable shift-left result by shlxq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrxl_writes_destination",
+            target_operand = 1,
+            role = "written with long variable logical shift-right result by shrxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shrxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shrxq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword variable logical shift-right result by shrxq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarxl_writes_destination",
+            target_operand = 1,
+            role = "written with long variable arithmetic shift-right result by sarxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sarxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sarxq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword variable arithmetic shift-right result by sarxq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorxl",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorxl_writes_destination",
+            target_operand = 1,
+            role = "written with long rotate-right result by rorxl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rorxq",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "count" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rorxq_writes_destination",
+            target_operand = 1,
+            role = "written with quadword rotate-right result by rorxq",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
