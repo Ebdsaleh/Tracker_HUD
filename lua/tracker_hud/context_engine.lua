@@ -795,8 +795,90 @@ local function collect_nodes_by_type(node, node_type, result)
 end
 
 
+local function normalize_operand_value(value)
+    if type(value) ~= "string" then
+        return nil
+    end
+
+    value = value:lower()
+    value = value:gsub("^%s+", "")
+    value = value:gsub("%s+$", "")
+    value = value:gsub("^%%", "")
+
+    return value
+end
+
+local function collect_operand_values(operand)
+    local values = {}
+
+    if type(operand) ~= "table" then
+        return values
+    end
+
+    local candidate_fields = {
+        "value",
+        "text",
+        "name",
+        "raw",
+        "display",
+        "source",
+        "register",
+    }
+
+    for _, field in ipairs(candidate_fields) do
+        local normalized = normalize_operand_value(operand[field])
+
+        if normalized ~= nil and normalized ~= "" then
+            values[normalized] = true
+        end
+    end
+
+    return values
+end
+
+local function operand_value_matches(operand, expected_value)
+    if expected_value == nil then
+        return true
+    end
+
+    local operand_values = collect_operand_values(operand)
+
+    if type(expected_value) == "string" then
+        local normalized_expected = normalize_operand_value(expected_value)
+
+        if normalized_expected == nil then
+            return true
+        end
+
+        return operand_values[normalized_expected] == true
+    end
+
+    if type(expected_value) == "table" then
+        for _, candidate in ipairs(expected_value) do
+            local normalized_candidate = normalize_operand_value(candidate)
+
+            if normalized_candidate ~= nil and operand_values[normalized_candidate] == true then
+                return true
+            end
+        end
+
+        return false
+    end
+
+    return true
+end
+
+
 local function operand_matches_spec(operand, operand_spec)
     if type(operand) ~= "table" or type(operand_spec) ~= "table" then
+        return false
+    end
+
+    if not operand_value_matches(operand, operand_spec.value) then
+        return false
+    end
+
+    if not operand_value_matches(operand, operand_spec.values) then
         return false
     end
 
@@ -1571,7 +1653,7 @@ function M.collect_boundary_effects(context, adapter, opts)
 end
 
 
-local function operand_value_matches(operand, operand_spec)
+local function stack_operand_value_matches(operand, operand_spec)
     if type(operand_spec.value) ~= "string" then
         return true
     end
@@ -1629,7 +1711,7 @@ local function stack_operands_match_effect(adapter, instruction, effect_spec)
             return false
         end
 
-        if not operand_value_matches(operand, operand_spec) then
+        if not stack_operand_value_matches(operand, operand_spec) then
             return false
         end
     end
@@ -1807,3 +1889,4 @@ end
 
 
 return M
+
