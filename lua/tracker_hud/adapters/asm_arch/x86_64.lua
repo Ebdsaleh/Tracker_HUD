@@ -33063,6 +33063,715 @@ M.register_effects = {
         },
     },
 
+    -- Vector crypto / GFNI / SHA / permute leftover sweep.
+    -- Phase-one model: vector-only effects are exposed as RIP-side activity until vector register files are modeled.
+
+    -- GFNI / Galois-field vector operations.
+
+    {
+        node_type = "instruction",
+        mnemonic = "gf2p8mulb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "gf2p8mulb_vector_gfni",
+            target_register = "rip",
+            role = "performed Galois-field byte multiply by gf2p8mulb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgf2p8mulb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgf2p8mulb_vector_gfni",
+            target_register = "rip",
+            role = "performed vector Galois-field byte multiply by vgf2p8mulb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "gf2p8affineqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "gf2p8affineqb_vector_gfni",
+            target_register = "rip",
+            role = "performed Galois-field affine transform by gf2p8affineqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgf2p8affineqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgf2p8affineqb_vector_gfni",
+            target_register = "rip",
+            role = "performed vector Galois-field affine transform by vgf2p8affineqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "gf2p8affineinvqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "gf2p8affineinvqb_vector_gfni",
+            target_register = "rip",
+            role = "performed inverse Galois-field affine transform by gf2p8affineinvqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vgf2p8affineinvqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vgf2p8affineinvqb_vector_gfni",
+            target_register = "rip",
+            role = "performed vector inverse Galois-field affine transform by vgf2p8affineinvqb",
+        },
+    },
+
+    -- SHA scalar/vector crypto helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha1msg1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha1msg1_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed SHA1 message schedule part by sha1msg1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha1msg2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha1msg2_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed SHA1 message schedule part by sha1msg2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha1nexte",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha1nexte_crypto_round_assist",
+            target_register = "rip",
+            role = "computed SHA1 next E round helper by sha1nexte",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha1rnds4",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha1rnds4_crypto_rounds",
+            target_register = "rip",
+            role = "computed four SHA1 rounds by sha1rnds4",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha256msg1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha256msg1_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed SHA256 message schedule part by sha256msg1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha256msg2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha256msg2_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed SHA256 message schedule part by sha256msg2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sha256rnds2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sha256rnds2_crypto_rounds",
+            target_register = "rip",
+            role = "computed two SHA256 rounds by sha256rnds2",
+        },
+    },
+
+    -- VAES aliases / vector AES helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaesenc",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "state" },
+            { index = 3, role = "round_key" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaesenc_vector_crypto_round",
+            target_register = "rip",
+            role = "performed vector AES encryption round by vaesenc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaesenclast",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "state" },
+            { index = 3, role = "round_key" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaesenclast_vector_crypto_round",
+            target_register = "rip",
+            role = "performed final vector AES encryption round by vaesenclast",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaesdec",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "state" },
+            { index = 3, role = "round_key" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaesdec_vector_crypto_round",
+            target_register = "rip",
+            role = "performed vector AES decryption round by vaesdec",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vaesdeclast",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "state" },
+            { index = 3, role = "round_key" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vaesdeclast_vector_crypto_round",
+            target_register = "rip",
+            role = "performed final vector AES decryption round by vaesdeclast",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpclmulqdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpclmulqdq_vector_crypto_carryless_multiply",
+            target_register = "rip",
+            role = "performed vector carry-less multiply by vpclmulqdq",
+        },
+    },
+
+    -- SHA512-style vector helpers / broad recognition.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsha512msg1",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsha512msg1_vector_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed vector SHA512 message schedule part by vsha512msg1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsha512msg2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsha512msg2_vector_crypto_message_schedule",
+            target_register = "rip",
+            role = "computed vector SHA512 message schedule part by vsha512msg2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vsha512rnds2",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vsha512rnds2_vector_crypto_rounds",
+            target_register = "rip",
+            role = "computed vector SHA512 rounds by vsha512rnds2",
+        },
+    },
+
+    -- VBMI / VBMI2 shift-double helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldw_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector word shift-left-double by vpshldw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldd_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector doubleword shift-left-double by vpshldd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldq_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector quadword shift-left-double by vpshldq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdw_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector word shift-right-double by vpshrdw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdd_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector doubleword shift-right-double by vpshrdd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdq_vector_shift_double",
+            target_register = "rip",
+            role = "performed vector quadword shift-right-double by vpshrdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldvw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldvw_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable word shift-left-double by vpshldvw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldvd_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable doubleword shift-left-double by vpshldvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshldvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshldvq_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable quadword shift-left-double by vpshldvq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdvw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdvw_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable word shift-right-double by vpshrdvw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdvd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdvd_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable doubleword shift-right-double by vpshrdvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpshrdvq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpshrdvq_vector_variable_shift_double",
+            target_register = "rip",
+            role = "performed vector variable quadword shift-right-double by vpshrdvq",
+        },
+    },
+
+    -- Remaining common vector permute aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2ps",
+        operands = {
+            { index = 1, role = "destination_index" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2ps_vector_permute",
+            target_register = "rip",
+            role = "performed packed single-precision indexed permute by vpermi2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermi2pd",
+        operands = {
+            { index = 1, role = "destination_index" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermi2pd_vector_permute",
+            target_register = "rip",
+            role = "performed packed double-precision indexed permute by vpermi2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2ps",
+        operands = {
+            { index = 1, role = "destination_index" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2ps_vector_permute",
+            target_register = "rip",
+            role = "performed packed single-precision table permute by vpermt2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermt2pd",
+        operands = {
+            { index = 1, role = "destination_index" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermt2pd_vector_permute",
+            target_register = "rip",
+            role = "performed packed double-precision table permute by vpermt2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermilps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermilps_vector_permute",
+            target_register = "rip",
+            role = "performed packed single-precision lane permute by vpermilps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermilpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermilpd_vector_permute",
+            target_register = "rip",
+            role = "performed packed double-precision lane permute by vpermilpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "index" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermps_vector_permute",
+            target_register = "rip",
+            role = "performed packed single-precision variable permute by vpermps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vpermpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vpermpd_vector_permute",
+            target_register = "rip",
+            role = "performed packed double-precision permute by vpermpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vperm2f128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vperm2f128_vector_permute",
+            target_register = "rip",
+            role = "performed 128-bit floating lane permute by vperm2f128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vperm2i128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vperm2i128_vector_permute",
+            target_register = "rip",
+            role = "performed 128-bit integer lane permute by vperm2i128",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
