@@ -38,11 +38,23 @@ local function normalize_adapter_paths(adapter_paths)
 end
 
 
-local function path_to_runtime_glob(adapter_path)
+local function path_to_runtime_globs(adapter_path)
     -- "tracker_hud/adapters"
     -- becomes:
     -- "lua/tracker_hud/adapters/*_adapter.lua"
-    return "lua/" .. adapter_path .. "/*_adapter.lua"
+    --  added support for variants.
+    return {
+        "lua/" .. adapter_path .. "/*_adapter.lua",
+        "lua/" .. adapter_path .. "/*_adapter/init.lua",
+    }
+end
+
+local function module_to_adapter_key(module_name)
+    if not core.is_string(module_name) or module_name == "" then
+        return nil
+    end
+
+    return module_name:gsub("%.init$", "")
 end
 
 
@@ -99,28 +111,30 @@ function M.load_from_paths(adapter_paths)
 
     for _, adapter_path in ipairs(paths) do
         if core.is_string(adapter_path) and adapter_path ~= "" then
-            local glob = path_to_runtime_glob(adapter_path)
-            local files = vim.api.nvim_get_runtime_file(glob, true)
+            local seen_adapter_keys = {}
 
-            for _, file in ipairs(files) do
-                local module_name = file_to_module_name(file)
+            for _, glob in ipairs(path_to_runtime_globs(adapter_path)) do
+                local files = vim.api.nvim_get_runtime_file(glob, true)
 
-                if module_name then
-                    local ok, err = load_adapter_module(module_name)
+                for _, file in ipairs(files) do
+                    local module_name = file_to_module_name(file)
+                    local adapter_key = module_to_adapter_key(module_name)
 
-                    if ok then
-                        loaded_count = loaded_count + 1
-                    else
-                        table.insert(errors, {
-                            module = module_name,
-                            error = tostring(err),
-                        })
+                    if module_name and adapter_key and not seen_adapter_keys[adapter_key] then
+                        seen_adapter_keys[adapter_key] = true
+
+                        local ok, err = load_adapter_module(module_name)
+
+                        if ok then
+                            loaded_count = loaded_count + 1
+                        else
+                            table.insert(errors, err)
+                        end
                     end
                 end
             end
         end
     end
-
 
     return {
         loaded_count = loaded_count,
