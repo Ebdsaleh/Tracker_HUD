@@ -32398,6 +32398,671 @@ M.register_effects = {
         },
     },
 
+    -- String / IO / REP-prefixed alias completion.
+    -- These improve recognition of parser/disassembler spellings where prefixes are folded into mnemonics.
+
+    -- REP MOVS aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated byte string move source rep_movsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated byte string move destination rep_movsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_movsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated word string move source rep_movsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated word string move destination rep_movsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsw_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_movsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsd_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated doubleword string move source rep_movsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated doubleword string move destination rep_movsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsd_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_movsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated quadword string move source rep_movsq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated quadword string move destination rep_movsq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_movsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_movsq_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_movsq",
+        },
+    },
+
+    -- REP STOS aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated byte string store destination rep_stosb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_stosb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated word string store destination rep_stosw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosw_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_stosw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosd_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated doubleword string store destination rep_stosd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosd_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_stosd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated quadword string store destination rep_stosq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_stosq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_stosq_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_stosq",
+        },
+    },
+
+    -- REP LODS aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsb_updates_rax",
+            target_register = "rax",
+            role = "loaded repeated byte string value into accumulator by rep_lodsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated byte string load source rep_lodsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_lodsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsq_updates_rax",
+            target_register = "rax",
+            role = "loaded repeated quadword string value into accumulator by rep_lodsq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated quadword string load source rep_lodsq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_lodsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_lodsq_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_lodsq",
+        },
+    },
+
+    -- REPE / REPZ CMPS aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "repe_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repe_cmpsb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by repeated byte string compare while equal repe_cmpsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repe_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repe_cmpsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced by repeated byte compare source repe_cmpsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repe_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repe_cmpsb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated byte compare destination repe_cmpsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repe_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repe_cmpsb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by repe_cmpsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repz_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repz_cmpsb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by repeated byte string compare while zero repz_cmpsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repz_cmpsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repz_cmpsb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by repz_cmpsb",
+        },
+    },
+
+    -- REPNE / REPNZ SCAS aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "repne_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repne_scasb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by repeated byte string scan while not equal repne_scasb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repne_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repne_scasb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated byte string scan destination repne_scasb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repne_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repne_scasb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by repne_scasb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repnz_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repnz_scasb_updates_rflags",
+            target_register = "rflags",
+            role = "updated by repeated byte string scan while not zero repnz_scasb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repnz_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repnz_scasb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced by repeated byte string scan destination repnz_scasb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "repnz_scasb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "repnz_scasb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by repnz_scasb",
+        },
+    },
+
+    -- IO string suffix aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "insb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "insb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by byte input string insb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "insw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "insw_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by word input string insw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "insl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "insl_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by long input string insl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "insq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "insq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by quadword input string insq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "outsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "outsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by byte output string outsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "outsw",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "outsw_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by word output string outsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "outsl",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "outsl_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by long output string outsl",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "outsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "outsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by quadword output string outsq",
+        },
+    },
+
+    -- REP IO string aliases.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_insb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_insb_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by repeated byte input string rep_insb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_insb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_insb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_insb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_insq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_insq_updates_rdi",
+            target_register = "rdi",
+            role = "advanced destination pointer by repeated quadword input string rep_insq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_insq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_insq_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_insq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_outsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_outsb_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by repeated byte output string rep_outsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_outsb",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_outsb_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_outsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_outsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_outsq_updates_rsi",
+            target_register = "rsi",
+            role = "advanced source pointer by repeated quadword output string rep_outsq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rep_outsq",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rep_outsq_updates_rcx",
+            target_register = "rcx",
+            role = "consumed repeat count by rep_outsq",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
