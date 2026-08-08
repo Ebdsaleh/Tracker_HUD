@@ -35298,6 +35298,912 @@ M.register_effects = {
         },
     },
 
+    -- Checkpoint 4.65 — Packed integer arithmetic / compare / logical leftover sweep.
+    -- Phase-one model: vector/MMX/XMM/YMM/ZMM effects are exposed through RIP until vector register state is modeled.
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddb_packed_integer_add",
+            target_register = "rip",
+            role = "performed packed byte integer add by paddb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddw_packed_integer_add",
+            target_register = "rip",
+            role = "performed packed word integer add by paddw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddd_packed_integer_add",
+            target_register = "rip",
+            role = "performed packed doubleword integer add by paddd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddq_packed_integer_add",
+            target_register = "rip",
+            role = "performed packed quadword integer add by paddq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddsb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddsb_packed_integer_saturating_add",
+            target_register = "rip",
+            role = "performed signed saturating packed byte add by paddsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddsw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddsw_packed_integer_saturating_add",
+            target_register = "rip",
+            role = "performed signed saturating packed word add by paddsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddusb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddusb_packed_integer_saturating_add",
+            target_register = "rip",
+            role = "performed unsigned saturating packed byte add by paddusb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "paddusw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "paddusw_packed_integer_saturating_add",
+            target_register = "rip",
+            role = "performed unsigned saturating packed word add by paddusw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubb_packed_integer_subtract",
+            target_register = "rip",
+            role = "performed packed byte integer subtract by psubb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubw_packed_integer_subtract",
+            target_register = "rip",
+            role = "performed packed word integer subtract by psubw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubd_packed_integer_subtract",
+            target_register = "rip",
+            role = "performed packed doubleword integer subtract by psubd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubq_packed_integer_subtract",
+            target_register = "rip",
+            role = "performed packed quadword integer subtract by psubq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubsb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubsb_packed_integer_saturating_subtract",
+            target_register = "rip",
+            role = "performed signed saturating packed byte subtract by psubsb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubsw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubsw_packed_integer_saturating_subtract",
+            target_register = "rip",
+            role = "performed signed saturating packed word subtract by psubsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubusb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubusb_packed_integer_saturating_subtract",
+            target_register = "rip",
+            role = "performed unsigned saturating packed byte subtract by psubusb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "psubusw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "psubusw_packed_integer_saturating_subtract",
+            target_register = "rip",
+            role = "performed unsigned saturating packed word subtract by psubusw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmullw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmullw_packed_integer_multiply",
+            target_register = "rip",
+            role = "performed packed word low multiply by pmullw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmulhw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmulhw_packed_integer_multiply",
+            target_register = "rip",
+            role = "performed signed packed word high multiply by pmulhw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmulhuw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmulhuw_packed_integer_multiply",
+            target_register = "rip",
+            role = "performed unsigned packed word high multiply by pmulhuw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaddwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaddwd_packed_integer_multiply_add",
+            target_register = "rip",
+            role = "performed packed word multiply-add into doublewords by pmaddwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmaddubsw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmaddubsw_packed_integer_multiply_add",
+            target_register = "rip",
+            role = "performed packed unsigned-byte signed-byte multiply-add with saturation by pmaddubsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pand",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pand_packed_integer_and",
+            target_register = "rip",
+            role = "performed packed integer bitwise-and by pand",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pandn",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pandn_packed_integer_and_not",
+            target_register = "rip",
+            role = "performed packed integer bitwise-and-not by pandn",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "por",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "por_packed_integer_or",
+            target_register = "rip",
+            role = "performed packed integer bitwise-or by por",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pxor",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pxor_packed_integer_xor",
+            target_register = "rip",
+            role = "performed packed integer bitwise-xor by pxor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpeqb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpeqb_packed_integer_compare",
+            target_register = "rip",
+            role = "performed packed byte equality compare by pcmpeqb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpeqw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpeqw_packed_integer_compare",
+            target_register = "rip",
+            role = "performed packed word equality compare by pcmpeqw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpeqd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpeqd_packed_integer_compare",
+            target_register = "rip",
+            role = "performed packed doubleword equality compare by pcmpeqd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpeqq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpeqq_packed_integer_compare",
+            target_register = "rip",
+            role = "performed packed quadword equality compare by pcmpeqq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpgtb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpgtb_packed_integer_compare",
+            target_register = "rip",
+            role = "performed signed packed byte greater-than compare by pcmpgtb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpgtw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpgtw_packed_integer_compare",
+            target_register = "rip",
+            role = "performed signed packed word greater-than compare by pcmpgtw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpgtd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpgtd_packed_integer_compare",
+            target_register = "rip",
+            role = "performed signed packed doubleword greater-than compare by pcmpgtd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pcmpgtq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pcmpgtq_packed_integer_compare",
+            target_register = "rip",
+            role = "performed signed packed quadword greater-than compare by pcmpgtq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pmovmskb",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pmovmskb_writes_destination",
+            target_operand = 1,
+            role = "written with packed byte sign mask by pmovmskb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movmskps",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movmskps_writes_destination",
+            target_operand = 1,
+            role = "written with packed single-precision sign mask by movmskps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movmskpd",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movmskpd_writes_destination",
+            target_operand = 1,
+            role = "written with packed double-precision sign mask by movmskpd",
+        },
+    },
+
+    -- Checkpoint 4.66 — AVX/VEX move, broadcast, extract, insert, and zeroing leftovers.
+    -- VEX/AVX vector effects are exposed as RIP-side activity unless they write a GPR destination.
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovaps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovaps_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed single-precision value by vmovaps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovups",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovups_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed single-precision value by vmovups",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovapd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovapd_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed double-precision value by vmovapd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovupd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovupd_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed double-precision value by vmovupd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqa",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqa_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed integer value by vmovdqa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqu",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqu_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed integer value by vmovdqu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqa32",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqa32_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed doubleword integer value by vmovdqa32",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqa64",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqa64_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed quadword integer value by vmovdqa64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqu8",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqu8_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed byte integer value by vmovdqu8",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqu16",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqu16_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed word integer value by vmovdqu16",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqu32",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqu32_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed doubleword integer value by vmovdqu32",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovdqu64",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovdqu64_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed quadword integer value by vmovdqu64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovntps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovntps_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed single-precision store by vmovntps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovntpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovntpd_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed double-precision store by vmovntpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vmovntdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vmovntdq_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed integer store by vmovntdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastss_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast scalar single-precision value by vbroadcastss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcastsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcastsd_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast scalar double-precision value by vbroadcastsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vbroadcasti128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vbroadcasti128_vector_broadcast",
+            target_register = "rip",
+            role = "broadcast 128-bit integer value by vbroadcasti128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinsertf128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinsertf128_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit floating lane by vinsertf128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vinserti128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "left" },
+            { index = 3, role = "right" },
+            { index = 4, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vinserti128_vector_insert",
+            target_register = "rip",
+            role = "inserted 128-bit integer lane by vinserti128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextractf128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextractf128_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit floating lane by vextractf128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vextracti128",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vextracti128_vector_extract",
+            target_register = "rip",
+            role = "extracted 128-bit integer lane by vextracti128",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vzeroall",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vzeroall_clears_vector_state",
+            target_register = "rip",
+            role = "cleared all vector register state by vzeroall",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vzeroupper",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "vzeroupper_clears_upper_vector_state",
+            target_register = "rip",
+            role = "cleared upper vector register state by vzeroupper",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
