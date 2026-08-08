@@ -33772,6 +33772,629 @@ M.register_effects = {
         },
     },
 
+    -- Scalar floating-point / SSE arithmetic and compare cleanup.
+    -- Phase-one model: vector/scalar FP register effects are exposed as RIP-side activity until XMM/YMM/ZMM state is modeled.
+
+    -- Scalar single/double arithmetic.
+
+    {
+        node_type = "instruction",
+        mnemonic = "addss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addss_scalar_fp_add",
+            target_register = "rip",
+            role = "performed scalar single-precision add by addss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addsd_scalar_fp_add",
+            target_register = "rip",
+            role = "performed scalar double-precision add by addsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "subss_scalar_fp_subtract",
+            target_register = "rip",
+            role = "performed scalar single-precision subtract by subss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "subsd_scalar_fp_subtract",
+            target_register = "rip",
+            role = "performed scalar double-precision subtract by subsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulss_scalar_fp_multiply",
+            target_register = "rip",
+            role = "performed scalar single-precision multiply by mulss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulsd_scalar_fp_multiply",
+            target_register = "rip",
+            role = "performed scalar double-precision multiply by mulsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "divss_scalar_fp_divide",
+            target_register = "rip",
+            role = "performed scalar single-precision divide by divss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "divsd_scalar_fp_divide",
+            target_register = "rip",
+            role = "performed scalar double-precision divide by divsd",
+        },
+    },
+
+    -- Packed single/double arithmetic.
+
+    {
+        node_type = "instruction",
+        mnemonic = "addps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addps_packed_fp_add",
+            target_register = "rip",
+            role = "performed packed single-precision add by addps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "addpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "addpd_packed_fp_add",
+            target_register = "rip",
+            role = "performed packed double-precision add by addpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "subps_packed_fp_subtract",
+            target_register = "rip",
+            role = "performed packed single-precision subtract by subps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "subpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "subpd_packed_fp_subtract",
+            target_register = "rip",
+            role = "performed packed double-precision subtract by subpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulps_packed_fp_multiply",
+            target_register = "rip",
+            role = "performed packed single-precision multiply by mulps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mulpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "mulpd_packed_fp_multiply",
+            target_register = "rip",
+            role = "performed packed double-precision multiply by mulpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "divps_packed_fp_divide",
+            target_register = "rip",
+            role = "performed packed single-precision divide by divps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "divpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "divpd_packed_fp_divide",
+            target_register = "rip",
+            role = "performed packed double-precision divide by divpd",
+        },
+    },
+
+    -- Min/max and sqrt/reciprocal helpers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "minss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "minss_scalar_fp_minimum",
+            target_register = "rip",
+            role = "selected scalar single-precision minimum by minss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "minsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "minsd_scalar_fp_minimum",
+            target_register = "rip",
+            role = "selected scalar double-precision minimum by minsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "maxss_scalar_fp_maximum",
+            target_register = "rip",
+            role = "selected scalar single-precision maximum by maxss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "maxsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "maxsd_scalar_fp_maximum",
+            target_register = "rip",
+            role = "selected scalar double-precision maximum by maxsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sqrtss_scalar_fp_sqrt",
+            target_register = "rip",
+            role = "computed scalar single-precision square root by sqrtss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sqrtsd_scalar_fp_sqrt",
+            target_register = "rip",
+            role = "computed scalar double-precision square root by sqrtsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sqrtps_packed_fp_sqrt",
+            target_register = "rip",
+            role = "computed packed single-precision square root by sqrtps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sqrtpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sqrtpd_packed_fp_sqrt",
+            target_register = "rip",
+            role = "computed packed double-precision square root by sqrtpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rcpss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rcpss_scalar_fp_reciprocal",
+            target_register = "rip",
+            role = "computed scalar single-precision reciprocal approximation by rcpss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rcpps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rcpps_packed_fp_reciprocal",
+            target_register = "rip",
+            role = "computed packed single-precision reciprocal approximation by rcpps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rsqrtss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rsqrtss_scalar_fp_rsqrt",
+            target_register = "rip",
+            role = "computed scalar single-precision reciprocal square-root approximation by rsqrtss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rsqrtps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rsqrtps_packed_fp_rsqrt",
+            target_register = "rip",
+            role = "computed packed single-precision reciprocal square-root approximation by rsqrtps",
+        },
+    },
+
+    -- Scalar ordered/unordered comparisons update flags.
+
+    {
+        node_type = "instruction",
+        mnemonic = "comiss",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "comiss_updates_rflags",
+            target_register = "rflags",
+            role = "updated by ordered scalar single-precision compare comiss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "comisd",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "comisd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by ordered scalar double-precision compare comisd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ucomiss",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ucomiss_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered scalar single-precision compare ucomiss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ucomisd",
+        operands = {
+            { index = 1, role = "left" },
+            { index = 2, role = "right" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ucomisd_updates_rflags",
+            target_register = "rflags",
+            role = "updated by unordered scalar double-precision compare ucomisd",
+        },
+    },
+
+    -- CMP packed/scalar vector comparisons.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmpps_vector_fp_compare",
+            target_register = "rip",
+            role = "performed packed single-precision compare by cmpps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmppd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmppd_vector_fp_compare",
+            target_register = "rip",
+            role = "performed packed double-precision compare by cmppd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmpss_scalar_fp_compare",
+            target_register = "rip",
+            role = "performed scalar single-precision compare by cmpss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cmpsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "predicate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cmpsd_scalar_fp_compare",
+            target_register = "rip",
+            role = "performed scalar double-precision compare by cmpsd",
+        },
+    },
+
+    -- Rounding.
+
+    {
+        node_type = "instruction",
+        mnemonic = "roundss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rounding" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "roundss_scalar_fp_round",
+            target_register = "rip",
+            role = "rounded scalar single-precision value by roundss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "roundsd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rounding" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "roundsd_scalar_fp_round",
+            target_register = "rip",
+            role = "rounded scalar double-precision value by roundsd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "roundps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rounding" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "roundps_packed_fp_round",
+            target_register = "rip",
+            role = "rounded packed single-precision values by roundps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "roundpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "rounding" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "roundpd_packed_fp_round",
+            target_register = "rip",
+            role = "rounded packed double-precision values by roundpd",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
