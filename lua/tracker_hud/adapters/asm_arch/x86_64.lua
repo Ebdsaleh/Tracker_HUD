@@ -34395,6 +34395,909 @@ M.register_effects = {
         },
     },
 
+    -- Checkpoint 4.63 — Scalar/SSE conversion leftover sweep.
+    -- Phase-one model: XMM/YMM/ZMM writes are exposed through RIP until vector register state is modeled.
+    -- GPR destination conversions write the actual destination operand.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsi2ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtsi2ss_scalar_int_to_single",
+            target_register = "rip",
+            role = "converted integer to scalar single-precision by cvtsi2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsi2sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtsi2sd_scalar_int_to_double",
+            target_register = "rip",
+            role = "converted integer to scalar double-precision by cvtsi2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtsi2ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "merge_source" },
+            { index = 3, role = "integer_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtsi2ss_scalar_int_to_single",
+            target_register = "rip",
+            role = "converted integer to scalar single-precision by vcvtsi2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtsi2sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "merge_source" },
+            { index = 3, role = "integer_source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtsi2sd_scalar_int_to_double",
+            target_register = "rip",
+            role = "converted integer to scalar double-precision by vcvtsi2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtss2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtss2si_writes_destination",
+            target_operand = 1,
+            role = "written with rounded scalar single-precision to integer conversion by cvtss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsd2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtsd2si_writes_destination",
+            target_operand = 1,
+            role = "written with rounded scalar double-precision to integer conversion by cvtsd2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttss2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvttss2si_writes_destination",
+            target_operand = 1,
+            role = "written with truncated scalar single-precision to integer conversion by cvttss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttsd2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvttsd2si_writes_destination",
+            target_operand = 1,
+            role = "written with truncated scalar double-precision to integer conversion by cvttsd2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtss2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtss2si_writes_destination",
+            target_operand = 1,
+            role = "written with rounded scalar single-precision to integer conversion by vcvtss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtsd2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtsd2si_writes_destination",
+            target_operand = 1,
+            role = "written with rounded scalar double-precision to integer conversion by vcvtsd2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttss2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttss2si_writes_destination",
+            target_operand = 1,
+            role = "written with truncated scalar single-precision to integer conversion by vcvttss2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvttsd2si",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvttsd2si_writes_destination",
+            target_operand = 1,
+            role = "written with truncated scalar double-precision to integer conversion by vcvttsd2si",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtss2sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtss2sd_scalar_single_to_double",
+            target_register = "rip",
+            role = "converted scalar single-precision to scalar double-precision by cvtss2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtsd2ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtsd2ss_scalar_double_to_single",
+            target_register = "rip",
+            role = "converted scalar double-precision to scalar single-precision by cvtsd2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtss2sd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "merge_source" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtss2sd_scalar_single_to_double",
+            target_register = "rip",
+            role = "converted scalar single-precision to scalar double-precision by vcvtss2sd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "vcvtsd2ss",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "merge_source" },
+            { index = 3, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "vcvtsd2ss_scalar_double_to_single",
+            target_register = "rip",
+            role = "converted scalar double-precision to scalar single-precision by vcvtsd2ss",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtps2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtps2pd_packed_single_to_double",
+            target_register = "rip",
+            role = "converted packed single-precision values to double-precision by cvtps2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtpd2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtpd2ps_packed_double_to_single",
+            target_register = "rip",
+            role = "converted packed double-precision values to single-precision by cvtpd2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtdq2ps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtdq2ps_packed_int_to_single",
+            target_register = "rip",
+            role = "converted packed signed doubleword integers to single-precision by cvtdq2ps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtdq2pd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtdq2pd_packed_int_to_double",
+            target_register = "rip",
+            role = "converted packed signed doubleword integers to double-precision by cvtdq2pd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtps2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtps2dq_packed_single_to_int",
+            target_register = "rip",
+            role = "converted packed single-precision values to signed doubleword integers by cvtps2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvtpd2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvtpd2dq_packed_double_to_int",
+            target_register = "rip",
+            role = "converted packed double-precision values to signed doubleword integers by cvtpd2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttps2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvttps2dq_packed_single_to_int_truncated",
+            target_register = "rip",
+            role = "converted packed single-precision values to signed doubleword integers with truncation by cvttps2dq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cvttpd2dq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "cvttpd2dq_packed_double_to_int_truncated",
+            target_register = "rip",
+            role = "converted packed double-precision values to signed doubleword integers with truncation by cvttpd2dq",
+        },
+    },
+
+    -- Checkpoint 4.64 — SIMD move / unpack / shuffle / blend leftover sweep.
+    -- These are mostly vector-register effects, so phase-one records visible instruction activity through RIP.
+
+    {
+        node_type = "instruction",
+        mnemonic = "movaps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movaps_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed single-precision value by movaps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movups",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movups_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed single-precision value by movups",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movapd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movapd_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed double-precision value by movapd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movupd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movupd_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed double-precision value by movupd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdqa",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movdqa_vector_move",
+            target_register = "rip",
+            role = "moved aligned packed integer value by movdqa",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movdqu",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movdqu_vector_move",
+            target_register = "rip",
+            role = "moved unaligned packed integer value by movdqu",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntps_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed single-precision store by movntps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntpd_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed double-precision store by movntpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movntdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movntdq_streaming_store",
+            target_register = "rip",
+            role = "performed non-temporal packed integer store by movntdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhlps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movhlps_vector_lane_move",
+            target_register = "rip",
+            role = "moved high packed single-precision lanes to low lanes by movhlps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlhps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movlhps_vector_lane_move",
+            target_register = "rip",
+            role = "moved low packed single-precision lanes to high lanes by movlhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movlps_vector_low_move",
+            target_register = "rip",
+            role = "moved low packed single-precision lanes by movlps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movhps_vector_high_move",
+            target_register = "rip",
+            role = "moved high packed single-precision lanes by movhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movlpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movlpd_vector_low_move",
+            target_register = "rip",
+            role = "moved low packed double-precision lane by movlpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "movhpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "movhpd_vector_high_move",
+            target_register = "rip",
+            role = "moved high packed double-precision lane by movhpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpcklps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "unpcklps_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed single-precision lanes by unpcklps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpckhps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "unpckhps_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed single-precision lanes by unpckhps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpcklpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "unpcklpd_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed double-precision lanes by unpcklpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "unpckhpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "unpckhpd_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed double-precision lanes by unpckhpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpcklbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpcklbw_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed bytes by punpcklbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpcklwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpcklwd_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed words by punpcklwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpckldq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpckldq_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed doublewords by punpckldq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpcklqdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpcklqdq_vector_unpack",
+            target_register = "rip",
+            role = "unpacked low packed quadwords by punpcklqdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpckhbw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpckhbw_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed bytes by punpckhbw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpckhwd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpckhwd_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed words by punpckhwd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpckhdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpckhdq_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed doublewords by punpckhdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "punpckhqdq",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "punpckhqdq_vector_unpack",
+            target_register = "rip",
+            role = "unpacked high packed quadwords by punpckhqdq",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shufps",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shufps_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled packed single-precision lanes by shufps",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "shufpd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "shufpd_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled packed double-precision lanes by shufpd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pshufb",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "mask" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pshufb_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled packed bytes by pshufb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pshufw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pshufw_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled packed words by pshufw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pshufd",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pshufd_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled packed doublewords by pshufd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pshuflw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pshuflw_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled low packed words by pshuflw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "pshufhw",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "pshufhw_vector_shuffle",
+            target_register = "rip",
+            role = "shuffled high packed words by pshufhw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "palignr",
+        operands = {
+            { index = 1, role = "destination" },
+            { index = 2, role = "source" },
+            { index = 3, role = "immediate" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "palignr_vector_align",
+            target_register = "rip",
+            role = "aligned packed bytes from concatenated operands by palignr",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
