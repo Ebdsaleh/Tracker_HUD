@@ -19,6 +19,9 @@
 --
 --   ; arch=x86-64;
 
+
+local variant_utils = require("tracker_hud.adapters.variant_utils")
+
 local M = {}
 
 M.name = "asm"
@@ -33,8 +36,11 @@ M.filetypes = {
 
 M.has_variant = true
 M.variant_kind = "architecture"
-M.default_variant = "x86-64"
 M.variant_directive = "arch"
+M.variant_comment_prefixes = {
+    ";",
+}
+M.default_variant = "x86-64"
 
 
 M.variants = {
@@ -104,46 +110,14 @@ local function normalize_variant_name(name)
 end
 
 
-local function read_buffer_line(bufnr, index)
-    local ok, lines = pcall(vim.api.nvim_buf_get_lines, bufnr, index, index + 1, false)
-
-    if not ok or type(lines) ~= "table" then
-        return nil
-    end
-
-    return lines[1]
-end
-
-
 local function detect_variant_from_source(bufnr)
-    if not bufnr then
-        return nil
-    end
-
-    local directive = M.variant_directive or "arch"
-    local max_scan_lines = 20
-    local line_count = vim.api.nvim_buf_line_count(bufnr)
-    local scan_count = math.min(max_scan_lines, line_count)
-
-    for index = 0, scan_count - 1 do
-        local line = read_buffer_line(bufnr, index)
-
-        if type(line) == "string" then
-            local pattern = "^%s*;%s*"
-                .. directive
-                .. "%s*=%s*([%w%-_]+)%s*;?"
-
-            local variant_name = line:match(pattern)
-
-            if variant_name then
-                return normalize_variant_name(variant_name)
-            end
-        end
-    end
-
-    return nil
+    return variant_utils.detect_from_buffer(bufnr, {
+        directive = M.variant_directive or "arch",
+        comment_prefixes = M.variant_comment_prefixes,
+        aliases = M.variant_aliases,
+        max_scan_lines = 20,
+    })
 end
-
 
 local function load_variant(variant_name)
     local normalized = normalize_variant_name(variant_name) or M.default_variant
