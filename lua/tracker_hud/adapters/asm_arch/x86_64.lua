@@ -36204,6 +36204,945 @@ M.register_effects = {
         },
     },
 
+    -- Checkpoint 4.67 — Final system / serialization / privilege / descriptor leftover sweep.
+    -- Phase-one model: system/control effects are exposed through RIP or the obvious architectural register.
+
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rax",
+            target_register = "rax",
+            role = "written with processor identification leaf result by cpuid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rbx",
+            target_register = "rbx",
+            role = "written with processor identification leaf result by cpuid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rcx",
+            target_register = "rcx",
+            role = "written with processor identification leaf result by cpuid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "cpuid",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rdx",
+            target_register = "rdx",
+            role = "written with processor identification leaf result by cpuid",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "serialize",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "serialize_serializes_execution",
+            target_register = "rip",
+            role = "serialized instruction execution by serialize",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "lfence_orders_loads",
+            target_register = "rip",
+            role = "ordered load operations by lfence",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "sfence_orders_stores",
+            target_register = "rip",
+            role = "ordered store operations by sfence",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "mfence",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "mfence_orders_memory",
+            target_register = "rip",
+            role = "ordered memory operations by mfence",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clflush",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clflush_flushes_cache_line",
+            target_register = "rip",
+            role = "flushed cache line by clflush",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clflushopt",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clflushopt_flushes_cache_line",
+            target_register = "rip",
+            role = "flushed cache line with optimized ordering by clflushopt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "clwb",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "clwb_writes_back_cache_line",
+            target_register = "rip",
+            role = "wrote back cache line by clwb",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "invd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "invd_invalidates_cache",
+            target_register = "rip",
+            role = "invalidated internal caches by invd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wbinvd",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wbinvd_writes_back_and_invalidates_cache",
+            target_register = "rip",
+            role = "wrote back and invalidated caches by wbinvd",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetchnta",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetchnta_prefetches_memory",
+            target_register = "rip",
+            role = "prefetched memory with non-temporal locality by prefetchnta",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht0",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht0_prefetches_memory",
+            target_register = "rip",
+            role = "prefetched memory into all cache levels by prefetcht0",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht1",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht1_prefetches_memory",
+            target_register = "rip",
+            role = "prefetched memory with temporal locality hint T1 by prefetcht1",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "prefetcht2",
+        operands = {
+            { index = 1, role = "memory" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "prefetcht2_prefetches_memory",
+            target_register = "rip",
+            role = "prefetched memory with temporal locality hint T2 by prefetcht2",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lgdt",
+        operands = {
+            { index = 1, role = "descriptor_table" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lgdt_loads_gdtr",
+            target_register = "rip",
+            role = "loaded global descriptor table register by lgdt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sgdt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sgdt_stores_gdtr",
+            target_register = "rip",
+            role = "stored global descriptor table register by sgdt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lidt",
+        operands = {
+            { index = 1, role = "descriptor_table" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lidt_loads_idtr",
+            target_register = "rip",
+            role = "loaded interrupt descriptor table register by lidt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sidt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sidt_stores_idtr",
+            target_register = "rip",
+            role = "stored interrupt descriptor table register by sidt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lldt",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lldt_loads_ldtr",
+            target_register = "rip",
+            role = "loaded local descriptor table register by lldt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "sldt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "sldt_stores_ldtr",
+            target_register = "rip",
+            role = "stored local descriptor table register by sldt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ltr",
+        operands = {
+            { index = 1, role = "selector" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ltr_loads_task_register",
+            target_register = "rip",
+            role = "loaded task register by ltr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "str",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "str_stores_task_register",
+            target_register = "rip",
+            role = "stored task register by str",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "smsw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "smsw_stores_machine_status",
+            target_register = "rip",
+            role = "stored machine status word by smsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "lmsw",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "lmsw_loads_machine_status",
+            target_register = "rip",
+            role = "loaded machine status word by lmsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "swapgs",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "swapgs_swaps_gs_base",
+            target_register = "rip",
+            role = "swapped GS base with kernel GS base by swapgs",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "wrmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "wrmsr_writes_model_specific_register",
+            target_register = "rip",
+            role = "wrote model-specific register by wrmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdmsr_writes_rax",
+            target_register = "rax",
+            role = "written with model-specific register low value by rdmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdmsr",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdmsr_writes_rdx",
+            target_register = "rdx",
+            role = "written with model-specific register high value by rdmsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpmc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpmc_writes_rax",
+            target_register = "rax",
+            role = "written with performance counter low value by rdpmc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdpmc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpmc_writes_rdx",
+            target_register = "rdx",
+            role = "written with performance counter high value by rdpmc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdtsc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdtsc_writes_rax",
+            target_register = "rax",
+            role = "written with timestamp counter low value by rdtsc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdtsc",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdtsc_writes_rdx",
+            target_register = "rdx",
+            role = "written with timestamp counter high value by rdtsc",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rax",
+            target_register = "rax",
+            role = "written with timestamp counter low value by rdtscp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rdx",
+            target_register = "rdx",
+            role = "written with timestamp counter high value by rdtscp",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdtscp_writes_rcx",
+            target_register = "rcx",
+            role = "written with auxiliary timestamp value by rdtscp",
+        },
+    },
+
+    -- Checkpoint 4.68 — Final SIMD state/control, random/platform, and oddball visibility leftovers.
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdrand",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdrand_writes_destination",
+            target_operand = 1,
+            role = "written with random value by rdrand",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdrand",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdrand_updates_rflags",
+            target_register = "rflags",
+            role = "updated with random-value availability status by rdrand",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdseed",
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdseed_writes_destination",
+            target_operand = 1,
+            role = "written with random seed value by rdseed",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "rdseed",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdseed_updates_rflags",
+            target_register = "rflags",
+            role = "updated with random-seed availability status by rdseed",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xgetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xgetbv_writes_rax",
+            target_register = "rax",
+            role = "written with extended control register low value by xgetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xgetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xgetbv_writes_rdx",
+            target_register = "rdx",
+            role = "written with extended control register high value by xgetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsetbv",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "xsetbv_writes_extended_control_register",
+            target_register = "rip",
+            role = "wrote extended control register by xsetbv",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsave_saves_extended_state",
+            target_register = "rip",
+            role = "saved extended processor state by xsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsave64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsave64_saves_extended_state",
+            target_register = "rip",
+            role = "saved extended processor state by xsave64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaveopt",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaveopt_saves_extended_state",
+            target_register = "rip",
+            role = "saved optimized extended processor state by xsaveopt",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaveopt64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaveopt64_saves_extended_state",
+            target_register = "rip",
+            role = "saved optimized extended processor state by xsaveopt64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsavec",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsavec_saves_compacted_extended_state",
+            target_register = "rip",
+            role = "saved compacted extended processor state by xsavec",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsavec64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsavec64_saves_compacted_extended_state",
+            target_register = "rip",
+            role = "saved compacted extended processor state by xsavec64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaves",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaves_saves_supervisor_extended_state",
+            target_register = "rip",
+            role = "saved supervisor extended processor state by xsaves",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xsaves64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xsaves64_saves_supervisor_extended_state",
+            target_register = "rip",
+            role = "saved supervisor extended processor state by xsaves64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstor",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstor_restores_extended_state",
+            target_register = "rip",
+            role = "restored extended processor state by xrstor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstor64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstor64_restores_extended_state",
+            target_register = "rip",
+            role = "restored extended processor state by xrstor64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstors",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstors_restores_supervisor_extended_state",
+            target_register = "rip",
+            role = "restored supervisor extended processor state by xrstors",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "xrstors64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "xrstors64_restores_supervisor_extended_state",
+            target_register = "rip",
+            role = "restored supervisor extended processor state by xrstors64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "ldmxcsr",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "ldmxcsr_loads_mxcsr",
+            target_register = "rip",
+            role = "loaded MXCSR control/status register by ldmxcsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "stmxcsr",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "stmxcsr_stores_mxcsr",
+            target_register = "rip",
+            role = "stored MXCSR control/status register by stmxcsr",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxsave",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxsave_saves_fpu_state",
+            target_register = "rip",
+            role = "saved x87 FPU/MMX/SSE state by fxsave",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxsave64",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxsave64_saves_fpu_state",
+            target_register = "rip",
+            role = "saved x87 FPU/MMX/SSE state by fxsave64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxrstor",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxrstor_restores_fpu_state",
+            target_register = "rip",
+            role = "restored x87 FPU/MMX/SSE state by fxrstor",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fxrstor64",
+        operands = {
+            { index = 1, role = "source" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fxrstor64_restores_fpu_state",
+            target_register = "rip",
+            role = "restored x87 FPU/MMX/SSE state by fxrstor64",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "emms",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "emms_clears_mmx_state",
+            target_register = "rip",
+            role = "cleared MMX state by emms",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "femms",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "femms_clears_mmx_state",
+            target_register = "rip",
+            role = "cleared MMX state by femms",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fninit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fninit_initializes_fpu",
+            target_register = "rip",
+            role = "initialized x87 FPU state by fninit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "finit",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "finit_initializes_fpu",
+            target_register = "rip",
+            role = "initialized x87 FPU state by finit",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnclex",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fnclex_clears_fpu_exceptions",
+            target_register = "rip",
+            role = "cleared x87 FPU exceptions by fnclex",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fclex",
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "fclex_clears_fpu_exceptions",
+            target_register = "rip",
+            role = "cleared x87 FPU exceptions by fclex",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fnstsw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fnstsw_stores_fpu_status",
+            target_register = "rip",
+            role = "stored x87 FPU status word by fnstsw",
+        },
+    },
+
+    {
+        node_type = "instruction",
+        mnemonic = "fstsw",
+        operands = {
+            { index = 1, role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "fstsw_stores_fpu_status",
+            target_register = "rip",
+            role = "stored x87 FPU status word by fstsw",
+        },
+    },
+
 
 
     -- 'mov rsp, rbp' restores the stack pointer from the frame base.
