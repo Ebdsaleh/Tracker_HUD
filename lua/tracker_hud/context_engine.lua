@@ -10,6 +10,117 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 
 local M = {}
 
+local register_effect_index_cache = setmetatable({}, { __mode = "k" })
+
+
+local function normalize_mnemonic(mnemonic)
+    if not core.is_non_empty_string(mnemonic) then
+        return nil
+    end
+
+    return mnemonic:lower()
+end
+
+
+local function add_register_effect_to_index(index, effect_spec, fallback_mnemonic)
+    if not core.is_table(index) or not core.is_table(effect_spec) then
+        return
+    end
+
+    local node_type = effect_spec.node_type
+
+    if not core.is_non_empty_string(node_type) then
+        return
+    end
+
+    local mnemonic = normalize_mnemonic(effect_spec.mnemonic or fallback_mnemonic)
+
+    if not mnemonic then
+        return
+    end
+
+    index.node_types[node_type] = true
+    index.by_node_type[node_type] = index.by_node_type[node_type] or {}
+
+    local node_bucket = index.by_node_type[node_type]
+
+    node_bucket[mnemonic] = node_bucket[mnemonic] or {}
+    table.insert(node_bucket[mnemonic], effect_spec)
+
+    node_bucket.__first = node_bucket.__first or effect_spec
+end
+
+
+local function build_register_effect_index(register_effects)
+    local index = {
+        node_types = {},
+        by_node_type = {},
+    }
+
+    if not core.is_table(register_effects) then
+        return index
+    end
+
+    -- Current/legacy format:
+    --
+    -- {
+    --     {
+    --         node_type = "instruction",
+    --         mnemonic = "mov",
+    --         ...
+    --     },
+    -- }
+    for _, effect_spec in ipairs(register_effects) do
+        add_register_effect_to_index(index, effect_spec)
+    end
+
+    -- Future indexed format:
+    --
+    -- {
+    --     mov = {
+    --         {
+    --             node_type = "instruction",
+    --             ...
+    --         },
+    --     },
+    -- }
+    for mnemonic, rules in pairs(register_effects) do
+        if type(mnemonic) == "string" and core.is_table(rules) then
+            for _, effect_spec in ipairs(rules) do
+                add_register_effect_to_index(index, effect_spec, mnemonic)
+            end
+        end
+    end
+
+    return index
+end
+
+
+local function get_register_effect_index(adapter)
+    if not core.is_table(adapter) then
+        return build_register_effect_index(nil)
+    end
+
+    local register_effects = adapter.register_effects
+
+    if not core.is_table(register_effects) then
+        return build_register_effect_index(nil)
+    end
+
+    local cached = register_effect_index_cache[register_effects]
+
+    if cached then
+        return cached
+    end
+
+    local index = build_register_effect_index(register_effects)
+
+    register_effect_index_cache[register_effects] = index
+
+    return index
+end
+
+
 local function parse_instruction_with_adapter(adapter, bufnr, node, effect_spec)
     if type(adapter) ~= "table" or type(adapter.instruction_parser) ~= "table" then
         return nil
@@ -1295,23 +1406,12 @@ function M.collect_register_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
-    local effect_specs = {}
-    local node_types = {}
-
-    for _, effect_spec in ipairs(adapter.register_effects) do
-        if core.is_table(effect_spec)
-            and core.is_non_empty_string(effect_spec.node_type)
-            and core.is_non_empty_string(effect_spec.mnemonic)
-        then
-            table.insert(effect_specs, effect_spec)
-            node_types[effect_spec.node_type] = true
-        end
-    end
+    local effect_index = get_register_effect_index(adapter)
 
     local nodes = {}
     local seen_nodes = {}
 
-    for node_type, _ in pairs(node_types) do
+    for node_type, _ in pairs(effect_index.node_types) do
         for _, node in ipairs(collect_nodes_by_type(root_node, node_type)) do
             local start_row, start_column, end_row, end_column = node:range()
             local node_line = start_row + 1
@@ -1349,15 +1449,25 @@ function M.collect_register_effects(context, adapter, opts)
     local facts_by_register = {}
 
     for _, entry in ipairs(nodes) do
-        for _, effect_spec in ipairs(effect_specs) do
-            if entry.node:type() == effect_spec.node_type then
-                local instruction = collect_instruction_operands(
-                    adapter,
-                    entry.node,
-                    bufnr,
-                    effect_spec
-                )
+        local node_type = entry.node:type()
+        local node_bucket = effect_index.by_node_type[node_type]
 
+        if node_bucket then
+            local representative_effect_spec = node_bucket.__first
+
+            local instruction = collect_instruction_operands(
+                adapter,
+                entry.node,
+                bufnr,
+                representative_effect_spec
+            )
+
+            local mnemonic = instruction
+                and normalize_mnemonic(instruction.mnemonic)
+
+            local effect_specs = mnemonic and node_bucket[mnemonic] or nil
+
+            for _, effect_spec in ipairs(effect_specs or {}) do
                 apply_register_effect(
                     facts_by_register,
                     adapter,
@@ -1376,7 +1486,6 @@ function M.collect_register_effects(context, adapter, opts)
 
     return facts
 end
-
 
 local function get_register_fact_from_context(context, register_name)
     if not core.is_table(context)
