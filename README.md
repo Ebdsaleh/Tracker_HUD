@@ -2,11 +2,11 @@
 
 By [@Ebdsaleh](https://github.com/Ebdsaleh)
 
-Tracker HUD is an experimental Neovim plugin that displays a live code-awareness HUD based on the cursor position. It uses Tree-sitter to track the current function, nested scope depth, and branch context, giving a breadcrumb-style view of where the cursor is inside the code.
+Tracker HUD is an experimental Neovim plugin that displays a live code-awareness HUD based on the cursor position. It uses Tree-sitter plus adapter-provided language facts to track the current function, nested scope depth, branch context, scope members, and low-level ASM state, giving a breadcrumb-style view of where the cursor is inside the code.
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register and stack tracking, generic boundary-effect collection, and early Heap routing from heap-category boundary effects.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, and mnemonic-indexed register-effect lookup for faster ASM HUD updates.
 
 ---
 
@@ -69,6 +69,8 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - ASM label range scopes for label-local context
 - x86-64 register section with canonical register families and aliases
 - x86-64 register write effects for common instructions such as `mov`, `xor`, `add`, `sub`, `inc`, and `dec`
+- Broad x86-64 instruction-effect coverage split into focused register-effect modules
+- Mnemonic-indexed register-effect lookup for faster ASM register tracking
 - x86-64 stack section with stack concepts and stack effects such as `push`, `pop`, `call`, `ret`, `leave`, `sub rsp`, and `add rsp`
 - Generic boundary-effect collection for adapter-described runtime/system boundaries
 - x86-64 syscall convention spec with syscall-number, return, and argument registers
@@ -77,6 +79,7 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Heap entries routed from heap-category boundary effects such as `mmap`, `munmap`, and `brk`
 - Heap included in Inspect Mode cycling
 - Heap supports source-side inspect, expand-all, collapse-all, and panel-row expansion
+- Warnings section with tree-backed warning entries from adapter rules and Tree-sitter syntax diagnostics
 
 ---
 
@@ -101,7 +104,7 @@ Current adapter support:
 | Filetype | Status |
 |---|---|
 | `lua` | Supported: scopes, branches, fields, locals, return values, scalar values, calls, assignments, and structural table values |
-| `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter with x86-64 variant facts: labels, scope members, registers, register aliases, register effects, stack effects, syscall boundary effects, and early heap boundary routing |
+| `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter with x86-64 variant facts: labels, scope members, registers, register aliases, broad register effects, mnemonic-indexed effect lookup, stack effects, syscall boundary effects, heap boundary routing, and warning rules |
 | other filetypes | HUD appears, but structural adapter support is not yet implemented |
 
 Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, value metadata routing, and context output.
@@ -134,13 +137,16 @@ The x86-64 variant currently describes:
 - labels and `global` declarations as scope members
 - canonical registers such as `rax`, `rbx`, `rcx`, `rsp`, and `rbp`
 - register alias families such as `rax` / `eax` / `ax` / `ah` / `al`
-- register effects for common instructions
+- broad static register effects for x86-64 instructions
+- split register-effect modules grouped by instruction category
+- mnemonic-indexed register-effect lookup in the context engine
 - stack effects for push/pop/call/return/frame operations
 - syscall convention data
 - generic boundary effects for syscall-style runtime/system boundaries
 - heap-category syscall effects such as `mmap`, `munmap`, and `brk`
+- warning rules for unresolved or missing low-level state
 
-This is still static and syntax/effect based. It is not an emulator and does not calculate full runtime values.
+This is still static and syntax/effect based. It is not an emulator and does not calculate full runtime values. The x86-64 register-effect rules describe conservative instruction effects; the context engine indexes those rules by mnemonic so the HUD does not need to scan every rule for every instruction.
 
 ---
 
@@ -293,7 +299,7 @@ Tracker HUD can also expand or collapse all Scope Members inside the current own
 
 For supported low-level adapters, Tracker HUD can display register, stack, and heap-oriented facts.
 
-For ASM/x86-64, the `Registers` section currently tracks architecture registers, register alias families, and static instruction effects up to the cursor position. The `Stack` section tracks architecture stack concepts and common stack effects such as pushes, pops, calls, returns, and frame restoration.
+For ASM/x86-64, the `Registers` section currently tracks architecture registers, register alias families, and static instruction effects up to the cursor position. Register effects are declared by the x86-64 adapter and indexed by mnemonic in the shared context engine before being normalized for display. The `Stack` section tracks architecture stack concepts and common stack effects such as pushes, pops, calls, returns, and frame restoration.
 
 The `Heap` section is now a real tree-backed HUD section. It is populated from generic boundary effects whose resolved category is `heap`. In the x86-64 adapter, this includes syscall boundary effects such as `mmap`, `munmap`, and `brk`.
 
@@ -310,6 +316,11 @@ Heap [-]
 ```
 
 The Heap section supports panel-row expansion, source-side inspect mode, expand-all, and collapse-all using the same tree navigation model as Registers and Stack.
+
+
+### Warnings
+
+The `Warnings` section displays tree-backed warning entries collected from adapter-described warning rules and Tree-sitter syntax diagnostics. For ASM/x86-64, warnings are conservative: they report unresolved, missing, or syntax-level state that Tracker HUD can describe from static facts, but they do not prove full runtime correctness.
 
 ---
 
@@ -494,7 +505,7 @@ Inspect Mode currently cycles through:
 Scope -> Scope Members -> Registers -> Stack -> Heap -> Warnings
 ```
 
-`<leader>.` and `<leader>,` are tree-aware for Scope Members, Registers, Stack, and Heap. Warnings is currently a shell section and only opens/closes as a section.
+`<leader>.` and `<leader>,` are tree-aware for Scope Members, Registers, Stack, and Heap. Warnings is tree-backed and can be inspected as a HUD section; warning entries are still static/diagnostic facts rather than full program-analysis results.
 
 The size change amount is controlled by:
 
@@ -615,8 +626,8 @@ Current functionality is focused on structural awareness:
 - Scope Members tracks adapter-described values, not runtime values
 - Local initializer tracking is currently syntax-based and depends on adapter support
 - Scope Members does not yet fully model shadowing, lifetime, mutation, or control-flow visibility
-- Registers, Stack, and Heap are early static/effect-based sections, not full runtime analysis
-- Warnings is currently a placeholder/shell section
+- Registers, Stack, Heap, and Warnings are static/effect-based sections, not full runtime analysis
+- ASM register-effect coverage is broad but conservative; unknown or partial state may still appear when the HUD cannot safely resolve a value
 
 It does **not yet** perform full memory, ownership, lifetime, stack, heap, alias, or control-flow analysis.
 
@@ -636,7 +647,7 @@ Planned future work:
 - Rust ownership and lifetime hints
 - More complete ASM stack pointer / heap tracking
 - Heap-state transitions for allocate/free/unmap/invalidated memory
-- Warning generation from Heap/Register/Stack facts
+- More complete warning generation from Heap/Register/Stack facts
 - C/C++ pointer allocation/free tracking
 - Diagnostics integration
 - Optional virtual text warnings
@@ -682,6 +693,19 @@ lua/tracker_hud/
         asm_adapter.lua
         asm_arch/
             x86_64.lua
+            x86_64/
+                register_effects/
+                    init.lua
+                    data_movement.lua
+                    arithmetic.lua
+                    bitwise.lua
+                    control_flow.lua
+                    stack_frame.lua
+                    system_flags.lua
+                    system.lua
+                    simd.lua
+                    crypto.lua
+                    misc.lua
 ```
 ---
 
@@ -694,6 +718,16 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.5`
+
+- Split the large x86-64 `register_effects` table into focused register-effect modules
+- Kept `asm_arch/x86_64.lua` as the public x86-64 variant entry point
+- Added `asm_arch/x86_64/register_effects/init.lua` to merge register-effect module files
+- Preserved the existing flat `adapter.register_effects` contract for compatibility with the current context engine
+- Added mnemonic-indexed register-effect lookup in `context_engine.lua`
+- Reduced ASM HUD lag by dispatching only rules for the current instruction mnemonic instead of scanning every register-effect rule for every instruction
+- Preserved existing ASM behavior, including unresolved/partial register-state reporting where values cannot be safely resolved
 
 ### `v0.7.4`
 
@@ -835,3 +869,4 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
+
