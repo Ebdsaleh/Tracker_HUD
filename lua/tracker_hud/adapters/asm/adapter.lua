@@ -123,7 +123,7 @@ local function normalize_target_value(value)
         return nil
     end
 
-    local normalized = value:lower()gsub("^%s+", ""):gsub("%s+$", "")
+    local normalized = value:lower():gsub("^%s+", ""):gsub("%s+$", "")
 
     if normalized == "" then
         return nil
