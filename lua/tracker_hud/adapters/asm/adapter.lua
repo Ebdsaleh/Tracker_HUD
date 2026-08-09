@@ -40,6 +40,7 @@ M.variant_directive = "arch"
 M.variant_comment_prefixes = {
     ";",
 }
+
 M.default_variant = "x86-64"
 
 
@@ -55,6 +56,13 @@ M.variant_aliases = {
     ["x64"] = "x86-64",
 }
 
+M.target_directives = {
+    architecture = "arch",
+    platform = "platform",
+    abi= "abi",
+    syntax = "syntax",
+    mode = "mode",
+}
 
 M.capabilities = {
     lexical_scopes = true,
@@ -110,6 +118,35 @@ local function normalize_variant_name(name)
 end
 
 
+local function normalize_target_value(value)
+    if type(value) ~= "string" then
+        return nil
+    end
+
+    local normalized = value:lower()gsub("^%s+", ""):gsub("%s+$", "")
+
+    if normalized == "" then
+        return nil
+    end
+
+    return normalized
+end
+
+local function normalize_target_table(targets)
+    if type(targets) ~= "table" then
+        return 
+    end
+
+    return {
+        architecture = normalize_target_value(targets.architecture),
+        platform = normalize_target_value(targets.platform),
+        abi = normalize_target_value(targets.abi),
+        syntax = normalize_target_value(targets.syntax),
+        mode = normalize_target_value(targets.mode),
+    }
+end
+
+
 local function detect_variant_from_source(bufnr)
     return variant_utils.detect_from_buffer(bufnr, {
         directive = M.variant_directive or "arch",
@@ -118,6 +155,39 @@ local function detect_variant_from_source(bufnr)
         max_scan_lines = 20,
     })
 end
+
+
+local function detect_target_from_source(bufnr, target_key)
+    if type(target_key) ~= "string" then
+        return nil
+    end
+
+    local directive = M.target_directives[target_key]
+
+    if type(directive) ~= "string" or directive == "" then
+        return nil
+    end
+
+    return variant_utils.detect_from_buffer(bufnr, {
+        directive = directive,
+        comment_prefixes = M.variant_comment_prefixes,
+        aliases = nil,
+        max_scan_lines = 20,
+    })
+end
+
+
+local function detect_targets_from_source(bufnr)
+    return {
+        architecture = detect_target_from_source(bufnr, "architecture"),
+        platform = detect_target_from_source(bufnr, "platform"),
+        abi = detect_target_from_source(bufnr, "abi"),
+        syntax = detect_target_from_source(bufnr, "syntax"),
+        mode = detect_target_from_source(bufnr, "mode"),
+    }
+
+end
+
 
 local function load_variant(variant_name)
     local normalized = normalize_variant_name(variant_name) or M.default_variant
@@ -137,6 +207,48 @@ local function load_variant(variant_name)
     return variant
 end
 
+
+local function resolve_targets(bufnr, config, variant)
+    local config_targets = normalize_target_table(config and config.targets)
+    local source_targets = detect_targets_from_source(bufnr)
+
+    local resolved = {
+        architecture = source_targets.architecture
+            or config_targets.architecture
+            or M.default_variant,
+
+        platform = source_targets.platform
+            or config_targets.platform
+            or variant.default_platform,
+
+        abi = source_targets.abi
+            or config_targets.abi,
+
+        syntax = source_targets.syntax
+            or config_targets.syntax,
+
+        mode = source_targets.mode
+            or config_targets.mode,
+    }
+
+    if type(variant.platform_aliases) == "table" and resolved.platform then
+        resolved.platform = variant.platform_aliases[resolved.platform] or resolved.platform
+    end
+
+    if type(variant.platforms) == "table"
+        and resolved.platform
+        and type(variant.platforms[resolved.platform]) == "table"
+        and not resolved.abi
+    then
+        resolved.abi = variant.platforms[resolved.platform].abi
+    end
+
+    if not resolved.mode and type(variant.metadata) == "table" and variant.metadata.bits == 64 then
+        resolved.mode = "long64"
+    end
+
+    return resolved
+end
 
 
 local function apply_variant(variant)
@@ -177,17 +289,27 @@ local function apply_variant(variant)
 end
 
 
-function M.configure_adapter_for_buffer(bufnr, _config)
-    local variant_name = detect_variant_from_source(bufnr) or M.default_variant
+function M.configure_adapter_for_buffer(bufnr, config)
+    local config_targets = normalize_target_table(config and config.targets)
+
+    local variant_name = detect_variant_from_source(bufnr)
+        or config_targets.architecture
+        or M.default_variant
+
     local variant = load_variant(variant_name)
 
     apply_variant(variant)
-end
 
+    M.active_targets = resolve_targets(bufnr, config, variant or {})
+end
 
 -- Default variant so the adapter still exposes useful specs before
 -- configure_adapter_for_buffer() is called.
-apply_variant(load_variant(M.default_variant))
+local default_variant = load_variant(M.default_variant)
+
+apply_variant(default_variant)
+
+M.active_targets = resolve_targets(nil, nil, default_variant or {})
 
 
 return M
