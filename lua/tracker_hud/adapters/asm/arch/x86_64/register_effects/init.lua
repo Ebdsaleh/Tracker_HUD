@@ -14,15 +14,15 @@ local function append_rules(rules)
     end
 end
 
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.data_movement"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.arithmetic"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.bitwise"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.control_flow"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.stack_frame"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.system_flags"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.system"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.simd"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.crypto"))
-append_rules(require("tracker_hud.adapters.asm_arch.x86_64.register_effects.misc"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.data_movement"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.arithmetic"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.bitwise"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.control_flow"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.stack_frame"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.system_flags"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.system"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto"))
+append_rules(require("tracker_hud.adapters.asm.arch.x86_64.register_effects.misc"))
 
 return M
