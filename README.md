@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, and mnemonic-indexed register-effect lookup for faster ASM HUD updates.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, mnemonic-indexed register-effect lookup for faster ASM HUD updates, and directory-backed built-in adapter modules.
 
 ---
 
@@ -30,6 +30,7 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Panel focus restoration so the HUD does not steal editing focus
 - HUD panel closes with the source file
 - Adapter-based language context architecture
+- Directory-backed built-in adapter modules using `adapters/<name>/init.lua` and `adapters/<name>/adapter.lua`
 - Lua construct adapter with spec-driven branch alternatives
 - Clear missing-adapter messages for unsupported filetypes
 - Interactive HUD sections
@@ -65,6 +66,8 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - Identifier return values can resolve to visible scope members where possible
 - Scope Members filtering uses the nearest member-owning scope instead of the nearest syntax construct
 - ASM adapter architecture with x86-64 variant support
+- Nested ASM adapter module structure under `adapters/asm/`
+- Nested x86-64 architecture variant module under `adapters/asm/arch/x86_64/`
 - x86-64 architecture directive detection using `; arch=x86-64;`
 - ASM label range scopes for label-local context
 - x86-64 register section with canonical register families and aliases
@@ -119,6 +122,47 @@ value
 ```
 
 This keeps the engine language-neutral. For example, Lua tables, JavaScript objects, Python dictionaries, Rust structs, C structs, and custom DSL object blocks can all be described as structural values/scopes by their adapters without requiring engine changes.
+
+
+### Built-in adapter module layout
+
+Built-in adapters use directory-backed modules instead of loose `*_adapter.lua` files.
+
+```text
+lua/tracker_hud/adapters/
+    <adapter_name>/
+        init.lua      -- adapter entry point
+        adapter.lua   -- adapter facts/specs
+```
+
+For example, the built-in Lua adapter lives under `adapters/lua/`, while the ASM adapter lives under `adapters/asm/`. The loader discovers adapter entry points through `*/init.lua` under the configured adapter paths.
+
+The ASM adapter also owns nested architecture variants:
+
+```text
+lua/tracker_hud/adapters/asm/
+    init.lua
+    adapter.lua
+    instruction_utils.lua
+    arch/
+        x86_64/
+            init.lua
+            adapter.lua
+            register_effects/
+                init.lua
+                data_movement.lua
+                arithmetic.lua
+                bitwise.lua
+                control_flow.lua
+                stack_frame.lua
+                system_flags.lua
+                system.lua
+                simd.lua
+                crypto.lua
+                misc.lua
+```
+
+The user-facing architecture name remains `x86-64`, and the source directive remains `; arch=x86-64;`. The Lua module path uses `x86_64` so it maps cleanly to Lua `require()` paths.
 
 
 ### ASM / x86-64 adapter
@@ -689,23 +733,30 @@ lua/tracker_hud/
     adapters/
         loader.lua
         registry.lua
-        lua_adapter.lua
-        asm_adapter.lua
-        asm_arch/
-            x86_64.lua
-            x86_64/
-                register_effects/
+        variant_utils.lua
+        lua/
+            init.lua
+            adapter.lua
+        asm/
+            init.lua
+            adapter.lua
+            instruction_utils.lua
+            arch/
+                x86_64/
                     init.lua
-                    data_movement.lua
-                    arithmetic.lua
-                    bitwise.lua
-                    control_flow.lua
-                    stack_frame.lua
-                    system_flags.lua
-                    system.lua
-                    simd.lua
-                    crypto.lua
-                    misc.lua
+                    adapter.lua
+                    register_effects/
+                        init.lua
+                        data_movement.lua
+                        arithmetic.lua
+                        bitwise.lua
+                        control_flow.lua
+                        stack_frame.lua
+                        system_flags.lua
+                        system.lua
+                        simd.lua
+                        crypto.lua
+                        misc.lua
 ```
 ---
 
@@ -718,6 +769,18 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### `v0.7.6`
+
+- Converted built-in adapters from loose `*_adapter.lua` files to directory-backed modules
+- Moved the Lua adapter to `adapters/lua/init.lua` and `adapters/lua/adapter.lua`
+- Moved the ASM adapter to `adapters/asm/init.lua` and `adapters/asm/adapter.lua`
+- Moved ASM instruction parsing helpers under `adapters/asm/instruction_utils.lua`
+- Moved the x86-64 ASM architecture variant under `adapters/asm/arch/x86_64/`
+- Kept x86-64 register-effect modules split by instruction category under the nested architecture variant module
+- Updated adapter discovery so built-in adapters are loaded from `adapters/<name>/init.lua`
+- Removed old loose adapter compatibility paths after Lua and ASM adapter behavior was restored
+- Preserved existing Lua Scope Members behavior and ASM/x86-64 Scope Members, Registers, Stack, Heap, and Warnings behavior
 
 ### `v0.7.5`
 
@@ -869,4 +932,5 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
+
 
