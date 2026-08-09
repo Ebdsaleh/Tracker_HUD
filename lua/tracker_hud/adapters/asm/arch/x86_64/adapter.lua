@@ -56,9 +56,9 @@ M.platforms = {
     },
 }
 
-M.default_plaftorm = "linux"
+M.default_platform = "linux"
 
-M.plaftorm_aliases = {
+M.platform_aliases = {
 
     linux = "linux",
 
