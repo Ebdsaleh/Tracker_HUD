@@ -185,6 +185,12 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
             local label = node.label or tostring(node.id or "")
+            local matches_cursor = node_matches_cursor(node, opts)
+
+            if matches_cursor then
+                result.active = true
+            end
+
             local marker = get_node_marker(node, opts)
             local rendered_label = marker .. " " .. label
             local range_label = build_scope_range_label(node)
@@ -238,6 +244,7 @@ local function build_scope_member_tree_lines(nodes, opts)
     local result = {
         lines = {},
         targets = {},
+        active = false,
     }
 
     append_scope_member_tree_lines(result, nodes, 0, opts)
@@ -250,6 +257,7 @@ local function build_hud_tree_lines(nodes, opts)
     local result = {
         lines = {},
         targets = {},
+        active = false,
     }
 
     append_scope_member_tree_lines(result, nodes, 0, opts)
@@ -1064,6 +1072,7 @@ function M.build(context, opts)
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
             lines = scope_member_render.lines,
+            active = scope_member_render.active,
             line_targets = scope_member_render.targets,
             empty_text = "<no scope members tracked yet>",
         },
@@ -1071,6 +1080,7 @@ function M.build(context, opts)
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
+            active = register_render.active,
             lines = register_render.lines,
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",
@@ -1079,6 +1089,7 @@ function M.build(context, opts)
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
+            active = stack_render.active,
             lines = stack_render.lines,
             line_targets = stack_render.targets,
             empty_text = "<no stack entries tracked yet>",
@@ -1087,6 +1098,7 @@ function M.build(context, opts)
             id = "heap",
             title = "Heap",
             expanded = M.is_expanded("heap"),
+            active = heap_render.active,
             lines = heap_render.lines,
             line_targets = heap_render.targets,
             empty_text = "<no heap entries tracked yet>",
@@ -1095,6 +1107,7 @@ function M.build(context, opts)
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
+            active = warning_render.active,
             lines = warning_render.lines,
             line_targets = warning_render.targets,
             empty_text = "<no warnings>",

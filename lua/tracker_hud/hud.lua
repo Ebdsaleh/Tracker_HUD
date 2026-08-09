@@ -382,7 +382,9 @@ local function append_section_lines(lines, section)
     end
 
     local marker = section.expanded and "[-]" or "[+]"
-    table.insert(lines, section.title .. " " .. marker)
+    local active_marker = section.active and " *" or ""
+
+    table.insert(lines, section.title .. " " .. marker .. active_marker)
 
     panel_line_targets[#lines] = {
         kind = "section",
