@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/lua_adapter.lua
+-- lua/tracker_hud/adapters/lua/adapter.lua
 --
 -- Lua Tree-sitter adapter.
 --
@@ -474,3 +474,4 @@ M.scope_members = {
 }
 
 return M
+

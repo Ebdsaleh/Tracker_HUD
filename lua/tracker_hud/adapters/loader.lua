@@ -31,7 +31,7 @@ local function normalize_adapter_paths(adapter_paths)
     end
 
     if core.is_table(adapter_paths) then
-        return adapter_paths 
+        return adapter_paths
     end
 
     return {}
@@ -41,13 +41,12 @@ end
 local function path_to_runtime_globs(adapter_path)
     -- "tracker_hud/adapters"
     -- becomes:
-    -- "lua/tracker_hud/adapters/*_adapter.lua"
-    --  added support for variants.
+    -- "lua/tracker_hud/adapters/*/init.lua"
     return {
-        "lua/" .. adapter_path .. "/*_adapter.lua",
-        "lua/" .. adapter_path .. "/*_adapter/init.lua",
+        "lua/" .. adapter_path .. "/*/init.lua",
     }
 end
+
 
 local function module_to_adapter_key(module_name)
     if not core.is_string(module_name) or module_name == "" then

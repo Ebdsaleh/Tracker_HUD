@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_adapter.lua
+-- lua/tracker_hud/adapters/asm/adapter.lua
 --
 -- ASM Tree-sitter adapter.
 --
@@ -44,7 +44,7 @@ M.default_variant = "x86-64"
 
 
 M.variants = {
-    ["x86-64"] = "tracker_hud.adapters.asm_arch.x86_64",
+    ["x86-64"] = "tracker_hud.adapters.asm.arch.x86_64",
 }
 
 
@@ -92,7 +92,7 @@ M.construct_specs = {
 }
 
 local default_instruction_parser = {
-    module = "tracker_hud.adapters.asm_instruction_utils",
+    module = "tracker_hud.adapters.asm.instruction_utils",
     function_name = "parse_instruction",
 }
 
@@ -191,3 +191,5 @@ apply_variant(load_variant(M.default_variant))
 
 
 return M
+
+
