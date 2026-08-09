@@ -49,11 +49,17 @@ M.defaults = {
 
     -- Target defaults used by adapters when source files do not declare
     -- their own target directives.
+    --
+    -- These are adapter-facing hints. Individual adapters decide which
+    -- target fields they support.
+    --
+    -- Source directives should override these defaults when implemented.
     targets = {
         architecture = nil,
         platform = nil,
         abi = nil,
         syntax = nil,
+        mode = nil,
     },
 }
 
