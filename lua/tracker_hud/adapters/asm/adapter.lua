@@ -179,15 +179,13 @@ end
 
 local function detect_targets_from_source(bufnr)
     return {
-        architecture = detect_target_from_source(bufnr, "architecture"),
-        platform = detect_target_from_source(bufnr, "platform"),
-        abi = detect_target_from_source(bufnr, "abi"),
-        syntax = detect_target_from_source(bufnr, "syntax"),
-        mode = detect_target_from_source(bufnr, "mode"),
+        architecture = normalize_variant_name(detect_target_from_source(bufnr, "architecture")),
+        platform = normalize_target_value(detect_target_from_source(bufnr, "platform")),
+        abi = normalize_target_value(detect_target_from_source(bufnr, "abi")),
+        syntax = normalize_target_value(detect_target_from_source(bufnr, "syntax")),
+        mode = normalize_target_value(detect_target_from_source(bufnr, "mode")),
     }
-
 end
-
 
 local function load_variant(variant_name)
     local normalized = normalize_variant_name(variant_name) or M.default_variant
@@ -208,21 +206,57 @@ local function load_variant(variant_name)
 end
 
 
+local function get_platform_abi(variant, platform)
+    if type(variant) ~= "table"
+        or type(variant.platforms) ~= "table"
+        or type(platform) ~= "string"
+    then
+        return nil
+    end
+
+    local platform_spec = variant.platforms[platform]
+
+    if type(platform_spec) ~= "table" then
+        return nil
+    end
+
+    return platform_spec.abi
+end
+
+
 local function resolve_targets(bufnr, config, variant)
     local config_targets = normalize_target_table(config and config.targets)
     local source_targets = detect_targets_from_source(bufnr)
 
+    local architecture = source_targets.architecture
+        or config_targets.architecture
+        or M.default_variant
+
+    local platform = source_targets.platform
+        or config_targets.platform
+        or variant.default_platform
+
+    if type(variant.platform_aliases) == "table" and platform then
+        platform = variant.platform_aliases[platform] or platform
+    end
+
+    local platform_abi = get_platform_abi(variant, platform)
+    local platform_from_source = source_targets.platform ~= nil
+
+    local abi = source_targets.abi
+
+    if not abi and platform_from_source then
+        abi = platform_abi
+    end
+
+    if not abi then
+        abi = config_targets.abi or platform_abi
+    end
+
     local resolved = {
-        architecture = source_targets.architecture
-            or config_targets.architecture
-            or M.default_variant,
-
-        platform = source_targets.platform
-            or config_targets.platform
-            or variant.default_platform,
-
-        abi = source_targets.abi
-            or config_targets.abi,
+        architecture = architecture,
+        platform = platform,
+        abi = abi,
 
         syntax = source_targets.syntax
             or config_targets.syntax,
@@ -230,18 +264,6 @@ local function resolve_targets(bufnr, config, variant)
         mode = source_targets.mode
             or config_targets.mode,
     }
-
-    if type(variant.platform_aliases) == "table" and resolved.platform then
-        resolved.platform = variant.platform_aliases[resolved.platform] or resolved.platform
-    end
-
-    if type(variant.platforms) == "table"
-        and resolved.platform
-        and type(variant.platforms[resolved.platform]) == "table"
-        and not resolved.abi
-    then
-        resolved.abi = variant.platforms[resolved.platform].abi
-    end
 
     if not resolved.mode and type(variant.metadata) == "table" and variant.metadata.bits == 64 then
         resolved.mode = "long64"
