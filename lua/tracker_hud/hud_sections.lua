@@ -96,16 +96,65 @@ local function get_node_default_expanded(node)
 end
 
 
-local function get_node_marker(node)
+local function node_matches_cursor(node, opts)
+    if type(node) ~= "table" or type(opts) ~= "table" then
+        return false
+    end
+
+    local source_line = tonumber(opts.active_source_line)
+    local source_column = tonumber(opts.active_source_column)
+
+    if not source_line or not source_column then
+        return false
+    end
+
+    local start_line = tonumber(node.source_start_line or node.source_line)
+    local end_line = tonumber(node.source_end_line or node.source_line)
+
+    if not start_line or not end_line then
+        return false
+    end
+
+    if source_line < start_line or source_line > end_line then
+        return false
+    end
+
+    local start_column = tonumber(node.source_start_column or node.source_column or 0)
+    local end_column = tonumber(node.source_end_column or node.source_column or start_column)
+
+    if start_line == end_line then
+        return source_column >= start_column
+            and source_column <= end_column
+    end
+
+    if source_line == start_line then
+        return source_column >= start_column
+    end
+
+    if source_line == end_line and end_column > 0 then
+        return source_column <= end_column
+    end
+
+    return true
+end
+
+
+local function get_node_marker(node, opts)
+    local active_marker = " "
+
+    if node_matches_cursor(node, opts) then
+        active_marker = "*"
+    end
+
     if not node_has_children(node) then
-        return "   "
+        return active_marker .. "   "
     end
 
     if hud_nodes.is_expanded(node.id, get_node_default_expanded(node)) then
-        return "[-]"
+        return active_marker .. "[-]"
     end
 
-    return "[+]"
+    return active_marker .. "[+]"
 end
 
 
@@ -136,7 +185,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
             local label = node.label or tostring(node.id or "")
-            local marker = get_node_marker(node)
+            local marker = get_node_marker(node, opts)
             local rendered_label = marker .. " " .. label
             local range_label = build_scope_range_label(node)
 
@@ -948,6 +997,11 @@ function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
     opts = opts or {}
+    local active_source_line = context.cursor and context.cursor.line
+    local active_source_column = nil
+    if context.cursor and context.cursor.column then
+        active_source_column = math.max(0, tonumber(context.cursor.column) - 1)
+    end
 
     if show_all_scope_members then
         scope_members = context.all_scope_members or {}
@@ -958,27 +1012,37 @@ function M.build(context, opts)
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
     local scope_member_render = build_scope_member_tree_lines(scope_member_nodes, {
         panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
     })
 
     local register_nodes = register_tree.build(context.registers or {}, context)
     local register_render = build_hud_tree_lines(register_nodes, {
         panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
     })
 
 
     local stack_nodes = stack_tree.build(context.stack or {}, context)
     local stack_render = build_hud_tree_lines(stack_nodes, {
         panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
     })
 
     local heap_root = heap_tree.build_tree(context.heap or {})
     local heap_render = build_hud_tree_lines(heap_root.children or {}, {
         panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
     })
 
     local warning_nodes = build_warning_nodes_for_context(context)
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
     })
 
     local sections = {
