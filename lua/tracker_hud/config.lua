@@ -4,7 +4,7 @@ local M = {}
 
 M.defaults = {
     display = "winbar", -- "winbar" or "panel"
-    
+
     show_line_numbers = true,
     show_branch_context = true,
     separator = " -> ",
@@ -45,6 +45,15 @@ M.defaults = {
     --   lua/tracker_hud/adapters/*_adapter.lua
     adapter_paths = {
         "tracker_hud/adapters",
+    },
+
+    -- Target defaults used by adapters when source files do not declare
+    -- their own target directives.
+    targets = {
+        architecture = nil,
+        platform = nil,
+        abi = nil,
+        syntax = nil,
     },
 }
 
