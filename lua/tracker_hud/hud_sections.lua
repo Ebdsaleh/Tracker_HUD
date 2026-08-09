@@ -142,12 +142,12 @@ end
 local function get_node_marker(node, opts)
     local active_marker = " "
 
-    if node_matches_cursor(node, opts) then
+    if node_has_children(node) and node_matches_cursor(node, opts) then
         active_marker = "*"
     end
 
     if not node_has_children(node) then
-        return active_marker .. "   "
+        return "  -"
     end
 
     if hud_nodes.is_expanded(node.id, get_node_default_expanded(node)) then
