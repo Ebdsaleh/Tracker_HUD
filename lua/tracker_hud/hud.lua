@@ -219,6 +219,50 @@ local function ensure_panel_buffer()
     return panel_bufnr
 end
 
+local function target_value(value)
+    if type(value) ~= "string" or value == "" then
+        return nil
+    end
+
+    return value
+end
+
+local function build_target_lines(targets)
+    if type(targets) ~= "table" then
+        return {}
+    end
+
+    local parts = {}
+
+    if target_value(targets.architecture) then
+        table.insert(parts, "arch=" .. targets.architecture)
+    end
+
+    if target_value(targets.platform) then
+        table.insert(parts, "platform=" .. targets.platform)
+    end
+
+    if target_value(targets.abi) then
+        table.insert(parts, "abi=" .. targets.abi)
+    end
+
+    if target_value(targets.syntax) then
+        table.insert(parts, "syntax=" .. targets.syntax)
+    end
+
+    if target_value(targets.mode) then
+        table.insert(parts, "mode=" .. targets.mode)
+    end
+
+    if #parts == 0 then
+        return {}
+    end
+
+    return {
+        "Target: " .. table.concat(parts, " | "),
+    }
+end
+
 
 local function restore_focus(source_winid, fallback_winid, panel_position)
     local function do_restore()
@@ -393,12 +437,22 @@ local function format_panel_lines(context)
             .. tostring(context.cursor.line)
             .. "]"
     end
+
     table.insert(lines, current_line_text)
+
+    local target_lines = build_target_lines(context.targets)
+
+    if #target_lines > 0 then
+        table.insert(lines, "")
+
+        for _, line in ipairs(target_lines) do
+            table.insert(lines, line)
+        end
+    end
 
     table.insert(lines, "")
 
     local panel_width = resolved_panel_size
-
     if is_valid_window(panel_winid) then
         local ok, width = pcall(vim.api.nvim_win_get_width, panel_winid)
 
