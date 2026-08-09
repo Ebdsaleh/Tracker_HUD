@@ -5,14 +5,15 @@
 -- This module displays adapter-reported target diagnostics inline in the
 -- source buffer. It does not resolve targets itself.
 
-
 local M = {}
 
-local namespace = vim.api.nvim_create_namespace("tracker_hud_diagnostics")
+local namespace = vim.api.nvim_create_namespace("tracker_hud_target_diagnostics")
+
 
 local function is_valid_buffer(bufnr)
     return bufnr and vim.api.nvim_buf_is_valid(bufnr)
 end
+
 
 local function normalize_line_number(line)
     local numeric_line = tonumber(line)
@@ -66,12 +67,11 @@ local function build_diagnostic(bufnr, target_diagnostic)
         end_lnum = line - 1,
         end_col = diagnostic_end_column(target_diagnostic, line_text),
         severity = vim.diagnostic.severity.WARN,
-        source = "tracker HUD",
+        source = "Tracker HUD",
         message = target_diagnostic.message or "target metadata warning",
-
     }
-
 end
+
 
 function M.clear(bufnr)
     if not is_valid_buffer(bufnr) then
@@ -89,20 +89,20 @@ function M.show(bufnr, targets)
 
     if type(targets) ~= "table" or type(targets.diagnostics) ~= "table" then
         M.clear(bufnr)
-        return 
+        return
     end
 
     local diagnostics = {}
 
     for _, target_diagnostic in ipairs(targets.diagnostics) do
         local diagnostic = build_diagnostic(bufnr, target_diagnostic)
+
         if diagnostic then
             table.insert(diagnostics, diagnostic)
         end
     end
 
     vim.diagnostic.set(namespace, bufnr, diagnostics, {})
-
 end
 
 
