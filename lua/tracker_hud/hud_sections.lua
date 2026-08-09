@@ -504,6 +504,35 @@ end
 
 
 
+local function section_has_cursor_target(nodes, source_line, source_column)
+    source_line = tonumber(source_line)
+    source_column = tonumber(source_column) or 0
+
+    if not source_line then
+        return false
+    end
+
+    local node_path = find_deepest_node_path_for_position(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    if node_path and #node_path > 0 then
+        return true
+    end
+
+    local fallback = find_closest_node_path_for_line(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    return fallback ~= nil and fallback.path ~= nil
+end
+
+
+
 local function build_scope_member_nodes_for_context(context, use_all_members)
     if type(context) ~= "table" then
         return {}
@@ -1072,7 +1101,11 @@ function M.build(context, opts)
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
             lines = scope_member_render.lines,
-            active = scope_member_render.active,
+            active = section_has_cursor_target(
+                scope_member_nodes,
+                active_source_line,
+                active_source_column
+            ),
             line_targets = scope_member_render.targets,
             empty_text = "<no scope members tracked yet>",
         },
@@ -1080,7 +1113,11 @@ function M.build(context, opts)
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
-            active = register_render.active,
+            active = section_has_cursor_target(
+                register_nodes,
+                active_source_line,
+                active_source_column
+            ),
             lines = register_render.lines,
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",
@@ -1089,7 +1126,11 @@ function M.build(context, opts)
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
-            active = stack_render.active,
+            active = section_has_cursor_target(
+                stack_nodes,
+                active_source_line,
+                active_source_column
+            ),
             lines = stack_render.lines,
             line_targets = stack_render.targets,
             empty_text = "<no stack entries tracked yet>",
@@ -1098,7 +1139,11 @@ function M.build(context, opts)
             id = "heap",
             title = "Heap",
             expanded = M.is_expanded("heap"),
-            active = heap_render.active,
+            active = section_has_cursor_target(
+                heap_root.children or {},
+                active_source_line,
+                active_source_column
+            ),
             lines = heap_render.lines,
             line_targets = heap_render.targets,
             empty_text = "<no heap entries tracked yet>",
@@ -1107,7 +1152,11 @@ function M.build(context, opts)
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
-            active = warning_render.active,
+            active = section_has_cursor_target(
+                warning_nodes,
+                active_source_line,
+                active_source_column
+            ),
             lines = warning_render.lines,
             line_targets = warning_render.targets,
             empty_text = "<no warnings>",
@@ -1134,3 +1183,4 @@ function M.build(context, opts)
 end
 
 return M
+
