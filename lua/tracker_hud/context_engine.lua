@@ -159,6 +159,7 @@ function M.make_global_context()
         path = {},
         scopes = {},
         scope_members = {},
+        targets = {},
         cursor = M.get_cursor_location(),
     }
 end

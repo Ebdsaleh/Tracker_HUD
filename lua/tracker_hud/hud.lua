@@ -83,10 +83,6 @@ local function set_panel_statusline()
         "Tracker HUD [-] " .. inspect_mode.get_status_label()
 end
 
-local function clear_winbar()
-    vim.wo.winbar = nil
-end
-
 local function get_panel_position(config)
     return config.panel_position or  "right"
 end
@@ -205,8 +201,8 @@ local function ensure_panel_buffer()
         noremap = true,
         desc = "Jump to Tracker HUD row source",
     })
-    
-    
+
+
     -- Toggle HUD sections from inside the panel (mouse support).
     vim.keymap.set("n", "<2-LeftMouse>", function()
         require("tracker_hud.hud").toggle_section_at_panel_cursor()
@@ -217,25 +213,10 @@ local function ensure_panel_buffer()
         desc = "Toggle Tracker HUD section with double click",
     })
 
-    
+
     pcall(vim.api.nvim_buf_set_name, panel_bufnr, "Tracker HUD")
 
     return panel_bufnr
-end
-
-local function render_winbar(context, _config)
-    if not context then
-        clear_winbar()
-        return
-    end
-
-    local label = context.label
-
-    if context.cursor and context.cursor.line then
-        label = label .. " -> [" .. tostring(context.cursor.line) .. "] Current"
-    end
-
-    vim.wo.winbar = "%#Title# [+] HUD: %#Normal# " .. label
 end
 
 
@@ -455,25 +436,20 @@ local function render_panel(context, config, source_winid)
     restore_focus(source_winid, nil, panel_position)
 end
 
-function M.clear(config)
-    config = config or {}
-
-    if config.display == "panel" then
-        if is_valid_buffer(panel_bufnr) then
-            vim.bo[panel_bufnr].modifiable = true
-            vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, {
-                "Tracker HUD",
-                "",
-                "No active context.",
-                "",
-                "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-            })
-            vim.bo[panel_bufnr].modifiable = false
-        end
-    else
-        clear_winbar()
+function M.clear(_config)
+    if is_valid_buffer(panel_bufnr) then
+        vim.bo[panel_bufnr].modifiable = true
+        vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, {
+            "Tracker HUD",
+            "",
+            "No active context.",
+            "",
+            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
+        })
+        vim.bo[panel_bufnr].modifiable = false
     end
 end
+
 
 function M.render(context, config, source_winid)
     config = config or {}
@@ -482,12 +458,9 @@ function M.render(context, config, source_winid)
     last_config = config
     last_source_winid = source_winid
 
-    if config.display == "panel" then
-        render_panel(context, config, source_winid)
-    else
-        render_winbar(context, config)
-    end
+    render_panel(context, config, source_winid)
 end
+
 
 function M.close_panel()
     if is_valid_window(panel_winid) then
@@ -517,13 +490,13 @@ local function apply_panel_size(panel_position, size)
     if not is_valid_window(panel_winid) then
         return false
     end
-    
+
     local numeric_size = tonumber(size)
 
     if not numeric_size then
         return false
     end
-    
+
     if is_vertical_panel(panel_position) then
         pcall(vim.api.nvim_win_set_width, panel_winid, numeric_size)
     else

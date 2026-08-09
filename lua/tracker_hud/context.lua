@@ -227,6 +227,8 @@ end
 
 
 local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
+    context.targets = vim.deepcopy(adapter.active_targets or {})
+
     context.scope_members = scope_members.collect(
         bufnr,
         root_node,

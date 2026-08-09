@@ -3,7 +3,7 @@
 local M = {}
 
 M.defaults = {
-    display = "winbar", -- "winbar" or "panel"
+    display = "panel", -- "panel" only now.
 
     show_line_numbers = true,
     show_branch_context = true,
