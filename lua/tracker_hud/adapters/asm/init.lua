@@ -92,7 +92,7 @@ M.construct_specs = {
 }
 
 local default_instruction_parser = {
-    module = "tracker_hud.adapters.asm_instruction_utils",
+    module = "tracker_hud.adapters.asm.instruction_utils",
     function_name = "parse_instruction",
 }
 
