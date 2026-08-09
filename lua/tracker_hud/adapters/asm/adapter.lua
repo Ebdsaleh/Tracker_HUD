@@ -134,7 +134,7 @@ end
 
 local function normalize_target_table(targets)
     if type(targets) ~= "table" then
-        return 
+        return {}
     end
 
     return {
