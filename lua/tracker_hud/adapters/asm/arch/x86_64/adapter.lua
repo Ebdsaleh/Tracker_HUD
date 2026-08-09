@@ -70,6 +70,22 @@ M.platform_aliases = {
     mac = "darwin",
 }
 
+
+M.syntaxes = {
+    nasm = {
+        status = "supported",
+    },
+
+    gas = {
+        status = "declared",
+    },
+
+    masm = {
+        status = "declared",
+    },
+}
+
+
 M.calling_conventions = {
     linux_syscall = {
         kind = "syscall",
