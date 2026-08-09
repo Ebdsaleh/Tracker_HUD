@@ -10,6 +10,8 @@ local stack = require("tracker_hud.stack")
 local heap = require("tracker_hud.heap")
 local warnings = require("tracker_hud.warnings")
 local ts_utils = require("tracker_hud.treesitter_utils")
+local target_diagnostics = require("tracker_hud.target_diagnostics")
+
 
 
 local function try_parse_construct_with_adapter(bufnr, node)
@@ -228,6 +230,7 @@ end
 
 local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
     context.targets = vim.deepcopy(adapter.active_targets or {})
+    target_diagnostics.show(bufnr, context.targets)
 
     context.scope_members = scope_members.collect(
         bufnr,

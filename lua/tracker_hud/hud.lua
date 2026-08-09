@@ -219,12 +219,33 @@ local function ensure_panel_buffer()
     return panel_bufnr
 end
 
-local function target_value(value)
-    if type(value) ~= "string" or value == "" then
-        return nil
+
+local function target_has_diagnostic(targets, key)
+    if type(targets) ~= "table" or type(targets.diagnostics) ~= "table" then
+        return false
     end
 
-    return value
+    for _, diagnostic in ipairs(targets.diagnostics) do
+        if type(diagnostic) == "table" and diagnostic.key == key then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function format_target_part(targets, key, label)
+    local value = targets[key]
+
+    if type(value) ~= "string" or value == "" then
+        value = "<unknown>"
+    end
+
+    if target_has_diagnostic(targets, key) then
+        value = value .. " [?]"
+    end
+
+    return label .. "=" .. value
 end
 
 local function build_target_lines(targets)
@@ -232,35 +253,28 @@ local function build_target_lines(targets)
         return {}
     end
 
-    local parts = {}
-
-    if target_value(targets.architecture) then
-        table.insert(parts, "arch=" .. targets.architecture)
-    end
-
-    if target_value(targets.platform) then
-        table.insert(parts, "platform=" .. targets.platform)
-    end
-
-    if target_value(targets.abi) then
-        table.insert(parts, "abi=" .. targets.abi)
-    end
-
-    if target_value(targets.syntax) then
-        table.insert(parts, "syntax=" .. targets.syntax)
-    end
-
-    if target_value(targets.mode) then
-        table.insert(parts, "mode=" .. targets.mode)
-    end
-
-    if #parts == 0 then
-        return {}
-    end
-
-    return {
-        "Target: " .. table.concat(parts, " | "),
+    local lines = {
+        "Target: "
+            .. format_target_part(targets, "architecture", "arch")
+            .. " | "
+            .. format_target_part(targets, "platform", "platform")
+            .. " | "
+            .. format_target_part(targets, "abi", "abi")
+            .. " | "
+            .. format_target_part(targets, "syntax", "syntax")
+            .. " | "
+            .. format_target_part(targets, "mode", "mode"),
     }
+
+    if type(targets.diagnostics) == "table" then
+        for _, diagnostic in ipairs(targets.diagnostics) do
+            if type(diagnostic) == "table" and type(diagnostic.message) == "string" then
+                table.insert(lines, diagnostic.message)
+            end
+        end
+    end
+
+    return lines
 end
 
 
