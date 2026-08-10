@@ -5,6 +5,7 @@
 local hud_controls = require("tracker_hud.hud_controls")
 local scope_member_tree = require("tracker_hud.scope_member_tree")
 local register_tree = require("tracker_hud.register_tree")
+local event_tree = require("tracker_hud.event_tre")
 local stack_tree = require("tracker_hud.stack_tree")
 local heap_tree = require("tracker_hud.heap_tree")
 local warning_tree = require("tracker_hud.warning_tree")
@@ -18,6 +19,7 @@ local section_state = {
     scope = true,
     scope_members = false,
     registers = false,
+    events = false,
     stack = false,
     heap = false,
     warnings = false,
@@ -735,6 +737,14 @@ local function build_register_nodes_for_context(context)
 end
 
 
+local function build_event_nodes_for_context(context)
+    if type(context) ~= "table" then
+        return {}
+    end
+    return event_tree.build(context.events or {}, context)
+end
+
+
 local function build_stack_nodes_for_context(context)
     if type(context) ~= "table" then
         return {}
@@ -827,6 +837,31 @@ function M.inspect_registers(request)
 end
 
 
+function M.inspect_events(request)
+    if type(request) ~= "table" or type(request.context) ~= "table" then
+        return false
+    end
+
+    local event_nodes = build_event_nodes_for_context(request.context)
+
+    if not event_nodes or #event_nodes == 0 then
+        return toggle_section_fallback("events")
+    end
+
+    local ok, target_node_id = inspect_hud_nodes_for_source_position(
+        request,
+        "events",
+        event_nodes
+    )
+
+    if ok then
+        return true, target_node_id
+    end
+
+    return toggle_section_fallback("events")
+end
+
+
 function M.inspect_stack(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
         return false
@@ -915,6 +950,10 @@ local function get_section_nodes(context, section_id, use_all_members)
 
     if section_id == "registers" then
         return build_register_nodes_for_context(context)
+    end
+
+    if section_id == "events" then
+        return build_event_nodes_for_context(context)
     end
 
     if section_id == "stack" then
@@ -1060,6 +1099,13 @@ function M.build(context, opts)
         active_source_column = active_source_column,
     })
 
+    local event_nodes = event_tree.build(context.events or {}, context)
+    local event_render = build_hud_tree_lines(event_nodes, {
+        panel_width = opts.panel_width,
+        active_source_line = active_source_line,
+        active_source_column = active_source_column,
+    })
+
 
     local stack_nodes = stack_tree.build(context.stack or {}, context)
     local stack_render = build_hud_tree_lines(stack_nodes, {
@@ -1121,6 +1167,19 @@ function M.build(context, opts)
             lines = register_render.lines,
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",
+        },
+        {
+            id = "events",
+            title = "Events",
+            expanded = M.is_expanded("events"),
+            active = section_has_cursor_target(
+                event_nodes,
+                active_source_line,
+                active_source_column
+            ),
+            lines = event_render.lines,
+            line_targets = event_render.targets,
+            empty_text = "<no events tracked yet>",
         },
         {
             id = "stack",

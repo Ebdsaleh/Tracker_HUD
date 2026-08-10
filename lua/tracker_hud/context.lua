@@ -6,11 +6,13 @@ local adapter_registry = require("tracker_hud.adapters.registry")
 local context_engine = require("tracker_hud.context_engine")
 local scope_members = require("tracker_hud.scope_members")
 local registers = require("tracker_hud.registers")
+local events = require("tracker_hud.events")
 local stack = require("tracker_hud.stack")
 local heap = require("tracker_hud.heap")
 local warnings = require("tracker_hud.warnings")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local target_diagnostics = require("tracker_hud.target_diagnostics")
+
 
 
 
@@ -259,6 +261,8 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
             root_node = root_node,
         }
     )
+
+    context.events = events.collect(context)
 
     -- Heap is intentionally a shell for now.
     -- Later, boundary effects such as mmap/brk/munmap/malloc/free/new/delete

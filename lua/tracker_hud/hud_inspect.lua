@@ -49,6 +49,21 @@ local function inspect_registers(request)
 end
 
 
+local function inspect_events(request)
+    local ok, target_node_id = hud_sections.inspect_events(request)
+
+    if not ok then
+        return make_result(
+            false,
+            nil,
+            "tracker_hud: no Events node found for current source position"
+        )
+    end
+
+    return make_result(true, target_node_id, nil)
+end
+
+
 local function inspect_stack(request)
     local ok, target_node_id = hud_sections.inspect_stack(request)
 
@@ -195,6 +210,10 @@ function M.inspect(mode, request)
         return inspect_registers(request)
     end
 
+    if mode == "events" then
+        return inspect_events(request)
+    end
+
     if mode == "stack" then
         return inspect_stack(request)
     end
@@ -219,7 +238,12 @@ function M.expand_all(mode, request)
         return expand_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" or mode == "heap" or mode == "warnings" then
+    if mode == "registers"
+        or mode == "events"
+        or mode == "stack"
+        or mode == "heap"
+        or mode == "warnings"
+    then
         return expand_section_tree(mode, request)
     end
 
@@ -235,8 +259,13 @@ function M.collapse_all(mode, request)
         return collapse_scope_members(request)
     end
 
-    if mode == "registers" or mode == "stack" or mode == "heap" or mode == "warnings" then
-        return collapse_section_tree(mode, request)
+    if mode == "registers"
+        or mode == "events"
+        or mode == "stack"
+        or mode == "heap"
+        or mode == "warnings"
+    then
+        return expand_section_tree(mode, request)
     end
 
     return make_result(
