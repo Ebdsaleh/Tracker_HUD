@@ -522,6 +522,243 @@ M.syscall = {
 }
 
 
+M.instruction_events = {
+    {
+        kind = "processor_event",
+        category = "processor",
+        name = "cpuid",
+        role = "queries processor information and feature flags",
+        node_type = "instruction",
+        mnemonic = "cpuid",
+    },
+
+    {
+        kind = "processor_event",
+        category = "serialization",
+        name = "serialize",
+        role = "serializes instruction execution",
+        node_type = "instruction",
+        mnemonic = "serialize",
+    },
+
+    {
+        kind = "memory_order_event",
+        category = "memory_order",
+        name = "lfence",
+        role = "orders prior loads before later operations",
+        node_type = "instruction",
+        mnemonic = "lfence",
+    },
+
+    {
+        kind = "memory_order_event",
+        category = "memory_order",
+        name = "sfence",
+        role = "orders prior stores before later operations",
+        node_type = "instruction",
+        mnemonic = "sfence",
+    },
+
+    {
+        kind = "memory_order_event",
+        category = "memory_order",
+        name = "mfence",
+        role = "orders prior memory operations before later operations",
+        node_type = "instruction",
+        mnemonic = "mfence",
+    },
+
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "clflush",
+        role = "flushes a cache line",
+        node_type = "instruction",
+        mnemonic = "clflush",
+    },
+
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "clflushopt",
+        role = "flushes a cache line with optimized ordering",
+        node_type = "instruction",
+        mnemonic = "clflushopt",
+    },
+
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "clwb",
+        role = "writes back a cache line",
+        node_type = "instruction",
+        mnemonic = "clwb",
+    },
+
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "invd",
+        role = "invalidates processor caches",
+        node_type = "instruction",
+        mnemonic = "invd",
+    },
+
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "wbinvd",
+        role = "writes back and invalidates processor caches",
+        node_type = "instruction",
+        mnemonic = "wbinvd",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "wrmsr",
+        role = "writes a model-specific register",
+        node_type = "instruction",
+        mnemonic = "wrmsr",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "rdmsr",
+        role = "reads a model-specific register",
+        node_type = "instruction",
+        mnemonic = "rdmsr",
+    },
+
+    {
+        kind = "processor_event",
+        category = "timestamp",
+        name = "rdtsc",
+        role = "reads the processor timestamp counter",
+        node_type = "instruction",
+        mnemonic = "rdtsc",
+    },
+
+    {
+        kind = "processor_event",
+        category = "timestamp",
+        name = "rdtscp",
+        role = "reads the processor timestamp counter with ordering",
+        node_type = "instruction",
+        mnemonic = "rdtscp",
+    },
+
+    {
+        kind = "processor_event",
+        category = "random",
+        name = "rdrand",
+        role = "reads hardware-generated random data",
+        node_type = "instruction",
+        mnemonic = "rdrand",
+    },
+
+    {
+        kind = "processor_event",
+        category = "random",
+        name = "rdseed",
+        role = "reads hardware-generated seed data",
+        node_type = "instruction",
+        mnemonic = "rdseed",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "xgetbv",
+        role = "reads extended control register state",
+        node_type = "instruction",
+        mnemonic = "xgetbv",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "xsetbv",
+        role = "writes extended control register state",
+        node_type = "instruction",
+        mnemonic = "xsetbv",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsave",
+        role = "saves extended processor state",
+        node_type = "instruction",
+        mnemonic = "xsave",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsave64",
+        role = "saves extended processor state in 64-bit mode",
+        node_type = "instruction",
+        mnemonic = "xsave64",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsaveopt",
+        role = "saves modified extended processor state",
+        node_type = "instruction",
+        mnemonic = "xsaveopt",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsaveopt64",
+        role = "saves modified extended processor state in 64-bit mode",
+        node_type = "instruction",
+        mnemonic = "xsaveopt64",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsaves",
+        role = "saves supervisor/user extended processor state",
+        node_type = "instruction",
+        mnemonic = "xsaves",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsaves64",
+        role = "saves supervisor/user extended processor state in 64-bit mode",
+        node_type = "instruction",
+        mnemonic = "xsaves64",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xrstor",
+        role = "restores extended processor state",
+        node_type = "instruction",
+        mnemonic = "xrstor",
+    },
+
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xrstor64",
+        role = "restores extended processor state in 64-bit mode",
+        node_type = "instruction",
+        mnemonic = "xrstor64",
+    },
+}
+
+
 M.boundary_effects = {
     {
         kind = "syscall",

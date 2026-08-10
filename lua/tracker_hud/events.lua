@@ -104,6 +104,56 @@ local function collect_boundary_events(events, seen, context)
     end
 end
 
+
+local function build_instruction_event_id(instruction_event, index)
+    local source_line = instruction_event.source_line
+        or instruction_event.source_start_line
+        or "unknown"
+
+    local name = instruction_event.name
+        or instruction_event.kind
+        or "instruction"
+
+    return "event:instruction:" .. tostring(source_line) .. ":" .. tostring(index) .. ":" .. tostring(name)
+end
+
+
+local function add_instruction_event(events, seen, instruction_event, index)
+    if type(instruction_event) ~= "table" then
+        return
+    end
+
+    add_event(events, seen, {
+        id = build_instruction_event_id(instruction_event, index),
+        kind = instruction_event.kind or "instruction_event",
+        category = instruction_event.category or "instruction",
+        name = instruction_event.name or instruction_event.kind or "instruction",
+        role = instruction_event.role,
+        source = instruction_event.source or "instruction",
+
+        source_line = instruction_event.source_line or instruction_event.source_start_line,
+        source_column = instruction_event.source_column or instruction_event.source_start_column,
+        source_end_line = instruction_event.source_end_line,
+        source_end_column = instruction_event.source_end_column,
+
+        metadata = {
+            instruction_event = instruction_event,
+        },
+    })
+end
+
+
+local function collect_instruction_events(events, seen, context)
+    if type(context) ~= "table" or type(context.instruction_events) ~= "table" then
+        return
+    end
+
+    for index, instruction_event in ipairs(context.instruction_events) do
+        add_instruction_event(events, seen, instruction_event, index)
+    end
+end
+
+
 function M.collect(context)
     local events = {}
     local seen = {}
@@ -113,6 +163,7 @@ function M.collect(context)
     end
 
     collect_boundary_events(events, seen, context)
+    collect_instruction_events(events, seen, context)
 
     table.sort(events, function(left, right)
         local left_line = left.source_line

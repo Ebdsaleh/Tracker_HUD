@@ -262,6 +262,15 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         }
     )
 
+    context.instruction_events = context_engine.collect_instruction_events(
+        context,
+        adapter,
+        {
+            bufnr = bufnr,
+            root_node = root_node,
+        }
+    )
+
     context.events = events.collect(context)
 
     -- Heap is intentionally a shell for now.

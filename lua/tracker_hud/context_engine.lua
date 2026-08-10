@@ -1763,6 +1763,154 @@ function M.collect_boundary_effects(context, adapter, opts)
 end
 
 
+local function instruction_event_matches(instruction, event_spec)
+    if not core.is_table(instruction) or not core.is_table(event_spec) then
+        return false
+    end
+
+    if core.is_non_empty_string(event_spec.mnemonic)
+        and instruction.mnemonic ~= event_spec.mnemonic
+    then
+        return false
+    end
+
+    return true
+end
+
+
+local function make_instruction_event_fact(adapter, instruction, event_spec)
+    if not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(event_spec)
+    then
+        return nil
+    end
+
+    return {
+        kind = event_spec.kind or "instruction_event",
+        category = event_spec.category or "instruction",
+        name = event_spec.name or event_spec.mnemonic or "instruction_event",
+        role = event_spec.role,
+
+        source = "instruction",
+        source_line = instruction.source_line,
+        source_column = instruction.source_column or 0,
+
+        source_start_line = instruction.source_line,
+        source_start_column = instruction.source_column or 0,
+        source_end_line = instruction.source_line,
+        source_end_column = instruction.source_end_column or instruction.source_column or 0,
+
+        metadata = {
+            adapter = adapter.name,
+            architecture = adapter.architecture,
+            variant = adapter.active_variant_name,
+            mnemonic = instruction.mnemonic,
+            event = event_spec.name or event_spec.mnemonic,
+        },
+    }
+end
+
+
+local function apply_instruction_event(facts, adapter, instruction, event_spec)
+    if not core.is_table(facts)
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(event_spec)
+    then
+        return
+    end
+
+    if not instruction_event_matches(instruction, event_spec) then
+        return
+    end
+
+    local fact = make_instruction_event_fact(adapter, instruction, event_spec)
+
+    if fact then
+        table.insert(facts, fact)
+    end
+end
+
+
+function M.collect_instruction_events(context, adapter, opts)
+    opts = opts or {}
+
+    local bufnr = opts.bufnr
+    local root_node = opts.root_node
+
+    if not bufnr
+        or not root_node
+        or not core.is_table(context)
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.instruction_events)
+    then
+        return {}
+    end
+
+    local cursor_line = context
+        and context.cursor
+        and context.cursor.line
+
+    local facts = {}
+
+    for _, event_spec in ipairs(adapter.instruction_events) do
+        if core.is_table(event_spec)
+            and core.is_non_empty_string(event_spec.node_type)
+            and core.is_non_empty_string(event_spec.mnemonic)
+        then
+            local nodes = collect_nodes_by_type(root_node, event_spec.node_type)
+
+            for _, node in ipairs(nodes) do
+                local start_row = node:start()
+                local node_line = start_row + 1
+
+                if not cursor_line or node_line <= cursor_line then
+                    local instruction = collect_instruction_operands(
+                        adapter,
+                        node,
+                        bufnr,
+                        event_spec
+                    )
+
+                    apply_instruction_event(
+                        facts,
+                        adapter,
+                        instruction,
+                        event_spec
+                    )
+                end
+            end
+        end
+    end
+
+    table.sort(facts, function(left, right)
+        local left_line = left.source_line
+        local right_line = right.source_line
+
+        if left_line and right_line then
+            if left_line == right_line then
+                return tostring(left.name or "") < tostring(right.name or "")
+            end
+
+            return left_line < right_line
+        end
+
+        if left_line then
+            return true
+        end
+
+        if right_line then
+            return false
+        end
+
+        return tostring(left.name or "") < tostring(right.name or "")
+    end)
+
+    return facts
+end
+
+
 local function stack_operand_value_matches(operand, operand_spec)
     if type(operand_spec.value) ~= "string" then
         return true
