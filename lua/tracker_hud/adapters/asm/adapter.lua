@@ -80,6 +80,7 @@ M.capabilities = {
     registers = true,
     stack = true,
     boundary_effects = true,
+    instruction_events = true,
     heap = true,
 }
 
@@ -636,6 +637,7 @@ local function apply_variant(variant)
     M.register_effects = variant.register_effects or {}
     M.stack_effects = variant.stack_effects or {}
     M.boundary_effects = variant.boundary_effects or {}
+    M.instruction_events = variant.instruction_events or {}
     M.warning_rules = variant.warning_rules or {}
     M.syscall = variant.syscall
 
