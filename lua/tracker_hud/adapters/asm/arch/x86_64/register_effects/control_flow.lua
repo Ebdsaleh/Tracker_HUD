@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/control_flow.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/control_flow.lua
 --
 -- x86-64 control flow register effect specs.
 

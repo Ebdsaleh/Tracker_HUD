@@ -14,13 +14,14 @@
 --   - instruction effects
 --
 -- Behaviour belongs in:
---   - asm_adapter.lua
+--   - adapters/asm/adapter.lua
+--   - adapters/asm/instruction_utils.lua
 --   - context_engine.lua
 --   - registers.lua
 --   - register_model.lua
 --   - register_tree.lua
 --   - stack.lua
---   - asm_instruction_utils.lua
+
 
 local M = {}
 

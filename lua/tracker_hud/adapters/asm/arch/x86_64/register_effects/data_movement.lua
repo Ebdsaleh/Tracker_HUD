@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/data_movement.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/data_movement.lua
 --
 -- x86-64 data movement register effect specs.
 

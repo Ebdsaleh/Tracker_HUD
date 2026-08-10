@@ -13,10 +13,11 @@
 --     },
 -- })
 --
--- Each path maps to Lua files under runtimepath:
+-- Each path maps to directory-backed adapter entry points under runtimepath:
 --
--- lua/tracker_hud/adapters/*_adapter.lua
--- lua/my_custom_tracker_adapters/*_adapter.lua
+-- lua/tracker_hud/adapters/*/init.lua
+-- lua/my_custom_tracker_adapters/*/init.lua
+
 
 local core = require("tracker_hud.core")
 local registry = require("tracker_hud.adapters.registry")
@@ -61,9 +62,9 @@ local function file_to_module_name(file)
     -- Convert runtimepath file path to require() module name.
     --
     -- Example:
-    -- /home/user/.config/nvim/lua/tracker_hud/adapters/lua_adapter.lua
+    -- /home/user/.config/nvim/lua/tracker_hud/adapters/lua/init.lua
     -- becomes:
-    -- tracker_hud.adapters.lua_adapter
+    -- tracker_hud.adapters.lua.init 
 
     local module_path = file:match("[/\\]lua[/\\](.+)%.lua$")
 

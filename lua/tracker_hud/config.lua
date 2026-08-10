@@ -37,13 +37,15 @@ M.defaults = {
         collapse_all_members_in_scope = "<leader>,",
         step= 2,
     },
+
     -- Adapter discovery paths.
     -- Each entry is a Lua module path prefix.
     -- Example:
     --   "tracker_hud/adapters"
     -- maps to:
-    --   lua/tracker_hud/adapters/*_adapter.lua
-    adapter_paths = {
+    --   lua/tracker_hud/adapters/*/init.lua
+
+        adapter_paths = {
         "tracker_hud/adapters",
     },
 
@@ -53,7 +55,8 @@ M.defaults = {
     -- These are adapter-facing hints. Individual adapters decide which
     -- target fields they support.
     --
-    -- Source directives should override these defaults when implemented.
+    -- Source directives override these defaults when present.
+
     targets = {
         architecture = nil,
         platform = nil,

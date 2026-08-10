@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/bitwise.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/bitwise.lua
 --
 -- x86-64 bitwise register effect specs.
 

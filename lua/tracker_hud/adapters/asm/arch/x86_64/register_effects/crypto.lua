@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/crypto.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/crypto.lua
 --
 -- x86-64 crypto register effect specs.
 

@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/arithmetic.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/arithmetic.lua
 --
 -- x86-64 arithmetic register effect specs.
 
@@ -8,7 +8,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "neg",
-    
+
             operands = {
                 {
                     index = 1,
@@ -16,7 +16,7 @@ return {
                     role = "destination",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "neg_register",
@@ -30,7 +30,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "mul",
-    
+
             operands = {
                 {
                     index = 1,
@@ -38,7 +38,7 @@ return {
                     role = "multiplier",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "mul_writes_rax",
@@ -52,7 +52,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "mul",
-    
+
             operands = {
                 {
                     index = 1,
@@ -60,7 +60,7 @@ return {
                     role = "multiplier",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "mul_writes_rdx",
@@ -74,7 +74,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "imul",
-    
+
             operands = {
                 {
                     index = 1,
@@ -82,7 +82,7 @@ return {
                     role = "multiplier",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "imul_writes_rax",
@@ -96,7 +96,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "imul",
-    
+
             operands = {
                 {
                     index = 1,
@@ -104,7 +104,7 @@ return {
                     role = "multiplier",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "imul_writes_rdx",
@@ -118,7 +118,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "div",
-    
+
             operands = {
                 {
                     index = 1,
@@ -126,7 +126,7 @@ return {
                     role = "divisor",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "div_writes_rax",
@@ -140,7 +140,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "div",
-    
+
             operands = {
                 {
                     index = 1,
@@ -148,7 +148,7 @@ return {
                     role = "divisor",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "div_writes_rdx",
@@ -162,7 +162,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "idiv",
-    
+
             operands = {
                 {
                     index = 1,
@@ -170,7 +170,7 @@ return {
                     role = "divisor",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "idiv_writes_rax",
@@ -184,7 +184,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "idiv",
-    
+
             operands = {
                 {
                     index = 1,
@@ -192,7 +192,7 @@ return {
                     role = "divisor",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "idiv_writes_rdx",
@@ -206,12 +206,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "add",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "add_updates_rflags",
@@ -225,12 +225,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "sub",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "sub_updates_rflags",
@@ -244,11 +244,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "inc",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "inc_updates_rflags",
@@ -262,11 +262,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "dec",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "dec_updates_rflags",
@@ -280,11 +280,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "neg",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "neg_updates_rflags",
@@ -298,12 +298,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "adc",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "register", role = "source_register" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "adc_register_register",
@@ -317,12 +317,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "adc",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "integer", role = "source_value" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "adc_register_immediate",
@@ -336,12 +336,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "adc",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "adc_updates_rflags",
@@ -355,12 +355,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "sbb",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "register", role = "source_register" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "sbb_register_register",
@@ -374,12 +374,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "sbb",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "integer", role = "source_value" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "sbb_register_immediate",
@@ -393,12 +393,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "sbb",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "sbb_updates_rflags",
@@ -412,12 +412,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "xadd",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "register", role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "xadd_mutates_destination",
@@ -431,12 +431,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "xadd",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "register", role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "xadd_writes_source",
@@ -450,12 +450,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg",
-    
+
             operands = {
                 { index = 1, kind = "register", role = "destination" },
                 { index = 2, kind = "register", role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg_conditional_destination",
@@ -469,12 +469,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg",
-    
+
             operands = {
                 { index = 1, role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg_updates_accumulator",
@@ -488,12 +488,12 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg",
-    
+
             operands = {
                 { index = 1, role = "destination" },
                 { index = 2, role = "source" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg_updates_rflags",
@@ -507,11 +507,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg8b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg8b_updates_rax",
@@ -525,11 +525,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg8b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg8b_updates_rdx",
@@ -543,11 +543,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg8b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg8b_updates_rflags",
@@ -561,11 +561,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg16b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg16b_updates_rax",
@@ -579,11 +579,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg16b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg16b_updates_rdx",
@@ -597,11 +597,11 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cmpxchg16b",
-    
+
             operands = {
                 { index = 1, role = "memory" },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "cmpxchg16b_updates_rflags",

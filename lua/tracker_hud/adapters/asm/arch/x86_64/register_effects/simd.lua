@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/simd.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/simd.lua
 --
 -- x86-64 simd register effect specs.
 

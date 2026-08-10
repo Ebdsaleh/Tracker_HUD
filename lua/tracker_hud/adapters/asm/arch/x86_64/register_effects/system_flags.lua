@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/system_flags.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/system_flags.lua
 --
 -- x86-64 system flags register effect specs.
 

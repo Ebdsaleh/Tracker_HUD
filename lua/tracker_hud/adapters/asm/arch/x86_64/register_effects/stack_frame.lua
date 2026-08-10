@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm_arch/x86_64/register_effects/stack_frame.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/stack_frame.lua
 --
 -- x86-64 stack frame register effect specs.
 
