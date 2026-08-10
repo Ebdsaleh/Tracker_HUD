@@ -6,7 +6,7 @@ Tracker HUD is an experimental Neovim plugin that displays a live code-awareness
 
 The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, mnemonic-indexed register-effect lookup for faster ASM HUD updates, and directory-backed built-in adapter modules.
+> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, mnemonic-indexed register-effect lookup for faster ASM HUD updates, directory-backed built-in adapter modules, strict plugin-wide source directive parsing, and syntax-aware ASM directive comments.
 
 ---
 
@@ -68,7 +68,9 @@ The long-term goal is to extend this into a systems-programming analysis HUD cap
 - ASM adapter architecture with x86-64 variant support
 - Nested ASM adapter module structure under `adapters/asm/`
 - Nested x86-64 architecture variant module under `adapters/asm/arch/x86_64/`
-- x86-64 architecture directive detection using `; arch=x86-64;`
+- x86-64 architecture directive detection using strict source directives such as `; arch=x86-64;`
+- Strict plugin-wide source directive parsing with helpful malformed-directive diagnostics
+- ASM syntax-aware directive comment handling for NASM-style `;`, GAS-style `#` / `//`, and MASM-style `;` conventions
 - ASM label range scopes for label-local context
 - x86-64 register section with canonical register families and aliases
 - x86-64 register write effects for common instructions such as `mov`, `xor`, `add`, `sub`, `inc`, and `dec`
@@ -164,15 +166,72 @@ lua/tracker_hud/adapters/asm/
 
 The user-facing architecture name remains `x86-64`, and the source directive remains `; arch=x86-64;`. The Lua module path uses `x86_64` so it maps cleanly to Lua `require()` paths.
 
+### Source directives
+
+Tracker HUD supports strict source directives for adapter-owned metadata. The directive grammar is plugin-wide, while directive names, accepted values, and language-specific meanings remain adapter-owned.
+
+Directive declarations must start at the initial column of a line and must use exactly this shape:
+
+```text
+<comment-prefix><one-space><directive-name><assignment-symbol><value><terminator>
+```
+
+For the current ASM adapter, the assignment symbol is `=` and the directive terminator is `;`. Valid examples include:
+
+```asm
+; arch=x86-64;
+; platform=linux;
+; syntax=nasm;
+# syntax=gas;
+// syntax=gas;
+```
+
+Malformed directive-looking lines produce targeted diagnostics instead of being silently accepted. For example:
+
+```asm
+;  syntax=gas;
+```
+
+reports that only one space is permitted between the comment prefix and directive. Similarly, indented directives, whitespace around the assignment symbol, missing terminators, and embedded directive-looking text can be reported as malformed directive attempts. Directive-looking examples wrapped in double quotes, such as `"; syntax=gas;"`, are treated as prose examples and ignored.
+
+For ASM/x86-64, source directives can currently describe target metadata such as `arch`, `platform`, `abi`, `syntax`, and `mode`. Source directives override setup target defaults, and setup target defaults override adapter or variant defaults.
+
+Syntax-aware ASM directive comments are variant-described:
+
+```text
+nasm -> ;
+gas  -> #, //
+masm -> ;
+```
+
+Bootstrap directive scanning can still accept known ASM directive comment prefixes so a file can declare its syntax. If a directive is accepted through a bootstrap prefix that conflicts with the resolved active syntax, Tracker HUD reports a target warning explaining the mismatch.
+
 
 ### ASM / x86-64 adapter
 
 Tracker HUD includes an ASM adapter with an x86-64 architecture variant.
 
-Add this directive near the top of an ASM file to select the x86-64 variant:
+Add a strict directive near the top of an ASM file to select the x86-64 variant:
 
 ```asm
 ; arch=x86-64;
+```
+
+ASM target metadata can also be supplied with additional strict directives:
+
+```asm
+; platform=linux;
+; abi=linux_syscall;
+; syntax=nasm;
+; mode=long64;
+```
+
+For GAS-style files, use the active syntax's comment convention when possible:
+
+```asm
+# syntax=gas;
+# arch=x86-64;
+# platform=linux;
 ```
 
 The x86-64 variant currently describes:
@@ -709,6 +768,7 @@ lua/tracker_hud/
     context_engine.lua
     treesitter_utils.lua
     construct_utils.lua
+    directive_utils.lua
     inspect_mode.lua
     scope_members.lua
     scope_member_model.lua
@@ -769,6 +829,16 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 ---
 
 ## Version notes
+
+### Next version
+
+- Added `directive_utils.lua` for strict plugin-wide source directive parsing
+- Kept directive grammar in the core while leaving directive vocabulary, values, and meanings adapter-owned
+- Added malformed directive diagnostics for common formatting mistakes such as indentation, extra spaces after the comment prefix, whitespace around the assignment symbol, and missing directive terminators
+- Added support for ignoring directive-looking examples wrapped in double quotes
+- Updated ASM source target detection to use strict directive parsing for `arch`, `platform`, `abi`, `syntax`, and `mode`
+- Added ASM syntax-aware directive comment handling so variants can describe NASM-style `;`, GAS-style `#` / `//`, and MASM-style `;` conventions
+- Added target warnings for bootstrap directives whose comment prefix conflicts with the resolved active ASM syntax
 
 ### `v0.7.6`
 
@@ -932,5 +1002,3 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
-
-
