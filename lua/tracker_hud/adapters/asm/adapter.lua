@@ -309,15 +309,41 @@ local function target_exists(spec_table, key)
 end
 
 
-local function add_target_diagnostic(diagnostics, key, value, message, location)
+local function normalize_diagnostic_messages(message_or_messages)
+    if type(message_or_messages) == "table" then
+        local panel = message_or_messages.panel
+            or message_or_messages.full
+            or message_or_messages.inline
+            or "Target warning"
+
+        return {
+            inline = message_or_messages.inline or panel,
+            panel = panel,
+            full = message_or_messages.full or panel,
+        }
+    end
+
+    local message = tostring(message_or_messages or "Target warning")
+
+    return {
+        inline = message,
+        panel = message,
+        full = message,
+    }
+end
+
+local function add_target_diagnostic(diagnostics, key, value, message_or_messages, location)
     if type(diagnostics) ~= "table" then
         return
     end
 
+    local messages = normalize_diagnostic_messages(message_or_messages)
+
     local diagnostic = {
         key = key,
         value = value,
-        message = message,
+        message = messages.panel,
+        messages = messages,
     }
 
     if type(location) == "table" then
@@ -430,12 +456,21 @@ local function add_syntax_comment_prefix_diagnostics(diagnostics, source_targets
                 diagnostics,
                 key,
                 directive.value,
-                "Target warning: directive comment prefix '"
-                    .. tostring(prefix)
-                    .. "' does not match active syntax '"
-                    .. tostring(syntax)
-                    .. "'. Expected "
-                    .. expected,
+                {
+                    inline = "Target warning: directive prefix mismatch",
+                    panel = "Target warning: directive uses '"
+                        .. tostring(prefix)
+                        .. "' under syntax '"
+                        .. tostring(syntax)
+                        .. "'",
+                    full = "Target warning: directive comment prefix '"
+                        .. tostring(prefix)
+                        .. "' does not match active syntax '"
+                        .. tostring(syntax)
+                        .. "'. Use "
+                        .. expected
+                        .. ".",
+                },
                 source_targets.locations and source_targets.locations[key]
             )
         end
@@ -642,3 +677,4 @@ M.comments = build_comments_for_syntax(default_variant or {}, M.active_targets.s
 
 
 return M
+

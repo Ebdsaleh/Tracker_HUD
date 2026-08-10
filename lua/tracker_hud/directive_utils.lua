@@ -78,7 +78,48 @@ local function make_expected(prefix, name, value, opts)
     return prefix .. " " .. name .. assignment .. value .. terminator
 end
 
-local function make_diagnostic(name, value, prefix, line_number, column, end_column, reason, message, opts)
+local function build_messages(reason, expected, prefix, assignment, terminator)
+    local inline = "Target warning: malformed directive"
+    local panel = "Target warning: malformed directive"
+    local full = "Target warning: malformed directive. Use '" .. expected .. "'."
+
+    if reason == "too_many_spaces_after_comment" then
+        panel = "Target warning: malformed directive spacing"
+        full = "Target warning: malformed directive. Only one space is permitted between comment and directive. Use '" .. expected .. "'."
+    elseif reason == "missing_space_after_comment" then
+        panel = "Target warning: malformed directive spacing"
+        full = "Target warning: malformed directive. Exactly one space is required between comment and directive. Use '" .. expected .. "'."
+    elseif reason == "indented_directive" then
+        panel = "Target warning: directive must start at column 0"
+        full = "Target warning: malformed directive. Directive declarations must start at column 0. Use '" .. expected .. "'."
+    elseif reason == "spaces_around_assignment" then
+        panel = "Target warning: malformed directive assignment"
+        full = "Target warning: malformed directive. No spaces are permitted around assignment symbol '" .. assignment .. "'. Use '" .. expected .. "'."
+    elseif reason == "missing_terminator" then
+        panel = "Target warning: malformed directive terminator"
+        full = "Target warning: malformed directive. Missing directive terminator '" .. terminator .. "'. Use '" .. expected .. "'."
+    elseif reason == "embedded_directive" then
+        panel = "Target warning: directive must start at column 0"
+        full = "Target warning: malformed directive. Directive declarations must start at column 0. Use '" .. expected .. "'."
+    end
+
+    return {
+        inline = inline,
+        panel = panel,
+        full = full,
+    }
+end
+
+local function make_diagnostic(name, value, prefix, line_number, column, end_column, reason, opts)
+    local expected = make_expected(prefix, name, value, opts)
+    local messages = build_messages(
+        reason,
+        expected,
+        prefix,
+        opts.assignment_symbol or "=",
+        opts.terminator_symbol or ";"
+    )
+
     return {
         key = name,
         value = value,
@@ -88,37 +129,10 @@ local function make_diagnostic(name, value, prefix, line_number, column, end_col
         column = column or 0,
         end_column = end_column,
         reason = reason,
-        message = message,
-        expected = make_expected(prefix, name, value, opts),
+        message = messages.panel,
+        messages = messages,
+        expected = expected,
     }
-end
-
-local function build_message(reason, expected, prefix, assignment, terminator)
-    if reason == "too_many_spaces_after_comment" then
-        return "Target warning: malformed directive. Only one space permitted between comment and directive. Expected '" .. expected .. "'"
-    end
-
-    if reason == "missing_space_after_comment" then
-        return "Target warning: malformed directive. Exactly one space required between comment and directive. Expected '" .. expected .. "'"
-    end
-
-    if reason == "indented_directive" then
-        return "Target warning: malformed directive. Directive must start at column 0. Expected '" .. expected .. "'"
-    end
-
-    if reason == "spaces_around_assignment" then
-        return "Target warning: malformed directive. No spaces permitted around assignment symbol '" .. assignment .. "'. Expected '" .. expected .. "'"
-    end
-
-    if reason == "missing_terminator" then
-        return "Target warning: malformed directive. Missing directive terminator '" .. terminator .. "'. Expected '" .. expected .. "'"
-    end
-
-    if reason == "embedded_directive" then
-        return "Target warning: malformed directive. Directive declarations must start at column 0. Expected '" .. expected .. "'"
-    end
-
-    return "Target warning: malformed directive. Expected '" .. expected .. "'"
 end
 
 local function match_strict_directive(line, line_number, prefix, name, opts)
@@ -195,20 +209,20 @@ local function diagnose_candidate(line, candidate, opts)
         local before = line:sub(1, candidate.start_column)
 
         if before:match("^%s+$") then
-            return "indented_directive", build_message("indented_directive", expected, prefix, assignment, terminator)
+            return "indented_directive"
         end
 
-        return "embedded_directive", build_message("embedded_directive", expected, prefix, assignment, terminator)
+        return "embedded_directive"
     end
 
     local after_prefix = line:sub(#prefix + 1)
 
     if after_prefix:sub(1, 1) ~= " " then
-        return "missing_space_after_comment", build_message("missing_space_after_comment", expected, prefix, assignment, terminator)
+        return "missing_space_after_comment"
     end
 
     if after_prefix:sub(2, 2) == " " or after_prefix:sub(2, 2) == "\t" then
-        return "too_many_spaces_after_comment", build_message("too_many_spaces_after_comment", expected, prefix, assignment, terminator)
+        return "too_many_spaces_after_comment"
     end
 
     local assignment_start = line:find(escape_pattern(assignment), 1, false)
@@ -218,15 +232,15 @@ local function diagnose_candidate(line, candidate, opts)
         local after_assignment = line:sub(assignment_start + #assignment, assignment_start + #assignment)
 
         if before_assignment:match("%s") or after_assignment:match("%s") then
-            return "spaces_around_assignment", build_message("spaces_around_assignment", expected, prefix, assignment, terminator)
+            return "spaces_around_assignment"
         end
     end
 
     if not line:match(escape_pattern(terminator) .. "%s*$") then
-        return "missing_terminator", build_message("missing_terminator", expected, prefix, assignment, terminator)
+        return "missing_terminator"
     end
 
-    return "malformed_directive", build_message("malformed_directive", expected, prefix, assignment, terminator)
+    return "malformed_directive"
 end
 
 local function scan_line(line, line_number, prefixes, directive_names, valid_seen, opts)
@@ -254,7 +268,7 @@ local function scan_line(line, line_number, prefixes, directive_names, valid_see
             local candidate = find_suspicious_candidate(line, prefix, name, opts)
 
             if candidate and not valid_seen[name] then
-                local reason, message = diagnose_candidate(line, candidate, opts)
+                local reason = diagnose_candidate(line, candidate, opts)
 
                 table.insert(
                     diagnostics,
@@ -266,7 +280,6 @@ local function scan_line(line, line_number, prefixes, directive_names, valid_see
                         candidate.start_column,
                         candidate.end_column,
                         reason,
-                        message,
                         opts
                     )
                 )

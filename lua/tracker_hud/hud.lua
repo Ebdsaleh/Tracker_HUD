@@ -268,8 +268,18 @@ local function build_target_lines(targets)
 
     if type(targets.diagnostics) == "table" then
         for _, diagnostic in ipairs(targets.diagnostics) do
-            if type(diagnostic) == "table" and type(diagnostic.message) == "string" then
-                table.insert(lines, diagnostic.message)
+            if type(diagnostic) == "table" then
+                local message = nil
+
+                if type(diagnostic.messages) == "table" then
+                    message = diagnostic.messages.panel
+                end
+
+                message = message or diagnostic.message
+
+                if type(message) == "string" and message ~= "" then
+                    table.insert(lines, message)
+                end
             end
         end
     end
@@ -875,3 +885,4 @@ function M.toggle_target(target)
 end
 
 return M
+

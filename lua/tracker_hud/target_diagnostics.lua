@@ -8,6 +8,7 @@
 local M = {}
 
 local namespace = vim.api.nvim_create_namespace("tracker_hud_target_diagnostics")
+local last_echo_key_by_buffer = {}
 
 
 local function is_valid_buffer(bufnr)
@@ -48,6 +49,28 @@ local function diagnostic_end_column(diagnostic, line_text)
 end
 
 
+local function diagnostic_message(target_diagnostic, tier)
+    if type(target_diagnostic) ~= "table" then
+        return nil
+    end
+
+    if type(target_diagnostic.messages) == "table"
+        and type(target_diagnostic.messages[tier]) == "string"
+        and target_diagnostic.messages[tier] ~= ""
+    then
+        return target_diagnostic.messages[tier]
+    end
+
+    if type(target_diagnostic.message) == "string"
+        and target_diagnostic.message ~= ""
+    then
+        return target_diagnostic.message
+    end
+
+    return nil
+end
+
+
 local function build_diagnostic(bufnr, target_diagnostic)
     if type(target_diagnostic) ~= "table" then
         return nil
@@ -68,8 +91,63 @@ local function build_diagnostic(bufnr, target_diagnostic)
         end_col = diagnostic_end_column(target_diagnostic, line_text),
         severity = vim.diagnostic.severity.WARN,
         source = "Tracker HUD",
-        message = target_diagnostic.message or "target metadata warning",
+        message = diagnostic_message(target_diagnostic, "inline") or "target metadata warning",
     }
+end
+
+
+local function diagnostics_for_cursor_line(bufnr, targets)
+    if vim.api.nvim_get_current_buf() ~= bufnr then
+        return {}
+    end
+
+    if type(targets) ~= "table" or type(targets.diagnostics) ~= "table" then
+        return {}
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local cursor_line = cursor and cursor[1]
+    local result = {}
+
+    if not cursor_line then
+        return result
+    end
+
+    for _, diagnostic in ipairs(targets.diagnostics) do
+        if type(diagnostic) == "table"
+            and normalize_line_number(diagnostic.line) == cursor_line
+        then
+            local message = diagnostic_message(diagnostic, "full")
+
+            if message then
+                table.insert(result, message)
+            end
+        end
+    end
+
+    return result
+end
+
+
+local function echo_cursor_diagnostics(bufnr, targets)
+    local messages = diagnostics_for_cursor_line(bufnr, targets)
+
+    if #messages == 0 then
+        return
+    end
+
+    local echo_message = table.concat(messages, " | ")
+    local echo_key = tostring(bufnr) .. ":" .. echo_message
+
+    if last_echo_key_by_buffer[bufnr] == echo_key then
+        return
+    end
+
+    last_echo_key_by_buffer[bufnr] = echo_key
+
+    vim.api.nvim_echo({
+        { echo_message, "WarningMsg" },
+    }, false, {})
 end
 
 
@@ -78,6 +156,7 @@ function M.clear(bufnr)
         return
     end
 
+    last_echo_key_by_buffer[bufnr] = nil
     vim.diagnostic.reset(namespace, bufnr)
 end
 
@@ -103,7 +182,9 @@ function M.show(bufnr, targets)
     end
 
     vim.diagnostic.set(namespace, bufnr, diagnostics, {})
+    echo_cursor_diagnostics(bufnr, targets)
 end
 
 
 return M
+
