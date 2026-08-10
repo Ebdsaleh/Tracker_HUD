@@ -74,14 +74,24 @@ M.platform_aliases = {
 M.syntaxes = {
     nasm = {
         status = "supported",
+        directive_comment_prefixes = {
+            ";",
+        },
     },
 
     gas = {
         status = "declared",
+        directive_comment_prefixes = {
+            "#",
+            "//",
+        },
     },
 
     masm = {
         status = "declared",
+        directive_comment_prefixes = {
+            ";",
+        },
     },
 }
 
@@ -933,4 +943,3 @@ M.stack = {
 
 
 return M
-

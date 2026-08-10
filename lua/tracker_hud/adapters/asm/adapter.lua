@@ -21,6 +21,7 @@
 
 
 local variant_utils = require("tracker_hud.adapters.variant_utils")
+local directive_utils = require("tracker_hud.directive_utils")
 
 local M = {}
 
@@ -39,6 +40,12 @@ M.variant_kind = "architecture"
 M.variant_directive = "arch"
 M.variant_comment_prefixes = {
     ";",
+}
+
+M.directive_comment_prefixes = {
+    ";",
+    "#",
+    "//",
 }
 
 M.default_variant = "x86-64"
@@ -147,72 +154,31 @@ local function normalize_target_table(targets)
 end
 
 
-local function detect_variant_from_source(bufnr)
-    return variant_utils.detect_from_buffer(bufnr, {
-        directive = M.variant_directive or "arch",
-        comment_prefixes = M.variant_comment_prefixes,
-        aliases = M.variant_aliases,
-        max_scan_lines = 20,
-    })
+local function get_target_directive_names()
+    local directive_names = {}
+    local seen = {}
+
+    for _, directive in pairs(M.target_directives or {}) do
+        if type(directive) == "string" and directive ~= "" and not seen[directive] then
+            seen[directive] = true
+            table.insert(directive_names, directive)
+        end
+    end
+
+    table.sort(directive_names)
+
+    return directive_names
 end
 
 
-local function detect_target_from_source(bufnr, target_key)
-    if type(target_key) ~= "string" then
+local function get_target_key_for_directive(directive)
+    if type(directive) ~= "string" then
         return nil
     end
 
-    local directive = M.target_directives[target_key]
-
-    if type(directive) ~= "string" or directive == "" then
-        return nil
-    end
-
-    local value = variant_utils.detect_from_buffer(bufnr, {
-        directive = directive,
-        comment_prefixes = M.variant_comment_prefixes,
-        aliases = nil,
-        max_scan_lines = 20,
-    })
-
-    if not value then
-        return nil
-    end
-
-    return {
-        key = target_key,
-        directive = directive,
-        value = value,
-    }
-end
-
-
-local function find_directive_line(bufnr, directive, value)
-    if not bufnr
-        or type(directive) ~= "string"
-        or directive == ""
-        or type(value) ~= "string"
-        or value == ""
-    then
-        return nil
-    end
-
-    local max_scan_lines = 20
-    local line_count = vim.api.nvim_buf_line_count(bufnr)
-    local scan_count = math.min(line_count, max_scan_lines)
-    local lines = vim.api.nvim_buf_get_lines(bufnr, 0, scan_count, false)
-
-    local pattern = directive .. "%s*=%s*" .. vim.pesc(value)
-
-    for index, line in ipairs(lines) do
-        local start_column, end_column = line:find(pattern)
-
-        if start_column then
-            return {
-                line = index,
-                column = start_column - 1,
-                end_column = end_column,
-            }
+    for key, target_directive in pairs(M.target_directives or {}) do
+        if target_directive == directive then
+            return key
         end
     end
 
@@ -220,38 +186,77 @@ local function find_directive_line(bufnr, directive, value)
 end
 
 
+local function scan_source_directives(bufnr)
+    return variant_utils.scan_directives_from_buffer(bufnr, {
+        directives = get_target_directive_names(),
+        comment_prefixes = M.directive_comment_prefixes or M.variant_comment_prefixes,
+        assignment_symbol = "=",
+        terminator_symbol = ";",
+        max_scan_lines = 20,
+    })
+end
+
+
+local function detect_variant_from_source(bufnr)
+    local scan = scan_source_directives(bufnr)
+    local directive_name = M.variant_directive or "arch"
+
+    for _, directive in ipairs(scan.directives or {}) do
+        if directive.directive == directive_name then
+            return normalize_variant_name(directive.value)
+        end
+    end
+
+    return nil
+end
+
+
+local function get_directive_location(directive)
+    if type(directive) ~= "table" then
+        return nil
+    end
+
+    return {
+        line = directive.line,
+        column = directive.column,
+        end_column = directive.end_column,
+        comment_prefix = directive.comment_prefix,
+        directive = directive.directive,
+        value = directive.value,
+    }
+end
+
+
 local function detect_targets_from_source(bufnr)
-    local architecture = detect_target_from_source(bufnr, "architecture")
-    local platform = detect_target_from_source(bufnr, "platform")
-    local abi = detect_target_from_source(bufnr, "abi")
-    local syntax = detect_target_from_source(bufnr, "syntax")
-    local mode = detect_target_from_source(bufnr, "mode")
+    local scan = scan_source_directives(bufnr)
 
     local source_targets = {
-        architecture = architecture and normalize_variant_name(architecture.value),
-        platform = platform and normalize_target_value(platform.value),
-        abi = abi and normalize_target_value(abi.value),
-        syntax = syntax and normalize_target_value(syntax.value),
-        mode = mode and normalize_target_value(mode.value),
+        architecture = nil,
+        platform = nil,
+        abi = nil,
+        syntax = nil,
+        mode = nil,
 
         locations = {},
+        directives = {},
+        diagnostics = scan.diagnostics or {},
     }
 
-    local detected = {
-        architecture = architecture,
-        platform = platform,
-        abi = abi,
-        syntax = syntax,
-        mode = mode,
-    }
+    for _, directive in ipairs(scan.directives or {}) do
+        local key = get_target_key_for_directive(directive.directive)
 
-    for key, detected_target in pairs(detected) do
-        if detected_target and detected_target.value then
-            source_targets.locations[key] = find_directive_line(
-                bufnr,
-                detected_target.directive,
-                detected_target.value
-            )
+        if key and source_targets[key] == nil then
+            local value = directive.value
+
+            if key == "architecture" then
+                value = normalize_variant_name(value)
+            else
+                value = normalize_target_value(value)
+            end
+
+            source_targets[key] = value
+            source_targets.locations[key] = get_directive_location(directive)
+            source_targets.directives[key] = directive
         end
     end
 
@@ -325,10 +330,148 @@ local function add_target_diagnostic(diagnostics, key, value, message, location)
 end
 
 
+local function add_existing_diagnostics(diagnostics, source_targets)
+    if type(diagnostics) ~= "table"
+        or type(source_targets) ~= "table"
+        or type(source_targets.diagnostics) ~= "table"
+    then
+        return
+    end
+
+    for _, diagnostic in ipairs(source_targets.diagnostics) do
+        table.insert(diagnostics, diagnostic)
+    end
+end
+
+
+local function get_syntax_spec(variant, syntax)
+    if type(variant) ~= "table"
+        or type(variant.syntaxes) ~= "table"
+        or type(syntax) ~= "string"
+    then
+        return nil
+    end
+
+    local syntax_spec = variant.syntaxes[syntax]
+
+    if type(syntax_spec) ~= "table" then
+        return nil
+    end
+
+    return syntax_spec
+end
+
+
+local function get_syntax_comment_prefixes(variant, syntax)
+    local syntax_spec = get_syntax_spec(variant, syntax)
+
+    if type(syntax_spec) == "table"
+        and type(syntax_spec.directive_comment_prefixes) == "table"
+    then
+        return syntax_spec.directive_comment_prefixes
+    end
+
+    if type(syntax_spec) == "table"
+        and type(syntax_spec.comment_prefixes) == "table"
+    then
+        return syntax_spec.comment_prefixes
+    end
+
+    if type(variant) == "table"
+        and type(variant.comments) == "table"
+        and type(variant.comments.line) == "table"
+    then
+        local prefixes = {}
+
+        for _, comment in ipairs(variant.comments.line) do
+            if type(comment) == "table"
+                and type(comment.prefix) == "string"
+                and comment.prefix ~= ""
+            then
+                table.insert(prefixes, comment.prefix)
+            end
+        end
+
+        return prefixes
+    end
+
+    return M.variant_comment_prefixes or { ";" }
+end
+
+
+local function add_syntax_comment_prefix_diagnostics(diagnostics, source_targets, variant, syntax)
+    if type(diagnostics) ~= "table"
+        or type(source_targets) ~= "table"
+        or type(source_targets.directives) ~= "table"
+        or type(syntax) ~= "string"
+    then
+        return
+    end
+
+    local allowed_prefixes = get_syntax_comment_prefixes(variant, syntax)
+
+    for key, directive in pairs(source_targets.directives) do
+        local prefix = directive.comment_prefix
+
+        if prefix
+            and not directive_utils.comment_prefix_is_allowed(prefix, allowed_prefixes)
+        then
+            local expected = directive_utils.format_expected_forms(
+                directive.directive,
+                directive.value,
+                allowed_prefixes,
+                {
+                    assignment_symbol = "=",
+                    terminator_symbol = ";",
+                }
+            )
+
+            add_target_diagnostic(
+                diagnostics,
+                key,
+                directive.value,
+                "Target warning: directive comment prefix '"
+                    .. tostring(prefix)
+                    .. "' does not match active syntax '"
+                    .. tostring(syntax)
+                    .. "'. Expected "
+                    .. expected,
+                source_targets.locations and source_targets.locations[key]
+            )
+        end
+    end
+end
+
+
+local function build_comments_for_syntax(variant, syntax)
+    local prefixes = get_syntax_comment_prefixes(variant, syntax)
+    local line_comments = {}
+
+    for _, prefix in ipairs(prefixes or {}) do
+        if type(prefix) == "string" and prefix ~= "" then
+            table.insert(line_comments, {
+                prefix = prefix,
+                role = "line comment",
+            })
+        end
+    end
+
+    if #line_comments == 0 then
+        return variant and variant.comments or {}
+    end
+
+    return {
+        line = line_comments,
+    }
+end
+
+
 local function resolve_targets(bufnr, config, variant)
     local config_targets = normalize_target_table(config and config.targets)
     local source_targets = detect_targets_from_source(bufnr)
     local diagnostics = {}
+
+    add_existing_diagnostics(diagnostics, source_targets)
 
     local architecture = source_targets.architecture
         or config_targets.architecture
@@ -397,6 +540,13 @@ local function resolve_targets(bufnr, config, variant)
             source_targets.locations and source_targets.locations.syntax
         )
     end
+
+    add_syntax_comment_prefix_diagnostics(
+        diagnostics,
+        source_targets,
+        variant,
+        syntax
+    )
 
     local mode = source_targets.mode
         or config_targets.mode
@@ -478,6 +628,7 @@ function M.configure_adapter_for_buffer(bufnr, config)
     apply_variant(variant)
 
     M.active_targets = resolve_targets(bufnr, config, variant or {})
+    M.comments = build_comments_for_syntax(variant or {}, M.active_targets.syntax)
 end
 
 -- Default variant so the adapter still exposes useful specs before
@@ -487,8 +638,7 @@ local default_variant = load_variant(M.default_variant)
 apply_variant(default_variant)
 
 M.active_targets = resolve_targets(nil, nil, default_variant or {})
+M.comments = build_comments_for_syntax(default_variant or {}, M.active_targets.syntax)
 
 
 return M
-
-

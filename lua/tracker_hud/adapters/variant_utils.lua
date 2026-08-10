@@ -3,10 +3,11 @@
 -- Shared adapter variant directive helpers.
 --
 -- This module does not decide what a variant means.
--- Base adapters declare the directive name, comment syntax, aliases,
--- and default variant.
+-- Base adapters declare directive names, comment syntax, aliases,
+-- and default variants.
 
 local core = require("tracker_hud.core")
+local directive_utils = require("tracker_hud.directive_utils")
 
 local M = {}
 
@@ -23,11 +24,6 @@ local function trim(value)
     end
 
     return value
-end
-
-
-local function escape_pattern(value)
-    return tostring(value):gsub("([^%w])", "%%%1")
 end
 
 
@@ -61,46 +57,16 @@ function M.normalize_name(name, aliases)
 end
 
 
-local function line_matches_directive(line, opts)
-    if not core.is_string(line) then
-        return nil
-    end
+function M.scan_directives_from_buffer(bufnr, opts)
+    opts = opts or {}
 
-    if not core.is_non_empty_string(opts.directive) then
-        return nil
-    end
-
-    local directive = escape_pattern(opts.directive)
-    local prefixes = normalize_comment_prefixes(opts.comment_prefixes)
-
-    for _, prefix in ipairs(prefixes) do
-        if core.is_string(prefix) and prefix ~= "" then
-            local pattern = "^%s*"
-                .. escape_pattern(prefix)
-                .. "%s*"
-                .. directive
-                .. "%s*=%s*([^%s;*/]+)"
-
-            local variant_name = line:match(pattern)
-
-            if variant_name then
-                return M.normalize_name(variant_name, opts.aliases)
-            end
-        end
-    end
-
-    return nil
-end
-
-
-local function read_buffer_line(bufnr, index)
-    local ok, lines = pcall(vim.api.nvim_buf_get_lines, bufnr, index, index + 1, false)
-
-    if not ok or not core.is_table(lines) then
-        return nil
-    end
-
-    return lines[1]
+    return directive_utils.scan_buffer(bufnr, {
+        directives = opts.directives or opts.directive_names,
+        comment_prefixes = normalize_comment_prefixes(opts.comment_prefixes),
+        assignment_symbol = opts.assignment_symbol or "=",
+        terminator_symbol = opts.terminator_symbol or ";",
+        max_scan_lines = opts.max_scan_lines or 20,
+    })
 end
 
 
@@ -111,16 +77,23 @@ function M.detect_from_buffer(bufnr, opts)
         return nil
     end
 
-    local max_scan_lines = opts.max_scan_lines or 20
-    local line_count = vim.api.nvim_buf_line_count(bufnr)
-    local scan_count = math.min(max_scan_lines, line_count)
+    if not core.is_non_empty_string(opts.directive) then
+        return nil
+    end
 
-    for index = 0, scan_count - 1 do
-        local line = read_buffer_line(bufnr, index)
-        local variant_name = line_matches_directive(line, opts)
+    local scan = M.scan_directives_from_buffer(bufnr, {
+        directives = {
+            opts.directive,
+        },
+        comment_prefixes = opts.comment_prefixes,
+        assignment_symbol = opts.assignment_symbol,
+        terminator_symbol = opts.terminator_symbol,
+        max_scan_lines = opts.max_scan_lines,
+    })
 
-        if variant_name then
-            return variant_name
+    for _, directive in ipairs(scan.directives or {}) do
+        if directive.directive == opts.directive then
+            return M.normalize_name(directive.value, opts.aliases)
         end
     end
 
@@ -129,3 +102,4 @@ end
 
 
 return M
+
