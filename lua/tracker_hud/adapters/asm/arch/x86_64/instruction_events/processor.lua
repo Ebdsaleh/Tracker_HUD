@@ -1234,5 +1234,412 @@ return {
             role = "swaps GS base with kernel GS base",
         },
     },
+
+        -- processor control / wait / invalidation
+
+    -- monitor
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "monitor",
+        role = "arms a monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "monitor",
+
+        operands = {},
+
+        event = {
+            name = "monitor_arms_monitored_address",
+            display_name = "monitor",
+            role = "arms a monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "monitor_arms_monitored_address",
+            role = "arms a monitored memory address",
+        },
+    },
+
+    -- mwait
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "mwait",
+        role = "waits for a monitored memory event",
+
+        node_type = "instruction",
+        mnemonic = "mwait",
+
+        operands = {},
+
+        event = {
+            name = "mwait_waits_for_monitored_event",
+            display_name = "mwait",
+            role = "waits for a monitored memory event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "mwait_waits_for_monitored_event",
+            role = "waits for a monitored memory event",
+        },
+    },
+
+    -- umwait
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "umwait",
+        role = "waits in user mode until timeout or event",
+
+        node_type = "instruction",
+        mnemonic = "umwait",
+
+        operands = {},
+
+        event = {
+            name = "umwait_user_mode_wait",
+            display_name = "umwait",
+            role = "waits in user mode until timeout or event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "umwait_user_mode_wait",
+            role = "waits in user mode until timeout or event",
+        },
+    },
+
+    -- tpause
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "tpause",
+        role = "pauses execution until timeout or event",
+
+        node_type = "instruction",
+        mnemonic = "tpause",
+
+        operands = {},
+
+        event = {
+            name = "tpause_timed_pause",
+            display_name = "tpause",
+            role = "pauses execution until timeout or event",
+        },
+
+        effect = {
+            kind = "processor_wait",
+            name = "tpause_timed_pause",
+            role = "pauses execution until timeout or event",
+        },
+    },
+
+    -- pause
+    {
+        kind = "processor_event",
+        category = "processor_hint",
+        name = "pause",
+        role = "hints a spin-wait loop to the processor",
+
+        node_type = "instruction",
+        mnemonic = "pause",
+
+        operands = {},
+
+        event = {
+            name = "pause_spin_wait_hint",
+            display_name = "pause",
+            role = "hints a spin-wait loop to the processor",
+        },
+
+        effect = {
+            kind = "processor_hint",
+            name = "pause_spin_wait_hint",
+            role = "hints a spin-wait loop to the processor",
+        },
+    },
+
+    -- hlt
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "hlt",
+        role = "halts processor execution until an interrupt or event",
+
+        node_type = "instruction",
+        mnemonic = "hlt",
+
+        operands = {},
+
+        event = {
+            name = "hlt_halts_processor",
+            display_name = "hlt",
+            role = "halts processor execution until an interrupt or event",
+        },
+
+        effect = {
+            kind = "processor_halt",
+            name = "hlt_halts_processor",
+            role = "halts processor execution until an interrupt or event",
+        },
+    },
+
+    -- sti
+    {
+        kind = "processor_state_event",
+        category = "interrupt_state",
+        name = "sti",
+        role = "sets the interrupt flag",
+
+        node_type = "instruction",
+        mnemonic = "sti",
+
+        operands = {},
+
+        event = {
+            name = "sti_sets_interrupt_flag",
+            display_name = "sti",
+            role = "sets the interrupt flag",
+        },
+
+        effect = {
+            kind = "interrupt_state_enable",
+            name = "sti_sets_interrupt_flag",
+            role = "sets the interrupt flag",
+        },
+    },
+
+    -- cli
+    {
+        kind = "processor_state_event",
+        category = "interrupt_state",
+        name = "cli",
+        role = "clears the interrupt flag",
+
+        node_type = "instruction",
+        mnemonic = "cli",
+
+        operands = {},
+
+        event = {
+            name = "cli_clears_interrupt_flag",
+            display_name = "cli",
+            role = "clears the interrupt flag",
+        },
+
+        effect = {
+            kind = "interrupt_state_disable",
+            name = "cli_clears_interrupt_flag",
+            role = "clears the interrupt flag",
+        },
+    },
+
+    -- clts
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "clts",
+        role = "clears the task-switched flag",
+
+        node_type = "instruction",
+        mnemonic = "clts",
+
+        operands = {},
+
+        event = {
+            name = "clts_clears_task_switched_flag",
+            display_name = "clts",
+            role = "clears the task-switched flag",
+        },
+
+        effect = {
+            kind = "processor_state_update",
+            name = "clts_clears_task_switched_flag",
+            role = "clears the task-switched flag",
+        },
+    },
+
+    -- invlpg
+    {
+        kind = "processor_state_event",
+        category = "tlb_invalidation",
+        name = "invlpg",
+        role = "invalidates a TLB entry for a memory page",
+
+        node_type = "instruction",
+        mnemonic = "invlpg",
+
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+
+        event = {
+            name = "invlpg_invalidates_page_tlb_entry",
+            display_name = "invlpg",
+            role = "invalidates a TLB entry for a memory page",
+        },
+
+        effect = {
+            kind = "tlb_invalidation",
+            name = "invlpg_invalidates_page_tlb_entry",
+            role = "invalidates a TLB entry for a memory page",
+        },
+    },
+
+    -- invlpga
+    {
+        kind = "processor_state_event",
+        category = "tlb_invalidation",
+        name = "invlpga",
+        role = "invalidates a TLB entry for an address space",
+
+        node_type = "instruction",
+        mnemonic = "invlpga",
+
+        operands = {},
+
+        event = {
+            name = "invlpga_invalidates_address_space_tlb_entry",
+            display_name = "invlpga",
+            role = "invalidates a TLB entry for an address space",
+        },
+
+        effect = {
+            kind = "tlb_invalidation",
+            name = "invlpga_invalidates_address_space_tlb_entry",
+            role = "invalidates a TLB entry for an address space",
+        },
+    },
+
+    -- invpcid
+    {
+        kind = "processor_state_event",
+        category = "tlb_invalidation",
+        name = "invpcid",
+        role = "invalidates cached translations by process-context identifier",
+
+        node_type = "instruction",
+        mnemonic = "invpcid",
+
+        operands = {
+            { index = 1, role = "invalidation_type" },
+            { index = 2, role = "descriptor" },
+        },
+
+        event = {
+            name = "invpcid_invalidates_context_translations",
+            display_name = "invpcid",
+            role = "invalidates cached translations by process-context identifier",
+        },
+
+        effect = {
+            kind = "tlb_invalidation",
+            name = "invpcid_invalidates_context_translations",
+            role = "invalidates cached translations by process-context identifier",
+        },
+    },
+
+    -- rdpkru
+    {
+        kind = "processor_state_event",
+        category = "protection_key_state",
+        name = "rdpkru",
+        role = "reads protection-key rights state",
+
+        node_type = "instruction",
+        mnemonic = "rdpkru",
+
+        operands = {},
+
+        event = {
+            name = "rdpkru_reads_protection_key_rights",
+            display_name = "rdpkru",
+            role = "reads protection-key rights state",
+        },
+
+        effect = {
+            kind = "protection_key_state_read",
+            name = "rdpkru_reads_protection_key_rights",
+            role = "reads protection-key rights state",
+        },
+    },
+
+    -- wrpkru
+    {
+        kind = "processor_state_event",
+        category = "protection_key_state",
+        name = "wrpkru",
+        role = "writes protection-key rights state",
+
+        node_type = "instruction",
+        mnemonic = "wrpkru",
+
+        operands = {},
+
+        event = {
+            name = "wrpkru_writes_protection_key_rights",
+            display_name = "wrpkru",
+            role = "writes protection-key rights state",
+        },
+
+        effect = {
+            kind = "protection_key_state_write",
+            name = "wrpkru_writes_protection_key_rights",
+            role = "writes protection-key rights state",
+        },
+    },
+
+    -- rsm
+    {
+        kind = "processor_event",
+        category = "processor_mode",
+        name = "rsm",
+        role = "resumes execution from system management mode",
+
+        node_type = "instruction",
+        mnemonic = "rsm",
+
+        operands = {},
+
+        event = {
+            name = "rsm_resumes_from_system_management_mode",
+            display_name = "rsm",
+            role = "resumes execution from system management mode",
+        },
+
+        effect = {
+            kind = "processor_mode_return",
+            name = "rsm_resumes_from_system_management_mode",
+            role = "resumes execution from system management mode",
+        },
+    },
+
+    -- skinit
+    {
+        kind = "security_event",
+        category = "trusted_execution",
+        name = "skinit",
+        role = "starts secure kernel initialization",
+
+        node_type = "instruction",
+        mnemonic = "skinit",
+
+        operands = {},
+
+        event = {
+            name = "skinit_starts_secure_kernel_initialization",
+            display_name = "skinit",
+            role = "starts secure kernel initialization",
+        },
+
+        effect = {
+            kind = "trusted_execution_operation",
+            name = "skinit_starts_secure_kernel_initialization",
+            role = "starts secure kernel initialization",
+        },
+    },
 }
 

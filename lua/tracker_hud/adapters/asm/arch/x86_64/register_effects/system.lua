@@ -419,50 +419,6 @@ return {
         }
 ,
 
-    -- 'hlt' halts the processor until an external event.
-        {
-            node_type = "instruction",
-            mnemonic = "hlt",
-            operands = {},
-    
-            effect = {
-                kind = "register_write",
-                name = "hlt_updates_rip",
-                target_register = "rip",
-                role = "halted by hlt",
-            },
-        }
-,
-
-    -- 'pause' is a spin-wait hint.
-        {
-            node_type = "instruction",
-            mnemonic = "pause",
-            operands = {},
-    
-            effect = {
-                kind = "register_write",
-                name = "pause_updates_rip",
-                target_register = "rip",
-                role = "spin-wait hint by pause",
-            },
-        }
-,
-
-    -- 'wait' waits for the floating-point unit.
-        {
-            node_type = "instruction",
-            mnemonic = "wait",
-            operands = {},
-    
-            effect = {
-                kind = "register_write",
-                name = "wait_updates_rip",
-                target_register = "rip",
-                role = "waited for floating-point unit by wait",
-            },
-        }
-,
 
     -- 'fwait' waits for the floating-point unit.
         {
@@ -559,7 +515,7 @@ return {
             node_type = "instruction",
             mnemonic = "stac",
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "stac_updates_rflags",
@@ -777,49 +733,7 @@ return {
         }
 ,
 
-    -- Monitor / wait hints.
-        {
-            node_type = "instruction",
-            mnemonic = "monitor",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "monitor_uses_address_registers",
-                target_register = "rip",
-                role = "armed monitored address by monitor",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "mwait",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "mwait_waits_for_monitor",
-                target_register = "rip",
-                role = "waited for monitored event by mwait",
-            },
-        }
-,
-
-    -- TLB/cache/system-memory maintenance.
-        {
-            node_type = "instruction",
-            mnemonic = "invlpg",
-            operands = {
-                { index = 1, role = "memory_operand" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "invlpg_invalidates_translation",
-                target_register = "rip",
-                role = "invalidated page translation by invlpg",
-            },
-        }
-,
-
+   
     -- Descriptor table reads / selector reads.
         {
             node_type = "instruction",
@@ -925,21 +839,6 @@ return {
                 name = "wrgsbase_updates_system_state",
                 target_register = "rip",
                 role = "wrote gs base by wrgsbase",
-            },
-        }
-,
-
-    -- Model/control writes.
-
-    {
-            node_type = "instruction",
-            mnemonic = "wrpkru",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "wrpkru_updates_system_state",
-                target_register = "rip",
-                role = "wrote protection-key rights by wrpkru",
             },
         }
 ,
@@ -1060,19 +959,6 @@ return {
 
     {
             node_type = "instruction",
-            mnemonic = "skinit",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "skinit_updates_system_state",
-                target_register = "rip",
-                role = "secure initialization by skinit",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
             mnemonic = "stgi",
             operands = {},
             effect = {
@@ -1097,7 +983,6 @@ return {
         }
 ,
 
-    -- XSAVE / XRSTOR / FPU/SIMD state management.
 
     -- MXCSR / x87 control-state helpers.
     {
@@ -1132,7 +1017,7 @@ return {
 
     -- AVX / AVX2 visibility effects.
         -- Phase-one model: no vector register file yet, so most vector effects are exposed as RIP-side activity.
-    
+
         {
             node_type = "instruction",
             mnemonic = "vmovaps",
@@ -1839,7 +1724,7 @@ return {
 ,
 
     -- TSX load tracking.
-    
+
         {
             node_type = "instruction",
             mnemonic = "xsusldtrk",
@@ -1867,22 +1752,6 @@ return {
 ,
 
     -- AMD / x86_64 virtualization and platform helpers.
-
-    {
-            node_type = "instruction",
-            mnemonic = "invlpga",
-            operands = {
-                { index = 1, role = "address" },
-                { index = 2, role = "asid" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "invlpga_updates_translation_state",
-                target_register = "rip",
-                role = "invalidated guest TLB entry by invlpga",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -1984,35 +1853,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "umwait",
-            operands = {
-                { index = 1, role = "control" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "umwait_updates_wait_state",
-                target_register = "rip",
-                role = "entered user-mode wait state by umwait",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "tpause",
-            operands = {
-                { index = 1, role = "control" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "tpause_updates_wait_state",
-                target_register = "rip",
-                role = "entered timed pause state by tpause",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -2029,23 +1869,7 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "invpcid",
-            operands = {
-                { index = 1, role = "descriptor" },
-                { index = 2, role = "type" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "invpcid_updates_translation_state",
-                target_register = "rip",
-                role = "invalidated process-context translations by invpcid",
-            },
-        }
-,
-
-    -- Platform configuration / entropy / firmware-ish helpers.
+        -- Platform configuration / entropy / firmware-ish helpers.
     
         {
             node_type = "instruction",
@@ -2597,9 +2421,9 @@ return {
         {
             node_type = "instruction",
             mnemonic = "syscall",
-    
+
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "syscall_clobber_rcx",
