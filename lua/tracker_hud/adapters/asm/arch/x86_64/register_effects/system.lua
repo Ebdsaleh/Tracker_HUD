@@ -2593,20 +2593,6 @@ return {
         }
 ,
 
-              node_type = "instruction",
-            mnemonic = "fnstsw",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "fnstsw_stores_fpu_status",
-                target_register = "rip",
-                role = "stored x87 FPU status word by fnstsw",
-            },
-        }
-,
-
     -- Linux x86-64 'syscall' clobbers rcx.
         {
             node_type = "instruction",
