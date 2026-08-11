@@ -344,18 +344,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "rsm",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "rsm_updates_rip",
-                target_register = "rip",
-                role = "resumed from system management mode by rsm",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -544,181 +532,8 @@ return {
         -- Phase-one model: most feature-specific state is exposed as RIP-side activity.
     
         -- CET / indirect branch tracking.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "endbr32",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "endbr32_cet_branch_target",
-                target_register = "rip",
-                role = "marked valid 32-bit indirect branch target by endbr32",
-            },
-        }
-,
 
-    {
-            node_type = "instruction",
-            mnemonic = "endbr64",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "endbr64_cet_branch_target",
-                target_register = "rip",
-                role = "marked valid 64-bit indirect branch target by endbr64",
-            },
-        }
-,
 
-    {
-            node_type = "instruction",
-            mnemonic = "incsspd",
-            operands = {
-                { index = 1, role = "count" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "incsspd_updates_shadow_stack",
-                target_register = "rip",
-                role = "incremented 32-bit shadow stack pointer by incsspd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "incsspq",
-            operands = {
-                { index = 1, role = "count" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "incsspq_updates_shadow_stack",
-                target_register = "rip",
-                role = "incremented 64-bit shadow stack pointer by incsspq",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "rstorssp",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "rstorssp_updates_shadow_stack",
-                target_register = "rip",
-                role = "restored shadow stack pointer by rstorssp",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "saveprevssp",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "saveprevssp_updates_shadow_stack",
-                target_register = "rip",
-                role = "saved previous shadow stack pointer by saveprevssp",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clrssbsy",
-            operands = {
-                { index = 1, role = "token" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clrssbsy_updates_shadow_stack",
-                target_register = "rip",
-                role = "cleared shadow stack busy token by clrssbsy",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wbnoinvd",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "wbnoinvd_cache_writeback",
-                target_register = "rip",
-                role = "wrote back caches without invalidation by wbnoinvd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clzero",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "clzero_cache_zero",
-                target_register = "rip",
-                role = "zeroed cache line by clzero",
-            },
-        }
-,
-
-    -- Key Locker.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "loadiwkey",
-            operands = {
-                { index = 1, role = "control" },
-                { index = 2, role = "key_source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "loadiwkey_updates_key_locker_state",
-                target_register = "rip",
-                role = "loaded internal wrapping key by loadiwkey",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "encodekey128",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "encodekey128_key_locker",
-                target_register = "rip",
-                role = "encoded 128-bit aes key handle by encodekey128",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "encodekey256",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "encodekey256_key_locker",
-                target_register = "rip",
-                role = "encoded 256-bit aes key handle by encodekey256",
-            },
-        }
-,
 
     -- MPX bounds instructions.
     
@@ -738,53 +553,7 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "bndcl",
-            operands = {
-                { index = 1, role = "bounds" },
-                { index = 2, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "bndcl_checks_bounds",
-                target_register = "rip",
-                role = "checked lower bound by bndcl",
-            },
-        }
-,
 
-    {
-            node_type = "instruction",
-            mnemonic = "bndcu",
-            operands = {
-                { index = 1, role = "bounds" },
-                { index = 2, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "bndcu_checks_bounds",
-                target_register = "rip",
-                role = "checked upper bound by bndcu",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "bndcn",
-            operands = {
-                { index = 1, role = "bounds" },
-                { index = 2, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "bndcn_checks_bounds",
-                target_register = "rip",
-                role = "checked upper bound with complement by bndcn",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -818,21 +587,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "bndstx",
-            operands = {
-                { index = 1, role = "address" },
-                { index = 2, role = "bounds_source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "bndstx_updates_bounds_state",
-                target_register = "rip",
-                role = "stored bounds using address translation by bndstx",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -926,32 +680,6 @@ return {
                 name = "tzmsk_writes_destination",
                 target_operand = 1,
                 role = "written with trailing-zero mask by tzmsk",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "rmpadjust",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "rmpadjust_updates_platform_state",
-                target_register = "rip",
-                role = "adjusted reverse map table state by rmpadjust",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "rmpupdate",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "rmpupdate_updates_platform_state",
-                target_register = "rip",
-                role = "updated reverse map table state by rmpupdate",
             },
         }
 ,

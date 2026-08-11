@@ -3114,19 +3114,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "setssbsy",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "setssbsy_updates_shadow_stack",
-                target_register = "rip",
-                role = "marked shadow stack busy by setssbsy",
-            },
-        }
-,
-
     -- Direct store / enqueue / cache extension helpers.
     
         {

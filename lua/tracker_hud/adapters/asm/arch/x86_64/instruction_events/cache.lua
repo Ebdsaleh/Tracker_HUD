@@ -319,5 +319,55 @@ return {
             role = "prefetches memory with temporal locality hint T2",
         },
     },
+
+        -- wbnoinvd
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "wbnoinvd",
+        role = "writes back processor caches without invalidating them",
+
+        node_type = "instruction",
+        mnemonic = "wbnoinvd",
+
+        operands = {},
+
+        event = {
+            name = "wbnoinvd_cache_writeback",
+            display_name = "wbnoinvd",
+            role = "writes back processor caches without invalidating them",
+        },
+
+        effect = {
+            kind = "cache_operation",
+            name = "wbnoinvd_cache_writeback",
+            role = "writes back processor caches without invalidating them",
+        },
+    },
+
+    -- clzero
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "clzero",
+        role = "zeros a cache line",
+
+        node_type = "instruction",
+        mnemonic = "clzero",
+
+        operands = {},
+
+        event = {
+            name = "clzero_cache_zero",
+            display_name = "clzero",
+            role = "zeros a cache line",
+        },
+
+        effect = {
+            kind = "cache_operation",
+            name = "clzero_cache_zero",
+            role = "zeros a cache line",
+        },
+    },
 }
 
