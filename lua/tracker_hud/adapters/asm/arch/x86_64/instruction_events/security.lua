@@ -1402,4 +1402,181 @@ return {
         },
     },
 
+    -- hardware crypto operations
+
+    -- xstore
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xstore",
+        role = "stores hardware-generated random bytes",
+
+        node_type = "instruction",
+        mnemonic = "xstore",
+
+        operands = {},
+
+        event = {
+            name = "xstore_stores_hardware_random_bytes",
+            display_name = "xstore",
+            role = "stores hardware-generated random bytes",
+        },
+
+        effect = {
+            kind = "hardware_random_operation",
+            name = "xstore_stores_hardware_random_bytes",
+            role = "stores hardware-generated random bytes",
+        },
+    },
+
+    -- xcryptecb
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xcryptecb",
+        role = "performs a hardware AES ECB operation",
+
+        node_type = "instruction",
+        mnemonic = "xcryptecb",
+
+        operands = {},
+
+        event = {
+            name = "xcryptecb_hardware_aes_ecb",
+            display_name = "xcryptecb",
+            role = "performs a hardware AES ECB operation",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "xcryptecb_hardware_aes_ecb",
+            role = "performs a hardware AES ECB operation",
+        },
+    },
+
+    -- xcryptcbc
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xcryptcbc",
+        role = "performs a hardware AES CBC operation",
+
+        node_type = "instruction",
+        mnemonic = "xcryptcbc",
+
+        operands = {},
+
+        event = {
+            name = "xcryptcbc_hardware_aes_cbc",
+            display_name = "xcryptcbc",
+            role = "performs a hardware AES CBC operation",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "xcryptcbc_hardware_aes_cbc",
+            role = "performs a hardware AES CBC operation",
+        },
+    },
+
+    -- xcryptcfb
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xcryptcfb",
+        role = "performs a hardware AES CFB operation",
+
+        node_type = "instruction",
+        mnemonic = "xcryptcfb",
+
+        operands = {},
+
+        event = {
+            name = "xcryptcfb_hardware_aes_cfb",
+            display_name = "xcryptcfb",
+            role = "performs a hardware AES CFB operation",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "xcryptcfb_hardware_aes_cfb",
+            role = "performs a hardware AES CFB operation",
+        },
+    },
+
+    -- xcryptofb
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xcryptofb",
+        role = "performs a hardware AES OFB operation",
+
+        node_type = "instruction",
+        mnemonic = "xcryptofb",
+
+        operands = {},
+
+        event = {
+            name = "xcryptofb_hardware_aes_ofb",
+            display_name = "xcryptofb",
+            role = "performs a hardware AES OFB operation",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "xcryptofb_hardware_aes_ofb",
+            role = "performs a hardware AES OFB operation",
+        },
+    },
+
+    -- xcryptctr
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "xcryptctr",
+        role = "performs a hardware AES CTR operation",
+
+        node_type = "instruction",
+        mnemonic = "xcryptctr",
+
+        operands = {},
+
+        event = {
+            name = "xcryptctr_hardware_aes_ctr",
+            display_name = "xcryptctr",
+            role = "performs a hardware AES CTR operation",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "xcryptctr_hardware_aes_ctr",
+            role = "performs a hardware AES CTR operation",
+        },
+    },
+
+    -- montmul
+    {
+        kind = "security_event",
+        category = "hardware_crypto",
+        name = "montmul",
+        role = "performs a hardware Montgomery multiplication",
+
+        node_type = "instruction",
+        mnemonic = "montmul",
+
+        operands = {},
+
+        event = {
+            name = "montmul_hardware_montgomery_multiply",
+            display_name = "montmul",
+            role = "performs a hardware Montgomery multiplication",
+        },
+
+        effect = {
+            kind = "hardware_crypto_operation",
+            name = "montmul_hardware_montgomery_multiply",
+            role = "performs a hardware Montgomery multiplication",
+        },
+    },
+
 }

@@ -66,6 +66,34 @@ return {
         },
     },
 
+    -- bound
+    {
+        kind = "processor_event",
+        category = "exception_check",
+        name = "bound",
+        role = "checks an array index against bounds",
+
+        node_type = "instruction",
+        mnemonic = "bound",
+
+        operands = {
+            { index = 1, role = "index" },
+            { index = 2, role = "bounds" },
+        },
+
+        event = {
+            name = "bound_checks_array_bounds",
+            display_name = "bound",
+            role = "checks an array index against bounds",
+        },
+
+        effect = {
+            kind = "bounds_check",
+            name = "bound_checks_array_bounds",
+            role = "checks an array index against bounds",
+        },
+    },
+
     -- timestamp
 
     -- rdtsc
@@ -1086,6 +1114,58 @@ return {
             kind = "monitor_wait_setup",
             name = "umonitor_arms_user_monitored_address",
             role = "arms a user-mode monitored memory address",
+        },
+    },
+
+    -- llwpcb
+    {
+        kind = "processor_event",
+        category = "profiling",
+        name = "llwpcb",
+        role = "loads the lightweight profiling control block",
+
+        node_type = "instruction",
+        mnemonic = "llwpcb",
+
+        operands = {
+            { index = 1, role = "address" },
+        },
+
+        event = {
+            name = "llwpcb_loads_profiling_control_block",
+            display_name = "llwpcb",
+            role = "loads the lightweight profiling control block",
+        },
+
+        effect = {
+            kind = "profiling_state_update",
+            name = "llwpcb_loads_profiling_control_block",
+            role = "loads the lightweight profiling control block",
+        },
+    },
+
+    -- smi
+    {
+        kind = "processor_event",
+        category = "processor_mode",
+        name = "smi",
+        role = "enters the system-management interrupt path",
+
+        node_type = "instruction",
+        mnemonic = "smi",
+
+        operands = {},
+
+        event = {
+            name = "smi_enters_system_management_interrupt",
+            display_name = "smi",
+            role = "enters the system-management interrupt path",
+        },
+
+        effect = {
+            kind = "processor_mode_entry",
+            name = "smi_enters_system_management_interrupt",
+            role = "enters the system-management interrupt path",
         },
     },
 

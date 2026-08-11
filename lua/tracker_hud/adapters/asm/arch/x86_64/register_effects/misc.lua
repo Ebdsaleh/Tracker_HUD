@@ -1049,22 +1049,6 @@ return {
 
     {
             node_type = "instruction",
-            mnemonic = "bound",
-            operands = {
-                { index = 1, role = "index" },
-                { index = 2, role = "bounds" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "bound_checks_bounds",
-                target_register = "rip",
-                role = "checked array bounds by bound",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
             mnemonic = "lsl",
             operands = {
                 { index = 1, kind = "register", role = "destination" },
@@ -1138,38 +1122,7 @@ return {
         }
 ,
 
-
-    {
-            node_type = "instruction",
-            mnemonic = "cldemote",
-            operands = {
-                { index = 1, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "cldemote_updates_cache_state",
-                target_register = "rip",
-                role = "demoted cache line by cldemote",
-            },
-        }
-,
-
     -- Lightweight profiling / monitoring helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "llwpcb",
-            operands = {
-                { index = 1, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "llwpcb_updates_profiling_state",
-                target_register = "rip",
-                role = "loaded lightweight profiling control block by llwpcb",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -1186,101 +1139,8 @@ return {
         }
 ,
 
-    -- VIA PadLock / old x86 crypto helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "xstore",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xstore_updates_crypto_state",
-                target_register = "rip",
-                role = "stored hardware random bytes by xstore",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xcryptecb",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xcryptecb_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware aes ecb operation by xcryptecb",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xcryptcbc",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xcryptcbc_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware aes cbc operation by xcryptcbc",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xcryptcfb",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xcryptcfb_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware aes cfb operation by xcryptcfb",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xcryptofb",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xcryptofb_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware aes ofb operation by xcryptofb",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xcryptctr",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xcryptctr_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware aes ctr operation by xcryptctr",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "montmul",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "montmul_updates_crypto_state",
-                target_register = "rip",
-                role = "performed hardware montgomery multiply by montmul",
-            },
-        }
-,
-
     -- System-call aliases / compatibility spellings.
-    
+
         {
             node_type = "instruction",
             mnemonic = "sysretl",
@@ -1329,34 +1189,6 @@ return {
                 name = "sysexitl_updates_rip",
                 target_register = "rip",
                 role = "returned from fast system call in compatibility form by sysexitl",
-            },
-        }
-,
-
-    -- Real-mode / system-management-ish compatibility spellings.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "rsm",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "rsm_updates_rip",
-                target_register = "rip",
-                role = "resumed from system management mode by rsm",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "smi",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "smi_updates_rip",
-                target_register = "rip",
-                role = "entered system management interrupt path by smi",
             },
         }
 ,

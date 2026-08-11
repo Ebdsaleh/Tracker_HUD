@@ -320,7 +320,7 @@ return {
         },
     },
 
-        -- wbnoinvd
+    -- wbnoinvd
     {
         kind = "cache_event",
         category = "cache",
@@ -367,6 +367,33 @@ return {
             kind = "cache_operation",
             name = "clzero_cache_zero",
             role = "zeros a cache line",
+        },
+    },
+
+    -- cldemote
+    {
+        kind = "cache_event",
+        category = "cache",
+        name = "cldemote",
+        role = "requests demotion of a cache line",
+
+        node_type = "instruction",
+        mnemonic = "cldemote",
+
+        operands = {
+            { index = 1, role = "address" },
+        },
+
+        event = {
+            name = "cldemote_cache_line_demotion",
+            display_name = "cldemote",
+            role = "requests demotion of a cache line",
+        },
+
+        effect = {
+            kind = "cache_operation",
+            name = "cldemote_cache_line_demotion",
+            role = "requests demotion of a cache line",
         },
     },
 }
