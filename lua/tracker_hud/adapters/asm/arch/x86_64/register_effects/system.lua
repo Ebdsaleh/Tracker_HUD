@@ -948,73 +948,6 @@ return {
 
 
     -- VMX/SVM virtualization instructions. Modeled as system-state/RFLAGS visibility.
-        {
-            node_type = "instruction",
-            mnemonic = "vmcall",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "vmcall_updates_rip",
-                target_register = "rip",
-                role = "virtual machine call by vmcall",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmlaunch",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "vmlaunch_updates_rip",
-                target_register = "rip",
-                role = "launched virtual machine by vmlaunch",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmresume",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "vmresume_updates_rip",
-                target_register = "rip",
-                role = "resumed virtual machine by vmresume",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmxoff",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "vmxoff_updates_system_state",
-                target_register = "rip",
-                role = "left vmx operation by vmxoff",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmxon",
-            operands = {
-                { index = 1, role = "vmxon_region" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "vmxon_updates_system_state",
-                target_register = "rip",
-                role = "entered vmx operation by vmxon",
-            },
-        }
-,
-
     {
             node_type = "instruction",
             mnemonic = "vmclear",
@@ -1045,22 +978,7 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "vmptrst",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "vmptrst_updates_system_state",
-                target_register = "rip",
-                role = "stored current vmcs pointer by vmptrst",
-            },
-        }
-,
-
-    {
+        {
             node_type = "instruction",
             mnemonic = "vmread",
             operands = {
@@ -1175,49 +1093,6 @@ return {
                 name = "clgi_updates_system_state",
                 target_register = "rflags",
                 role = "global interrupt flag cleared by clgi",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmload",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "vmload_updates_system_state",
-                target_register = "rip",
-                role = "loaded virtual machine control state by vmload",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmsave",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "vmsave_updates_system_state",
-                target_register = "rip",
-                role = "saved virtual machine control state by vmsave",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "vmmcall",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "vmmcall_updates_rip",
-                target_register = "rip",
-                role = "virtual machine monitor call by vmmcall",
             },
         }
 ,
@@ -1992,21 +1867,6 @@ return {
 ,
 
     -- AMD / x86_64 virtualization and platform helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "vmrun",
-            operands = {
-                { index = 1, role = "vmcb_address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "vmrun_updates_rip",
-                target_register = "rip",
-                role = "entered virtual machine by vmrun",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -2050,33 +1910,7 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "seamcall",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "seamcall_updates_rip",
-                target_register = "rip",
-                role = "called seam module by seamcall",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "seamret",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "seamret_updates_rip",
-                target_register = "rip",
-                role = "returned from seam module by seamret",
-            },
-        }
-,
-
-    {
+        {
             node_type = "instruction",
             mnemonic = "seamops",
             operands = {},
@@ -2132,62 +1966,6 @@ return {
 
     -- SGX / GETSEC / WAITPKG / platform-security / system-extension visibility effects.
         -- Phase-one model: most privileged/platform state is exposed as RIP-side activity.
-    
-        -- Intel SGX enclave instructions.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "encls",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "encls_updates_enclave_state",
-                target_register = "rip",
-                role = "entered privileged sgx enclave instruction path by encls",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "enclu",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "enclu_updates_enclave_state",
-                target_register = "rip",
-                role = "entered user sgx enclave instruction path by enclu",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "enclv",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "enclv_updates_enclave_state",
-                target_register = "rip",
-                role = "entered virtualized sgx enclave instruction path by enclv",
-            },
-        }
-,
-
-    -- Intel GETSEC / measured launch helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "getsec",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "getsec_updates_security_state",
-                target_register = "rip",
-                role = "entered measured security operation by getsec",
-            },
-        }
-,
 
     -- WAITPKG / timed wait helpers.
     
