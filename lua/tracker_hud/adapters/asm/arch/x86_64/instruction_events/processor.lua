@@ -268,6 +268,374 @@ return {
         },
     },
 
+        -- fpu / simd state management
+
+    -- fxsave
+    {
+        kind = "processor_state_event",
+        category = "fpu_simd_state",
+        name = "fxsave",
+        role = "saves x87 FPU, MMX, and SSE state",
+
+        node_type = "instruction",
+        mnemonic = "fxsave",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "fxsave_saves_fpu_simd_state",
+            display_name = "fxsave",
+            role = "saves x87 FPU, MMX, and SSE state",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "fxsave_saves_fpu_simd_state",
+            role = "saves x87 FPU, MMX, and SSE state",
+        },
+    },
+
+    -- fxsave64
+    {
+        kind = "processor_state_event",
+        category = "fpu_simd_state",
+        name = "fxsave64",
+        role = "saves x87 FPU, MMX, and SSE state in 64-bit mode",
+
+        node_type = "instruction",
+        mnemonic = "fxsave64",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "fxsave64_saves_fpu_simd_state",
+            display_name = "fxsave64",
+            role = "saves x87 FPU, MMX, and SSE state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "fxsave64_saves_fpu_simd_state",
+            role = "saves x87 FPU, MMX, and SSE state in 64-bit mode",
+        },
+    },
+
+    -- fxrstor
+    {
+        kind = "processor_state_event",
+        category = "fpu_simd_state",
+        name = "fxrstor",
+        role = "restores x87 FPU, MMX, and SSE state",
+
+        node_type = "instruction",
+        mnemonic = "fxrstor",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "fxrstor_restores_fpu_simd_state",
+            display_name = "fxrstor",
+            role = "restores x87 FPU, MMX, and SSE state",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "fxrstor_restores_fpu_simd_state",
+            role = "restores x87 FPU, MMX, and SSE state",
+        },
+    },
+
+    -- fxrstor64
+    {
+        kind = "processor_state_event",
+        category = "fpu_simd_state",
+        name = "fxrstor64",
+        role = "restores x87 FPU, MMX, and SSE state in 64-bit mode",
+
+        node_type = "instruction",
+        mnemonic = "fxrstor64",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "fxrstor64_restores_fpu_simd_state",
+            display_name = "fxrstor64",
+            role = "restores x87 FPU, MMX, and SSE state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "fxrstor64_restores_fpu_simd_state",
+            role = "restores x87 FPU, MMX, and SSE state in 64-bit mode",
+        },
+    },
+
+    -- ldmxcsr
+    {
+        kind = "processor_state_event",
+        category = "mxcsr_state",
+        name = "ldmxcsr",
+        role = "loads MXCSR control and status state",
+
+        node_type = "instruction",
+        mnemonic = "ldmxcsr",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "ldmxcsr_loads_mxcsr",
+            display_name = "ldmxcsr",
+            role = "loads MXCSR control and status state",
+        },
+
+        effect = {
+            kind = "mxcsr_state_load",
+            name = "ldmxcsr_loads_mxcsr",
+            role = "loads MXCSR control and status state",
+        },
+    },
+
+    -- stmxcsr
+    {
+        kind = "processor_state_event",
+        category = "mxcsr_state",
+        name = "stmxcsr",
+        role = "stores MXCSR control and status state",
+
+        node_type = "instruction",
+        mnemonic = "stmxcsr",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "stmxcsr_stores_mxcsr",
+            display_name = "stmxcsr",
+            role = "stores MXCSR control and status state",
+        },
+
+        effect = {
+            kind = "mxcsr_state_store",
+            name = "stmxcsr_stores_mxcsr",
+            role = "stores MXCSR control and status state",
+        },
+    },
+
+    -- emms
+    {
+        kind = "processor_state_event",
+        category = "mmx_state",
+        name = "emms",
+        role = "clears MMX state",
+
+        node_type = "instruction",
+        mnemonic = "emms",
+
+        operands = {},
+
+        event = {
+            name = "emms_clears_mmx_state",
+            display_name = "emms",
+            role = "clears MMX state",
+        },
+
+        effect = {
+            kind = "mmx_state_clear",
+            name = "emms_clears_mmx_state",
+            role = "clears MMX state",
+        },
+    },
+
+    -- femms
+    {
+        kind = "processor_state_event",
+        category = "mmx_state",
+        name = "femms",
+        role = "clears MMX state using fast EMMS",
+
+        node_type = "instruction",
+        mnemonic = "femms",
+
+        operands = {},
+
+        event = {
+            name = "femms_clears_mmx_state",
+            display_name = "femms",
+            role = "clears MMX state using fast EMMS",
+        },
+
+        effect = {
+            kind = "mmx_state_clear",
+            name = "femms_clears_mmx_state",
+            role = "clears MMX state using fast EMMS",
+        },
+    },
+
+    -- fninit
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "fninit",
+        role = "initializes x87 FPU state without checking pending exceptions",
+
+        node_type = "instruction",
+        mnemonic = "fninit",
+
+        operands = {},
+
+        event = {
+            name = "fninit_initializes_fpu_state",
+            display_name = "fninit",
+            role = "initializes x87 FPU state without checking pending exceptions",
+        },
+
+        effect = {
+            kind = "x87_state_init",
+            name = "fninit_initializes_fpu_state",
+            role = "initializes x87 FPU state without checking pending exceptions",
+        },
+    },
+
+    -- finit
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "finit",
+        role = "initializes x87 FPU state",
+
+        node_type = "instruction",
+        mnemonic = "finit",
+
+        operands = {},
+
+        event = {
+            name = "finit_initializes_fpu_state",
+            display_name = "finit",
+            role = "initializes x87 FPU state",
+        },
+
+        effect = {
+            kind = "x87_state_init",
+            name = "finit_initializes_fpu_state",
+            role = "initializes x87 FPU state",
+        },
+    },
+
+    -- fnclex
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "fnclex",
+        role = "clears x87 FPU exception flags without checking pending exceptions",
+
+        node_type = "instruction",
+        mnemonic = "fnclex",
+
+        operands = {},
+
+        event = {
+            name = "fnclex_clears_fpu_exceptions",
+            display_name = "fnclex",
+            role = "clears x87 FPU exception flags without checking pending exceptions",
+        },
+
+        effect = {
+            kind = "x87_exception_clear",
+            name = "fnclex_clears_fpu_exceptions",
+            role = "clears x87 FPU exception flags without checking pending exceptions",
+        },
+    },
+
+    -- fclex
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "fclex",
+        role = "clears x87 FPU exception flags",
+
+        node_type = "instruction",
+        mnemonic = "fclex",
+
+        operands = {},
+
+        event = {
+            name = "fclex_clears_fpu_exceptions",
+            display_name = "fclex",
+            role = "clears x87 FPU exception flags",
+        },
+
+        effect = {
+            kind = "x87_exception_clear",
+            name = "fclex_clears_fpu_exceptions",
+            role = "clears x87 FPU exception flags",
+        },
+    },
+
+    -- fnstsw
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "fnstsw",
+        role = "stores x87 FPU status word without checking pending exceptions",
+
+        node_type = "instruction",
+        mnemonic = "fnstsw",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "fnstsw_stores_status_word",
+            display_name = "fnstsw",
+            role = "stores x87 FPU status word without checking pending exceptions",
+        },
+
+        effect = {
+            kind = "x87_status_store",
+            name = "fnstsw_stores_status_word",
+            role = "stores x87 FPU status word without checking pending exceptions",
+        },
+    },
+
+    -- fstsw
+    {
+        kind = "processor_state_event",
+        category = "x87_state",
+        name = "fstsw",
+        role = "stores x87 FPU status word",
+
+        node_type = "instruction",
+        mnemonic = "fstsw",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "fstsw_stores_status_word",
+            display_name = "fstsw",
+            role = "stores x87 FPU status word",
+        },
+
+        effect = {
+            kind = "x87_status_store",
+            name = "fstsw_stores_status_word",
+            role = "stores x87 FPU status word",
+        },
+    },
+
     -- extended_state
 
     -- xsave
