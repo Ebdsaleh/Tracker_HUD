@@ -450,6 +450,106 @@ return {
         },
     },
 
+       -- icebp
+    {
+        kind = "processor_event",
+        category = "interrupt",
+        name = "icebp",
+        role = "transfers control through the one-byte debug interrupt",
+
+        node_type = "instruction",
+        mnemonic = "icebp",
+
+        operands = {},
+
+        event = {
+            name = "icebp_debug_interrupt",
+            display_name = "icebp",
+            role = "transfers control through the one-byte debug interrupt",
+        },
+
+        effect = {
+            kind = "interrupt_transfer",
+            name = "icebp_debug_interrupt",
+            role = "transfers control through the one-byte debug interrupt",
+        },
+    },
+
+    -- int1
+    {
+        kind = "processor_event",
+        category = "interrupt",
+        name = "int1",
+        role = "transfers control through the debug interrupt",
+
+        node_type = "instruction",
+        mnemonic = "int1",
+
+        operands = {},
+
+        event = {
+            name = "int1_debug_interrupt",
+            display_name = "int1",
+            role = "transfers control through the debug interrupt",
+        },
+
+        effect = {
+            kind = "interrupt_transfer",
+            name = "int1_debug_interrupt",
+            role = "transfers control through the debug interrupt",
+        },
+    },
+
+    -- ud0
+    {
+        kind = "processor_event",
+        category = "exception",
+        name = "ud0",
+        role = "raises an invalid-instruction exception",
+
+        node_type = "instruction",
+        mnemonic = "ud0",
+
+        operands = {},
+
+        event = {
+            name = "ud0_invalid_instruction_exception",
+            display_name = "ud0",
+            role = "raises an invalid-instruction exception",
+        },
+
+        effect = {
+            kind = "exception",
+            name = "ud0_invalid_instruction_exception",
+            role = "raises an invalid-instruction exception",
+        },
+    },
+
+    -- ud1
+    {
+        kind = "processor_event",
+        category = "exception",
+        name = "ud1",
+        role = "raises an invalid-instruction exception",
+
+        node_type = "instruction",
+        mnemonic = "ud1",
+
+        operands = {},
+
+        event = {
+            name = "ud1_invalid_instruction_exception",
+            display_name = "ud1",
+            role = "raises an invalid-instruction exception",
+        },
+
+        effect = {
+            kind = "exception",
+            name = "ud1_invalid_instruction_exception",
+            role = "raises an invalid-instruction exception",
+        },
+    },
+
     -- ud2
     {
         kind = "processor_event",
@@ -471,6 +571,32 @@ return {
         effect = {
             kind = "processor_exception",
             name = "ud2_invalid_instruction_exception",
+            role = "raises an invalid-instruction exception",
+        },
+    },
+
+
+    -- ud2a
+    {
+        kind = "processor_event",
+        category = "exception",
+        name = "ud2a",
+        role = "raises an invalid-instruction exception",
+
+        node_type = "instruction",
+        mnemonic = "ud2a",
+
+        operands = {},
+
+        event = {
+            name = "ud2a_invalid_instruction_exception",
+            display_name = "ud2a",
+            role = "raises an invalid-instruction exception",
+        },
+
+        effect = {
+            kind = "exception",
+            name = "ud2a_invalid_instruction_exception",
             role = "raises an invalid-instruction exception",
         },
     },

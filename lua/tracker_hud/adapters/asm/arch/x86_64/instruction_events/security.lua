@@ -6,6 +6,8 @@
 
 return {
 
+    -- TDX / SEAM-style platform transition helpers.
+
     -- seamcall
     {
         kind = "security_event",
@@ -56,6 +58,30 @@ return {
         },
     },
 
+    -- tdcall
+    {
+        kind = "security_event",
+        category = "tdx",
+        name = "tdcall",
+        role = "calls into the trusted domain module",
+
+        node_type = "instruction",
+        mnemonic = "tdcall",
+
+        operands = {},
+
+        event = {
+            name = "tdcall_calls_trusted_domain_module",
+            display_name = "tdcall",
+            role = "calls into the trusted domain module",
+        },
+
+        effect = {
+            kind = "trusted_domain_call",
+            name = "tdcall_calls_trusted_domain_module",
+            role = "calls into the trusted domain module",
+        },
+    },
     -- encls
     {
         kind = "security_event",
@@ -131,6 +157,570 @@ return {
         },
     },
 
+    -- sgx enclave page management
+
+    -- eaccept
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eaccept",
+        role = "accepts an SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eaccept",
+
+        operands = {},
+
+        event = {
+            name = "eaccept_accepts_enclave_page",
+            display_name = "eaccept",
+            role = "accepts an SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_operation",
+            name = "eaccept_accepts_enclave_page",
+            role = "accepts an SGX enclave page",
+        },
+    },
+
+    -- eacceptcopy
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eacceptcopy",
+        role = "accepts a copied SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eacceptcopy",
+
+        operands = {},
+
+        event = {
+            name = "eacceptcopy_accepts_copied_enclave_page",
+            display_name = "eacceptcopy",
+            role = "accepts a copied SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_operation",
+            name = "eacceptcopy_accepts_copied_enclave_page",
+            role = "accepts a copied SGX enclave page",
+        },
+    },
+
+    -- eaug
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eaug",
+        role = "augments an SGX enclave with a page",
+
+        node_type = "instruction",
+        mnemonic = "eaug",
+
+        operands = {},
+
+        event = {
+            name = "eaug_augments_enclave_page",
+            display_name = "eaug",
+            role = "augments an SGX enclave with a page",
+        },
+
+        effect = {
+            kind = "enclave_page_operation",
+            name = "eaug_augments_enclave_page",
+            role = "augments an SGX enclave with a page",
+        },
+    },
+
+    -- eblock
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eblock",
+        role = "blocks an SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eblock",
+
+        operands = {},
+
+        event = {
+            name = "eblock_blocks_enclave_page",
+            display_name = "eblock",
+            role = "blocks an SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_operation",
+            name = "eblock_blocks_enclave_page",
+            role = "blocks an SGX enclave page",
+        },
+    },
+
+    -- ecreate
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "ecreate",
+        role = "creates an SGX enclave control structure",
+
+        node_type = "instruction",
+        mnemonic = "ecreate",
+
+        operands = {},
+
+        event = {
+            name = "ecreate_creates_enclave_control_structure",
+            display_name = "ecreate",
+            role = "creates an SGX enclave control structure",
+        },
+
+        effect = {
+            kind = "enclave_creation",
+            name = "ecreate_creates_enclave_control_structure",
+            role = "creates an SGX enclave control structure",
+        },
+    },
+
+
+    -- sgx enclave debug / key / initialization
+
+    -- edbgrd
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "edbgrd",
+        role = "debug-reads SGX enclave memory",
+
+        node_type = "instruction",
+        mnemonic = "edbgrd",
+
+        operands = {},
+
+        event = {
+            name = "edbgrd_debug_reads_enclave_memory",
+            display_name = "edbgrd",
+            role = "debug-reads SGX enclave memory",
+        },
+
+        effect = {
+            kind = "enclave_debug_read",
+            name = "edbgrd_debug_reads_enclave_memory",
+            role = "debug-reads SGX enclave memory",
+        },
+    },
+
+    -- edbgwr
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "edbgwr",
+        role = "debug-writes SGX enclave memory",
+
+        node_type = "instruction",
+        mnemonic = "edbgwr",
+
+        operands = {},
+
+        event = {
+            name = "edbgwr_debug_writes_enclave_memory",
+            display_name = "edbgwr",
+            role = "debug-writes SGX enclave memory",
+        },
+
+        effect = {
+            kind = "enclave_debug_write",
+            name = "edbgwr_debug_writes_enclave_memory",
+            role = "debug-writes SGX enclave memory",
+        },
+    },
+
+    -- egetkey
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "egetkey",
+        role = "derives an SGX enclave key",
+
+        node_type = "instruction",
+        mnemonic = "egetkey",
+
+        operands = {},
+
+        event = {
+            name = "egetkey_derives_enclave_key",
+            display_name = "egetkey",
+            role = "derives an SGX enclave key",
+        },
+
+        effect = {
+            kind = "enclave_key_derivation",
+            name = "egetkey_derives_enclave_key",
+            role = "derives an SGX enclave key",
+        },
+    },
+
+    -- einit
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "einit",
+        role = "initializes an SGX enclave",
+
+        node_type = "instruction",
+        mnemonic = "einit",
+
+        operands = {},
+
+        event = {
+            name = "einit_initializes_enclave",
+            display_name = "einit",
+            role = "initializes an SGX enclave",
+        },
+
+        effect = {
+            kind = "enclave_initialization",
+            name = "einit_initializes_enclave",
+            role = "initializes an SGX enclave",
+        },
+    },
+
+
+    -- sgx enclave page state
+
+    -- eldb
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eldb",
+        role = "loads a blocked SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eldb",
+
+        operands = {},
+
+        event = {
+            name = "eldb_loads_blocked_enclave_page",
+            display_name = "eldb",
+            role = "loads a blocked SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_load",
+            name = "eldb_loads_blocked_enclave_page",
+            role = "loads a blocked SGX enclave page",
+        },
+    },
+
+    -- eldu
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eldu",
+        role = "loads an unblocked SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eldu",
+
+        operands = {},
+
+        event = {
+            name = "eldu_loads_unblocked_enclave_page",
+            display_name = "eldu",
+            role = "loads an unblocked SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_load",
+            name = "eldu_loads_unblocked_enclave_page",
+            role = "loads an unblocked SGX enclave page",
+        },
+    },
+
+    -- emodpe
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "emodpe",
+        role = "modifies SGX enclave page permissions",
+
+        node_type = "instruction",
+        mnemonic = "emodpe",
+
+        operands = {},
+
+        event = {
+            name = "emodpe_modifies_enclave_page_permissions",
+            display_name = "emodpe",
+            role = "modifies SGX enclave page permissions",
+        },
+
+        effect = {
+            kind = "enclave_page_permission_update",
+            name = "emodpe_modifies_enclave_page_permissions",
+            role = "modifies SGX enclave page permissions",
+        },
+    },
+
+    -- emodpr
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "emodpr",
+        role = "restricts SGX enclave page permissions",
+
+        node_type = "instruction",
+        mnemonic = "emodpr",
+
+        operands = {},
+
+        event = {
+            name = "emodpr_restricts_enclave_page_permissions",
+            display_name = "emodpr",
+            role = "restricts SGX enclave page permissions",
+        },
+
+        effect = {
+            kind = "enclave_page_permission_update",
+            name = "emodpr_restricts_enclave_page_permissions",
+            role = "restricts SGX enclave page permissions",
+        },
+    },
+
+    -- emodt
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "emodt",
+        role = "modifies the type of an SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "emodt",
+
+        operands = {},
+
+        event = {
+            name = "emodt_modifies_enclave_page_type",
+            display_name = "emodt",
+            role = "modifies the type of an SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_type_update",
+            name = "emodt_modifies_enclave_page_type",
+            role = "modifies the type of an SGX enclave page",
+        },
+    },
+
+    -- sgx enclave lifecycle / measurement
+
+    -- epa
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "epa",
+        role = "creates an SGX version-array page",
+
+        node_type = "instruction",
+        mnemonic = "epa",
+
+        operands = {},
+
+        event = {
+            name = "epa_creates_version_array_page",
+            display_name = "epa",
+            role = "creates an SGX version-array page",
+        },
+
+        effect = {
+            kind = "enclave_page_creation",
+            name = "epa_creates_version_array_page",
+            role = "creates an SGX version-array page",
+        },
+    },
+
+    -- erdinfo
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "erdinfo",
+        role = "reads SGX enclave report information",
+
+        node_type = "instruction",
+        mnemonic = "erdinfo",
+
+        operands = {},
+
+        event = {
+            name = "erdinfo_reads_enclave_report_information",
+            display_name = "erdinfo",
+            role = "reads SGX enclave report information",
+        },
+
+        effect = {
+            kind = "enclave_report_read",
+            name = "erdinfo_reads_enclave_report_information",
+            role = "reads SGX enclave report information",
+        },
+    },
+
+    -- eremove
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eremove",
+        role = "removes an SGX enclave page",
+
+        node_type = "instruction",
+        mnemonic = "eremove",
+
+        operands = {},
+
+        event = {
+            name = "eremove_removes_enclave_page",
+            display_name = "eremove",
+            role = "removes an SGX enclave page",
+        },
+
+        effect = {
+            kind = "enclave_page_removal",
+            name = "eremove_removes_enclave_page",
+            role = "removes an SGX enclave page",
+        },
+    },
+
+    -- etrack
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "etrack",
+        role = "tracks SGX enclave page invalidation",
+
+        node_type = "instruction",
+        mnemonic = "etrack",
+
+        operands = {},
+
+        event = {
+            name = "etrack_tracks_enclave_page_invalidation",
+            display_name = "etrack",
+            role = "tracks SGX enclave page invalidation",
+        },
+
+        effect = {
+            kind = "enclave_page_invalidation",
+            name = "etrack_tracks_enclave_page_invalidation",
+            role = "tracks SGX enclave page invalidation",
+        },
+    },
+
+    -- eextend
+    {
+        kind = "security_event",
+        category = "sgx_enclave",
+        name = "eextend",
+        role = "extends the SGX enclave measurement",
+
+        node_type = "instruction",
+        mnemonic = "eextend",
+
+        operands = {},
+
+        event = {
+            name = "eextend_extends_enclave_measurement",
+            display_name = "eextend",
+            role = "extends the SGX enclave measurement",
+        },
+
+        effect = {
+            kind = "enclave_measurement_update",
+            name = "eextend_extends_enclave_measurement",
+            role = "extends the SGX enclave measurement",
+        },
+    },
+
+
+    -- measured / trusted execution
+
+    -- egetsec
+    {
+        kind = "security_event",
+        category = "trusted_execution",
+        name = "egetsec",
+        role = "enters a measured security operation",
+
+        node_type = "instruction",
+        mnemonic = "egetsec",
+
+        operands = {},
+
+        event = {
+            name = "egetsec_enters_measured_security_operation",
+            display_name = "egetsec",
+            role = "enters a measured security operation",
+        },
+
+        effect = {
+            kind = "trusted_execution_operation",
+            name = "egetsec_enters_measured_security_operation",
+            role = "enters a measured security operation",
+        },
+    },
+
+    -- senter
+    {
+        kind = "security_event",
+        category = "trusted_execution",
+        name = "senter",
+        role = "enters the measured launch environment",
+
+        node_type = "instruction",
+        mnemonic = "senter",
+
+        operands = {},
+
+        event = {
+            name = "senter_enters_measured_launch_environment",
+            display_name = "senter",
+            role = "enters the measured launch environment",
+        },
+
+        effect = {
+            kind = "measured_launch_entry",
+            name = "senter_enters_measured_launch_environment",
+            role = "enters the measured launch environment",
+        },
+    },
+
+    -- sexit
+    {
+        kind = "security_event",
+        category = "trusted_execution",
+        name = "sexit",
+        role = "exits the measured launch environment",
+
+        node_type = "instruction",
+        mnemonic = "sexit",
+
+        operands = {},
+
+        event = {
+            name = "sexit_exits_measured_launch_environment",
+            display_name = "sexit",
+            role = "exits the measured launch environment",
+        },
+
+        effect = {
+            kind = "measured_launch_exit",
+            name = "sexit_exits_measured_launch_environment",
+            role = "exits the measured launch environment",
+        },
+    },
+
+
     -- getsec
     {
         kind = "security_event",
@@ -157,7 +747,7 @@ return {
     },
 
 
-        -- key locker
+    -- key locker
 
     -- loadiwkey
     {
