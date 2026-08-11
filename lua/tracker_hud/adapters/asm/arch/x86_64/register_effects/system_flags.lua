@@ -388,40 +388,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "lwpins",
-            operands = {
-                { index = 1, role = "event_id" },
-                { index = 2, role = "event_data" },
-                { index = 3, role = "flags" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "lwpins_updates_profiling_state",
-                target_register = "rip",
-                role = "inserted lightweight profiling event by lwpins",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "lwpval",
-            operands = {
-                { index = 1, role = "event_id" },
-                { index = 2, role = "event_data" },
-                { index = 3, role = "flags" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "lwpval_updates_profiling_state",
-                target_register = "rip",
-                role = "validated lightweight profiling event by lwpval",
-            },
-        }
-,
-
     -- CMP suffix aliases.
     
         {

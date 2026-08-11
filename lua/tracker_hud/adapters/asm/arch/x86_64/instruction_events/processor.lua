@@ -5,6 +5,10 @@
 -- Rich event specs preserve instruction-event metadata now, so
 -- fake RIP register-effect entries can be removed without losing
 -- the instruction's event/effect meaning.
+--  759
+-- 2095
+--
+
 
 return {
 
@@ -165,6 +169,800 @@ return {
             role = "reads hardware-generated seed data",
         },
     },
+
+
+        -- interrupt / system-call control transfer
+
+    -- int
+    {
+        kind = "processor_event",
+        category = "interrupt",
+        name = "int",
+        role = "transfers control through a software interrupt",
+
+        node_type = "instruction",
+        mnemonic = "int",
+
+        operands = {
+            { index = 1, role = "interrupt_vector" },
+        },
+
+        event = {
+            name = "int_software_interrupt",
+            display_name = "int",
+            role = "transfers control through a software interrupt",
+        },
+
+        effect = {
+            kind = "interrupt_transfer",
+            name = "int_software_interrupt",
+            role = "transfers control through a software interrupt",
+        },
+    },
+
+    -- int3
+    {
+        kind = "processor_event",
+        category = "interrupt",
+        name = "int3",
+        role = "transfers control through the breakpoint interrupt",
+
+        node_type = "instruction",
+        mnemonic = "int3",
+
+        operands = {},
+
+        event = {
+            name = "int3_breakpoint_interrupt",
+            display_name = "int3",
+            role = "transfers control through the breakpoint interrupt",
+        },
+
+        effect = {
+            kind = "interrupt_transfer",
+            name = "int3_breakpoint_interrupt",
+            role = "transfers control through the breakpoint interrupt",
+        },
+    },
+
+    -- into
+    {
+        kind = "processor_event",
+        category = "interrupt",
+        name = "into",
+        role = "transfers control through the overflow interrupt when overflow is set",
+
+        node_type = "instruction",
+        mnemonic = "into",
+
+        operands = {},
+
+        event = {
+            name = "into_overflow_interrupt",
+            display_name = "into",
+            role = "transfers control through the overflow interrupt when overflow is set",
+        },
+
+        effect = {
+            kind = "interrupt_transfer",
+            name = "into_overflow_interrupt",
+            role = "transfers control through the overflow interrupt when overflow is set",
+        },
+    },
+
+    -- iret
+    {
+        kind = "processor_event",
+        category = "interrupt_return",
+        name = "iret",
+        role = "returns from an interrupt handler",
+
+        node_type = "instruction",
+        mnemonic = "iret",
+
+        operands = {},
+
+        event = {
+            name = "iret_interrupt_return",
+            display_name = "iret",
+            role = "returns from an interrupt handler",
+        },
+
+        effect = {
+            kind = "interrupt_return",
+            name = "iret_interrupt_return",
+            role = "returns from an interrupt handler",
+        },
+    },
+
+    -- iretw
+    {
+        kind = "processor_event",
+        category = "interrupt_return",
+        name = "iretw",
+        role = "returns from an interrupt handler using word operand size",
+
+        node_type = "instruction",
+        mnemonic = "iretw",
+
+        operands = {},
+
+        event = {
+            name = "iretw_interrupt_return",
+            display_name = "iretw",
+            role = "returns from an interrupt handler using word operand size",
+        },
+
+        effect = {
+            kind = "interrupt_return",
+            name = "iretw_interrupt_return",
+            role = "returns from an interrupt handler using word operand size",
+        },
+    },
+
+    -- iretd
+    {
+        kind = "processor_event",
+        category = "interrupt_return",
+        name = "iretd",
+        role = "returns from an interrupt handler using doubleword operand size",
+
+        node_type = "instruction",
+        mnemonic = "iretd",
+
+        operands = {},
+
+        event = {
+            name = "iretd_interrupt_return",
+            display_name = "iretd",
+            role = "returns from an interrupt handler using doubleword operand size",
+        },
+
+        effect = {
+            kind = "interrupt_return",
+            name = "iretd_interrupt_return",
+            role = "returns from an interrupt handler using doubleword operand size",
+        },
+    },
+
+    -- iretq
+    {
+        kind = "processor_event",
+        category = "interrupt_return",
+        name = "iretq",
+        role = "returns from an interrupt handler in 64-bit mode",
+
+        node_type = "instruction",
+        mnemonic = "iretq",
+
+        operands = {},
+
+        event = {
+            name = "iretq_interrupt_return",
+            display_name = "iretq",
+            role = "returns from an interrupt handler in 64-bit mode",
+        },
+
+        effect = {
+            kind = "interrupt_return",
+            name = "iretq_interrupt_return",
+            role = "returns from an interrupt handler in 64-bit mode",
+        },
+    },
+
+    -- sysenter
+    {
+        kind = "processor_event",
+        category = "system_call",
+        name = "sysenter",
+        role = "enters a fast system-call handler",
+
+        node_type = "instruction",
+        mnemonic = "sysenter",
+
+        operands = {},
+
+        event = {
+            name = "sysenter_system_call_entry",
+            display_name = "sysenter",
+            role = "enters a fast system-call handler",
+        },
+
+        effect = {
+            kind = "system_call_entry",
+            name = "sysenter_system_call_entry",
+            role = "enters a fast system-call handler",
+        },
+    },
+
+    -- sysexit
+    {
+        kind = "processor_event",
+        category = "system_call",
+        name = "sysexit",
+        role = "returns from a fast system-call handler",
+
+        node_type = "instruction",
+        mnemonic = "sysexit",
+
+        operands = {},
+
+        event = {
+            name = "sysexit_system_call_return",
+            display_name = "sysexit",
+            role = "returns from a fast system-call handler",
+        },
+
+        effect = {
+            kind = "system_call_return",
+            name = "sysexit_system_call_return",
+            role = "returns from a fast system-call handler",
+        },
+    },
+
+    -- sysret
+    {
+        kind = "processor_event",
+        category = "system_call",
+        name = "sysret",
+        role = "returns from a system-call handler",
+
+        node_type = "instruction",
+        mnemonic = "sysret",
+
+        operands = {},
+
+        event = {
+            name = "sysret_system_call_return",
+            display_name = "sysret",
+            role = "returns from a system-call handler",
+        },
+
+        effect = {
+            kind = "system_call_return",
+            name = "sysret_system_call_return",
+            role = "returns from a system-call handler",
+        },
+    },
+
+    -- sysretq
+    {
+        kind = "processor_event",
+        category = "system_call",
+        name = "sysretq",
+        role = "returns from a system-call handler in 64-bit mode",
+
+        node_type = "instruction",
+        mnemonic = "sysretq",
+
+        operands = {},
+
+        event = {
+            name = "sysretq_system_call_return",
+            display_name = "sysretq",
+            role = "returns from a system-call handler in 64-bit mode",
+        },
+
+        effect = {
+            kind = "system_call_return",
+            name = "sysretq_system_call_return",
+            role = "returns from a system-call handler in 64-bit mode",
+        },
+    },
+
+    -- ud2
+    {
+        kind = "processor_event",
+        category = "exception",
+        name = "ud2",
+        role = "raises an invalid-instruction exception",
+
+        node_type = "instruction",
+        mnemonic = "ud2",
+
+        operands = {},
+
+        event = {
+            name = "ud2_invalid_instruction_exception",
+            display_name = "ud2",
+            role = "raises an invalid-instruction exception",
+        },
+
+        effect = {
+            kind = "processor_exception",
+            name = "ud2_invalid_instruction_exception",
+            role = "raises an invalid-instruction exception",
+        },
+    },
+
+    -- user interrupt / lightweight profiling
+
+    -- uiret
+    {
+        kind = "processor_event",
+        category = "interrupt_return",
+        name = "uiret",
+        role = "returns from a user interrupt handler",
+
+        node_type = "instruction",
+        mnemonic = "uiret",
+
+        operands = {},
+
+        event = {
+            name = "uiret_user_interrupt_return",
+            display_name = "uiret",
+            role = "returns from a user interrupt handler",
+        },
+
+        effect = {
+            kind = "interrupt_return",
+            name = "uiret_user_interrupt_return",
+            role = "returns from a user interrupt handler",
+        },
+    },
+
+
+ -- processor control / wait / invalidation
+
+    -- monitor
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "monitor",
+        role = "arms a monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "monitor",
+
+        operands = {},
+
+        event = {
+            name = "monitor_arms_monitored_address",
+            display_name = "monitor",
+            role = "arms a monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "monitor_arms_monitored_address",
+            role = "arms a monitored memory address",
+        },
+    },
+
+    -- mwait
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "mwait",
+        role = "waits for a monitored memory event",
+
+        node_type = "instruction",
+        mnemonic = "mwait",
+
+        operands = {},
+
+        event = {
+            name = "mwait_waits_for_monitored_event",
+            display_name = "mwait",
+            role = "waits for a monitored memory event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "mwait_waits_for_monitored_event",
+            role = "waits for a monitored memory event",
+        },
+    },
+
+    -- umwait
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "umwait",
+        role = "waits in user mode until timeout or event",
+
+        node_type = "instruction",
+        mnemonic = "umwait",
+
+        operands = {},
+
+        event = {
+            name = "umwait_user_mode_wait",
+            display_name = "umwait",
+            role = "waits in user mode until timeout or event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "umwait_user_mode_wait",
+            role = "waits in user mode until timeout or event",
+        },
+    },
+
+    -- tpause
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "tpause",
+        role = "pauses execution until timeout or event",
+
+        node_type = "instruction",
+        mnemonic = "tpause",
+
+        operands = {},
+
+        event = {
+            name = "tpause_timed_pause",
+            display_name = "tpause",
+            role = "pauses execution until timeout or event",
+        },
+
+        effect = {
+            kind = "processor_wait",
+            name = "tpause_timed_pause",
+            role = "pauses execution until timeout or event",
+        },
+    },
+
+    -- pause
+    {
+        kind = "processor_event",
+        category = "processor_hint",
+        name = "pause",
+        role = "hints a spin-wait loop to the processor",
+
+        node_type = "instruction",
+        mnemonic = "pause",
+
+        operands = {},
+
+        event = {
+            name = "pause_spin_wait_hint",
+            display_name = "pause",
+            role = "hints a spin-wait loop to the processor",
+        },
+
+        effect = {
+            kind = "processor_hint",
+            name = "pause_spin_wait_hint",
+            role = "hints a spin-wait loop to the processor",
+        },
+    },
+
+    -- hlt
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "hlt",
+        role = "halts processor execution until an interrupt or event",
+
+        node_type = "instruction",
+        mnemonic = "hlt",
+
+        operands = {},
+
+        event = {
+            name = "hlt_halts_processor",
+            display_name = "hlt",
+            role = "halts processor execution until an interrupt or event",
+        },
+
+        effect = {
+            kind = "processor_halt",
+            name = "hlt_halts_processor",
+            role = "halts processor execution until an interrupt or event",
+        },
+    },
+
+    -- rsm
+    {
+        kind = "processor_event",
+        category = "processor_mode",
+        name = "rsm",
+        role = "resumes execution from system management mode",
+
+        node_type = "instruction",
+        mnemonic = "rsm",
+
+        operands = {},
+
+        event = {
+            name = "rsm_resumes_from_system_management_mode",
+            display_name = "rsm",
+            role = "resumes execution from system management mode",
+        },
+
+        effect = {
+            kind = "processor_mode_return",
+            name = "rsm_resumes_from_system_management_mode",
+            role = "resumes execution from system management mode",
+        },
+    },
+
+    -- skinit
+    {
+        kind = "security_event",
+        category = "trusted_execution",
+        name = "skinit",
+        role = "starts secure kernel initialization",
+
+        node_type = "instruction",
+        mnemonic = "skinit",
+
+        operands = {},
+
+        event = {
+            name = "skinit_starts_secure_kernel_initialization",
+            display_name = "skinit",
+            role = "starts secure kernel initialization",
+        },
+
+        effect = {
+            kind = "trusted_execution_operation",
+            name = "skinit_starts_secure_kernel_initialization",
+            role = "starts secure kernel initialization",
+        },
+    },
+
+    -- processor no-op / wait / base / transaction state
+
+    -- nop
+    {
+        kind = "processor_event",
+        category = "processor_hint",
+        name = "nop",
+        role = "performs no operation",
+
+        node_type = "instruction",
+        mnemonic = "nop",
+
+        operands = {},
+
+        event = {
+            name = "nop_no_operation",
+            display_name = "nop",
+            role = "performs no operation",
+        },
+
+        effect = {
+            kind = "processor_no_operation",
+            name = "nop_no_operation",
+            role = "performs no operation",
+        },
+    },
+
+    -- fwait
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "fwait",
+        role = "waits for pending floating-point operations",
+
+        node_type = "instruction",
+        mnemonic = "fwait",
+
+        operands = {},
+
+        event = {
+            name = "fwait_waits_for_fpu",
+            display_name = "fwait",
+            role = "waits for pending floating-point operations",
+        },
+
+        effect = {
+            kind = "processor_wait",
+            name = "fwait_waits_for_fpu",
+            role = "waits for pending floating-point operations",
+        },
+    },
+
+   -- xbegin
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xbegin",
+        role = "begins a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xbegin",
+
+        operands = {
+            { index = 1, role = "abort_target" },
+        },
+
+        event = {
+            name = "xbegin_begins_transaction",
+            display_name = "xbegin",
+            role = "begins a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_begin",
+            name = "xbegin_begins_transaction",
+            role = "begins a transactional execution region",
+        },
+    },
+
+    -- xend
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xend",
+        role = "ends a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xend",
+
+        operands = {},
+
+        event = {
+            name = "xend_ends_transaction",
+            display_name = "xend",
+            role = "ends a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_end",
+            name = "xend_ends_transaction",
+            role = "ends a transactional execution region",
+        },
+    },
+
+    -- xabort
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xabort",
+        role = "aborts a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xabort",
+
+        operands = {
+            { index = 1, role = "abort_code" },
+        },
+
+        event = {
+            name = "xabort_aborts_transaction",
+            display_name = "xabort",
+            role = "aborts a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_abort",
+            name = "xabort_aborts_transaction",
+            role = "aborts a transactional execution region",
+        },
+    },
+
+    -- xsusldtrk
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xsusldtrk",
+        role = "suspends transactional load tracking",
+
+        node_type = "instruction",
+        mnemonic = "xsusldtrk",
+
+        operands = {},
+
+        event = {
+            name = "xsusldtrk_suspends_load_tracking",
+            display_name = "xsusldtrk",
+            role = "suspends transactional load tracking",
+        },
+
+        effect = {
+            kind = "transaction_load_tracking_suspend",
+            name = "xsusldtrk_suspends_load_tracking",
+            role = "suspends transactional load tracking",
+        },
+    },
+
+    -- xresldtrk
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xresldtrk",
+        role = "resumes transactional load tracking",
+
+        node_type = "instruction",
+        mnemonic = "xresldtrk",
+
+        operands = {},
+
+        event = {
+            name = "xresldtrk_resumes_load_tracking",
+            display_name = "xresldtrk",
+            role = "resumes transactional load tracking",
+        },
+
+        effect = {
+            kind = "transaction_load_tracking_resume",
+            name = "xresldtrk_resumes_load_tracking",
+            role = "resumes transactional load tracking",
+        },
+    },
+
+    -- monitorx
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "monitorx",
+        role = "arms an extended monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "monitorx",
+
+        operands = {},
+
+        event = {
+            name = "monitorx_arms_extended_monitored_address",
+            display_name = "monitorx",
+            role = "arms an extended monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "monitorx_arms_extended_monitored_address",
+            role = "arms an extended monitored memory address",
+        },
+    },
+
+    -- mwaitx
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "mwaitx",
+        role = "waits for an extended monitored memory event",
+
+        node_type = "instruction",
+        mnemonic = "mwaitx",
+
+        operands = {},
+
+        event = {
+            name = "mwaitx_waits_for_extended_monitored_event",
+            display_name = "mwaitx",
+            role = "waits for an extended monitored memory event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "mwaitx_waits_for_extended_monitored_event",
+            role = "waits for an extended monitored memory event",
+        },
+    },
+
+    -- umonitor
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "umonitor",
+        role = "arms a user-mode monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "umonitor",
+
+        operands = {
+            { index = 1, role = "address" },
+        },
+
+        event = {
+            name = "umonitor_arms_user_monitored_address",
+            display_name = "umonitor",
+            role = "arms a user-mode monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "umonitor_arms_user_monitored_address",
+            role = "arms a user-mode monitored memory address",
+        },
+    },
+
 
     -- processor_state
 
@@ -1235,158 +2033,65 @@ return {
         },
     },
 
-        -- processor control / wait / invalidation
-
-    -- monitor
+    -- lwpins
     {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "monitor",
-        role = "arms a monitored memory address",
+        kind = "processor_state_event",
+        category = "lightweight_profiling",
+        name = "lwpins",
+        role = "inserts a lightweight profiling event",
 
         node_type = "instruction",
-        mnemonic = "monitor",
+        mnemonic = "lwpins",
 
-        operands = {},
+        operands = {
+            { index = 1, role = "event_id" },
+            { index = 2, role = "event_data" },
+            { index = 3, role = "flags" },
+        },
 
         event = {
-            name = "monitor_arms_monitored_address",
-            display_name = "monitor",
-            role = "arms a monitored memory address",
+            name = "lwpins_inserts_profiling_event",
+            display_name = "lwpins",
+            role = "inserts a lightweight profiling event",
         },
 
         effect = {
-            kind = "monitor_wait_setup",
-            name = "monitor_arms_monitored_address",
-            role = "arms a monitored memory address",
+            kind = "profiling_state_update",
+            name = "lwpins_inserts_profiling_event",
+            role = "inserts a lightweight profiling event",
         },
     },
 
-    -- mwait
+     -- lwpval
     {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "mwait",
-        role = "waits for a monitored memory event",
+        kind = "processor_state_event",
+        category = "lightweight_profiling",
+        name = "lwpval",
+        role = "validates a lightweight profiling event",
 
         node_type = "instruction",
-        mnemonic = "mwait",
+        mnemonic = "lwpval",
 
-        operands = {},
+        operands = {
+            { index = 1, role = "event_id" },
+            { index = 2, role = "event_data" },
+            { index = 3, role = "flags" },
+        },
 
         event = {
-            name = "mwait_waits_for_monitored_event",
-            display_name = "mwait",
-            role = "waits for a monitored memory event",
+            name = "lwpval_validates_profiling_event",
+            display_name = "lwpval",
+            role = "validates a lightweight profiling event",
         },
 
         effect = {
-            kind = "monitor_wait",
-            name = "mwait_waits_for_monitored_event",
-            role = "waits for a monitored memory event",
+            kind = "profiling_state_update",
+            name = "lwpval_validates_profiling_event",
+            role = "validates a lightweight profiling event",
         },
     },
 
-    -- umwait
-    {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "umwait",
-        role = "waits in user mode until timeout or event",
-
-        node_type = "instruction",
-        mnemonic = "umwait",
-
-        operands = {},
-
-        event = {
-            name = "umwait_user_mode_wait",
-            display_name = "umwait",
-            role = "waits in user mode until timeout or event",
-        },
-
-        effect = {
-            kind = "monitor_wait",
-            name = "umwait_user_mode_wait",
-            role = "waits in user mode until timeout or event",
-        },
-    },
-
-    -- tpause
-    {
-        kind = "processor_event",
-        category = "processor_wait",
-        name = "tpause",
-        role = "pauses execution until timeout or event",
-
-        node_type = "instruction",
-        mnemonic = "tpause",
-
-        operands = {},
-
-        event = {
-            name = "tpause_timed_pause",
-            display_name = "tpause",
-            role = "pauses execution until timeout or event",
-        },
-
-        effect = {
-            kind = "processor_wait",
-            name = "tpause_timed_pause",
-            role = "pauses execution until timeout or event",
-        },
-    },
-
-    -- pause
-    {
-        kind = "processor_event",
-        category = "processor_hint",
-        name = "pause",
-        role = "hints a spin-wait loop to the processor",
-
-        node_type = "instruction",
-        mnemonic = "pause",
-
-        operands = {},
-
-        event = {
-            name = "pause_spin_wait_hint",
-            display_name = "pause",
-            role = "hints a spin-wait loop to the processor",
-        },
-
-        effect = {
-            kind = "processor_hint",
-            name = "pause_spin_wait_hint",
-            role = "hints a spin-wait loop to the processor",
-        },
-    },
-
-    -- hlt
-    {
-        kind = "processor_event",
-        category = "processor_wait",
-        name = "hlt",
-        role = "halts processor execution until an interrupt or event",
-
-        node_type = "instruction",
-        mnemonic = "hlt",
-
-        operands = {},
-
-        event = {
-            name = "hlt_halts_processor",
-            display_name = "hlt",
-            role = "halts processor execution until an interrupt or event",
-        },
-
-        effect = {
-            kind = "processor_halt",
-            name = "hlt_halts_processor",
-            role = "halts processor execution until an interrupt or event",
-        },
-    },
-
+   
     -- sti
     {
         kind = "processor_state_event",
@@ -1592,107 +2297,6 @@ return {
         },
     },
 
-    -- rsm
-    {
-        kind = "processor_event",
-        category = "processor_mode",
-        name = "rsm",
-        role = "resumes execution from system management mode",
-
-        node_type = "instruction",
-        mnemonic = "rsm",
-
-        operands = {},
-
-        event = {
-            name = "rsm_resumes_from_system_management_mode",
-            display_name = "rsm",
-            role = "resumes execution from system management mode",
-        },
-
-        effect = {
-            kind = "processor_mode_return",
-            name = "rsm_resumes_from_system_management_mode",
-            role = "resumes execution from system management mode",
-        },
-    },
-
-    -- skinit
-    {
-        kind = "security_event",
-        category = "trusted_execution",
-        name = "skinit",
-        role = "starts secure kernel initialization",
-
-        node_type = "instruction",
-        mnemonic = "skinit",
-
-        operands = {},
-
-        event = {
-            name = "skinit_starts_secure_kernel_initialization",
-            display_name = "skinit",
-            role = "starts secure kernel initialization",
-        },
-
-        effect = {
-            kind = "trusted_execution_operation",
-            name = "skinit_starts_secure_kernel_initialization",
-            role = "starts secure kernel initialization",
-        },
-    },
-
-        -- processor no-op / wait / base / transaction state
-
-    -- nop
-    {
-        kind = "processor_event",
-        category = "processor_hint",
-        name = "nop",
-        role = "performs no operation",
-
-        node_type = "instruction",
-        mnemonic = "nop",
-
-        operands = {},
-
-        event = {
-            name = "nop_no_operation",
-            display_name = "nop",
-            role = "performs no operation",
-        },
-
-        effect = {
-            kind = "processor_no_operation",
-            name = "nop_no_operation",
-            role = "performs no operation",
-        },
-    },
-
-    -- fwait
-    {
-        kind = "processor_event",
-        category = "processor_wait",
-        name = "fwait",
-        role = "waits for pending floating-point operations",
-
-        node_type = "instruction",
-        mnemonic = "fwait",
-
-        operands = {},
-
-        event = {
-            name = "fwait_waits_for_fpu",
-            display_name = "fwait",
-            role = "waits for pending floating-point operations",
-        },
-
-        effect = {
-            kind = "processor_wait",
-            name = "fwait_waits_for_fpu",
-            role = "waits for pending floating-point operations",
-        },
-    },
 
     -- wrfsbase
     {
@@ -1748,210 +2352,5 @@ return {
         },
     },
 
-    -- xbegin
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xbegin",
-        role = "begins a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xbegin",
-
-        operands = {
-            { index = 1, role = "abort_target" },
-        },
-
-        event = {
-            name = "xbegin_begins_transaction",
-            display_name = "xbegin",
-            role = "begins a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_begin",
-            name = "xbegin_begins_transaction",
-            role = "begins a transactional execution region",
-        },
-    },
-
-    -- xend
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xend",
-        role = "ends a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xend",
-
-        operands = {},
-
-        event = {
-            name = "xend_ends_transaction",
-            display_name = "xend",
-            role = "ends a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_end",
-            name = "xend_ends_transaction",
-            role = "ends a transactional execution region",
-        },
-    },
-
-    -- xabort
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xabort",
-        role = "aborts a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xabort",
-
-        operands = {
-            { index = 1, role = "abort_code" },
-        },
-
-        event = {
-            name = "xabort_aborts_transaction",
-            display_name = "xabort",
-            role = "aborts a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_abort",
-            name = "xabort_aborts_transaction",
-            role = "aborts a transactional execution region",
-        },
-    },
-
-    -- xsusldtrk
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xsusldtrk",
-        role = "suspends transactional load tracking",
-
-        node_type = "instruction",
-        mnemonic = "xsusldtrk",
-
-        operands = {},
-
-        event = {
-            name = "xsusldtrk_suspends_load_tracking",
-            display_name = "xsusldtrk",
-            role = "suspends transactional load tracking",
-        },
-
-        effect = {
-            kind = "transaction_load_tracking_suspend",
-            name = "xsusldtrk_suspends_load_tracking",
-            role = "suspends transactional load tracking",
-        },
-    },
-
-    -- xresldtrk
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xresldtrk",
-        role = "resumes transactional load tracking",
-
-        node_type = "instruction",
-        mnemonic = "xresldtrk",
-
-        operands = {},
-
-        event = {
-            name = "xresldtrk_resumes_load_tracking",
-            display_name = "xresldtrk",
-            role = "resumes transactional load tracking",
-        },
-
-        effect = {
-            kind = "transaction_load_tracking_resume",
-            name = "xresldtrk_resumes_load_tracking",
-            role = "resumes transactional load tracking",
-        },
-    },
-
-    -- monitorx
-    {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "monitorx",
-        role = "arms an extended monitored memory address",
-
-        node_type = "instruction",
-        mnemonic = "monitorx",
-
-        operands = {},
-
-        event = {
-            name = "monitorx_arms_extended_monitored_address",
-            display_name = "monitorx",
-            role = "arms an extended monitored memory address",
-        },
-
-        effect = {
-            kind = "monitor_wait_setup",
-            name = "monitorx_arms_extended_monitored_address",
-            role = "arms an extended monitored memory address",
-        },
-    },
-
-    -- mwaitx
-    {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "mwaitx",
-        role = "waits for an extended monitored memory event",
-
-        node_type = "instruction",
-        mnemonic = "mwaitx",
-
-        operands = {},
-
-        event = {
-            name = "mwaitx_waits_for_extended_monitored_event",
-            display_name = "mwaitx",
-            role = "waits for an extended monitored memory event",
-        },
-
-        effect = {
-            kind = "monitor_wait",
-            name = "mwaitx_waits_for_extended_monitored_event",
-            role = "waits for an extended monitored memory event",
-        },
-    },
-
-    -- umonitor
-    {
-        kind = "processor_event",
-        category = "monitor_wait",
-        name = "umonitor",
-        role = "arms a user-mode monitored memory address",
-
-        node_type = "instruction",
-        mnemonic = "umonitor",
-
-        operands = {
-            { index = 1, role = "address" },
-        },
-
-        event = {
-            name = "umonitor_arms_user_monitored_address",
-            display_name = "umonitor",
-            role = "arms a user-mode monitored memory address",
-        },
-
-        effect = {
-            kind = "monitor_wait_setup",
-            name = "umonitor_arms_user_monitored_address",
-            role = "arms a user-mode monitored memory address",
-        },
-    },
-}
+ }
 
