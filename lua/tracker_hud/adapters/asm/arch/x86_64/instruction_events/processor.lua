@@ -1641,5 +1641,317 @@ return {
             role = "starts secure kernel initialization",
         },
     },
+
+        -- processor no-op / wait / base / transaction state
+
+    -- nop
+    {
+        kind = "processor_event",
+        category = "processor_hint",
+        name = "nop",
+        role = "performs no operation",
+
+        node_type = "instruction",
+        mnemonic = "nop",
+
+        operands = {},
+
+        event = {
+            name = "nop_no_operation",
+            display_name = "nop",
+            role = "performs no operation",
+        },
+
+        effect = {
+            kind = "processor_no_operation",
+            name = "nop_no_operation",
+            role = "performs no operation",
+        },
+    },
+
+    -- fwait
+    {
+        kind = "processor_event",
+        category = "processor_wait",
+        name = "fwait",
+        role = "waits for pending floating-point operations",
+
+        node_type = "instruction",
+        mnemonic = "fwait",
+
+        operands = {},
+
+        event = {
+            name = "fwait_waits_for_fpu",
+            display_name = "fwait",
+            role = "waits for pending floating-point operations",
+        },
+
+        effect = {
+            kind = "processor_wait",
+            name = "fwait_waits_for_fpu",
+            role = "waits for pending floating-point operations",
+        },
+    },
+
+    -- wrfsbase
+    {
+        kind = "processor_state_event",
+        category = "segment_base_state",
+        name = "wrfsbase",
+        role = "writes FS base address state",
+
+        node_type = "instruction",
+        mnemonic = "wrfsbase",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "wrfsbase_writes_fs_base",
+            display_name = "wrfsbase",
+            role = "writes FS base address state",
+        },
+
+        effect = {
+            kind = "segment_base_state_write",
+            name = "wrfsbase_writes_fs_base",
+            role = "writes FS base address state",
+        },
+    },
+
+    -- wrgsbase
+    {
+        kind = "processor_state_event",
+        category = "segment_base_state",
+        name = "wrgsbase",
+        role = "writes GS base address state",
+
+        node_type = "instruction",
+        mnemonic = "wrgsbase",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "wrgsbase_writes_gs_base",
+            display_name = "wrgsbase",
+            role = "writes GS base address state",
+        },
+
+        effect = {
+            kind = "segment_base_state_write",
+            name = "wrgsbase_writes_gs_base",
+            role = "writes GS base address state",
+        },
+    },
+
+    -- xbegin
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xbegin",
+        role = "begins a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xbegin",
+
+        operands = {
+            { index = 1, role = "abort_target" },
+        },
+
+        event = {
+            name = "xbegin_begins_transaction",
+            display_name = "xbegin",
+            role = "begins a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_begin",
+            name = "xbegin_begins_transaction",
+            role = "begins a transactional execution region",
+        },
+    },
+
+    -- xend
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xend",
+        role = "ends a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xend",
+
+        operands = {},
+
+        event = {
+            name = "xend_ends_transaction",
+            display_name = "xend",
+            role = "ends a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_end",
+            name = "xend_ends_transaction",
+            role = "ends a transactional execution region",
+        },
+    },
+
+    -- xabort
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xabort",
+        role = "aborts a transactional execution region",
+
+        node_type = "instruction",
+        mnemonic = "xabort",
+
+        operands = {
+            { index = 1, role = "abort_code" },
+        },
+
+        event = {
+            name = "xabort_aborts_transaction",
+            display_name = "xabort",
+            role = "aborts a transactional execution region",
+        },
+
+        effect = {
+            kind = "transaction_abort",
+            name = "xabort_aborts_transaction",
+            role = "aborts a transactional execution region",
+        },
+    },
+
+    -- xsusldtrk
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xsusldtrk",
+        role = "suspends transactional load tracking",
+
+        node_type = "instruction",
+        mnemonic = "xsusldtrk",
+
+        operands = {},
+
+        event = {
+            name = "xsusldtrk_suspends_load_tracking",
+            display_name = "xsusldtrk",
+            role = "suspends transactional load tracking",
+        },
+
+        effect = {
+            kind = "transaction_load_tracking_suspend",
+            name = "xsusldtrk_suspends_load_tracking",
+            role = "suspends transactional load tracking",
+        },
+    },
+
+    -- xresldtrk
+    {
+        kind = "processor_event",
+        category = "transactional_memory",
+        name = "xresldtrk",
+        role = "resumes transactional load tracking",
+
+        node_type = "instruction",
+        mnemonic = "xresldtrk",
+
+        operands = {},
+
+        event = {
+            name = "xresldtrk_resumes_load_tracking",
+            display_name = "xresldtrk",
+            role = "resumes transactional load tracking",
+        },
+
+        effect = {
+            kind = "transaction_load_tracking_resume",
+            name = "xresldtrk_resumes_load_tracking",
+            role = "resumes transactional load tracking",
+        },
+    },
+
+    -- monitorx
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "monitorx",
+        role = "arms an extended monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "monitorx",
+
+        operands = {},
+
+        event = {
+            name = "monitorx_arms_extended_monitored_address",
+            display_name = "monitorx",
+            role = "arms an extended monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "monitorx_arms_extended_monitored_address",
+            role = "arms an extended monitored memory address",
+        },
+    },
+
+    -- mwaitx
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "mwaitx",
+        role = "waits for an extended monitored memory event",
+
+        node_type = "instruction",
+        mnemonic = "mwaitx",
+
+        operands = {},
+
+        event = {
+            name = "mwaitx_waits_for_extended_monitored_event",
+            display_name = "mwaitx",
+            role = "waits for an extended monitored memory event",
+        },
+
+        effect = {
+            kind = "monitor_wait",
+            name = "mwaitx_waits_for_extended_monitored_event",
+            role = "waits for an extended monitored memory event",
+        },
+    },
+
+    -- umonitor
+    {
+        kind = "processor_event",
+        category = "monitor_wait",
+        name = "umonitor",
+        role = "arms a user-mode monitored memory address",
+
+        node_type = "instruction",
+        mnemonic = "umonitor",
+
+        operands = {
+            { index = 1, role = "address" },
+        },
+
+        event = {
+            name = "umonitor_arms_user_monitored_address",
+            display_name = "umonitor",
+            role = "arms a user-mode monitored memory address",
+        },
+
+        effect = {
+            kind = "monitor_wait_setup",
+            name = "umonitor_arms_user_monitored_address",
+            role = "arms a user-mode monitored memory address",
+        },
+    },
 }
 

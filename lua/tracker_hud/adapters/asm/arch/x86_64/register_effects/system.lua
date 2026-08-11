@@ -248,20 +248,6 @@ return {
         }
 ,
 
-    -- 'nop' intentionally performs no operation.
-        {
-            node_type = "instruction",
-            mnemonic = "nop",
-            operands = {},
-
-            effect = {
-                kind = "register_write",
-                name = "nop_no_operation",
-                target_register = "rip",
-                role = "advanced by nop",
-            },
-        }
-,
 
     -- 'int imm' transfers control to a software interrupt handler.
         {
@@ -419,21 +405,6 @@ return {
         }
 ,
 
-
-    -- 'fwait' waits for the floating-point unit.
-        {
-            node_type = "instruction",
-            mnemonic = "fwait",
-            operands = {},
-    
-            effect = {
-                kind = "register_write",
-                name = "fwait_updates_rip",
-                target_register = "rip",
-                role = "waited for floating-point unit by fwait",
-            },
-        }
-,
 
     -- 'cli' clears the interrupt flag.
         {
@@ -656,21 +627,6 @@ return {
         }
 ,
 
-    -- 'xbegin target' conditionally transfers control and may write rax on abort.
-        {
-            node_type = "instruction",
-            mnemonic = "xbegin",
-            operands = {
-                { index = 1, role = "abort_target" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xbegin_updates_rip",
-                target_register = "rip",
-                role = "transactional branch started by xbegin",
-            },
-        }
-,
 
     -- 'xbegin' may write abort status to eax/rax.
         {
@@ -689,19 +645,6 @@ return {
         }
 ,
 
-    -- 'xend' ends a transactional region.
-        {
-            node_type = "instruction",
-            mnemonic = "xend",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xend_updates_rip",
-                target_register = "rip",
-                role = "ended transactional region by xend",
-            },
-        }
-,
 
     -- 'xtest' updates flags according to transactional state.
         {
@@ -713,22 +656,6 @@ return {
                 name = "xtest_updates_rflags",
                 target_register = "rflags",
                 role = "updated by transactional state test xtest",
-            },
-        }
-,
-
-    -- 'xabort imm' aborts a transactional region and transfers control.
-        {
-            node_type = "instruction",
-            mnemonic = "xabort",
-            operands = {
-                { index = 1, role = "abort_code" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xabort_updates_rip",
-                target_register = "rip",
-                role = "transaction aborted by xabort",
             },
         }
 ,
@@ -809,36 +736,6 @@ return {
                 name = "rdgsbase_writes_destination",
                 target_operand = 1,
                 role = "written with gs base by rdgsbase",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wrfsbase",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrfsbase_updates_system_state",
-                target_register = "rip",
-                role = "wrote fs base by wrfsbase",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wrgsbase",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrgsbase_updates_system_state",
-                target_register = "rip",
-                role = "wrote gs base by wrgsbase",
             },
         }
 ,
@@ -1603,86 +1500,9 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "wrssd",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrssd_updates_shadow_stack",
-                target_register = "rip",
-                role = "wrote 32-bit shadow stack memory by wrssd",
-            },
-        }
-,
 
-    {
-            node_type = "instruction",
-            mnemonic = "wrssq",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrssq_updates_shadow_stack",
-                target_register = "rip",
-                role = "wrote 64-bit shadow stack memory by wrssq",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wrussd",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrussd_updates_shadow_stack",
-                target_register = "rip",
-                role = "wrote 32-bit user shadow stack memory by wrussd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wrussq",
-            operands = {
-                { index = 1, role = "destination" },
-                { index = 2, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "wrussq_updates_shadow_stack",
-                target_register = "rip",
-                role = "wrote 64-bit user shadow stack memory by wrussq",
-            },
-        }
-,
 
     -- User interrupt / low-latency interrupt helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "senduipi",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "senduipi_updates_user_interrupt_state",
-                target_register = "rip",
-                role = "sent user interprocessor interrupt by senduipi",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -1697,59 +1517,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "monitorx",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "monitorx_updates_monitor_state",
-                target_register = "rip",
-                role = "armed extended monitor address by monitorx",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "mwaitx",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "mwaitx_updates_wait_state",
-                target_register = "rip",
-                role = "entered extended monitor wait state by mwaitx",
-            },
-        }
-,
-
-    -- TSX load tracking.
-
-        {
-            node_type = "instruction",
-            mnemonic = "xsusldtrk",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xsusldtrk_updates_transaction_state",
-                target_register = "rip",
-                role = "suspended transactional load tracking by xsusldtrk",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xresldtrk",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xresldtrk_updates_transaction_state",
-                target_register = "rip",
-                role = "resumed transactional load tracking by xresldtrk",
-            },
-        }
-,
 
     -- AMD / x86_64 virtualization and platform helpers.
 
@@ -1779,18 +1546,6 @@ return {
         }
 ,
 
-        {
-            node_type = "instruction",
-            mnemonic = "seamops",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "seamops_updates_platform_state",
-                target_register = "rip",
-                role = "performed seam operation by seamops",
-            },
-        }
-,
 
     -- Interrupt return aliases.
     
@@ -1833,26 +1588,6 @@ return {
         }
 ,
 
-    -- SGX / GETSEC / WAITPKG / platform-security / system-extension visibility effects.
-        -- Phase-one model: most privileged/platform state is exposed as RIP-side activity.
-
-    -- WAITPKG / timed wait helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "umonitor",
-            operands = {
-                { index = 1, role = "address" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "umonitor_updates_wait_state",
-                target_register = "rip",
-                role = "armed user-mode monitor address by umonitor",
-            },
-        }
-,
-
 
     {
             node_type = "instruction",
@@ -1869,20 +1604,6 @@ return {
         }
 ,
 
-        -- Platform configuration / entropy / firmware-ish helpers.
-    
-        {
-            node_type = "instruction",
-            mnemonic = "pconfig",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "pconfig_updates_platform_state",
-                target_register = "rip",
-                role = "configured platform feature state by pconfig",
-            },
-        }
-,
 
     {
             node_type = "instruction",
