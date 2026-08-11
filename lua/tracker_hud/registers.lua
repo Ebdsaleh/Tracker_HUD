@@ -143,6 +143,52 @@ local function collect_adapter_static_registers(registers, seen, context, adapte
     end
 end
 
+local function natural_register_name_parts(name)
+    local normalized = tostring(name or ""):lower()
+
+    local prefix, number, suffix = normalized:match("^(.-)(%d+)(.*)$")
+
+    if not prefix then
+        return normalized, nil, ""
+    end
+
+    return prefix, tonumber(number), suffix
+end
+
+local function compare_register_names(left, right)
+    local left_name = tostring(left.name or "")
+    local right_name = tostring(right.name or "")
+
+    local left_prefix, left_number, left_suffix =
+        natural_register_name_parts(left_name)
+
+    local right_prefix, right_number, right_suffix =
+        natural_register_name_parts(right_name)
+
+    if left_prefix ~= right_prefix then
+        return left_prefix < right_prefix
+    end
+
+    if left_number ~= nil and right_number ~= nil
+        and left_number ~= right_number
+    then
+        return left_number < right_number
+    end
+
+    if left_number ~= nil and right_number == nil then
+        return false
+    end
+
+    if left_number == nil and right_number ~= nil then
+        return true
+    end
+
+    if left_suffix ~= right_suffix then
+        return left_suffix < right_suffix
+    end
+
+    return left_name < right_name
+end
 
 function M.collect(context, adapter, opts)
     local registers = {}
@@ -158,9 +204,7 @@ function M.collect(context, adapter, opts)
     collect_engine_register_effects(registers, seen, context, adapter, opts)
     collect_adapter_static_registers(registers, seen, context, adapter)
 
-    table.sort(registers, function(left, right)
-        return tostring(left.name or "") < tostring(right.name or "")
-    end)
+    table.sort(registers, compare_register_names)
 
     return registers
 end
