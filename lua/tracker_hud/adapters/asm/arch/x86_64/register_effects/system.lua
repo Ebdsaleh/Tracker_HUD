@@ -8,9 +8,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cpuid",
-    
             operands = {},
-    
             effect = {
                 kind = "register_write",
                 name = "cpuid_writes_rax",
@@ -24,9 +22,7 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cpuid",
-    
             operands = {},
-    
             effect = {
                 kind = "register_write",
                 name = "cpuid_writes_rbx",
@@ -40,9 +36,9 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cpuid",
-    
+
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "cpuid_writes_rcx",
@@ -56,9 +52,9 @@ return {
         {
             node_type = "instruction",
             mnemonic = "cpuid",
-    
+
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "cpuid_writes_rdx",
@@ -257,7 +253,7 @@ return {
             node_type = "instruction",
             mnemonic = "nop",
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "nop_no_operation",
@@ -271,14 +267,14 @@ return {
         {
             node_type = "instruction",
             mnemonic = "int",
-    
+
             operands = {
                 {
                     index = 1,
                     role = "interrupt_vector",
                 },
             },
-    
+
             effect = {
                 kind = "register_write",
                 name = "int_updates_rip",
@@ -293,7 +289,7 @@ return {
             node_type = "instruction",
             mnemonic = "int3",
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "int3_updates_rip",
@@ -308,7 +304,7 @@ return {
             node_type = "instruction",
             mnemonic = "into",
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "into_updates_rip",
@@ -781,91 +777,7 @@ return {
         }
 ,
 
-    -- Memory ordering fences.
-        {
-            node_type = "instruction",
-            mnemonic = "lfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "lfence_orders_memory",
-                target_register = "rip",
-                role = "passed load fence by lfence",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "sfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "sfence_orders_memory",
-                target_register = "rip",
-                role = "passed store fence by sfence",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "mfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "mfence_orders_memory",
-                target_register = "rip",
-                role = "passed memory fence by mfence",
-            },
-        }
-,
-
     -- Cache-line maintenance instructions.
-        {
-            node_type = "instruction",
-            mnemonic = "clflush",
-            operands = {
-                { index = 1, role = "memory_operand" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clflush_touches_cache",
-                target_register = "rip",
-                role = "flushed cache line by clflush",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clflushopt",
-            operands = {
-                { index = 1, role = "memory_operand" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clflushopt_touches_cache",
-                target_register = "rip",
-                role = "flushed cache line by clflushopt",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clwb",
-            operands = {
-                { index = 1, role = "memory_operand" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clwb_touches_cache",
-                target_register = "rip",
-                role = "wrote back cache line by clwb",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -1237,58 +1149,6 @@ return {
         }
 ,
 
-    -- Invalidation / serialization / privilege-state helpers.
-        {
-            node_type = "instruction",
-            mnemonic = "invd",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "invd_invalidates_cache",
-                target_register = "rip",
-                role = "invalidated internal caches by invd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wbinvd",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "wbinvd_writes_back_cache",
-                target_register = "rip",
-                role = "wrote back and invalidated caches by wbinvd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "serialize",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "serialize_serializes_execution",
-                target_register = "rip",
-                role = "serialized instruction execution by serialize",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "cpuid",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "cpuid_serializes_execution",
-                target_register = "rip",
-                role = "serialized instruction execution by cpuid",
-            },
-        }
-,
 
     -- VMX/SVM virtualization instructions. Modeled as system-state/RFLAGS visibility.
         {
@@ -1622,156 +1482,6 @@ return {
                 name = "fxrstor64_restores_processor_state",
                 target_register = "rip",
                 role = "restored 64-bit fpu and simd state by fxrstor64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsave",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsave_stores_processor_state",
-                target_register = "rip",
-                role = "saved extended processor state by xsave",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsave64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsave64_stores_processor_state",
-                target_register = "rip",
-                role = "saved 64-bit extended processor state by xsave64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaveopt",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaveopt_stores_processor_state",
-                target_register = "rip",
-                role = "optimally saved extended processor state by xsaveopt",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaveopt64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaveopt64_stores_processor_state",
-                target_register = "rip",
-                role = "optimally saved 64-bit extended processor state by xsaveopt64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsavec",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsavec_stores_processor_state",
-                target_register = "rip",
-                role = "compacted saved extended processor state by xsavec",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsavec64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsavec64_stores_processor_state",
-                target_register = "rip",
-                role = "compacted saved 64-bit extended processor state by xsavec64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaves",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaves_stores_processor_state",
-                target_register = "rip",
-                role = "supervisor saved extended processor state by xsaves",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaves64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaves64_stores_processor_state",
-                target_register = "rip",
-                role = "supervisor saved 64-bit extended processor state by xsaves64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xrstor",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xrstor_restores_processor_state",
-                target_register = "rip",
-                role = "restored extended processor state by xrstor",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xrstor64",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xrstor64_restores_processor_state",
-                target_register = "rip",
-                role = "restored 64-bit extended processor state by xrstor64",
             },
         }
 ,
@@ -3279,7 +2989,7 @@ return {
 
     -- Checkpoint 4.67 — Final system / serialization / privilege / descriptor leftover sweep.
         -- Phase-one model: system/control effects are exposed through RIP or the obvious architectural register.
-    
+
         {
             node_type = "instruction",
             mnemonic = "cpuid",
@@ -3328,129 +3038,6 @@ return {
                 name = "cpuid_writes_rdx",
                 target_register = "rdx",
                 role = "written with processor identification leaf result by cpuid",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "serialize",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "serialize_serializes_execution",
-                target_register = "rip",
-                role = "serialized instruction execution by serialize",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "lfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "lfence_orders_loads",
-                target_register = "rip",
-                role = "ordered load operations by lfence",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "sfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "sfence_orders_stores",
-                target_register = "rip",
-                role = "ordered store operations by sfence",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "mfence",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "mfence_orders_memory",
-                target_register = "rip",
-                role = "ordered memory operations by mfence",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clflush",
-            operands = {
-                { index = 1, role = "memory" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clflush_flushes_cache_line",
-                target_register = "rip",
-                role = "flushed cache line by clflush",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clflushopt",
-            operands = {
-                { index = 1, role = "memory" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clflushopt_flushes_cache_line",
-                target_register = "rip",
-                role = "flushed cache line with optimized ordering by clflushopt",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "clwb",
-            operands = {
-                { index = 1, role = "memory" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "clwb_writes_back_cache_line",
-                target_register = "rip",
-                role = "wrote back cache line by clwb",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "invd",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "invd_invalidates_cache",
-                target_register = "rip",
-                role = "invalidated internal caches by invd",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "wbinvd",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "wbinvd_writes_back_and_invalidates_cache",
-                target_register = "rip",
-                role = "wrote back and invalidated caches by wbinvd",
             },
         }
 ,
@@ -3678,18 +3265,6 @@ return {
         }
 ,
 
-    {
-            node_type = "instruction",
-            mnemonic = "wrmsr",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "wrmsr_writes_model_specific_register",
-                target_register = "rip",
-                role = "wrote model-specific register by wrmsr",
-            },
-        }
-,
 
     {
             node_type = "instruction",
@@ -3892,169 +3467,6 @@ return {
                 name = "xgetbv_writes_rdx",
                 target_register = "rdx",
                 role = "written with extended control register high value by xgetbv",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsetbv",
-            operands = {},
-            effect = {
-                kind = "register_write",
-                name = "xsetbv_writes_extended_control_register",
-                target_register = "rip",
-                role = "wrote extended control register by xsetbv",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsave",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsave_saves_extended_state",
-                target_register = "rip",
-                role = "saved extended processor state by xsave",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsave64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsave64_saves_extended_state",
-                target_register = "rip",
-                role = "saved extended processor state by xsave64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaveopt",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaveopt_saves_extended_state",
-                target_register = "rip",
-                role = "saved optimized extended processor state by xsaveopt",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaveopt64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaveopt64_saves_extended_state",
-                target_register = "rip",
-                role = "saved optimized extended processor state by xsaveopt64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsavec",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsavec_saves_compacted_extended_state",
-                target_register = "rip",
-                role = "saved compacted extended processor state by xsavec",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsavec64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsavec64_saves_compacted_extended_state",
-                target_register = "rip",
-                role = "saved compacted extended processor state by xsavec64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaves",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaves_saves_supervisor_extended_state",
-                target_register = "rip",
-                role = "saved supervisor extended processor state by xsaves",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xsaves64",
-            operands = {
-                { index = 1, role = "destination" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xsaves64_saves_supervisor_extended_state",
-                target_register = "rip",
-                role = "saved supervisor extended processor state by xsaves64",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xrstor",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xrstor_restores_extended_state",
-                target_register = "rip",
-                role = "restored extended processor state by xrstor",
-            },
-        }
-,
-
-    {
-            node_type = "instruction",
-            mnemonic = "xrstor64",
-            operands = {
-                { index = 1, role = "source" },
-            },
-            effect = {
-                kind = "register_write",
-                name = "xrstor64_restores_extended_state",
-                target_register = "rip",
-                role = "restored extended processor state by xrstor64",
             },
         }
 ,
@@ -4309,9 +3721,9 @@ return {
         {
             node_type = "instruction",
             mnemonic = "syscall",
-    
+
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "syscall_clobber_r11",
@@ -4327,9 +3739,9 @@ return {
         {
             node_type = "instruction",
             mnemonic = "syscall",
-    
+
             operands = {},
-    
+
             effect = {
                 kind = "register_write",
                 name = "syscall_return_rax",

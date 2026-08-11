@@ -1,10 +1,14 @@
 -- lua/tracker_hud/adapters/asm/arch/x86_64/instruction_events/processor.lua
 --
-
+-- x86-64 instruction event specs: processor.
+--
+-- Rich event specs preserve instruction-event metadata now, so
+-- fake RIP register-effect entries can be removed without losing
+-- the instruction's event/effect meaning.
 
 return {
 
-    -- processor_events
+    -- processor
 
     -- cpuid
     {
@@ -12,9 +16,26 @@ return {
         category = "processor",
         name = "cpuid",
         role = "queries processor information and feature flags",
+
         node_type = "instruction",
         mnemonic = "cpuid",
+
+        operands = {},
+
+        event = {
+            name = "cpuid_processor_query",
+            display_name = "cpuid",
+            role = "queries processor information and feature flags",
+        },
+
+        effect = {
+            kind = "processor_query",
+            name = "cpuid_processor_query",
+            role = "queries processor information and feature flags",
+        },
     },
+
+    -- serialization
 
     -- serialize
     {
@@ -22,9 +43,26 @@ return {
         category = "serialization",
         name = "serialize",
         role = "serializes instruction execution",
+
         node_type = "instruction",
         mnemonic = "serialize",
+
+        operands = {},
+
+        event = {
+            name = "serialize_processor_serialization",
+            display_name = "serialize",
+            role = "serializes instruction execution",
+        },
+
+        effect = {
+            kind = "processor_serialization",
+            name = "serialize_processor_serialization",
+            role = "serializes instruction execution",
+        },
     },
+
+    -- timestamp
 
     -- rdtsc
     {
@@ -32,8 +70,23 @@ return {
         category = "timestamp",
         name = "rdtsc",
         role = "reads the processor timestamp counter",
+
         node_type = "instruction",
         mnemonic = "rdtsc",
+
+        operands = {},
+
+        event = {
+            name = "rdtsc_timestamp_read",
+            display_name = "rdtsc",
+            role = "reads the processor timestamp counter",
+        },
+
+        effect = {
+            kind = "timestamp_read",
+            name = "rdtsc_timestamp_read",
+            role = "reads the processor timestamp counter",
+        },
     },
 
     -- rdtscp
@@ -42,9 +95,26 @@ return {
         category = "timestamp",
         name = "rdtscp",
         role = "reads the processor timestamp counter with ordering",
+
         node_type = "instruction",
         mnemonic = "rdtscp",
+
+        operands = {},
+
+        event = {
+            name = "rdtscp_timestamp_read",
+            display_name = "rdtscp",
+            role = "reads the processor timestamp counter with ordering",
+        },
+
+        effect = {
+            kind = "timestamp_read",
+            name = "rdtscp_timestamp_read",
+            role = "reads the processor timestamp counter with ordering",
+        },
     },
+
+    -- random
 
     -- rdrand
     {
@@ -52,8 +122,23 @@ return {
         category = "random",
         name = "rdrand",
         role = "reads hardware-generated random data",
+
         node_type = "instruction",
         mnemonic = "rdrand",
+
+        operands = {},
+
+        event = {
+            name = "rdrand_hardware_random_read",
+            display_name = "rdrand",
+            role = "reads hardware-generated random data",
+        },
+
+        effect = {
+            kind = "hardware_random_read",
+            name = "rdrand_hardware_random_read",
+            role = "reads hardware-generated random data",
+        },
     },
 
     -- rdseed
@@ -62,12 +147,26 @@ return {
         category = "random",
         name = "rdseed",
         role = "reads hardware-generated seed data",
+
         node_type = "instruction",
         mnemonic = "rdseed",
+
+        operands = {},
+
+        event = {
+            name = "rdseed_hardware_random_read",
+            display_name = "rdseed",
+            role = "reads hardware-generated seed data",
+        },
+
+        effect = {
+            kind = "hardware_random_read",
+            name = "rdseed_hardware_random_read",
+            role = "reads hardware-generated seed data",
+        },
     },
 
-
-    -- processor_state_events
+    -- processor_state
 
     -- wrmsr
     {
@@ -75,8 +174,23 @@ return {
         category = "processor_state",
         name = "wrmsr",
         role = "writes a model-specific register",
+
         node_type = "instruction",
         mnemonic = "wrmsr",
+
+        operands = {},
+
+        event = {
+            name = "wrmsr_processor_state_write",
+            display_name = "wrmsr",
+            role = "writes a model-specific register",
+        },
+
+        effect = {
+            kind = "processor_state_write",
+            name = "wrmsr_processor_state_write",
+            role = "writes a model-specific register",
+        },
     },
 
     -- rdmsr
@@ -85,8 +199,23 @@ return {
         category = "processor_state",
         name = "rdmsr",
         role = "reads a model-specific register",
+
         node_type = "instruction",
         mnemonic = "rdmsr",
+
+        operands = {},
+
+        event = {
+            name = "rdmsr_processor_state_read",
+            display_name = "rdmsr",
+            role = "reads a model-specific register",
+        },
+
+        effect = {
+            kind = "processor_state_read",
+            name = "rdmsr_processor_state_read",
+            role = "reads a model-specific register",
+        },
     },
 
     -- xgetbv
@@ -95,8 +224,23 @@ return {
         category = "processor_state",
         name = "xgetbv",
         role = "reads extended control register state",
+
         node_type = "instruction",
         mnemonic = "xgetbv",
+
+        operands = {},
+
+        event = {
+            name = "xgetbv_processor_state_read",
+            display_name = "xgetbv",
+            role = "reads extended control register state",
+        },
+
+        effect = {
+            kind = "processor_state_read",
+            name = "xgetbv_processor_state_read",
+            role = "reads extended control register state",
+        },
     },
 
     -- xsetbv
@@ -105,9 +249,26 @@ return {
         category = "processor_state",
         name = "xsetbv",
         role = "writes extended control register state",
+
         node_type = "instruction",
         mnemonic = "xsetbv",
+
+        operands = {},
+
+        event = {
+            name = "xsetbv_processor_state_write",
+            display_name = "xsetbv",
+            role = "writes extended control register state",
+        },
+
+        effect = {
+            kind = "processor_state_write",
+            name = "xsetbv_processor_state_write",
+            role = "writes extended control register state",
+        },
     },
+
+    -- extended_state
 
     -- xsave
     {
@@ -115,8 +276,23 @@ return {
         category = "extended_state",
         name = "xsave",
         role = "saves extended processor state",
+
         node_type = "instruction",
         mnemonic = "xsave",
+
+        operands = {},
+
+        event = {
+            name = "xsave_processor_state_save",
+            display_name = "xsave",
+            role = "saves extended processor state",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsave_processor_state_save",
+            role = "saves extended processor state",
+        },
     },
 
     -- xsave64
@@ -125,8 +301,23 @@ return {
         category = "extended_state",
         name = "xsave64",
         role = "saves extended processor state in 64-bit mode",
+
         node_type = "instruction",
         mnemonic = "xsave64",
+
+        operands = {},
+
+        event = {
+            name = "xsave64_processor_state_save",
+            display_name = "xsave64",
+            role = "saves extended processor state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsave64_processor_state_save",
+            role = "saves extended processor state in 64-bit mode",
+        },
     },
 
     -- xsaveopt
@@ -135,8 +326,23 @@ return {
         category = "extended_state",
         name = "xsaveopt",
         role = "saves modified extended processor state",
+
         node_type = "instruction",
         mnemonic = "xsaveopt",
+
+        operands = {},
+
+        event = {
+            name = "xsaveopt_processor_state_save",
+            display_name = "xsaveopt",
+            role = "saves modified extended processor state",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsaveopt_processor_state_save",
+            role = "saves modified extended processor state",
+        },
     },
 
     -- xsaveopt64
@@ -145,8 +351,23 @@ return {
         category = "extended_state",
         name = "xsaveopt64",
         role = "saves modified extended processor state in 64-bit mode",
+
         node_type = "instruction",
         mnemonic = "xsaveopt64",
+
+        operands = {},
+
+        event = {
+            name = "xsaveopt64_processor_state_save",
+            display_name = "xsaveopt64",
+            role = "saves modified extended processor state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsaveopt64_processor_state_save",
+            role = "saves modified extended processor state in 64-bit mode",
+        },
     },
 
     -- xsaves
@@ -155,8 +376,23 @@ return {
         category = "extended_state",
         name = "xsaves",
         role = "saves supervisor/user extended processor state",
+
         node_type = "instruction",
         mnemonic = "xsaves",
+
+        operands = {},
+
+        event = {
+            name = "xsaves_processor_state_save",
+            display_name = "xsaves",
+            role = "saves supervisor/user extended processor state",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsaves_processor_state_save",
+            role = "saves supervisor/user extended processor state",
+        },
     },
 
     -- xsaves64
@@ -165,8 +401,73 @@ return {
         category = "extended_state",
         name = "xsaves64",
         role = "saves supervisor/user extended processor state in 64-bit mode",
+
         node_type = "instruction",
         mnemonic = "xsaves64",
+
+        operands = {},
+
+        event = {
+            name = "xsaves64_processor_state_save",
+            display_name = "xsaves64",
+            role = "saves supervisor/user extended processor state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsaves64_processor_state_save",
+            role = "saves supervisor/user extended processor state in 64-bit mode",
+        },
+    },
+
+    -- xsavec
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsavec",
+        role = "saves compacted extended processor state",
+
+        node_type = "instruction",
+        mnemonic = "xsavec",
+
+        operands = {},
+
+        event = {
+            name = "xsavec_processor_state_save",
+            display_name = "xsavec",
+            role = "saves compacted extended processor state",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsavec_processor_state_save",
+            role = "saves compacted extended processor state",
+        },
+    },
+
+    -- xsavec64
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xsavec64",
+        role = "saves compacted extended processor state in 64-bit mode",
+
+        node_type = "instruction",
+        mnemonic = "xsavec64",
+
+        operands = {},
+
+        event = {
+            name = "xsavec64_processor_state_save",
+            display_name = "xsavec64",
+            role = "saves compacted extended processor state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_save",
+            name = "xsavec64_processor_state_save",
+            role = "saves compacted extended processor state in 64-bit mode",
+        },
     },
 
     -- xrstor
@@ -175,8 +476,23 @@ return {
         category = "extended_state",
         name = "xrstor",
         role = "restores extended processor state",
+
         node_type = "instruction",
         mnemonic = "xrstor",
+
+        operands = {},
+
+        event = {
+            name = "xrstor_processor_state_restore",
+            display_name = "xrstor",
+            role = "restores extended processor state",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "xrstor_processor_state_restore",
+            role = "restores extended processor state",
+        },
     },
 
     -- xrstor64
@@ -185,9 +501,73 @@ return {
         category = "extended_state",
         name = "xrstor64",
         role = "restores extended processor state in 64-bit mode",
+
         node_type = "instruction",
         mnemonic = "xrstor64",
+
+        operands = {},
+
+        event = {
+            name = "xrstor64_processor_state_restore",
+            display_name = "xrstor64",
+            role = "restores extended processor state in 64-bit mode",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "xrstor64_processor_state_restore",
+            role = "restores extended processor state in 64-bit mode",
+        },
     },
 
+    -- xrstors
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xrstors",
+        role = "restored supervisor extended processor state by xrstors",
 
+        node_type = "instruction",
+        mnemonic = "xrstors",
+
+        operands = {},
+
+        event = {
+            name = "xrstors_processor_state_restore",
+            display_name = "xrstors",
+            role = "restored supervisor extended processor state by xrstors",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "xrstors_processor_state_restore",
+            role = "restored supervisor extended processor state by xrstors",
+        },
+    },
+
+    -- xrstors64
+    {
+        kind = "processor_state_event",
+        category = "extended_state",
+        name = "xrstors64",
+        role = "restored supervisor 64-bit extended processor state by xrstors64",
+
+        node_type = "instruction",
+        mnemonic = "xrstors64",
+
+        operands = {},
+
+        event = {
+            name = "xrstors64_processor_state_restore",
+            display_name = "xrstors64",
+            role = "restored supervisor 64-bit extended processor state by xrstors64",
+        },
+
+        effect = {
+            kind = "processor_state_restore",
+            name = "xrstors64_processor_state_restore",
+            role = "restored supervisor 64-bit extended processor state by xrstors64",
+        },
+    },
 }
+
