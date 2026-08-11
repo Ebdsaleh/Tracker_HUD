@@ -5,7 +5,7 @@
 return {
     -- Packed integer SIMD/MMX/SSE visibility effects.
         -- Phase-one model: no SIMD/MMX register file yet, so most vector effects are exposed as RIP-side activity.
-    
+
         {
             node_type = "instruction",
             mnemonic = "paddb",
