@@ -1200,6 +1200,214 @@ M.register_families = {
         },
         alias_order = { "zmm15", "ymm15", "xmm15" },
     },
+
+    zmm16 = {
+        canonical = "zmm16",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm16 = { name = "zmm16", bits = 512, offset = 0, write_mode = "full" },
+            ymm16 = { name = "ymm16", bits = 256, offset = 0 },
+            xmm16 = { name = "xmm16", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm16", "ymm16", "xmm16" },
+    },
+
+    zmm17 = {
+        canonical = "zmm17",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm17 = { name = "zmm17", bits = 512, offset = 0, write_mode = "full" },
+            ymm17 = { name = "ymm17", bits = 256, offset = 0 },
+            xmm17 = { name = "xmm17", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm17", "ymm17", "xmm17" },
+    },
+
+    zmm18 = {
+        canonical = "zmm18",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm18 = { name = "zmm18", bits = 512, offset = 0, write_mode = "full" },
+            ymm18 = { name = "ymm18", bits = 256, offset = 0 },
+            xmm18 = { name = "xmm18", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm18", "ymm18", "xmm18" },
+    },
+
+    zmm19 = {
+        canonical = "zmm19",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm19 = { name = "zmm19", bits = 512, offset = 0, write_mode = "full" },
+            ymm19 = { name = "ymm19", bits = 256, offset = 0 },
+            xmm19 = { name = "xmm19", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm19", "ymm19", "xmm19" },
+    },
+
+    zmm20 = {
+        canonical = "zmm20",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm20 = { name = "zmm20", bits = 512, offset = 0, write_mode = "full" },
+            ymm20 = { name = "ymm20", bits = 256, offset = 0 },
+            xmm20 = { name = "xmm20", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm20", "ymm20", "xmm20" },
+    },
+
+    zmm21 = {
+        canonical = "zmm21",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm21 = { name = "zmm21", bits = 512, offset = 0, write_mode = "full" },
+            ymm21 = { name = "ymm21", bits = 256, offset = 0 },
+            xmm21 = { name = "xmm21", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm21", "ymm21", "xmm21" },
+    },
+
+    zmm22 = {
+        canonical = "zmm22",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm22 = { name = "zmm22", bits = 512, offset = 0, write_mode = "full" },
+            ymm22 = { name = "ymm22", bits = 256, offset = 0 },
+            xmm22 = { name = "xmm22", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm22", "ymm22", "xmm22" },
+    },
+
+    zmm23 = {
+        canonical = "zmm23",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm23 = { name = "zmm23", bits = 512, offset = 0, write_mode = "full" },
+            ymm23 = { name = "ymm23", bits = 256, offset = 0 },
+            xmm23 = { name = "xmm23", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm23", "ymm23", "xmm23" },
+    },
+
+    zmm24 = {
+        canonical = "zmm24",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm24 = { name = "zmm24", bits = 512, offset = 0, write_mode = "full" },
+            ymm24 = { name = "ymm24", bits = 256, offset = 0 },
+            xmm24 = { name = "xmm24", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm24", "ymm24", "xmm24" },
+    },
+
+    zmm25 = {
+        canonical = "zmm25",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm25 = { name = "zmm25", bits = 512, offset = 0, write_mode = "full" },
+            ymm25 = { name = "ymm25", bits = 256, offset = 0 },
+            xmm25 = { name = "xmm25", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm25", "ymm25", "xmm25" },
+    },
+
+    zmm26 = {
+        canonical = "zmm26",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm26 = { name = "zmm26", bits = 512, offset = 0, write_mode = "full" },
+            ymm26 = { name = "ymm26", bits = 256, offset = 0 },
+            xmm26 = { name = "xmm26", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm26", "ymm26", "xmm26" },
+    },
+
+    zmm27 = {
+        canonical = "zmm27",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm27 = { name = "zmm27", bits = 512, offset = 0, write_mode = "full" },
+            ymm27 = { name = "ymm27", bits = 256, offset = 0 },
+            xmm27 = { name = "xmm27", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm27", "ymm27", "xmm27" },
+    },
+
+    zmm28 = {
+        canonical = "zmm28",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm28 = { name = "zmm28", bits = 512, offset = 0, write_mode = "full" },
+            ymm28 = { name = "ymm28", bits = 256, offset = 0 },
+            xmm28 = { name = "xmm28", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm28", "ymm28", "xmm28" },
+    },
+
+    zmm29 = {
+        canonical = "zmm29",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm29 = { name = "zmm29", bits = 512, offset = 0, write_mode = "full" },
+            ymm29 = { name = "ymm29", bits = 256, offset = 0 },
+            xmm29 = { name = "xmm29", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm29", "ymm29", "xmm29" },
+    },
+
+    zmm30 = {
+        canonical = "zmm30",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm30 = { name = "zmm30", bits = 512, offset = 0, write_mode = "full" },
+            ymm30 = { name = "ymm30", bits = 256, offset = 0 },
+            xmm30 = { name = "xmm30", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm30", "ymm30", "xmm30" },
+    },
+
+    zmm31 = {
+        canonical = "zmm31",
+        bits = 512,
+        kind = "vector",
+        role = "vector register",
+        aliases = {
+            zmm31 = { name = "zmm31", bits = 512, offset = 0, write_mode = "full" },
+            ymm31 = { name = "ymm31", bits = 256, offset = 0 },
+            xmm31 = { name = "xmm31", bits = 128, offset = 0 },
+        },
+        alias_order = { "zmm31", "ymm31", "xmm31" },
+    },
 }
 
 
@@ -1244,6 +1452,22 @@ M.registers = {
         { name = "zmm13", kind = "vector", role = "vector register", family = "zmm13" },
         { name = "zmm14", kind = "vector", role = "vector register", family = "zmm14" },
         { name = "zmm15", kind = "vector", role = "vector register", family = "zmm15" },
+        { name = "zmm16", kind = "vector", role = "vector register", family = "zmm16" },
+        { name = "zmm17", kind = "vector", role = "vector register", family = "zmm17" },
+        { name = "zmm18", kind = "vector", role = "vector register", family = "zmm18" },
+        { name = "zmm19", kind = "vector", role = "vector register", family = "zmm19" },
+        { name = "zmm20", kind = "vector", role = "vector register", family = "zmm20" },
+        { name = "zmm21", kind = "vector", role = "vector register", family = "zmm21" },
+        { name = "zmm22", kind = "vector", role = "vector register", family = "zmm22" },
+        { name = "zmm23", kind = "vector", role = "vector register", family = "zmm23" },
+        { name = "zmm24", kind = "vector", role = "vector register", family = "zmm24" },
+        { name = "zmm25", kind = "vector", role = "vector register", family = "zmm25" },
+        { name = "zmm26", kind = "vector", role = "vector register", family = "zmm26" },
+        { name = "zmm27", kind = "vector", role = "vector register", family = "zmm27" },
+        { name = "zmm28", kind = "vector", role = "vector register", family = "zmm28" },
+        { name = "zmm29", kind = "vector", role = "vector register", family = "zmm29" },
+        { name = "zmm30", kind = "vector", role = "vector register", family = "zmm30" },
+        { name = "zmm31", kind = "vector", role = "vector register", family = "zmm31" },
     },
 }
 

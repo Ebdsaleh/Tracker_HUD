@@ -631,6 +631,7 @@ local function apply_variant(variant)
     -- Variant-owned descriptive specs.
     M.registers = variant.registers or { static = {} }
     M.register_families = variant.register_families or {}
+    M.presentation = variant.presentation or {}
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
