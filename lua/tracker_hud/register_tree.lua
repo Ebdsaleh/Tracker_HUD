@@ -164,22 +164,61 @@ local function build_register_node(register)
 end
 
 
+local function get_register_group(register)
+    if not core.is_table(register)
+        or not core.is_table(register.metadata)
+        or not core.is_table(register.metadata.presentation_group)
+    then
+        return nil
+    end
+
+    return register.metadata.presentation_group
+end
+
+
+local function build_group_node(group)
+    return {
+        id = "register-group:" .. tostring(group.id),
+        kind = "register_group",
+        label = tostring(group.label or group.id or "Registers"),
+        default_expanded = group.default_expanded ~= false,
+        children = {},
+    }
+end
+
+
 function M.build(registers, _context)
     local nodes = {}
+
+    local active_group_id = nil
+    local active_group_node = nil
 
     for _, register in ipairs(registers or {}) do
         local node = build_register_node(register)
 
         if node then
-            table.insert(nodes, node)
+            local group = get_register_group(register)
+
+            if group then
+                local group_id = tostring(group.id)
+
+                if active_group_id ~= group_id then
+                    active_group_id = group_id
+                    active_group_node = build_group_node(group)
+
+                    table.insert(nodes, active_group_node)
+                end
+
+                table.insert(active_group_node.children, node)
+            else
+                active_group_id = nil
+                active_group_node = nil
+
+                table.insert(nodes, node)
+            end
         end
     end
 
-    -- Preserve the ordering established by registers.lua.
-    --
-    -- Register collection owns register presentation order so architecture
-    -- names containing numeric suffixes can be sorted naturally, for example:
-    -- r8, r9, r10 and zmm8, zmm9, zmm10.
     return nodes
 end
 

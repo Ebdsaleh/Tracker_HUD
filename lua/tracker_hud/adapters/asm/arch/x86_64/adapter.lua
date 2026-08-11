@@ -682,6 +682,105 @@ M.warning_rules = {
     },
 }
 
+
+M.presentation = {
+    registers = {
+        default_layout = "extended",
+
+        layouts = {
+            extended = {
+                item_order = "natural",
+
+                groups = {
+                    {
+                        id = "general",
+                        label = "General",
+                        default_expanded = true,
+
+                        match = {
+                            kinds = {
+                                "general",
+                            },
+                        },
+
+                        item_order = "custom",
+
+                        custom_order = {
+                            "rax",
+                            "rbx",
+                            "rcx",
+                            "rdx",
+                            "rsi",
+                            "rdi",
+                            "r8",
+                            "r9",
+                            "r10",
+                            "r11",
+                            "r12",
+                            "r13",
+                            "r14",
+                            "r15",
+                        },
+                    },
+
+                    {
+                        id = "pointers",
+                        label = "Pointers",
+                        default_expanded = true,
+
+                        match = {
+                            kinds = {
+                                "base_pointer",
+                                "stack_pointer",
+                                "instruction_pointer",
+                            },
+                        },
+
+                        item_order = "custom",
+
+                        custom_order = {
+                            "rbp",
+                            "rsp",
+                            "rip",
+                        },
+                    },
+
+                    {
+                        id = "flags",
+                        label = "Flags",
+                        default_expanded = true,
+
+                        match = {
+                            kinds = {
+                                "flags",
+                            },
+                        },
+
+                        item_order = "natural",
+                    },
+
+                    {
+                        id = "vector",
+                        label = "Vector",
+                        default_expanded = true,
+
+                        match = {
+                            kinds = {
+                                "vector",
+                            },
+                        },
+
+                        item_order = "natural",
+                    },
+                },
+
+                unmatched_item_order = "natural",
+            },
+        },
+    },
+}
+
+
 M.register_families = {
     rax = {
         canonical = "rax",

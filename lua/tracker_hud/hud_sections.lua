@@ -94,8 +94,13 @@ local function get_node_default_expanded(node)
         return false
     end
 
+    if type(node.default_expanded) == "boolean" then
+        return node.default_expanded
+    end
+
     return node.kind == "scope"
 end
+
 
 
 local function node_matches_cursor(node, opts)

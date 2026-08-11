@@ -9,6 +9,8 @@
 local core = require("tracker_hud.core")
 local context_engine = require("tracker_hud.context_engine")
 local register_model = require("tracker_hud.register_model")
+local presentation = require("tracker_hud.presentation")
+
 
 local M = {}
 
@@ -26,7 +28,6 @@ local function merge_metadata(base, extra)
 
     return metadata
 end
-
 
 local function normalize_register_spec(register_spec, context, adapter, source)
     if not core.is_table(register_spec) then
@@ -190,6 +191,111 @@ local function compare_register_names(left, right)
     return left_name < right_name
 end
 
+
+local function apply_register_presentation(registers, adapter, opts)
+    local requested_layout =
+        opts
+        and opts.presentation_layout
+        or nil
+
+    local layout, layout_name =
+        presentation.resolve_section(
+            adapter,
+            "registers",
+            requested_layout
+        )
+
+    if not core.is_table(layout) then
+        presentation.sort_items(registers, "natural")
+        return
+    end
+
+    if not core.is_table(layout.groups) then
+        presentation.sort_items(
+            registers,
+            layout.item_order or "natural",
+            layout.custom_order
+        )
+
+        return
+    end
+
+    local grouped = {}
+    local unmatched = {}
+
+    for index, group in ipairs(layout.groups) do
+        grouped[index] = {
+            spec = group,
+            items = {},
+        }
+    end
+
+    for _, register in ipairs(registers) do
+        local group, group_index =
+            presentation.find_group(register, layout)
+
+        if group and group_index then
+            table.insert(grouped[group_index].items, register)
+
+            register.metadata = register.metadata or {}
+
+            register.metadata.presentation_group = {
+                id = group.id or tostring(group_index),
+                label = group.label
+                    or group.id
+                    or ("Group " .. tostring(group_index)),
+
+                index = group_index,
+
+                default_expanded =
+                    group.default_expanded ~= false,
+            }
+
+            register.metadata.presentation_layout = layout_name
+        else
+            table.insert(unmatched, register)
+        end
+    end
+
+    local ordered = {}
+
+    for _, group_entry in ipairs(grouped) do
+        local group = group_entry.spec
+        local items = group_entry.items
+
+        presentation.sort_items(
+            items,
+            group.item_order
+                or layout.item_order
+                or "natural",
+            group.custom_order
+        )
+
+        for _, register in ipairs(items) do
+            table.insert(ordered, register)
+        end
+    end
+
+    presentation.sort_items(
+        unmatched,
+        layout.unmatched_item_order
+            or layout.item_order
+            or "natural"
+    )
+
+    for _, register in ipairs(unmatched) do
+        register.metadata = register.metadata or {}
+
+        register.metadata.presentation_layout = layout_name
+
+        table.insert(ordered, register)
+    end
+
+    for index = 1, #registers do
+        registers[index] = ordered[index]
+    end
+end
+
 function M.collect(context, adapter, opts)
     local registers = {}
     local seen = {}
@@ -204,10 +310,9 @@ function M.collect(context, adapter, opts)
     collect_engine_register_effects(registers, seen, context, adapter, opts)
     collect_adapter_static_registers(registers, seen, context, adapter)
 
-    table.sort(registers, compare_register_names)
+    apply_register_presentation(registers, adapter, opts)
 
     return registers
 end
-
 
 return M
