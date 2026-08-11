@@ -175,12 +175,12 @@ function M.build(registers, _context)
         end
     end
 
-    table.sort(nodes, function(left, right)
-        return tostring(left.label or "") < tostring(right.label or "")
-    end)
-
+    -- Preserve the ordering established by registers.lua.
+    --
+    -- Register collection owns register presentation order so architecture
+    -- names containing numeric suffixes can be sorted naturally, for example:
+    -- r8, r9, r10 and zmm8, zmm9, zmm10.
     return nodes
 end
-
 
 return M
