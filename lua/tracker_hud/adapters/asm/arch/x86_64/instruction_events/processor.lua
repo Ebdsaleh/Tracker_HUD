@@ -569,5 +569,302 @@ return {
             role = "restored supervisor 64-bit extended processor state by xrstors64",
         },
     },
+
+    -- descriptor / control state
+
+    -- lgdt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "lgdt",
+        role = "loads the global descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "lgdt",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "lgdt_loads_gdtr",
+            display_name = "lgdt",
+            role = "loads the global descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_load",
+            name = "lgdt_loads_gdtr",
+            role = "loads the global descriptor table register",
+        },
+    },
+
+    -- sgdt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "sgdt",
+        role = "stores the global descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "sgdt",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "sgdt_stores_gdtr",
+            display_name = "sgdt",
+            role = "stores the global descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_store",
+            name = "sgdt_stores_gdtr",
+            role = "stores the global descriptor table register",
+        },
+    },
+
+    -- lidt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "lidt",
+        role = "loads the interrupt descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "lidt",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "lidt_loads_idtr",
+            display_name = "lidt",
+            role = "loads the interrupt descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_load",
+            name = "lidt_loads_idtr",
+            role = "loads the interrupt descriptor table register",
+        },
+    },
+
+    -- sidt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "sidt",
+        role = "stores the interrupt descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "sidt",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "sidt_stores_idtr",
+            display_name = "sidt",
+            role = "stores the interrupt descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_store",
+            name = "sidt_stores_idtr",
+            role = "stores the interrupt descriptor table register",
+        },
+    },
+
+    -- lldt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "lldt",
+        role = "loads the local descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "lldt",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "lldt_loads_ldtr",
+            display_name = "lldt",
+            role = "loads the local descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_load",
+            name = "lldt_loads_ldtr",
+            role = "loads the local descriptor table register",
+        },
+    },
+
+    -- sldt
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "sldt",
+        role = "stores the local descriptor table register",
+
+        node_type = "instruction",
+        mnemonic = "sldt",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "sldt_stores_ldtr",
+            display_name = "sldt",
+            role = "stores the local descriptor table register",
+        },
+
+        effect = {
+            kind = "descriptor_state_store",
+            name = "sldt_stores_ldtr",
+            role = "stores the local descriptor table register",
+        },
+    },
+
+    -- ltr
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "ltr",
+        role = "loads the task register",
+
+        node_type = "instruction",
+        mnemonic = "ltr",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "ltr_loads_task_register",
+            display_name = "ltr",
+            role = "loads the task register",
+        },
+
+        effect = {
+            kind = "descriptor_state_load",
+            name = "ltr_loads_task_register",
+            role = "loads the task register",
+        },
+    },
+
+    -- str
+    {
+        kind = "processor_state_event",
+        category = "descriptor_state",
+        name = "str",
+        role = "stores the task register",
+
+        node_type = "instruction",
+        mnemonic = "str",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "str_stores_task_register",
+            display_name = "str",
+            role = "stores the task register",
+        },
+
+        effect = {
+            kind = "descriptor_state_store",
+            name = "str_stores_task_register",
+            role = "stores the task register",
+        },
+    },
+
+    -- smsw
+    {
+        kind = "processor_state_event",
+        category = "machine_status",
+        name = "smsw",
+        role = "stores the machine status word",
+
+        node_type = "instruction",
+        mnemonic = "smsw",
+
+        operands = {
+            { index = 1, role = "destination" },
+        },
+
+        event = {
+            name = "smsw_stores_machine_status",
+            display_name = "smsw",
+            role = "stores the machine status word",
+        },
+
+        effect = {
+            kind = "machine_status_store",
+            name = "smsw_stores_machine_status",
+            role = "stores the machine status word",
+        },
+    },
+
+    -- lmsw
+    {
+        kind = "processor_state_event",
+        category = "machine_status",
+        name = "lmsw",
+        role = "loads the machine status word",
+
+        node_type = "instruction",
+        mnemonic = "lmsw",
+
+        operands = {
+            { index = 1, role = "source" },
+        },
+
+        event = {
+            name = "lmsw_loads_machine_status",
+            display_name = "lmsw",
+            role = "loads the machine status word",
+        },
+
+        effect = {
+            kind = "machine_status_load",
+            name = "lmsw_loads_machine_status",
+            role = "loads the machine status word",
+        },
+    },
+
+    -- swapgs
+    {
+        kind = "processor_state_event",
+        category = "processor_state",
+        name = "swapgs",
+        role = "swaps GS base with kernel GS base",
+
+        node_type = "instruction",
+        mnemonic = "swapgs",
+
+        operands = {},
+
+        event = {
+            name = "swapgs_swaps_gs_base",
+            display_name = "swapgs",
+            role = "swaps GS base with kernel GS base",
+        },
+
+        effect = {
+            kind = "processor_state_update",
+            name = "swapgs_swaps_gs_base",
+            role = "swaps GS base with kernel GS base",
+        },
+    },
 }
 

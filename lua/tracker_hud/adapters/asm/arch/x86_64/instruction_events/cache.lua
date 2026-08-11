@@ -211,5 +211,113 @@ return {
             role = "writes back and invalidates processor caches",
         },
     },
+
+        -- prefetchnta
+    {
+        kind = "cache_event",
+        category = "cache_prefetch",
+        name = "prefetchnta",
+        role = "prefetches memory with non-temporal locality",
+
+        node_type = "instruction",
+        mnemonic = "prefetchnta",
+
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+
+        event = {
+            name = "prefetchnta_prefetches_memory",
+            display_name = "prefetchnta",
+            role = "prefetches memory with non-temporal locality",
+        },
+
+        effect = {
+            kind = "cache_prefetch",
+            name = "prefetchnta_prefetches_memory",
+            role = "prefetches memory with non-temporal locality",
+        },
+    },
+
+    -- prefetcht0
+    {
+        kind = "cache_event",
+        category = "cache_prefetch",
+        name = "prefetcht0",
+        role = "prefetches memory into all cache levels",
+
+        node_type = "instruction",
+        mnemonic = "prefetcht0",
+
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+
+        event = {
+            name = "prefetcht0_prefetches_memory",
+            display_name = "prefetcht0",
+            role = "prefetches memory into all cache levels",
+        },
+
+        effect = {
+            kind = "cache_prefetch",
+            name = "prefetcht0_prefetches_memory",
+            role = "prefetches memory into all cache levels",
+        },
+    },
+
+    -- prefetcht1
+    {
+        kind = "cache_event",
+        category = "cache_prefetch",
+        name = "prefetcht1",
+        role = "prefetches memory with temporal locality hint T1",
+
+        node_type = "instruction",
+        mnemonic = "prefetcht1",
+
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+
+        event = {
+            name = "prefetcht1_prefetches_memory",
+            display_name = "prefetcht1",
+            role = "prefetches memory with temporal locality hint T1",
+        },
+
+        effect = {
+            kind = "cache_prefetch",
+            name = "prefetcht1_prefetches_memory",
+            role = "prefetches memory with temporal locality hint T1",
+        },
+    },
+
+    -- prefetcht2
+    {
+        kind = "cache_event",
+        category = "cache_prefetch",
+        name = "prefetcht2",
+        role = "prefetches memory with temporal locality hint T2",
+
+        node_type = "instruction",
+        mnemonic = "prefetcht2",
+
+        operands = {
+            { index = 1, role = "memory_operand" },
+        },
+
+        event = {
+            name = "prefetcht2_prefetches_memory",
+            display_name = "prefetcht2",
+            role = "prefetches memory with temporal locality hint T2",
+        },
+
+        effect = {
+            kind = "cache_prefetch",
+            name = "prefetcht2_prefetches_memory",
+            role = "prefetches memory with temporal locality hint T2",
+        },
+    },
 }
 
