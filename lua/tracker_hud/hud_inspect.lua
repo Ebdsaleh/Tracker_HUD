@@ -265,7 +265,7 @@ function M.collapse_all(mode, request)
         or mode == "heap"
         or mode == "warnings"
     then
-        return expand_section_tree(mode, request)
+        return collapse_section_tree(mode, request)
     end
 
     return make_result(
