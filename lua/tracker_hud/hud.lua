@@ -538,8 +538,15 @@ function M.render(context, config, source_winid)
     last_config = config
     last_source_winid = source_winid
 
+    if type(context) == "table"
+        and type(context.section_order) == "table"
+    then
+        inspect_mode.set_modes(context.section_order)
+    end
+
     render_panel(context, config, source_winid)
 end
+
 
 
 function M.close_panel()
@@ -660,9 +667,19 @@ function M.update_panel()
 end
 
 
-
 function M.cycle_inspect_mode()
-    inspect_mode.cycle_mode()
+    if last_context
+        and type(last_context.section_order) == "table"
+    then
+        inspect_mode.set_modes(last_context.section_order)
+    end
+
+    local next_mode = inspect_mode.cycle_mode()
+
+    if not next_mode then
+        return false
+    end
+
     M.update_panel()
     return true
 end
