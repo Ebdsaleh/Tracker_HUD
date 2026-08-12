@@ -684,6 +684,18 @@ M.warning_rules = {
 
 
 M.presentation = {
+    sections = {
+        order = {
+            "scope",
+            "scope_members",
+            "registers",
+            "events",
+            "stack",
+            "heap",
+            "warnings",
+        },
+    },
+
     registers = {
         default_layout = "extended",
 

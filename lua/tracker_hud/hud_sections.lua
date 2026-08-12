@@ -1135,6 +1135,31 @@ function M.collapse_scope_members_in_current_scope(request)
     return true, target_scope_node.id
 end
 
+
+local function order_sections(sections_by_id, requested_order, scope_members_control)
+    local result = {}
+    local added = {}
+
+    for _, section_id in ipairs(requested_order or {}) do
+        local section = sections_by_id[section_id]
+
+        if section and not added[section_id] then
+            -- The Show All Scope Members control belongs to the Scope Members
+            -- section workflow, so it moves with Scope Members rather than
+            -- occupying a fixed global HUD position.
+            if section_id == "scope_members" and scope_members_control then
+                table.insert(result, scope_members_control)
+            end
+
+            table.insert(result, section)
+            added[section_id] = true
+        end
+    end
+
+    return result
+end
+
+
 function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
@@ -1194,21 +1219,17 @@ function M.build(context, opts)
         active_source_column = active_source_column,
     })
 
-    local sections = {
-        {
+
+    local sections_by_id = {
+        scope = {
             id = "scope",
             title = "Scope",
             expanded = M.is_expanded("scope"),
             lines = {},
             empty_text = "<no scope context>",
         },
-        {
-            id = "show_all_scope_members",
-            kind = "control",
-            title = hud_controls.build_title("show_all_scope_members"),
-        },
 
-        {
+        scope_members = {
             id = "scope_members",
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
@@ -1221,7 +1242,8 @@ function M.build(context, opts)
             line_targets = scope_member_render.targets,
             empty_text = "<no scope members tracked yet>",
         },
-        {
+
+        registers = {
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
@@ -1234,7 +1256,8 @@ function M.build(context, opts)
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",
         },
-        {
+
+        events = {
             id = "events",
             title = "Events",
             expanded = M.is_expanded("events"),
@@ -1247,7 +1270,8 @@ function M.build(context, opts)
             line_targets = event_render.targets,
             empty_text = "<no events tracked yet>",
         },
-        {
+
+        stack = {
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
@@ -1260,7 +1284,8 @@ function M.build(context, opts)
             line_targets = stack_render.targets,
             empty_text = "<no stack entries tracked yet>",
         },
-        {
+
+        heap = {
             id = "heap",
             title = "Heap",
             expanded = M.is_expanded("heap"),
@@ -1273,7 +1298,8 @@ function M.build(context, opts)
             line_targets = heap_render.targets,
             empty_text = "<no heap entries tracked yet>",
         },
-        {
+
+        warnings = {
             id = "warnings",
             title = "Warnings",
             expanded = M.is_expanded("warnings"),
@@ -1288,7 +1314,19 @@ function M.build(context, opts)
         },
     }
 
-    local scope_section = sections[1]
+    local scope_members_control = {
+        id = "show_all_scope_members",
+        kind = "control",
+        title = hud_controls.build_title("show_all_scope_members"),
+    }
+
+    local sections = order_sections(
+        sections_by_id,
+        context.section_order,
+        scope_members_control
+    )
+
+    local scope_section = sections_by_id.scope
 
     if context.path and #context.path > 0 then
         for index, item in ipairs(context.path) do

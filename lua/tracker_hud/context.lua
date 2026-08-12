@@ -10,6 +10,7 @@ local events = require("tracker_hud.events")
 local stack = require("tracker_hud.stack")
 local heap = require("tracker_hud.heap")
 local warnings = require("tracker_hud.warnings")
+local section_layout = require("tracker_hud.section_layout")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local target_diagnostics = require("tracker_hud.target_diagnostics")
 
@@ -232,6 +233,8 @@ end
 
 local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
     context.targets = vim.deepcopy(adapter.active_targets or {})
+    context.section_order = section_layout.resolve(adapter)
+
     target_diagnostics.show(bufnr, context.targets)
 
     context.scope_members = scope_members.collect(
