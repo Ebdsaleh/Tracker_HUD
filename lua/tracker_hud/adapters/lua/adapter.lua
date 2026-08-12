@@ -9,6 +9,16 @@ local M = {}
 M.name = "lua"
 M.filetypes = { "lua" }
 
+M.presentation = {
+    sections = {
+        order = {
+            "warnings",
+            "scope_members",
+            "scope",
+        },
+    },
+}
+
 M.capabilities = {
     lexical_scopes = true,
     structural_scopes = true,
