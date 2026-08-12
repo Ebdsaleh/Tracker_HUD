@@ -12,9 +12,9 @@ M.filetypes = { "lua" }
 M.presentation = {
     sections = {
         order = {
-            "warnings",
-            "scope_members",
             "scope",
+            "scope_members",
+            "warnings",
         },
     },
 }
