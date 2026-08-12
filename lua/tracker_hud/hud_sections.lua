@@ -383,22 +383,59 @@ local function node_contains_position(node, source_line, source_column)
 end
 
 
-local function find_deepest_node_path_for_position(nodes, source_line, source_column, current_path, best_path)
+local function find_deepest_node_path_for_position(
+    nodes,
+    source_line,
+    source_column,
+    current_path,
+    best_path
+)
     current_path = current_path or {}
     best_path = best_path or nil
 
     for _, node in ipairs(nodes or {}) do
-        if type(node) == "table" and node_contains_position(node, source_line, source_column) then
-            local next_path = {}
+        if type(node) == "table" then
+            local range = get_node_source_range(node)
 
-            for _, path_node in ipairs(current_path) do
-                table.insert(next_path, path_node)
-            end
+            if range
+                and position_is_in_range(
+                    source_line,
+                    source_column,
+                    range
+                )
+            then
+                local next_path = {}
 
-            table.insert(next_path, node)
-            best_path = next_path
+                for _, path_node in ipairs(current_path) do
+                    table.insert(next_path, path_node)
+                end
 
-            if node_has_children(node) then
+                table.insert(next_path, node)
+                best_path = next_path
+
+                if node_has_children(node) then
+                    best_path = find_deepest_node_path_for_position(
+                        node.children,
+                        source_line,
+                        source_column,
+                        next_path,
+                        best_path
+                    )
+                end
+
+            elseif not range and node_has_children(node) then
+                -- Presentation/group nodes may intentionally have no source
+                -- range of their own. Search through them so source-backed
+                -- descendants remain inspectable, while preserving the
+                -- container in the returned reveal path.
+                local next_path = {}
+
+                for _, path_node in ipairs(current_path) do
+                    table.insert(next_path, path_node)
+                end
+
+                table.insert(next_path, node)
+
                 best_path = find_deepest_node_path_for_position(
                     node.children,
                     source_line,
@@ -454,7 +491,13 @@ local function get_column_distance_to_range(source_line, source_column, range)
 end
 
 
-local function find_closest_node_path_for_line(nodes, source_line, source_column, current_path, best)
+local function find_closest_node_path_for_line(
+    nodes,
+    source_line,
+    source_column,
+    current_path,
+    best
+)
     current_path = current_path or {}
     best = best or nil
 
@@ -502,13 +545,31 @@ local function find_closest_node_path_for_line(nodes, source_line, source_column
                         best
                     )
                 end
+
+            elseif not range and node_has_children(node) then
+                -- Range-less presentation/group nodes are transparent to
+                -- source matching but remain part of the reveal path.
+                local next_path = {}
+
+                for _, path_node in ipairs(current_path) do
+                    table.insert(next_path, path_node)
+                end
+
+                table.insert(next_path, node)
+
+                best = find_closest_node_path_for_line(
+                    node.children,
+                    source_line,
+                    source_column,
+                    next_path,
+                    best
+                )
             end
         end
     end
 
     return best
 end
-
 
 
 local function section_has_cursor_target(nodes, source_line, source_column)
