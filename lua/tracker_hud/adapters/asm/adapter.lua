@@ -85,6 +85,22 @@ M.capabilities = {
 }
 
 
+M.base_presentation = {
+    sections = {
+        order = {
+            "scope",
+            "scope_members",
+            "registers",
+            "events",
+            "stack",
+            "heap",
+            "warnings",
+        },
+    },
+}
+
+
+
 M.construct_specs = {
     ["label"] = {
         construct = {
@@ -614,6 +630,31 @@ local function resolve_targets(bufnr, config, variant)
 end
 
 
+
+local function resolve_presentation(variant)
+    local presentation = {}
+
+    if type(variant) == "table"
+        and type(variant.presentation) == "table"
+    then
+        presentation = vim.deepcopy(variant.presentation)
+    end
+
+    -- ASM supplies the normal section workflow unless the architecture
+    -- variant explicitly provides its own.
+    if type(presentation.sections) ~= "table" then
+        presentation.sections = vim.deepcopy(
+            M.base_presentation.sections
+        )
+    end
+
+    return presentation
+end
+
+
+
+
+
 local function apply_variant(variant)
     if type(variant) ~= "table" then
         return
@@ -631,7 +672,7 @@ local function apply_variant(variant)
     -- Variant-owned descriptive specs.
     M.registers = variant.registers or { static = {} }
     M.register_families = variant.register_families or {}
-    M.presentation = variant.presentation or {}
+    M.presentation = resolve_presentation(variant)
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
