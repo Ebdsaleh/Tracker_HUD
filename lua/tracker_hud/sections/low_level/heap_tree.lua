@@ -3,29 +3,17 @@
 -- Builds display-ready tree nodes from collected heap records.
 
 local core = require("tracker_hud.core")
+local lookup_tree = require("tracker_hud.sections.templates.lookup_tree")
 
 local M = {}
 
 
 local function build_heap_detail_node(entry, detail_id, label)
-    if not core.is_table(entry) then
-        return nil
-    end
-
-    return {
-        id = entry.id .. ":" .. detail_id,
-        kind = "detail",
-        label = label,
-
-        source_line = entry.source_line,
-        source_column = entry.source_column or 0,
-        source_start_line = entry.source_start_line,
-        source_start_column = entry.source_start_column or 0,
-        source_end_line = entry.source_end_line,
-        source_end_column = entry.source_end_column or entry.source_column or 0,
-
-        children = {},
-    }
+    return lookup_tree.new_detail_node(
+        entry,
+        detail_id,
+        label
+    )
 end
 
 
@@ -72,20 +60,12 @@ local function build_heap_node(entry)
         add_detail(children, entry, "source", "source line: " .. tostring(entry.source_line))
     end
 
-    return {
-        id = entry.id,
+    return lookup_tree.new_node(entry, {
         kind = "heap_entry",
         label = entry.label or entry.name or "<heap entry>",
-
-        source_line = entry.source_line,
-        source_column = entry.source_column or 0,
-        source_start_line = entry.source_start_line,
-        source_start_column = entry.source_start_column or 0,
-        source_end_line = entry.source_end_line,
-        source_end_column = entry.source_end_column or entry.source_column or 0,
-
         children = children,
-    }
+    })
+
 end
 
 

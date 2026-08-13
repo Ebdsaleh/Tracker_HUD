@@ -6,6 +6,7 @@
 -- code and does not render HUD lines directly.
 
 local core = require("tracker_hud.core")
+local lookup_model = require("tracker_hud.sections.templates.lookup_model")
 
 local M = {}
 
@@ -117,30 +118,38 @@ function M.new(opts)
         return nil
     end
 
-    local entry = {
-        id = opts.id or ("heap:" .. tostring(opts.source_line or 0) .. ":" .. name),
+    local entry = lookup_model.new({
+        id = opts.id
+            or ("heap:" .. tostring(opts.source_line or 0) .. ":" .. name),
+
         name = name,
-        kind = opts.kind or "unknown",
-        category = opts.category or "heap",
-        effect_key = opts.effect_key,
-        result_register = opts.result_register,
-        pointer_register = opts.pointer_register,
-        size_register = opts.size_register,
+        kind = opts.kind,
         role = opts.role,
         source = opts.source,
 
-        reads = opts.reads or {},
-        writes = opts.writes or {},
-
         source_line = opts.source_line,
-        source_column = opts.source_column or 0,
-        source_start_line = opts.source_start_line or opts.source_line,
-        source_start_column = opts.source_start_column or opts.source_column or 0,
-        source_end_line = opts.source_end_line or opts.source_line,
-        source_end_column = opts.source_end_column or opts.source_column or 0,
+        source_column = opts.source_column,
+        source_start_line = opts.source_start_line,
+        source_start_column = opts.source_start_column,
+        source_end_line = opts.source_end_line,
+        source_end_column = opts.source_end_column,
 
-        metadata = opts.metadata or {},
-    }
+        metadata = opts.metadata,
+    })
+
+    if not entry then
+        return nil
+    end
+
+    entry.category = opts.category or "heap"
+    entry.effect_key = opts.effect_key
+
+    entry.result_register = opts.result_register
+    entry.pointer_register = opts.pointer_register
+    entry.size_register = opts.size_register
+
+    entry.reads = opts.reads or {}
+    entry.writes = opts.writes or {}
 
     entry.label = M.build_label(entry)
 
@@ -149,30 +158,13 @@ end
 
 
 function M.add(entries, seen, opts)
-    if not core.is_table(entries) then
-        return nil
-    end
-
-    opts = opts or {}
-
     local entry = M.new(opts)
 
     if not entry then
         return nil
     end
 
-    seen = seen or {}
-
-    if seen[entry.id] then
-        return nil
-    end
-
-    seen[entry.id] = true
-
-    table.insert(entries, entry)
-
-    return entry
+    return lookup_model.add(entries, seen, entry)
 end
-
 
 return M

@@ -7,9 +7,16 @@
 -- and other adapter-provided heap/resource effects.
 
 local core = require("tracker_hud.core")
+local section = require("tracker_hud.section")
+local lookup = require("tracker_hud.sections.templates.lookup")
 local heap_model = require("tracker_hud.sections.low_level.heap_model")
 
-local M = {}
+local M = section.extend(lookup, {
+    id = "heap",
+    label = "Heap",
+    abstract = false,
+})
+
 
 
 local function find_write_register(boundary_effect, role)
@@ -90,12 +97,11 @@ end
 
 
 function M.collect(context, _adapter, opts)
-    local entries = {}
-    local seen = {}
+    local entries, seen = M.new_collection()
 
     opts = opts or {}
 
-    if opts.enabled == false then
+    if not M.is_enabled(opts) then
         return entries
     end
 
