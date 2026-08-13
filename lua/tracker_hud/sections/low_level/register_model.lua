@@ -6,6 +6,7 @@
 -- code and does not render HUD lines directly.
 
 local core = require("tracker_hud.core")
+local lookup_model = require("tracker_hud.sections.templates.lookup_model")
 
 local M = {}
 
@@ -121,29 +122,13 @@ end
 function M.new(opts)
     opts = opts or {}
 
-    local name = opts.name
+    local register = lookup_model.new(vim.tbl_extend("force", opts, {
+        id_prefix = "register",
+    }))
 
-    if not core.is_non_empty_string(name) then
+    if not register then
         return nil
     end
-
-    local register = {
-        id = opts.id or ("register:" .. name),
-        name = name,
-        kind = opts.kind or "unknown",
-        value = opts.value,
-        role = opts.role,
-        source = opts.source,
-
-        source_line = opts.source_line,
-        source_column = opts.source_column or 0,
-        source_start_line = opts.source_start_line or opts.source_line,
-        source_start_column = opts.source_start_column or opts.source_column or 0,
-        source_end_line = opts.source_end_line or opts.source_line,
-        source_end_column = opts.source_end_column or opts.source_column or 0,
-
-        metadata = opts.metadata or {},
-    }
 
     register.label = M.build_label(register)
 
@@ -152,30 +137,13 @@ end
 
 
 function M.add(registers, seen, opts)
-    if not core.is_table(registers) then
-        return nil
-    end
-
-    opts = opts or {}
-
     local register = M.new(opts)
 
     if not register then
         return nil
     end
 
-    seen = seen or {}
-
-    if seen[register.id] then
-        return nil
-    end
-
-    seen[register.id] = true
-
-    table.insert(registers, register)
-
-    return register
+    return lookup_model.add(registers, seen, register)
 end
-
 
 return M
