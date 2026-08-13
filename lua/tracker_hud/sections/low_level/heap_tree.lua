@@ -1,4 +1,4 @@
--- lua/tracker_hud/heap_tree.lua
+-- lua/tracker_hud/sections/low_level/heap_tree.lua
 --
 -- Builds display-ready tree nodes from collected heap records.
 

@@ -1,4 +1,4 @@
--- lua/tracker_hud/stack_tree.lua
+-- lua/tracker_hud/sections/low_level/stack_tree.lua
 --
 -- Builds display-ready tree nodes from collected stack records.
 

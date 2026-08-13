@@ -1,4 +1,4 @@
--- lua/tracker_hud/stack_model.lua
+-- lua/tracker_hud/sections/low_level/stack_model.lua
 --
 -- Stack record construction and labeling.
 --

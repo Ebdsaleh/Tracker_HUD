@@ -1,4 +1,4 @@
--- lua/tracker_hud/registers.lua
+-- lua/tracker_hud/sections/low_level/registers.lua
 --
 -- Register discovery / collection.
 --
@@ -8,7 +8,7 @@
 
 local core = require("tracker_hud.core")
 local context_engine = require("tracker_hud.context_engine")
-local register_model = require("tracker_hud.register_model")
+local register_model = require("tracker_hud.sections.low_level.register_model")
 local presentation = require("tracker_hud.presentation")
 
 

@@ -1,4 +1,4 @@
--- lua/tracker_hud/heap.lua
+-- lua/tracker_hud/sections/low_level/heap.lua
 --
 -- Heap discovery / collection.
 --
@@ -7,7 +7,7 @@
 -- and other adapter-provided heap/resource effects.
 
 local core = require("tracker_hud.core")
-local heap_model = require("tracker_hud.heap_model")
+local heap_model = require("tracker_hud.sections.low_level.heap_model")
 
 local M = {}
 

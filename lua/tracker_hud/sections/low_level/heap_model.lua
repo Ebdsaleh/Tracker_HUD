@@ -1,4 +1,4 @@
--- lua/tracker_hud/heap_model.lua
+-- lua/tracker_hud/sections/low_level/heap_model.lua
 --
 -- Heap record construction and labeling.
 --

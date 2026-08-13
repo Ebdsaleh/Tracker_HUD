@@ -1,4 +1,4 @@
--- lua/tracker_hud/register_model.lua
+-- lua/tracker_hud/sections/low_level/register_model.lua
 --
 -- Register record construction and labeling.
 --

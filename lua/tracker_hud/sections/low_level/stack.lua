@@ -1,4 +1,4 @@
--- lua/tracker_hud/stack.lua
+-- lua/tracker_hud/sections/low_level/stack.lua
 --
 -- Stack discovery / collection.
 --
@@ -8,7 +8,7 @@
 
 local core = require("tracker_hud.core")
 local context_engine = require("tracker_hud.context_engine")
-local stack_model = require("tracker_hud.stack_model")
+local stack_model = require("tracker_hud.sections.low_level.stack_model")
 
 local M = {}
 
