@@ -7,10 +7,17 @@
 -- the context engine.
 
 local core = require("tracker_hud.core")
+local section = require("tracker_hud.section")
+local lookup = require("tracker_hud.sections.templates.lookup")
 local context_engine = require("tracker_hud.context_engine")
 local stack_model = require("tracker_hud.sections.low_level.stack_model")
 
-local M = {}
+
+local M = section.extend(lookup, {
+    id = "stack",
+    label = "Stack",
+    abstract = false,
+})
 
 
 local function collect_engine_stack_effects(entries, seen, context, adapter, opts)
@@ -82,12 +89,11 @@ end
 
 
 function M.collect(context, adapter, opts)
-    local entries = {}
-    local seen = {}
+    local entries, seen = M.new_collection()
 
     opts = opts or {}
 
-    if opts.enabled == false then
+    if not M.is_enabled(opts) then
         return entries
     end
 
