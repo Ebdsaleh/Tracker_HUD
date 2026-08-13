@@ -3,29 +3,18 @@
 -- Builds display-ready tree nodes from collected register records.
 
 local core = require("tracker_hud.core")
+local lookup_tree = require("tracker_hud.sections.templates.lookup_tree")
 
 local M = {}
 
 
 local function build_register_detail_node(register, detail_id, label)
-    if not core.is_table(register) then
-        return nil
-    end
-
-    return {
-        id = register.id .. ":" .. detail_id,
-        kind = "detail",
-        label = label,
-        source_line = register.source_line,
-        source_column = register.source_column or 0,
-        source_start_line = register.source_start_line,
-        source_start_column = register.source_start_column or 0,
-        source_end_line = register.source_end_line,
-        source_end_column = register.source_end_column or register.source_column or 0,
-        children = {},
-    }
+    return lookup_tree.new_detail_node(
+        register,
+        detail_id,
+        label
+    )
 end
-
 
 local function alias_label(register, alias_name, alias_spec)
     local metadata = register.metadata or {}
@@ -146,21 +135,20 @@ local function build_register_node(register)
         ))
     end
 
-    return {
-        id = register.id,
+    local node = lookup_tree.new_node(register, {
         kind = "register",
         label = register.label or tostring(register.name or "<unknown>"),
-
-        source_line = register.source_line,
-        source_column = register.source_column or 0,
-        source_start_line = register.source_start_line,
-        source_start_column = register.source_start_column or 0,
-        source_end_line = register.source_end_line,
-        source_end_column = register.source_end_column or register.source_column or 0,
-
-        register = register,
         children = children,
-    }
+    })
+
+    if not node then
+        return nil
+    end
+
+    node.register = register
+
+    return node
+
 end
 
 
