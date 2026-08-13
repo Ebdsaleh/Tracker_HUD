@@ -6,6 +6,7 @@
 -- code and does not render HUD lines directly.
 
 local core = require("tracker_hud.core")
+local lookup_model = require("tracker_hud.sections.templates.lookup_model")
 
 local M = {}
 
@@ -59,35 +60,17 @@ function M.build_label(entry)
     return label
 end
 
-
 function M.new(opts)
     opts = opts or {}
 
-    local name = opts.name
+    local entry = lookup_model.new(opts, "stack")
 
-    if not core.is_non_empty_string(name) then
+    if not entry then
         return nil
     end
 
-    local entry = {
-        id = opts.id or ("stack:" .. name),
-        name = name,
-        kind = opts.kind or "unknown",
-        value = opts.value,
-        offset = opts.offset,
-        size = opts.size,
-        role = opts.role,
-        source = opts.source,
-
-        source_line = opts.source_line,
-        source_column = opts.source_column or 0,
-        source_start_line = opts.source_start_line or opts.source_line,
-        source_start_column = opts.source_start_column or opts.source_column or 0,
-        source_end_line = opts.source_end_line or opts.source_line,
-        source_end_column = opts.source_end_column or opts.source_column or 0,
-
-        metadata = opts.metadata or {},
-    }
+    entry.offset = opts.offset
+    entry.size = opts.size
 
     entry.label = M.build_label(entry)
 
@@ -96,30 +79,13 @@ end
 
 
 function M.add(entries, seen, opts)
-    if not core.is_table(entries) then
-        return nil
-    end
-
-    opts = opts or {}
-
     local entry = M.new(opts)
 
     if not entry then
         return nil
     end
 
-    seen = seen or {}
-
-    if seen[entry.id] then
-        return nil
-    end
-
-    seen[entry.id] = true
-
-    table.insert(entries, entry)
-
-    return entry
+    return lookup_model.add(entries, seen, entry)
 end
-
 
 return M
