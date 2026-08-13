@@ -18,19 +18,47 @@ local M = {}
 local section_state = {
     scope = true,
     scope_members = false,
-    registers = false,
-    events = false,
-    stack = false,
-    heap = false,
     warnings = false,
 }
 
 
 local function validate_section(section_id)
-    return section_id ~= nil
+    return type(section_id) == "string"
+        and section_id ~= ""
         and section_state[section_id] ~= nil
 end
 
+
+local function get_default_expanded(section_id)
+    return section_id == "scope"
+end
+
+
+function M.sync_sections(section_layout)
+    if type(section_layout) ~= "table"
+        or type(section_layout.by_id) ~= "table"
+    then
+        return false
+    end
+
+    local next_state = {}
+
+    for section_id, _descriptor in pairs(section_layout.by_id) do
+        if type(section_id) == "string"
+            and section_id ~= ""
+        then
+            if section_state[section_id] ~= nil then
+                next_state[section_id] = section_state[section_id]
+            else
+                next_state[section_id] = get_default_expanded(section_id)
+            end
+        end
+    end
+
+    section_state = next_state
+
+    return true
+end
 
 
 function M.toggle(section_id)
@@ -1161,6 +1189,12 @@ end
 
 
 function M.build(context, opts)
+    if type(context) == "table"
+        and type(context.section_layout) == "table"
+    then
+        M.sync_sections(context.section_layout)
+    end
+
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
     opts = opts or {}
