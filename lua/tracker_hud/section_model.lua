@@ -10,7 +10,7 @@ local core = require("tracker_hud.core")
 local M = {}
 
 
-function M.new(opts)
+function M.new(opts, default_id_prefix)
     opts = opts or {}
 
     local name = opts.name
@@ -19,7 +19,7 @@ function M.new(opts)
         return nil
     end
 
-    local prefix = opts.id_prefix or "section"
+    local prefix = opts.id_prefix or default_id_prefix or "section"
 
     return {
         id = opts.id or (prefix .. ":" .. name),

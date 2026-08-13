@@ -122,9 +122,7 @@ end
 function M.new(opts)
     opts = opts or {}
 
-    local register = lookup_model.new(vim.tbl_extend("force", opts, {
-        id_prefix = "register",
-    }))
+    local register = lookup_model.new(opts, "register")
 
     if not register then
         return nil

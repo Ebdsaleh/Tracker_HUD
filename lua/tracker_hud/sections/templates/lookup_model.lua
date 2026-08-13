@@ -10,8 +10,8 @@ local section_model = require("tracker_hud.section_model")
 local M = {}
 
 
-function M.new(opts)
-    return section_model.new(opts)
+function M.new(opts, default_id_prefix)
+    return section_model.new(opts, default_id_prefix)
 end
 
 

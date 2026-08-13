@@ -23,7 +23,7 @@ local function copy_table(value)
 end
 
 
-function M.new(opts)
+function M.new(opts) 
     opts = opts or {}
 
     return {
