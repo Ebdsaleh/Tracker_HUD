@@ -7,12 +7,18 @@
 -- the context engine.
 
 local core = require("tracker_hud.core")
+local section = require("tracker_hud.section")
+local lookup = require("tracker_hud.sections.templates.lookup")
 local context_engine = require("tracker_hud.context_engine")
 local register_model = require("tracker_hud.sections.low_level.register_model")
 local presentation = require("tracker_hud.presentation")
 
 
-local M = {}
+local M = section.extend(lookup, {
+    id = "registers",
+    label = "Registers",
+    abstract = false,
+})
 
 
 local function merge_metadata(base, extra)
@@ -251,15 +257,13 @@ local function apply_register_presentation(registers, adapter, opts)
 end
 
 function M.collect(context, adapter, opts)
-    local registers = {}
-    local seen = {}
+    local registers, seen = M.new_collection()
 
     opts = opts or {}
 
-    if opts.enabled == false then
+    if not M.is_enabled(opts) then
         return registers
     end
-
     -- Dynamic facts go first so they override same-id static architecture rows.
     collect_engine_register_effects(registers, seen, context, adapter, opts)
     collect_adapter_static_registers(registers, seen, context, adapter)
