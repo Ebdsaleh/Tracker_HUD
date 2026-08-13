@@ -539,9 +539,10 @@ function M.render(context, config, source_winid)
     last_source_winid = source_winid
 
     if type(context) == "table"
-        and type(context.section_order) == "table"
+        and type(context.section_layout) == "table"
+        and type(context.section_layout.order) == "table"
     then
-        inspect_mode.set_modes(context.section_order)
+        inspect_mode.set_modes(context.section_layout.order)
     end
 
     render_panel(context, config, source_winid)
@@ -669,9 +670,10 @@ end
 
 function M.cycle_inspect_mode()
     if last_context
-        and type(last_context.section_order) == "table"
+        and type(last_context.section_layout) == "table"
+        and type(last_context.section_layout.order) == "table"
     then
-        inspect_mode.set_modes(last_context.section_order)
+        inspect_mode.set_modes(last_context.section_layout.order)
     end
 
     local next_mode = inspect_mode.cycle_mode()

@@ -233,7 +233,10 @@ end
 
 local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
     context.targets = vim.deepcopy(adapter.active_targets or {})
+
     context.section_order = section_layout.resolve(adapter)
+    context.section_order = context.section_layout.order
+    context.section_count = context.section_layout.count
 
     target_diagnostics.show(bufnr, context.targets)
 

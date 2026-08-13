@@ -85,6 +85,29 @@ M.capabilities = {
 }
 
 
+M.sections = {
+    registers = {
+        id = "registers",
+        label = "Registers",
+    },
+
+    events = {
+        id = "events",
+        label = "Events",
+    },
+
+    stack = {
+        id = "stack",
+        label = "Stack",
+    },
+
+    heap = {
+        id = "heap",
+        label = "Heap",
+    },
+}
+
+
 M.base_presentation = {
     sections = {
         order = {

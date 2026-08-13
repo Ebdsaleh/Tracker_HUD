@@ -1320,9 +1320,14 @@ function M.build(context, opts)
         title = hud_controls.build_title("show_all_scope_members"),
     }
 
+    local section_order = context.section_layout
+        and context.section_layout.order
+        or context.section_order
+        or {}
+
     local sections = order_sections(
         sections_by_id,
-        context.section_order,
+        section_order,
         scope_members_control
     )
 
