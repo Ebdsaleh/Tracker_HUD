@@ -839,19 +839,31 @@ function M.collect(bufnr, root_node, adapter, opts)
 
     walk_node(root_node, bufnr, adapter, members, seen, make_state(opts, 0))
 
-    table.sort(members, function(left, right)
-        local left_line = scope_member_model.get_line(left)
-        local right_line = scope_member_model.get_line(right)
+   table.sort(members, function(left, right)
+        local left_line =
+            scope_member_model.get_line(left)
+
+        local right_line =
+            scope_member_model.get_line(right)
 
         if left_line and right_line then
-            if left_line == right_line then
-                return (left.label or "") < (right.label or "")
+            if left_line ~= right_line then
+                return left_line < right_line
             end
 
-            return left_line < right_line
+            local left_column =
+                tonumber(left.source_start_column) or 0
+
+            local right_column =
+                tonumber(right.source_start_column) or 0
+
+            if left_column ~= right_column then
+                return left_column < right_column
+            end
         end
 
-        return (left.label or "") < (right.label or "")
+        return (left.label or "")
+            < (right.label or "")
     end)
 
     return members
