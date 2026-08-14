@@ -89,21 +89,25 @@ M.sections = {
     registers = {
         id = "registers",
         label = "Registers",
+        use_source_index = true,
     },
 
     events = {
         id = "events",
         label = "Events",
+        use_source_index = true,
     },
 
     stack = {
         id = "stack",
         label = "Stack",
+        use_source_index = true,
     },
 
     heap = {
         id = "heap",
         label = "Heap",
+        use_source_index = true,
     },
 }
 
