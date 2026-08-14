@@ -159,11 +159,11 @@ M.range_scopes = {
     },
 }
 
-
 M.construct_specs = {
     ["label"] = {
         construct = {
             kind = "label",
+            language_term = "label",
             label = "Label",
         },
 
@@ -175,6 +175,7 @@ M.construct_specs = {
 
         value = {
             kind = "reference",
+            language_term = "label",
             type_label = "label",
         },
     },
@@ -182,6 +183,7 @@ M.construct_specs = {
     ["instruction"] = {
         construct = {
             kind = "instruction",
+            language_term = "instruction",
             label = "Instruction",
         },
 
@@ -190,9 +192,10 @@ M.construct_specs = {
             affects_visibility = false,
             owns_members = false,
         },
-        
+
         value = {
             kind = "unknown",
+            language_term = "instruction",
             type_label = "instruction",
         },
     },
@@ -200,11 +203,13 @@ M.construct_specs = {
     ["reg"] = {
         construct = {
             kind = "register",
+            language_term = "register",
             label = "Register",
         },
 
         value = {
             kind = "reference",
+            language_term = "register",
             type_label = "register",
         },
     },
@@ -212,11 +217,13 @@ M.construct_specs = {
     ["int"] = {
         construct = {
             kind = "immediate",
+            language_term = "immediate",
             label = "Immediate",
         },
 
         value = {
             kind = "scalar",
+            language_term = "integer",
             type_label = "integer",
         },
     },
@@ -224,11 +231,13 @@ M.construct_specs = {
     ["ident"] = {
         construct = {
             kind = "symbol",
+            language_term = "symbol",
             label = "Symbol",
         },
 
         value = {
             kind = "reference",
+            language_term = "symbol",
             type_label = "symbol",
         },
     },
@@ -236,11 +245,13 @@ M.construct_specs = {
     ["word"] = {
         construct = {
             kind = "mnemonic",
+            language_term = "mnemonic",
             label = "Mnemonic",
         },
 
         value = {
             kind = "symbol",
+            language_term = "mnemonic",
             type_label = "instruction",
         },
     },
@@ -255,14 +266,17 @@ M.scope_members = {
 
             member = {
                 kind = "label",
+                language_term = "label",
                 owner_scope = "lexical",
             },
 
             value = {
                 kind = "symbol",
+                language_term = "label",
                 type_label = "label",
             },
         },
+
         {
             node_type = "instruction",
             mnemonic = "global",
@@ -270,25 +284,31 @@ M.scope_members = {
 
             member = {
                 kind = "global",
+                language_term = "global",
                 owner_scope = "lexical",
             },
 
             value = {
                 kind = "symbol",
+                language_term = "global symbol",
                 type_label = "global",
             },
         },
     },
+
     declarations = {
         {
             node_type = "instruction",
+
             member = {
                 kind = "instruction",
+                language_term = "instruction",
                 owner_scope = "lexical",
             },
         },
     },
 }
+
 
 
 M.register_effects = require("tracker_hud.adapters.asm.arch.x86_64.register_effects")

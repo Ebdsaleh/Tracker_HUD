@@ -25,7 +25,11 @@ local directive_utils = require("tracker_hud.directive_utils")
 
 local M = {}
 
+
+M.contract_version = 1
+
 M.name = "asm"
+
 
 M.filetypes = {
     "asm",
@@ -127,11 +131,11 @@ M.base_presentation = {
 }
 
 
-
 M.construct_specs = {
     ["label"] = {
         construct = {
             kind = "label",
+            language_term = "label",
             label = "Label",
         },
 
@@ -145,10 +149,12 @@ M.construct_specs = {
     ["instruction"] = {
         construct = {
             kind = "instruction",
+            language_term = "instruction",
             label = "Instruction",
         },
     },
 }
+
 
 local default_instruction_parser = {
     module = "tracker_hud.adapters.asm.instruction_utils",
