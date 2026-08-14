@@ -785,6 +785,274 @@ local function toggle_section_fallback(section_id)
     return true, nil
 end
 
+local function scope_member_contains_position(
+    member,
+    source_line,
+    source_column
+)
+    if type(member) ~= "table" then
+        return false
+    end
+
+    local start_line =
+        tonumber(
+            member.source_start_line
+            or member.line
+        )
+
+    local end_line =
+        tonumber(
+            member.source_end_line
+            or member.line
+        )
+
+    if not start_line or not end_line then
+        return false
+    end
+
+    local start_column =
+        tonumber(
+            member.source_start_column
+        ) or 0
+
+    local end_column =
+        tonumber(
+            member.source_end_column
+        ) or start_column
+
+    if source_line < start_line
+        or source_line > end_line
+    then
+        return false
+    end
+
+    if start_line == end_line then
+        return source_column >= start_column
+            and source_column < end_column
+    end
+
+    if source_line == start_line then
+        return source_column >= start_column
+    end
+
+    if source_line == end_line then
+        return source_column < end_column
+    end
+
+    return true
+end
+
+
+local function get_scope_member_range_span(member)
+    if type(member) ~= "table" then
+        return math.huge, math.huge
+    end
+
+    local start_line =
+        tonumber(
+            member.source_start_line
+            or member.line
+        )
+
+    local end_line =
+        tonumber(
+            member.source_end_line
+            or member.line
+        )
+
+    if not start_line or not end_line then
+        return math.huge, math.huge
+    end
+
+    local line_span =
+        end_line - start_line
+
+    local column_span = math.huge
+
+    if line_span == 0 then
+        local start_column =
+            tonumber(
+                member.source_start_column
+            ) or 0
+
+        local end_column =
+            tonumber(
+                member.source_end_column
+            ) or start_column
+
+        column_span =
+            math.max(
+                0,
+                end_column - start_column
+            )
+    end
+
+    return line_span, column_span
+end
+
+
+local function find_most_specific_scope_member(
+    members,
+    source_line,
+    source_column
+)
+    local best_member = nil
+    local best_line_span = math.huge
+    local best_column_span = math.huge
+
+    for _, member in ipairs(members or {}) do
+        if scope_member_contains_position(
+            member,
+            source_line,
+            source_column
+        ) then
+            local line_span, column_span =
+                get_scope_member_range_span(
+                    member
+                )
+
+            if not best_member
+                or line_span < best_line_span
+                or (
+                    line_span == best_line_span
+                    and column_span < best_column_span
+                )
+            then
+                best_member = member
+                best_line_span = line_span
+                best_column_span = column_span
+            end
+        end
+    end
+
+    return best_member
+end
+
+
+local function find_node_path_by_id(
+    nodes,
+    wanted_id,
+    current_path
+)
+    if not wanted_id then
+        return nil
+    end
+
+    current_path = current_path or {}
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            local next_path = {}
+
+            for _, path_node in ipairs(
+                current_path
+            ) do
+                table.insert(
+                    next_path,
+                    path_node
+                )
+            end
+
+            table.insert(
+                next_path,
+                node
+            )
+
+            if node.id == wanted_id then
+                return next_path
+            end
+
+            if node_has_children(node) then
+                local found =
+                    find_node_path_by_id(
+                        node.children,
+                        wanted_id,
+                        next_path
+                    )
+
+                if found then
+                    return found
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+
+local function reveal_and_toggle_scope_member(
+    member,
+    scope_member_nodes
+)
+    if type(member) ~= "table"
+        or not member.id
+    then
+        return false, nil
+    end
+
+    local node_path =
+        find_node_path_by_id(
+            scope_member_nodes,
+            member.id
+        )
+
+    if not node_path
+        or #node_path == 0
+    then
+        return false, nil
+    end
+
+    local member_node =
+        node_path[#node_path]
+
+    if type(member_node) ~= "table"
+        or member_node.kind ~= "member"
+    then
+        return false, nil
+    end
+
+    M.set_expanded(
+        "scope_members",
+        true
+    )
+
+    --
+    -- Reveal every parent container first.
+    --
+
+    for index = 1, #node_path - 1 do
+        local node =
+            node_path[index]
+
+        if node_has_children(node) then
+            hud_nodes.set_expanded(
+                node.id,
+                true
+            )
+        end
+    end
+
+    --
+    -- Then toggle exactly the member selected from source.
+    --
+
+    local currently_expanded =
+        hud_nodes.is_expanded(
+            member_node.id,
+            get_node_default_expanded(
+                member_node
+            )
+        )
+
+    hud_nodes.set_expanded(
+        member_node.id,
+        not currently_expanded
+    )
+
+    return true, member_node.id
+end
+
 
 function M.inspect_scope_members(request)
     if type(request) ~= "table"
@@ -803,13 +1071,54 @@ function M.inspect_scope_members(request)
         return false
     end
 
-    local context = request.context
+    local context =
+        request.context
+
+    local scope_members =
+        context.scope_members or {}
 
     local scope_member_nodes =
         build_scope_member_nodes_for_context(
             context,
             false
         )
+
+    --
+    -- FIRST:
+    --
+    -- Resolve the exact semantic Scope Member directly from the
+    -- Scope Members model.
+    --
+    -- Do not infer member identity from the rendered tree.
+    --
+
+    local member =
+        find_most_specific_scope_member(
+            scope_members,
+            source_line,
+            source_column
+        )
+
+    if member then
+        local ok, target_node_id =
+            reveal_and_toggle_scope_member(
+                member,
+                scope_member_nodes
+            )
+
+        if ok then
+            return true, target_node_id
+        end
+    end
+
+    --
+    -- SECOND:
+    --
+    -- No concrete Scope Member occupies the cursor position.
+    --
+    -- Fall back to structural/scope inspection so syntax such as
+    -- if / then / end / for can still reveal its owning scope.
+    --
 
     local node_path =
         find_deepest_node_path_for_position(
@@ -840,92 +1149,11 @@ function M.inspect_scope_members(request)
         return false
     end
 
-    --
-    -- Scope Members has a stronger positional rule than a generic
-    -- expandable section:
-    --
-    --     exact member under cursor
-    --         -> toggle that member
-    --
-    --     otherwise
-    --         -> fall back to the owning scope/container
-    --
-    -- This lets table fields such as:
-    --
-    --     enabled = true
-    --     count = 10
-    --     name = "tracker"
-    --
-    -- expand independently even though they live inside the same
-    -- structural table scope.
-    --
-
-    local member_node = nil
-
-    for index = #node_path, 1, -1 do
-        local node = node_path[index]
-
-        if type(node) == "table"
-            and node.kind == "member"
-            and node_has_children(node)
-        then
-            member_node = node
-            break
-        end
-    end
-
-    if member_node then
-        M.set_expanded(
-            "scope_members",
-            true
-        )
-
-        --
-        -- Keep every expandable ancestor open so the member remains
-        -- visible after its own state is toggled.
-        --
-
-        for _, node in ipairs(node_path) do
-            if node == member_node then
-                break
-            end
-
-            if node_has_children(node) then
-                hud_nodes.set_expanded(
-                    node.id,
-                    true
-                )
-            end
-        end
-
-        local currently_expanded =
-            hud_nodes.is_expanded(
-                member_node.id,
-                get_node_default_expanded(
-                    member_node
-                )
-            )
-
-        hud_nodes.set_expanded(
-            member_node.id,
-            not currently_expanded
-        )
-
-        return true, member_node.id
-    end
-
-    --
-    -- No concrete member was under the cursor.
-    -- Preserve the existing scope/container behaviour for constructs
-    -- such as if / then / end / for.
-    --
-
     return reveal_path_and_toggle_best_node(
         "scope_members",
         node_path
     )
 end
-
 
 local function build_register_nodes_for_context(context)
     if type(context) ~= "table" then
