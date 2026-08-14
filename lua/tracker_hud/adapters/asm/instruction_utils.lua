@@ -163,12 +163,15 @@ local function append_operand(operands, seen, bufnr, node)
 end
 
 
+
 function M.parse_instruction(bufnr, instruction_node)
     if not instruction_node or instruction_node:type() ~= "instruction" then
         return nil
     end
 
     local mnemonic = nil
+    local mnemonic_range = nil
+
     local operands = {}
     local seen_operands = {}
 
@@ -177,8 +180,29 @@ function M.parse_instruction(bufnr, instruction_node)
 
         if child_type == "word" and not mnemonic then
             mnemonic = node_text(bufnr, child)
-        elseif child_type == "reg" or child_type == "ident" or child_type == "int" then
-            append_operand(operands, seen_operands, bufnr, child)
+
+            local start_row, start_column, end_row, end_column = child:range()
+
+            mnemonic_range = {
+                source_line = start_row + 1,
+                source_column = start_column,
+
+                source_start_line = start_row + 1,
+                source_start_column = start_column,
+
+                source_end_line = end_row + 1,
+                source_end_column = end_column,
+            }
+        elseif child_type == "reg"
+            or child_type == "ident"
+            or child_type == "int"
+        then
+            append_operand(
+                operands,
+                seen_operands,
+                bufnr,
+                child
+            )
         end
     end
 
@@ -188,13 +212,16 @@ function M.parse_instruction(bufnr, instruction_node)
         return nil
     end
 
-    local start_row, start_column, end_row, end_column = instruction_node:range()
+    local start_row, start_column, end_row, end_column =
+        instruction_node:range()
 
     return {
         mnemonic = mnemonic,
+        mnemonic_range = mnemonic_range,
+
         operands = operands,
 
-        source_line = instruction_node:start() + 1,
+        source_line = start_row + 1,
         source_column = start_column,
 
         source_start_line = start_row + 1,
