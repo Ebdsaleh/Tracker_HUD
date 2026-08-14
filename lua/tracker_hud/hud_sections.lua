@@ -787,39 +787,144 @@ end
 
 
 function M.inspect_scope_members(request)
-    if type(request) ~= "table" or type(request.context) ~= "table" then
+    if type(request) ~= "table"
+        or type(request.context) ~= "table"
+    then
         return false
     end
 
-    local source_line = tonumber(request.line)
-    local source_column = tonumber(request.column) or 0
+    local source_line =
+        tonumber(request.line)
+
+    local source_column =
+        tonumber(request.column) or 0
 
     if not source_line then
         return false
     end
 
     local context = request.context
-    local scope_member_nodes = build_scope_member_nodes_for_context(context, false)
 
-    local node_path = find_deepest_node_path_for_position(
-        scope_member_nodes,
-        source_line,
-        source_column
-    )
+    local scope_member_nodes =
+        build_scope_member_nodes_for_context(
+            context,
+            false
+        )
 
-    if not node_path or #node_path == 0 then
-        local fallback = find_closest_node_path_for_line(
+    local node_path =
+        find_deepest_node_path_for_position(
             scope_member_nodes,
             source_line,
             source_column
         )
 
-        node_path = fallback and fallback.path or nil
+    if not node_path
+        or #node_path == 0
+    then
+        local fallback =
+            find_closest_node_path_for_line(
+                scope_member_nodes,
+                source_line,
+                source_column
+            )
+
+        node_path =
+            fallback
+            and fallback.path
+            or nil
     end
 
-    return reveal_path_and_toggle_best_node("scope_members", node_path)
-end
+    if not node_path
+        or #node_path == 0
+    then
+        return false
+    end
 
+    --
+    -- Scope Members has a stronger positional rule than a generic
+    -- expandable section:
+    --
+    --     exact member under cursor
+    --         -> toggle that member
+    --
+    --     otherwise
+    --         -> fall back to the owning scope/container
+    --
+    -- This lets table fields such as:
+    --
+    --     enabled = true
+    --     count = 10
+    --     name = "tracker"
+    --
+    -- expand independently even though they live inside the same
+    -- structural table scope.
+    --
+
+    local member_node = nil
+
+    for index = #node_path, 1, -1 do
+        local node = node_path[index]
+
+        if type(node) == "table"
+            and node.kind == "member"
+            and node_has_children(node)
+        then
+            member_node = node
+            break
+        end
+    end
+
+    if member_node then
+        M.set_expanded(
+            "scope_members",
+            true
+        )
+
+        --
+        -- Keep every expandable ancestor open so the member remains
+        -- visible after its own state is toggled.
+        --
+
+        for _, node in ipairs(node_path) do
+            if node == member_node then
+                break
+            end
+
+            if node_has_children(node) then
+                hud_nodes.set_expanded(
+                    node.id,
+                    true
+                )
+            end
+        end
+
+        local currently_expanded =
+            hud_nodes.is_expanded(
+                member_node.id,
+                get_node_default_expanded(
+                    member_node
+                )
+            )
+
+        hud_nodes.set_expanded(
+            member_node.id,
+            not currently_expanded
+        )
+
+        return true, member_node.id
+    end
+
+    --
+    -- No concrete member was under the cursor.
+    -- Preserve the existing scope/container behaviour for constructs
+    -- such as if / then / end / for.
+    --
+
+    return reveal_path_and_toggle_best_node(
+        "scope_members",
+        node_path
+    )
+end
 
 
 local function build_register_nodes_for_context(context)
