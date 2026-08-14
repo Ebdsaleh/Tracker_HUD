@@ -4,24 +4,30 @@
 --
 -- This file is the reference high-level-language adapter for Tracker_HUD.
 --
--- Tree-sitter-facing identity:
+-- Adapter rule:
 --
---     M.construct_specs[tree_sitter_node_type]
---     scope_members.*.node_type
+--     Tree-sitter syntax comes first.
 --
--- Tracker_HUD semantic identity:
+-- Every construct/member declaration starts by describing the exact
+-- Tree-sitter syntax that Tracker_HUD consumes. Language-native meaning and
+-- Tracker_HUD semantics are layered onto that syntax declaration.
 --
---     construct.kind
---     member.kind
---     value.kind
+--     syntax
+--         exact Tree-sitter node / field / child / token relationships
 --
--- Active-language vocabulary:
+--     construct
+--         Tracker_HUD semantic identity plus Lua-native terminology
 --
---     *.language_term
---     construct.label
---     value.type_label
+--     scope
+--         scope behaviour created by the syntax construct
 --
--- Mutability:
+--     value
+--         value semantics represented by the syntax construct
+--
+--     member
+--         Scope Members semantics represented by matching syntax
+--
+-- Mutability is orthogonal:
 --
 --     binding
 --         whether a binding/name may be rebound
@@ -42,6 +48,7 @@ M.name = "lua"
 M.filetypes = {
     "lua",
 }
+
 
 M.presentation = {
     sections = {
@@ -70,6 +77,24 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["function_declaration"] = {
+        syntax = {
+            node_type = "function_declaration",
+
+            fields = {
+                name = "name",
+                parameters = "parameters",
+                body = "body",
+            },
+
+            tokens = {
+                start = "function",
+                local_prefix = "local",
+                args_open = "(",
+                args_close = ")",
+                scope_close = "end",
+            },
+        },
+
         construct = {
             kind = "function",
             language_term = "function",
@@ -96,14 +121,6 @@ M.construct_specs = {
                 state = "immutable",
                 shape = "fixed",
             },
-        },
-
-        tokens = {
-            start = "function",
-            local_prefix = "local",
-            args_open = "(",
-            args_close = ")",
-            scope_close = "end",
         },
 
         signature = {
@@ -134,6 +151,22 @@ M.construct_specs = {
 
 
     ["function_definition"] = {
+        syntax = {
+            node_type = "function_definition",
+
+            fields = {
+                parameters = "parameters",
+                body = "body",
+            },
+
+            tokens = {
+                start = "function",
+                args_open = "(",
+                args_close = ")",
+                scope_close = "end",
+            },
+        },
+
         construct = {
             kind = "function",
             language_term = "function",
@@ -162,22 +195,8 @@ M.construct_specs = {
             },
         },
 
-        tokens = {
-            start = "function",
-            local_prefix = "local",
-            args_open = "(",
-            args_close = ")",
-            scope_close = "end",
-        },
-
         signature = {
             strategy = "first_line",
-
-            name_pattern =
-                "^%s*function%s+([%w_%.:]+)",
-
-            local_name_pattern =
-                "^%s*local%s+function%s+([%w_%.:]+)",
         },
 
         markers = {
@@ -186,10 +205,6 @@ M.construct_specs = {
                 "args_open",
                 "args_close",
                 "scope_close",
-            },
-
-            optional = {
-                "local_prefix",
             },
 
             total_required = 4,
@@ -202,6 +217,34 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["if_statement"] = {
+        syntax = {
+            node_type = "if_statement",
+
+            fields = {
+                condition = "condition",
+                consequence = "consequence",
+                alternative = "alternative",
+            },
+
+            children = {
+                alternatives = {
+                    node_types = {
+                        "elseif_statement",
+                        "else_statement",
+                    },
+                    multiple = true,
+                },
+            },
+
+            tokens = {
+                start = "if",
+                branch_open = "then",
+                alternative_if = "elseif",
+                alternative = "else",
+                branch_close = "end",
+            },
+        },
+
         construct = {
             kind = "branch",
             language_term = "if",
@@ -214,25 +257,21 @@ M.construct_specs = {
             owns_members = true,
         },
 
-        tokens = {
-            start = "if",
-            branch_open = "then",
-            alternative_if = "elseif",
-            alternative = "else",
-            branch_close = "end",
-        },
-
         branch = {
             grouped = true,
 
             alternatives = {
                 {
-                    node_match = "elseif",
+                    syntax = {
+                        node_type = "elseif_statement",
+                    },
                     label = "Else-If",
                 },
 
                 {
-                    node_match = "else",
+                    syntax = {
+                        node_type = "else_statement",
+                    },
                     label = "Else",
                 },
             },
@@ -260,6 +299,30 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["for_statement"] = {
+        syntax = {
+            node_type = "for_statement",
+
+            fields = {
+                clause = "clause",
+                body = "body",
+            },
+
+            children = {
+                clause = {
+                    node_types = {
+                        "for_generic_clause",
+                        "for_numeric_clause",
+                    },
+                },
+            },
+
+            tokens = {
+                start = "for",
+                loop_open = "do",
+                scope_close = "end",
+            },
+        },
+
         construct = {
             kind = "loop",
             language_term = "for",
@@ -270,12 +333,6 @@ M.construct_specs = {
             kind = "lexical",
             affects_visibility = true,
             owns_members = true,
-        },
-
-        tokens = {
-            start = "for",
-            loop_open = "do",
-            scope_close = "end",
         },
 
         markers = {
@@ -291,6 +348,21 @@ M.construct_specs = {
 
 
     ["while_statement"] = {
+        syntax = {
+            node_type = "while_statement",
+
+            fields = {
+                condition = "condition",
+                body = "body",
+            },
+
+            tokens = {
+                start = "while",
+                loop_open = "do",
+                scope_close = "end",
+            },
+        },
+
         construct = {
             kind = "loop",
             language_term = "while",
@@ -301,12 +373,6 @@ M.construct_specs = {
             kind = "lexical",
             affects_visibility = true,
             owns_members = true,
-        },
-
-        tokens = {
-            start = "while",
-            loop_open = "do",
-            scope_close = "end",
         },
 
         markers = {
@@ -322,6 +388,20 @@ M.construct_specs = {
 
 
     ["repeat_statement"] = {
+        syntax = {
+            node_type = "repeat_statement",
+
+            fields = {
+                body = "body",
+                condition = "condition",
+            },
+
+            tokens = {
+                start = "repeat",
+                scope_close = "until",
+            },
+        },
+
         construct = {
             kind = "loop",
             language_term = "repeat",
@@ -332,11 +412,6 @@ M.construct_specs = {
             kind = "lexical",
             affects_visibility = true,
             owns_members = true,
-        },
-
-        tokens = {
-            start = "repeat",
-            scope_close = "until",
         },
 
         markers = {
@@ -355,6 +430,21 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["return_statement"] = {
+        syntax = {
+            node_type = "return_statement",
+
+            children = {
+                values = {
+                    node_type = "expression_list",
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                start = "return",
+            },
+        },
+
         construct = {
             kind = "return",
             language_term = "return",
@@ -364,6 +454,28 @@ M.construct_specs = {
 
 
     ["assignment_statement"] = {
+        syntax = {
+            node_type = "assignment_statement",
+
+            fields = {
+                operator = "operator",
+            },
+
+            children = {
+                names = {
+                    node_type = "variable_list",
+                },
+
+                values = {
+                    node_type = "expression_list",
+                },
+            },
+
+            tokens = {
+                operator = "=",
+            },
+        },
+
         construct = {
             kind = "assignment",
             language_term = "assignment",
@@ -373,6 +485,15 @@ M.construct_specs = {
 
 
     ["function_call"] = {
+        syntax = {
+            node_type = "function_call",
+
+            fields = {
+                name = "name",
+                arguments = "arguments",
+            },
+        },
+
         construct = {
             kind = "call",
             language_term = "function call",
@@ -392,6 +513,16 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["string"] = {
+        syntax = {
+            node_type = "string",
+
+            fields = {
+                start = "start",
+                content = "content",
+                finish = "end",
+            },
+        },
+
         construct = {
             kind = "literal",
             language_term = "string",
@@ -417,6 +548,10 @@ M.construct_specs = {
 
 
     ["number"] = {
+        syntax = {
+            node_type = "number",
+        },
+
         construct = {
             kind = "literal",
             language_term = "number",
@@ -442,6 +577,14 @@ M.construct_specs = {
 
 
     ["nil"] = {
+        syntax = {
+            node_type = "nil",
+
+            tokens = {
+                literal = "nil",
+            },
+        },
+
         construct = {
             kind = "literal",
             language_term = "nil",
@@ -467,6 +610,14 @@ M.construct_specs = {
 
 
     ["true"] = {
+        syntax = {
+            node_type = "true",
+
+            tokens = {
+                literal = "true",
+            },
+        },
+
         construct = {
             kind = "literal",
             language_term = "boolean",
@@ -492,6 +643,14 @@ M.construct_specs = {
 
 
     ["false"] = {
+        syntax = {
+            node_type = "false",
+
+            tokens = {
+                literal = "false",
+            },
+        },
+
         construct = {
             kind = "literal",
             language_term = "boolean",
@@ -521,6 +680,23 @@ M.construct_specs = {
     --------------------------------------------------------------------------
 
     ["table_constructor"] = {
+        syntax = {
+            node_type = "table_constructor",
+
+            children = {
+                fields = {
+                    node_type = "field",
+                    multiple = true,
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                open = "{",
+                close = "}",
+            },
+        },
+
         construct = {
             kind = "table",
             language_term = "table",
@@ -560,9 +736,25 @@ M.scope_members = {
 
     declarations = {
         {
-            node_type = "variable_declaration",
-            name_list_node_type = "variable_list",
-            value_list_node_type = "expression_list",
+            syntax = {
+                node_type = "variable_declaration",
+
+                children = {
+                    names = {
+                        node_type = "variable_list",
+                    },
+
+                    values = {
+                        node_type = "expression_list",
+                        optional = true,
+                    },
+                },
+
+                tokens = {
+                    declaration = "local",
+                    operator = "=",
+                },
+            },
 
             member = {
                 kind = "local",
@@ -583,13 +775,33 @@ M.scope_members = {
 
     assignments = {
         {
-            node_type = "assignment_statement",
-            name_list_node_type = "variable_list",
-            value_list_node_type = "expression_list",
+            syntax = {
+                node_type = "assignment_statement",
 
-            exclude_ancestor_node_types = {
-                "variable_declaration",
-                "local_declaration",
+                children = {
+                    names = {
+                        node_type = "variable_list",
+                    },
+
+                    values = {
+                        node_type = "expression_list",
+                    },
+                },
+
+                fields = {
+                    operator = "operator",
+                },
+
+                exclusions = {
+                    ancestor_node_types = {
+                        "variable_declaration",
+                        "local_declaration",
+                    },
+                },
+
+                tokens = {
+                    operator = "=",
+                },
             },
 
             member = {
@@ -611,8 +823,19 @@ M.scope_members = {
 
     parameters = {
         {
-            node_type = "function_declaration",
-            list_node_type = "parameters",
+            syntax = {
+                node_type = "function_declaration",
+
+                children = {
+                    names = {
+                        node_type = "parameters",
+                    },
+                },
+
+                fields = {
+                    parameters = "parameters",
+                },
+            },
 
             member = {
                 kind = "parameter",
@@ -626,8 +849,19 @@ M.scope_members = {
         },
 
         {
-            node_type = "function_definition",
-            list_node_type = "parameters",
+            syntax = {
+                node_type = "function_definition",
+
+                children = {
+                    names = {
+                        node_type = "parameters",
+                    },
+                },
+
+                fields = {
+                    parameters = "parameters",
+                },
+            },
 
             member = {
                 kind = "parameter",
@@ -648,7 +882,13 @@ M.scope_members = {
 
     functions = {
         {
-            node_type = "function_declaration",
+            syntax = {
+                node_type = "function_declaration",
+
+                fields = {
+                    name = "name",
+                },
+            },
 
             member = {
                 kind = "function",
@@ -662,7 +902,9 @@ M.scope_members = {
         },
 
         {
-            node_type = "function_definition",
+            syntax = {
+                node_type = "function_definition",
+            },
 
             member = {
                 kind = "function",
@@ -683,8 +925,22 @@ M.scope_members = {
 
     loops = {
         {
-            node_type = "for_numeric_clause",
-            name_field = "name",
+            syntax = {
+                node_type = "for_numeric_clause",
+
+                fields = {
+                    name = "name",
+                    operator = "operator",
+                    start = "start",
+                    finish = "end",
+                    step = "step",
+                },
+
+                tokens = {
+                    operator = "=",
+                    separator = ",",
+                },
+            },
 
             member = {
                 kind = "loop_variable",
@@ -698,8 +954,23 @@ M.scope_members = {
         },
 
         {
-            node_type = "for_generic_clause",
-            name_list_node_type = "variable_list",
+            syntax = {
+                node_type = "for_generic_clause",
+
+                children = {
+                    names = {
+                        node_type = "variable_list",
+                    },
+
+                    values = {
+                        node_type = "expression_list",
+                    },
+                },
+
+                tokens = {
+                    iterator = "in",
+                },
+            },
 
             member = {
                 kind = "loop_variable",
@@ -720,8 +991,20 @@ M.scope_members = {
 
     returns = {
         {
-            node_type = "return_statement",
-            value_list_node_type = "expression_list",
+            syntax = {
+                node_type = "return_statement",
+
+                children = {
+                    values = {
+                        node_type = "expression_list",
+                        optional = true,
+                    },
+                },
+
+                tokens = {
+                    start = "return",
+                },
+            },
 
             member = {
                 kind = "return_value",
@@ -738,7 +1021,19 @@ M.scope_members = {
 
     fields = {
         {
-            node_type = "field",
+            syntax = {
+                node_type = "field",
+
+                fields = {
+                    name = "name",
+                    operator = "operator",
+                    value = "value",
+                },
+
+                tokens = {
+                    operator = "=",
+                },
+            },
 
             member = {
                 kind = "field",
@@ -755,3 +1050,4 @@ M.scope_members = {
 
 
 return M
+

@@ -13,6 +13,74 @@ local M = {}
 local register_effect_index_cache = setmetatable({}, { __mode = "k" })
 
 
+local function get_syntax(spec)
+    if not core.is_table(spec)
+        or not core.is_table(spec.syntax)
+    then
+        return {}
+    end
+
+    return spec.syntax
+end
+
+
+local function get_syntax_node_type(spec)
+    local syntax = get_syntax(spec)
+
+    if core.is_non_empty_string(
+        syntax.node_type
+    ) then
+        return syntax.node_type
+    end
+
+    return nil
+end
+
+
+local function get_syntax_field(spec, key)
+    local syntax = get_syntax(spec)
+    local fields = syntax.fields or {}
+    local field_name = fields[key]
+
+    if core.is_non_empty_string(
+        field_name
+    ) then
+        return field_name
+    end
+
+    if core.is_table(field_name)
+        and core.is_non_empty_string(
+            field_name.field
+        )
+    then
+        return field_name.field
+    end
+
+    return nil
+end
+
+
+local function get_syntax_tokens(spec)
+    local syntax = get_syntax(spec)
+
+    if core.is_table(syntax.tokens) then
+        return syntax.tokens
+    end
+
+    --
+    -- Temporary compatibility while bundled adapters are migrated.
+    --
+    if core.is_table(spec)
+        and core.is_table(spec.tokens)
+    then
+        return spec.tokens
+    end
+
+    return nil
+end
+
+
+
 local function normalize_mnemonic(mnemonic)
     if not core.is_non_empty_string(mnemonic) then
         return nil
@@ -234,6 +302,44 @@ function M.extract_name_from_signature(signature, spec)
 end
 
 
+function M.extract_name_from_syntax(
+    node,
+    bufnr,
+    spec
+)
+    if not node or not core.is_table(spec) then
+        return nil
+    end
+
+    local name_field =
+        get_syntax_field(
+            spec,
+            "name"
+        )
+
+    if not name_field then
+        return nil
+    end
+
+    local name_node =
+        require("tracker_hud.treesitter_utils")
+            .get_child_by_field_name(
+                node,
+                name_field
+            )
+
+    if not name_node then
+        return nil
+    end
+
+    return require("tracker_hud.treesitter_utils")
+        .get_node_text(
+            name_node,
+            bufnr
+        )
+end
+
+
 function M.build_construct(opts)
     opts = opts or {}
 
@@ -307,11 +413,30 @@ function M.node_matches_branch_alternative(node, spec)
     local node_type = node:type()
 
     for _, alternative_spec in ipairs(alternatives) do
-        if core.is_table(alternative_spec)
-            and type(alternative_spec.node_match) == "string"
-            and node_type:match(alternative_spec.node_match)
-        then
-            return true
+        if core.is_table(alternative_spec) then
+            local alternative_node_type =
+                get_syntax_node_type(
+                    alternative_spec
+                )
+
+            if core.is_non_empty_string(
+                alternative_node_type
+            ) and node_type == alternative_node_type
+            then
+                return true
+            end
+
+            --
+            -- Temporary compatibility for pre-syntax adapters.
+            --
+            if type(alternative_spec.node_match)
+                == "string"
+                and node_type:match(
+                    alternative_spec.node_match
+                )
+            then
+                return true
+            end
         end
     end
 
@@ -326,8 +451,17 @@ function M.get_node_alternatives(node, spec)
         return alternatives
     end
 
+    local alternative_field =
+        get_syntax_field(
+            spec,
+            "alternative"
+        )
+        or "alternative"
+
     local ok, field_nodes = pcall(function()
-        return node:field("alternative")
+        return node:field(
+            alternative_field
+        )
     end)
 
     if ok and field_nodes then
@@ -359,11 +493,32 @@ function M.get_branch_alternative_label(alternative_node, spec)
 
     for _, alternative_spec in ipairs(alternatives) do
         if core.is_table(alternative_spec)
-            and type(alternative_spec.node_match) == "string"
             and type(alternative_spec.label) == "string"
-            and alternative_type:match(alternative_spec.node_match)
         then
-            return alternative_spec.label
+            local alternative_node_type =
+                get_syntax_node_type(
+                    alternative_spec
+                )
+
+            if core.is_non_empty_string(
+                alternative_node_type
+            ) and alternative_type
+                == alternative_node_type
+            then
+                return alternative_spec.label
+            end
+
+            --
+            -- Temporary compatibility for pre-syntax adapters.
+            --
+            if type(alternative_spec.node_match)
+                == "string"
+                and alternative_type:match(
+                    alternative_spec.node_match
+                )
+            then
+                return alternative_spec.label
+            end
         end
     end
 
@@ -590,7 +745,20 @@ function M.parse_node(adapter, node, bufnr)
             bufnr,
             spec
         )
+    end
 
+    --
+    -- Tree-sitter fields are authoritative for syntax identity.
+    -- Text-pattern parsing is only a fallback when the grammar does not
+    -- expose the requested field on this construct.
+    --
+    name = M.extract_name_from_syntax(
+        node,
+        bufnr,
+        spec
+    )
+
+    if not name and signature then
         name = M.extract_name_from_signature(
             signature,
             spec
@@ -651,7 +819,11 @@ function M.get_construct_spec(construct_specs, node_type)
         return nil, nil
     end
 
-    local ok, err = M.validate_construct_spec(spec)
+    local ok, err =
+        M.validate_construct_spec(
+            spec,
+            node_type
+        )
 
     if not ok then
         return nil, err
@@ -662,9 +834,79 @@ function M.get_construct_spec(construct_specs, node_type)
 end
 
 
-function M.validate_construct_spec(spec)
+function M.validate_construct_spec(
+    spec,
+    expected_node_type
+)
     if not core.is_table(spec) then
         return false, "construct spec must be a table"
+    end
+
+    local syntax = get_syntax(spec)
+
+    if spec.syntax ~= nil
+        and not core.is_table(spec.syntax)
+    then
+        return false,
+            "construct spec syntax must be a table when provided"
+    end
+
+    if core.is_table(spec.syntax) then
+        if not core.is_non_empty_string(
+            syntax.node_type
+        ) then
+            return false,
+                "construct spec syntax.node_type must be a non-empty Tree-sitter node type"
+        end
+
+        if core.is_non_empty_string(
+            expected_node_type
+        ) and syntax.node_type
+            ~= expected_node_type
+        then
+            return false,
+                "construct spec syntax.node_type '"
+                .. tostring(syntax.node_type)
+                .. "' does not match construct_specs key '"
+                .. tostring(expected_node_type)
+                .. "'"
+        end
+
+        if syntax.fields ~= nil
+            and not core.is_table(
+                syntax.fields
+            )
+        then
+            return false,
+                "construct spec syntax.fields must be a table when provided"
+        end
+
+        if syntax.children ~= nil
+            and not core.is_table(
+                syntax.children
+            )
+        then
+            return false,
+                "construct spec syntax.children must be a table when provided"
+        end
+
+        if syntax.tokens ~= nil
+            and not core.is_table(
+                syntax.tokens
+            )
+        then
+            return false,
+                "construct spec syntax.tokens must be a table when provided"
+        end
+
+        if syntax.exclusions ~= nil
+            and not core.is_table(
+                syntax.exclusions
+            )
+        then
+            return false,
+                "construct spec syntax.exclusions must be a table when provided"
+        end
     end
 
     local contract = require("tracker_hud.constructs.contract")
@@ -693,10 +935,6 @@ function M.validate_construct_spec(spec)
         return false, err
     end
 
-    if spec.tokens ~= nil and not core.is_table(spec.tokens) then
-        return false, "construct spec tokens must be a table when provided"
-    end
-
     if spec.markers ~= nil then
         if not core.is_table(spec.markers) then
             return false, "construct spec markers must be a table when provided"
@@ -713,8 +951,12 @@ function M.validate_construct_spec(spec)
             return false, "construct spec markers.optional must be a table"
         end
 
-        if spec.tokens == nil then
-            return false, "construct spec markers require a tokens table"
+        local tokens =
+            get_syntax_tokens(spec)
+
+        if tokens == nil then
+            return false,
+                "construct spec markers require syntax.tokens"
         end
 
         for _, marker_name in ipairs(required) do
@@ -722,8 +964,11 @@ function M.validate_construct_spec(spec)
                 return false, "required marker names must be non-empty strings"
             end
 
-            if spec.tokens[marker_name] == nil then
-                return false, "required marker '" .. marker_name .. "' is missing from tokens"
+            if tokens[marker_name] == nil then
+                return false,
+                    "required marker '"
+                    .. marker_name
+                    .. "' is missing from syntax.tokens"
             end
         end
 
@@ -732,8 +977,11 @@ function M.validate_construct_spec(spec)
                 return false, "optional marker names must be non-empty strings"
             end
 
-            if spec.tokens[marker_name] == nil then
-                return false, "optional marker '" .. marker_name .. "' is missing from tokens"
+            if tokens[marker_name] == nil then
+                return false,
+                    "optional marker '"
+                    .. marker_name
+                    .. "' is missing from syntax.tokens"
             end
         end
 
