@@ -563,7 +563,11 @@ function M.parse_node(adapter, node, bufnr)
     end
 
     local node_type = M.get_node_type(node)
-    local spec, spec_err = M.get_construct_spec(adapter.construct_specs, node_type)
+
+    local spec, spec_err = M.get_construct_spec(
+        adapter.construct_specs,
+        node_type
+    )
 
     if not spec then
         return nil, spec_err
@@ -576,27 +580,44 @@ function M.parse_node(adapter, node, bufnr)
     end
 
     local construct_spec = spec.construct or {}
+
     local signature = nil
     local name = nil
 
-    if construct_spec.kind == "callable" then
-        signature = M.build_signature(node, bufnr, spec)
-        name = M.extract_name_from_signature(signature, spec)
+    if core.is_table(spec.signature) then
+        signature = M.build_signature(
+            node,
+            bufnr,
+            spec
+        )
+
+        name = M.extract_name_from_signature(
+            signature,
+            spec
+        )
     end
 
-    local label = construct_spec.label or "<unknown>"
+    local label = construct_spec.label
+        or "<unknown>"
+
     local display_label = nil
 
-    if construct_spec.kind == "branch" and spec.branch then
-        display_label = M.build_branch_display_label(node, spec)
+    if core.is_table(spec.branch) then
+        display_label = M.build_branch_display_label(
+            node,
+            spec
+        )
+
         label = display_label
     end
 
+    local resolved_construct =
+        vim.deepcopy(construct_spec)
+
+    resolved_construct.label = label
+
     return M.build_construct({
-        construct = {
-            kind = construct_spec.kind,
-            label = label,
-        },
+        construct = resolved_construct,
 
         scope = spec.scope,
         member = spec.member,
@@ -606,13 +627,13 @@ function M.parse_node(adapter, node, bufnr)
         name = name,
         signature = signature,
         range = range,
+
         metadata = {
             adapter = adapter.name,
             display_label = display_label,
         },
     })
 end
-
 
 
 function M.get_construct_spec(construct_specs, node_type)

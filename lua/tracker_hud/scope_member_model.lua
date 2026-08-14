@@ -11,11 +11,8 @@ local M = {}
 
 
 local member_kind_labels = {
-    local_ = "local",
     parameter = "param",
-    function_ = "function",
 }
-
 
 function M.get_kind_label(kind)
     if not core.is_non_empty_string(kind) then

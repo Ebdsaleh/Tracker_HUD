@@ -1,21 +1,75 @@
 -- lua/tracker_hud/constructs/contract.lua
+--
+-- Canonical Tracker_HUD construct contract.
+--
+-- Adapters map exact Tree-sitter node types onto:
+--
+--     construct.kind
+--         Tracker_HUD's precise semantic identity.
+--
+--     construct.language_term
+--         The term used by programmers of the active language.
+--
+--     construct.label
+--         Human-facing display text.
+--
+-- Tree-sitter identity remains external to this vocabulary and is preserved
+-- through construct_specs[tree_sitter_node_type] and runtime node_type.
+--
+-- Mutability is orthogonal to construct identity.
+--
+--     binding
+--         Whether a name/binding may be rebound.
+--
+--     state
+--         Whether an existing value/object may change internally.
+--
+--     shape
+--         Whether members/fields/properties may be added or removed.
 
 local core = require("tracker_hud.core")
 
 local M = {}
 
+
 M.construct_kinds = {
-    callable = true,
+    -- High-level language constructs.
+    ["function"] = true,
+    method = true,
+    constructor = true,
+    destructor = true,
+
+    class = true,
+    struct = true,
+    object = true,
+    enum = true,
+    union = true,
+    interface = true,
+    trait = true,
+    delegate = true,
+    closure = true,
+    lambda = true,
+
     branch = true,
     loop = true,
     block = true,
+
     module = true,
+    namespace = true,
     type = true,
+
     declaration = true,
+    variable = true,
+    parameter = true,
+    field = true,
+    property = true,
+
     assignment = true,
+    ["return"] = true,
+    call = true,
+
     literal = true,
-    expression = true,
-    statement = true,
+    table = true,
 
     -- Low-level / token-like constructs.
     instruction = true,
@@ -28,19 +82,23 @@ M.construct_kinds = {
     label_reference = true,
 }
 
+
 M.scope_kinds = {
     lexical = true,
     structural = true,
     none = true,
 }
 
+
 M.member_kinds = {
-    local_ = true,
+    -- High-level language members.
+    ["local"] = true,
+    variable = true,
     parameter = true,
     field = true,
     property = true,
     method = true,
-    function_ = true,
+    ["function"] = true,
     entry = true,
     return_value = true,
     assignment = true,
@@ -55,17 +113,23 @@ M.member_kinds = {
     symbol = true,
 }
 
+
 M.owner_scope_kinds = {
     lexical = true,
-    parent_lexical = true, 
+    parent_lexical = true,
     structural = true,
     none = true,
 }
 
+
 M.value_kinds = {
     scalar = true,
-    structural = true,
-    callable = true,
+
+    ["function"] = true,
+    method = true,
+    table = true,
+    object = true,
+
     call = true,
     reference = true,
     unknown = true,
@@ -74,15 +138,60 @@ M.value_kinds = {
     symbol = true,
 }
 
+
+M.mutability_binding_kinds = {
+    mutable = true,
+    immutable = true,
+    conditional = true,
+    unknown = true,
+}
+
+
+M.mutability_state_kinds = {
+    mutable = true,
+    immutable = true,
+    conditional = true,
+    unknown = true,
+}
+
+
+M.mutability_shape_kinds = {
+    extensible = true,
+    fixed = true,
+    conditional = true,
+    unknown = true,
+}
+
+
+local function validate_optional_string(value)
+    return value == nil
+        or core.is_non_empty_string(value)
+end
+
+
+local function validate_optional_mutability_value(
+    value,
+    allowed_values
+)
+    return value == nil
+        or (
+            core.is_non_empty_string(value)
+            and allowed_values[value] == true
+        )
+end
+
+
 function M.validate_construct_kind(kind)
     return core.is_non_empty_string(kind)
         and M.construct_kinds[kind] == true
 end
 
+
 function M.validate_scope_kind(kind)
     return core.is_non_empty_string(kind)
         and M.scope_kinds[kind] == true
 end
+
 
 function M.validate_member_kind(kind)
     return kind == nil
@@ -92,6 +201,7 @@ function M.validate_member_kind(kind)
         )
 end
 
+
 function M.validate_owner_scope_kind(owner_scope)
     return owner_scope == nil
         or (
@@ -100,6 +210,7 @@ function M.validate_owner_scope_kind(owner_scope)
         )
 end
 
+
 function M.validate_value_kind(kind)
     return kind == nil
         or (
@@ -107,6 +218,41 @@ function M.validate_value_kind(kind)
             and M.value_kinds[kind] == true
         )
 end
+
+
+function M.validate_mutability_spec(mutability)
+    if mutability == nil then
+        return true, nil
+    end
+
+    if not core.is_table(mutability) then
+        return false, "mutability must be a table when provided"
+    end
+
+    if not validate_optional_mutability_value(
+        mutability.binding,
+        M.mutability_binding_kinds
+    ) then
+        return false, "mutability.binding is invalid"
+    end
+
+    if not validate_optional_mutability_value(
+        mutability.state,
+        M.mutability_state_kinds
+    ) then
+        return false, "mutability.state is invalid"
+    end
+
+    if not validate_optional_mutability_value(
+        mutability.shape,
+        M.mutability_shape_kinds
+    ) then
+        return false, "mutability.shape is invalid"
+    end
+
+    return true, nil
+end
+
 
 function M.validate_range(range)
     if not core.is_table(range) then
@@ -118,11 +264,13 @@ function M.validate_range(range)
         and range.start_line <= range.end_line
 end
 
+
 function M.is_synthetic_construct(construct)
     return core.is_table(construct)
         and core.is_table(construct.metadata)
         and construct.metadata.synthetic == true
 end
+
 
 function M.validate_construct_spec(construct_spec)
     if not core.is_table(construct_spec) then
@@ -133,12 +281,27 @@ function M.validate_construct_spec(construct_spec)
         return false, "construct.kind is invalid or missing"
     end
 
+    if not validate_optional_string(
+        construct_spec.language_term
+    ) then
+        return false, "construct.language_term must be a non-empty string when provided"
+    end
+
     if not core.is_non_empty_string(construct_spec.label) then
         return false, "construct.label must be a non-empty string"
     end
 
+    local ok, err = M.validate_mutability_spec(
+        construct_spec.mutability
+    )
+
+    if not ok then
+        return false, err
+    end
+
     return true, nil
 end
+
 
 function M.validate_scope_spec(scope_spec)
     if scope_spec == nil then
@@ -168,6 +331,7 @@ function M.validate_scope_spec(scope_spec)
     return true, nil
 end
 
+
 function M.validate_member_spec(member_spec)
     if member_spec == nil then
         return true, nil
@@ -181,12 +345,29 @@ function M.validate_member_spec(member_spec)
         return false, "member.kind is invalid"
     end
 
-    if not M.validate_owner_scope_kind(member_spec.owner_scope) then
+    if not validate_optional_string(
+        member_spec.language_term
+    ) then
+        return false, "member.language_term must be a non-empty string when provided"
+    end
+
+    if not M.validate_owner_scope_kind(
+        member_spec.owner_scope
+    ) then
         return false, "member.owner_scope is invalid"
+    end
+
+    local ok, err = M.validate_mutability_spec(
+        member_spec.mutability
+    )
+
+    if not ok then
+        return false, err
     end
 
     return true, nil
 end
+
 
 function M.validate_value_spec(value_spec)
     if value_spec == nil then
@@ -201,48 +382,75 @@ function M.validate_value_spec(value_spec)
         return false, "value.kind is invalid"
     end
 
+    if not validate_optional_string(
+        value_spec.language_term
+    ) then
+        return false, "value.language_term must be a non-empty string when provided"
+    end
+
     if value_spec.type_label ~= nil
         and not core.is_non_empty_string(value_spec.type_label)
     then
         return false, "value.type_label must be a non-empty string when provided"
     end
 
+    local ok, err = M.validate_mutability_spec(
+        value_spec.mutability
+    )
+
+    if not ok then
+        return false, err
+    end
+
     return true, nil
 end
 
+
 function M.validate_common_construct(construct)
-    local ok, err = M.validate_construct_spec(construct.construct)
+    local ok, err = M.validate_construct_spec(
+        construct.construct
+    )
 
     if not ok then
         return false, err
     end
 
-    ok, err = M.validate_scope_spec(construct.scope)
+    ok, err = M.validate_scope_spec(
+        construct.scope
+    )
 
     if not ok then
         return false, err
     end
 
-    ok, err = M.validate_member_spec(construct.member)
+    ok, err = M.validate_member_spec(
+        construct.member
+    )
 
     if not ok then
         return false, err
     end
 
-    ok, err = M.validate_value_spec(construct.value)
+    ok, err = M.validate_value_spec(
+        construct.value
+    )
 
     if not ok then
         return false, err
     end
 
     if construct.signature ~= nil
-        and not core.is_non_empty_string(construct.signature)
+        and not core.is_non_empty_string(
+            construct.signature
+        )
     then
         return false, "construct.signature must be a non-empty string when provided"
     end
 
     if construct.name ~= nil
-        and not core.is_non_empty_string(construct.name)
+        and not core.is_non_empty_string(
+            construct.name
+        )
     then
         return false, "construct.name must be a non-empty string when provided"
     end
@@ -250,8 +458,11 @@ function M.validate_common_construct(construct)
     return true, nil
 end
 
+
 function M.validate_treesitter_construct(construct)
-    if not core.is_non_empty_string(construct.node_type) then
+    if not core.is_non_empty_string(
+        construct.node_type
+    ) then
         return false, "construct.node_type must be a non-empty string"
     end
 
@@ -262,31 +473,42 @@ function M.validate_treesitter_construct(construct)
     return true, nil
 end
 
+
 function M.validate_synthetic_construct(_construct)
-    -- Synthetic constructs are Tracker HUD-created constructs.
+    -- Synthetic constructs are Tracker_HUD-created constructs.
     -- They do not require Tree-sitter node_type/range.
     --
-    -- Common fields are already validated by validate_common_construct().
+    -- Common fields are already validated by
+    -- validate_common_construct().
+
     return true, nil
 end
+
 
 function M.validate_construct(construct)
     if not core.is_table(construct) then
         return false, "construct must be a table"
     end
 
-    local ok, err = M.validate_common_construct(construct)
+    local ok, err = M.validate_common_construct(
+        construct
+    )
 
     if not ok then
         return false, err
     end
 
     if M.is_synthetic_construct(construct) then
-        return M.validate_synthetic_construct(construct)
+        return M.validate_synthetic_construct(
+            construct
+        )
     end
 
-    return M.validate_treesitter_construct(construct)
+    return M.validate_treesitter_construct(
+        construct
+    )
 end
+
 
 function M.new_construct(opts)
     opts = opts or {}
@@ -301,10 +523,13 @@ function M.new_construct(opts)
         name = opts.name,
         signature = opts.signature,
         range = opts.range,
+
         metadata = opts.metadata or {},
     }
 
-    local ok, err = M.validate_construct(construct)
+    local ok, err = M.validate_construct(
+        construct
+    )
 
     if not ok then
         return nil, err
@@ -312,5 +537,6 @@ function M.new_construct(opts)
 
     return construct, nil
 end
+
 
 return M

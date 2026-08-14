@@ -12,13 +12,12 @@ local M = {}
 
 
 local resolvable_member_kinds = {
-    local_ = true,
+    ["local"] = true,
     assignment = true,
     parameter = true,
-    function_ = true,
+    ["function"] = true,
     loop_variable = true,
 }
-
 
 local function make_type_label(member)
     if core.is_table(member) and core.is_non_empty_string(member.type_label) then
@@ -71,7 +70,9 @@ local function make_value_label(member)
         end
     end
 
-    if member.value_kind == "structural" or member.value_kind == "callable" then
+    if member.value_kind == "table"
+        or member.value_kind == "function"
+    then
         local type_label = member.type_label or member.value_kind
 
         if member.value_start_line and member.value_end_line then
