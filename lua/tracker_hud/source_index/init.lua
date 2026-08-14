@@ -1,12 +1,26 @@
--- lua/tracker_hud/source_index.lua
+-- lua/tracker_hud/source_index/init.lua
 --
--- Per-buffer source inspection index.
+-- Generic per-buffer source index.
 --
--- Source lines are compiled lazily and cached for reuse.
+-- Indexed data is stored by:
+--
+--     buffer
+--         -> section
+--             -> line
+--
+-- Section IDs are supplied dynamically by adapters. This module does not
+-- know about Registers, Events, Stack, Heap, or any other concrete section.
+--
 -- A cached line remains structurally valid while its source text remains
 -- unchanged.
 --
--- This module owns cache storage and line validity only.
+-- This module owns:
+--     - per-buffer index storage
+--     - dynamic section storage
+--     - source-line validity
+--     - line storage
+--     - invalidation
+--
 -- Language-specific parsing and semantic compilation belong elsewhere.
 
 local core = require("tracker_hud.core")
@@ -21,6 +35,11 @@ local function is_valid_line_number(line_number)
     return core.is_number(line_number)
         and line_number >= 1
         and line_number % 1 == 0
+end
+
+
+local function is_valid_section_id(section_id)
+    return core.is_non_empty_string(section_id)
 end
 
 
@@ -51,6 +70,14 @@ end
 local function new_buffer_index(bufnr)
     return {
         bufnr = bufnr,
+        sections = {},
+    }
+end
+
+
+local function new_section_index(section_id)
+    return {
+        id = section_id,
         lines = {},
     }
 end
@@ -72,14 +99,43 @@ function M.get_buffer(bufnr)
 end
 
 
-function M.get_line(bufnr, line_number)
-    local index = M.get_buffer(bufnr)
-
-    if not index or not is_valid_line_number(line_number) then
+function M.get_section(bufnr, section_id)
+    if not is_valid_section_id(section_id) then
         return nil
     end
 
-    return index.lines[line_number]
+    local index = M.get_buffer(bufnr)
+
+    if not index then
+        return nil
+    end
+
+    local section_index = index.sections[section_id]
+
+    if not section_index then
+        section_index = new_section_index(section_id)
+        index.sections[section_id] = section_index
+    end
+
+    return section_index
+end
+
+
+function M.get_line(bufnr, section_id, line_number)
+    if not is_valid_line_number(line_number) then
+        return nil
+    end
+
+    local section_index = M.get_section(
+        bufnr,
+        section_id
+    )
+
+    if not section_index then
+        return nil
+    end
+
+    return section_index.lines[line_number]
 end
 
 
@@ -88,7 +144,10 @@ function M.line_is_current(bufnr, line_number, cached_line)
         return false
     end
 
-    local current_source = get_source_line(bufnr, line_number)
+    local current_source = get_source_line(
+        bufnr,
+        line_number
+    )
 
     if current_source == nil then
         return false
@@ -98,18 +157,31 @@ function M.line_is_current(bufnr, line_number, cached_line)
 end
 
 
-function M.store_line(bufnr, line_number, compiled_line)
-    if not core.is_table(compiled_line) then
+function M.store_line(
+    bufnr,
+    section_id,
+    line_number,
+    compiled_line
+)
+    if not core.is_table(compiled_line)
+        or not is_valid_line_number(line_number)
+    then
         return nil
     end
 
-    local index = M.get_buffer(bufnr)
+    local section_index = M.get_section(
+        bufnr,
+        section_id
+    )
 
-    if not index or not is_valid_line_number(line_number) then
+    if not section_index then
         return nil
     end
 
-    local source = get_source_line(bufnr, line_number)
+    local source = get_source_line(
+        bufnr,
+        line_number
+    )
 
     if source == nil then
         return nil
@@ -118,24 +190,43 @@ function M.store_line(bufnr, line_number, compiled_line)
     compiled_line.source = source
     compiled_line.compiled = true
 
-    index.lines[line_number] = compiled_line
+    section_index.lines[line_number] = compiled_line
 
     return compiled_line
 end
 
 
-function M.ensure_line(bufnr, line_number, compile_fn)
-    if type(compile_fn) ~= "function" then
+function M.ensure_line(
+    bufnr,
+    section_id,
+    line_number,
+    compile_fn
+)
+    if not is_valid_section_id(section_id)
+        or not is_valid_line_number(line_number)
+        or type(compile_fn) ~= "function"
+    then
         return nil, false
     end
 
-    local cached_line = M.get_line(bufnr, line_number)
+    local cached_line = M.get_line(
+        bufnr,
+        section_id,
+        line_number
+    )
 
-    if M.line_is_current(bufnr, line_number, cached_line) then
+    if M.line_is_current(
+        bufnr,
+        line_number,
+        cached_line
+    ) then
         return cached_line, false
     end
 
-    local source = get_source_line(bufnr, line_number)
+    local source = get_source_line(
+        bufnr,
+        line_number
+    )
 
     if source == nil then
         return nil, false
@@ -143,6 +234,7 @@ function M.ensure_line(bufnr, line_number, compile_fn)
 
     local compiled_line = compile_fn(
         bufnr,
+        section_id,
         line_number,
         source
     )
@@ -153,6 +245,7 @@ function M.ensure_line(bufnr, line_number, compile_fn)
 
     compiled_line = M.store_line(
         bufnr,
+        section_id,
         line_number,
         compiled_line
     )
@@ -161,14 +254,53 @@ function M.ensure_line(bufnr, line_number, compile_fn)
 end
 
 
-function M.invalidate_line(bufnr, line_number)
-    local index = indexes[bufnr]
-
-    if not index or not is_valid_line_number(line_number) then
+function M.invalidate_line(
+    bufnr,
+    section_id,
+    line_number
+)
+    if not is_valid_section_id(section_id)
+        or not is_valid_line_number(line_number)
+    then
         return false
     end
 
-    index.lines[line_number] = nil
+    local index = indexes[bufnr]
+
+    if not index then
+        return false
+    end
+
+    local section_index = index.sections[section_id]
+
+    if not section_index then
+        return false
+    end
+
+    if section_index.lines[line_number] == nil then
+        return false
+    end
+
+    section_index.lines[line_number] = nil
+
+    return true
+end
+
+
+function M.invalidate_section(bufnr, section_id)
+    if not is_valid_section_id(section_id) then
+        return false
+    end
+
+    local index = indexes[bufnr]
+
+    if not index
+        or index.sections[section_id] == nil
+    then
+        return false
+    end
+
+    index.sections[section_id] = nil
 
     return true
 end
