@@ -37,12 +37,23 @@
 local M = {}
 
 
+--
+-- Tracker_HUD Adapter Contract
+--
+-- Lua is the reference implementation for Adapter Contract v1.
+--
+-- contract_version identifies the public adapter schema implemented by
+-- this adapter. Core validation will use this value when the contract is
+-- enforced globally.
+--
+
+M.contract_version = 1
+
 M.name = "lua"
 
 M.filetypes = {
     "lua",
 }
-
 
 M.presentation = {
     sections = {
