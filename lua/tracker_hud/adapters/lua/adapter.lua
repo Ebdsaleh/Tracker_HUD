@@ -42,6 +42,8 @@
 
 local M = {}
 
+M.contract_version = 1
+
 
 M.name = "lua"
 
@@ -1050,4 +1052,6 @@ M.scope_members = {
 
 
 return M
+
+
 
