@@ -117,7 +117,6 @@ local legacy_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.data_movement",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.bitwise",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.system_flags",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.simd",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.misc",
@@ -130,5 +129,7 @@ end
 
 
 return M
+
+
 
 

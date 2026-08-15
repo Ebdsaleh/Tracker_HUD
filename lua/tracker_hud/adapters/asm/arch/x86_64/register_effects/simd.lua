@@ -15,8 +15,6 @@ end
 
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.misc"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.packed_fp"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_logic"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_compare"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_shuffle"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_convert"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.scalar_fp"))
@@ -25,3 +23,5 @@ extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.cr
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_move"))
 
 return M
+
+
