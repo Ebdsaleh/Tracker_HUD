@@ -130,6 +130,29 @@ M.base_presentation = {
 
 M.construct_specs = {
     ["label"] = {
+        syntax = {
+            node_type = "label",
+
+            fields = {
+                name = "name",
+            },
+
+            children = {
+                name = {
+                    node_types = {
+                        "ident",
+                        "word",
+                    },
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                terminator = ":",
+                declaration = "label",
+            },
+        },
+
         construct = {
             kind = "label",
             language_term = "label",
@@ -144,6 +167,39 @@ M.construct_specs = {
     },
 
     ["instruction"] = {
+        syntax = {
+            node_type = "instruction",
+
+            fields = {
+                kind = "kind",
+            },
+
+            children = {
+                kind = {
+                    node_type = "word",
+                },
+
+                operands = {
+                    node_types = {
+                        "ptr",
+                        "ident",
+                        "int",
+                        "string",
+                        "float",
+                        "list",
+                        "tc_infix",
+                        "reg",
+                    },
+                    multiple = true,
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                operand_separator = ",",
+            },
+        },
+
         construct = {
             kind = "instruction",
             language_term = "instruction",

@@ -77,6 +77,47 @@ local function get_syntax_child_node_type(member_spec, key)
 end
 
 
+local function get_syntax_child_node_types(
+    member_spec,
+    key
+)
+    local syntax = get_syntax(member_spec)
+    local children = syntax.children or {}
+    local child = children[key]
+    local result = {}
+
+    if core.is_non_empty_string(child) then
+        table.insert(result, child)
+        return result
+    end
+
+    if not core.is_table(child) then
+        return result
+    end
+
+    if core.is_non_empty_string(
+        child.node_type
+    ) then
+        table.insert(
+            result,
+            child.node_type
+        )
+    end
+
+    for _, node_type in ipairs(
+        child.node_types or {}
+    ) do
+        if core.is_non_empty_string(
+            node_type
+        ) then
+            table.insert(result, node_type)
+        end
+    end
+
+    return result
+end
+
+
 local function get_syntax_ancestor_exclusions(member_spec)
     local syntax = get_syntax(member_spec)
     local exclusions = syntax.exclusions or {}
@@ -670,56 +711,54 @@ local function get_first_descendant_text_by_type(node, bufnr, node_type)
 end
 
 
-local function get_instruction_mnemonic(node, bufnr)
-    if not node then
+local function parse_instruction_with_adapter(
+    adapter,
+    bufnr,
+    node
+)
+    if not core.is_table(adapter)
+        or not core.is_table(
+            adapter.instruction_parser
+        )
+    then
         return nil
     end
 
-    local word_node = ts_utils.find_first_descendant_by_type(node, "word")
+    local parser_spec = adapter.instruction_parser
+    local module_name = parser_spec.module
+    local function_name =
+        parser_spec.function_name
+        or "parse_instruction"
 
-    if not word_node then
+    if not core.is_non_empty_string(
+        module_name
+    ) then
         return nil
     end
 
-    local text = ts_utils.get_node_text(word_node, bufnr)
+    local ok, parser_module = pcall(
+        require,
+        module_name
+    )
 
-    if not core.is_non_empty_string(text) then
+    if not ok
+        or not core.is_table(parser_module)
+    then
         return nil
     end
 
-    return text:lower()
-end
+    local parser_fn = parser_module[function_name]
 
-
-local function get_instruction_operand_text(node, bufnr, operand_index)
-    if not node then
+    if type(parser_fn) ~= "function" then
         return nil
     end
 
-    operand_index = tonumber(operand_index) or 1
-
-    local mnemonic_seen = false
-    local operand_count = 0
-
-    for child in node:iter_children() do
-        local child_type = child:type()
-
-        if child_type == "word" and not mnemonic_seen then
-            mnemonic_seen = true
-        elseif child_type == "reg"
-            or child_type == "ident"
-            or child_type == "int"
-            or child_type == "word"
-        then
-            operand_count = operand_count + 1
-
-            if operand_count == operand_index then
-                return ts_utils.get_node_text(child, bufnr)
-            end
-        end
-    end
-
-    return nil
+    return parser_fn(
+        bufnr,
+        node,
+        nil,
+        adapter
+    )
 end
 
 
@@ -760,33 +799,87 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
     local name = nil
 
     if core.is_non_empty_string(member_spec.mnemonic) then
-        local mnemonic = get_instruction_mnemonic(node, bufnr)
+        local instruction =
+            parse_instruction_with_adapter(
+                adapter,
+                bufnr,
+                node
+            )
 
-        if mnemonic ~= member_spec.mnemonic:lower() then
+        if not core.is_table(instruction)
+            or instruction.mnemonic
+                ~= member_spec.mnemonic:lower()
+        then
             return
         end
 
-        name = get_instruction_operand_text(
-            node,
-            bufnr,
-            member_spec.operand_index or 1
-        )
+        local operand_index =
+            tonumber(member_spec.operand_index)
+            or 1
+
+        local operand = instruction.operands
+            and instruction.operands[
+                operand_index
+            ]
+
+        if core.is_table(operand) then
+            name = operand.text
+        end
     else
-        local name_node_type =
-            get_syntax_child_node_type(
+        local name_field =
+            get_syntax_field(
                 member_spec,
                 "name"
             )
-            or member_spec.name_node_type
 
         if core.is_non_empty_string(
-            name_node_type
+            name_field
         ) then
+            local name_node =
+                ts_utils.get_child_by_field_name(
+                    node,
+                    name_field
+                )
+
+            if name_node then
+                name = ts_utils.get_node_text(
+                    name_node,
+                    bufnr
+                )
+            end
+        end
+
+        if not core.is_non_empty_string(name) then
+            for _, name_node_type in ipairs(
+                get_syntax_child_node_types(
+                    member_spec,
+                    "name"
+                )
+            ) do
+                name =
+                    get_first_descendant_text_by_type(
+                        node,
+                        bufnr,
+                        name_node_type
+                    )
+
+                if core.is_non_empty_string(name) then
+                    break
+                end
+            end
+        end
+
+        -- Temporary compatibility for pre-syntax adapters.
+        if not core.is_non_empty_string(name)
+            and core.is_non_empty_string(
+                member_spec.name_node_type
+            )
+        then
             name =
                 get_first_descendant_text_by_type(
                     node,
                     bufnr,
-                    name_node_type
+                    member_spec.name_node_type
                 )
         end
     end

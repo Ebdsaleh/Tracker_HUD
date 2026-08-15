@@ -86,6 +86,162 @@ local function get_first_descendant_text_by_type(node, bufnr, node_type)
 end
 
 
+local function get_syntax(spec)
+    if type(spec) ~= "table"
+        or type(spec.syntax) ~= "table"
+    then
+        return {}
+    end
+
+    return spec.syntax
+end
+
+
+local function get_syntax_node_type(spec)
+    local syntax = get_syntax(spec)
+
+    if type(syntax.node_type) == "string"
+        and syntax.node_type ~= ""
+    then
+        return syntax.node_type
+    end
+
+    -- Temporary compatibility for pre-syntax range-scope specs.
+    if type(spec) == "table"
+        and type(spec.node_type) == "string"
+        and spec.node_type ~= ""
+    then
+        return spec.node_type
+    end
+
+    return nil
+end
+
+
+local function get_syntax_field(spec, key)
+    local syntax = get_syntax(spec)
+    local fields = syntax.fields
+
+    if type(fields) ~= "table" then
+        return nil
+    end
+
+    local field_name = fields[key]
+
+    if type(field_name) == "string"
+        and field_name ~= ""
+    then
+        return field_name
+    end
+
+    if type(field_name) == "table"
+        and type(field_name.field) == "string"
+        and field_name.field ~= ""
+    then
+        return field_name.field
+    end
+
+    return nil
+end
+
+
+local function get_syntax_child_node_types(spec, key)
+    local syntax = get_syntax(spec)
+    local children = syntax.children
+
+    if type(children) ~= "table" then
+        return {}
+    end
+
+    local child = children[key]
+
+    if type(child) ~= "table" then
+        return {}
+    end
+
+    local result = {}
+
+    if type(child.node_type) == "string"
+        and child.node_type ~= ""
+    then
+        table.insert(result, child.node_type)
+    end
+
+    for _, node_type in ipairs(
+        child.node_types or {}
+    ) do
+        if type(node_type) == "string"
+            and node_type ~= ""
+        then
+            table.insert(result, node_type)
+        end
+    end
+
+    return result
+end
+
+
+local function get_range_scope_name(
+    node,
+    bufnr,
+    range_scope_spec
+)
+    local name_field =
+        get_syntax_field(
+            range_scope_spec,
+            "name"
+        )
+
+    if name_field then
+        local name_node =
+            ts_utils.get_child_by_field_name(
+                node,
+                name_field
+            )
+
+        if name_node then
+            return ts_utils.get_node_text(
+                name_node,
+                bufnr
+            )
+        end
+    end
+
+    for _, node_type in ipairs(
+        get_syntax_child_node_types(
+            range_scope_spec,
+            "name"
+        )
+    ) do
+        local name =
+            get_first_descendant_text_by_type(
+                node,
+                bufnr,
+                node_type
+            )
+
+        if type(name) == "string"
+            and name ~= ""
+        then
+            return name
+        end
+    end
+
+    -- Temporary compatibility for pre-syntax range-scope specs.
+    if type(range_scope_spec.name_node_type)
+        == "string"
+    then
+        return get_first_descendant_text_by_type(
+            node,
+            bufnr,
+            range_scope_spec.name_node_type
+        )
+    end
+
+    return nil
+end
+
+
 local function collect_nodes_by_type(node, node_type, result)
     result = result or {}
 
@@ -110,10 +266,10 @@ local function make_range_scope_entry(bufnr, node, range_scope_spec, start_line,
         return nil
     end
 
-    local name = get_first_descendant_text_by_type(
+    local name = get_range_scope_name(
         node,
         bufnr,
-        range_scope_spec.name_node_type
+        range_scope_spec
     )
 
     local label = range_scope_spec.label or "Scope"
@@ -183,11 +339,19 @@ local function collect_range_scope_entries(bufnr, root_node, adapter, cursor_lin
     local file_end_line = vim.api.nvim_buf_line_count(bufnr)
 
     for _, range_scope_spec in ipairs(adapter.range_scopes) do
+        local node_type =
+            get_syntax_node_type(
+                range_scope_spec
+            )
+
         if type(range_scope_spec) == "table"
             and range_scope_spec.range_strategy == "until_next_peer"
-            and type(range_scope_spec.node_type) == "string"
+            and type(node_type) == "string"
         then
-            local nodes = collect_nodes_by_type(root_node, range_scope_spec.node_type)
+            local nodes = collect_nodes_by_type(
+                root_node,
+                node_type
+            )
 
             for index, node in ipairs(nodes) do
                 local start_line = node:start() + 1
@@ -434,3 +598,4 @@ function M.get_cursor_context(bufnr, config)
 end
 
 return M
+

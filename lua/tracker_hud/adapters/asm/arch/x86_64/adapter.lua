@@ -146,8 +146,29 @@ M.comments = {
 
 M.range_scopes = {
     {
-        node_type = "label",
-        name_node_type = "ident",
+        syntax = {
+            node_type = "label",
+
+            fields = {
+                name = "name",
+            },
+
+            children = {
+                name = {
+                    node_types = {
+                        "ident",
+                        "word",
+                    },
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                terminator = ":",
+                declaration = "label",
+            },
+        },
+
         label = "Label",
         range_strategy = "until_next_peer",
 
@@ -161,6 +182,29 @@ M.range_scopes = {
 
 M.construct_specs = {
     ["label"] = {
+        syntax = {
+            node_type = "label",
+
+            fields = {
+                name = "name",
+            },
+
+            children = {
+                name = {
+                    node_types = {
+                        "ident",
+                        "word",
+                    },
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                terminator = ":",
+                declaration = "label",
+            },
+        },
+
         construct = {
             kind = "label",
             language_term = "label",
@@ -181,6 +225,39 @@ M.construct_specs = {
     },
 
     ["instruction"] = {
+        syntax = {
+            node_type = "instruction",
+
+            fields = {
+                kind = "kind",
+            },
+
+            children = {
+                kind = {
+                    node_type = "word",
+                },
+
+                operands = {
+                    node_types = {
+                        "ptr",
+                        "ident",
+                        "int",
+                        "string",
+                        "float",
+                        "list",
+                        "tc_infix",
+                        "reg",
+                    },
+                    multiple = true,
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                operand_separator = ",",
+            },
+        },
+
         construct = {
             kind = "instruction",
             language_term = "instruction",
@@ -201,6 +278,20 @@ M.construct_specs = {
     },
 
     ["reg"] = {
+        syntax = {
+            node_type = "reg",
+
+            children = {
+                value = {
+                    node_types = {
+                        "word",
+                        "address",
+                    },
+                    optional = true,
+                },
+            },
+        },
+
         construct = {
             kind = "register",
             language_term = "register",
@@ -212,9 +303,17 @@ M.construct_specs = {
             language_term = "register",
             type_label = "register",
         },
+
+        operand = {
+            kind = "register",
+        },
     },
 
     ["int"] = {
+        syntax = {
+            node_type = "int",
+        },
+
         construct = {
             kind = "immediate",
             language_term = "immediate",
@@ -226,9 +325,24 @@ M.construct_specs = {
             language_term = "integer",
             type_label = "integer",
         },
+
+        operand = {
+            kind = "integer",
+        },
     },
 
     ["ident"] = {
+        syntax = {
+            node_type = "ident",
+
+            children = {
+                register = {
+                    node_type = "reg",
+                    optional = true,
+                },
+            },
+        },
+
         construct = {
             kind = "symbol",
             language_term = "symbol",
@@ -240,9 +354,21 @@ M.construct_specs = {
             language_term = "symbol",
             type_label = "symbol",
         },
+
+        operand = {
+            kind = "symbol",
+
+            descendant_overrides = {
+                reg = "register",
+            },
+        },
     },
 
     ["word"] = {
+        syntax = {
+            node_type = "word",
+        },
+
         construct = {
             kind = "mnemonic",
             language_term = "mnemonic",
@@ -254,6 +380,160 @@ M.construct_specs = {
             language_term = "mnemonic",
             type_label = "instruction",
         },
+
+        operand = {
+            kind = "symbol",
+        },
+    },
+
+    ["ptr"] = {
+        syntax = {
+            node_type = "ptr",
+
+            children = {
+                registers = {
+                    node_type = "reg",
+                    multiple = true,
+                },
+
+                displacement = {
+                    node_types = {
+                        "int",
+                        "ident",
+                    },
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                open = "[",
+                close = "]",
+            },
+        },
+
+        construct = {
+            kind = "operand",
+            language_term = "memory operand",
+            label = "Memory Operand",
+        },
+
+        value = {
+            kind = "reference",
+            language_term = "memory address",
+            type_label = "memory",
+        },
+
+        operand = {
+            kind = "memory",
+        },
+    },
+
+    ["string"] = {
+        syntax = {
+            node_type = "string",
+        },
+
+        construct = {
+            kind = "immediate",
+            language_term = "string immediate",
+            label = "String",
+        },
+
+        value = {
+            kind = "scalar",
+            language_term = "string",
+            type_label = "string",
+        },
+
+        operand = {
+            kind = "string",
+        },
+    },
+
+    ["float"] = {
+        syntax = {
+            node_type = "float",
+        },
+
+        construct = {
+            kind = "immediate",
+            language_term = "floating-point immediate",
+            label = "Float",
+        },
+
+        value = {
+            kind = "scalar",
+            language_term = "floating-point number",
+            type_label = "float",
+        },
+
+        operand = {
+            kind = "float",
+        },
+    },
+
+    ["list"] = {
+        syntax = {
+            node_type = "list",
+
+            children = {
+                registers = {
+                    node_type = "reg",
+                    multiple = true,
+                    optional = true,
+                },
+            },
+
+            tokens = {
+                open = "{",
+                close = "}",
+                separator = ",",
+            },
+        },
+
+        construct = {
+            kind = "operand",
+            language_term = "register list",
+            label = "Register List",
+        },
+
+        value = {
+            kind = "unknown",
+            language_term = "register list",
+            type_label = "register list",
+        },
+
+        operand = {
+            kind = "register_list",
+        },
+    },
+
+    ["tc_infix"] = {
+        syntax = {
+            node_type = "tc_infix",
+
+            fields = {
+                lhs = "lhs",
+                op = "op",
+                rhs = "rhs",
+            },
+        },
+
+        construct = {
+            kind = "operand",
+            language_term = "expression",
+            label = "Expression",
+        },
+
+        value = {
+            kind = "unknown",
+            language_term = "expression",
+            type_label = "expression",
+        },
+
+        operand = {
+            kind = "expression",
+        },
     },
 }
 
@@ -261,8 +541,23 @@ M.construct_specs = {
 M.scope_members = {
     symbols = {
         {
-            node_type = "label",
-            name_node_type = "ident",
+            syntax = {
+                node_type = "label",
+
+                fields = {
+                    name = "name",
+                },
+
+                children = {
+                    name = {
+                        node_types = {
+                            "ident",
+                            "word",
+                        },
+                        optional = true,
+                    },
+                },
+            },
 
             member = {
                 kind = "label",
@@ -278,7 +573,35 @@ M.scope_members = {
         },
 
         {
-            node_type = "instruction",
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = "kind",
+                },
+
+                children = {
+                    kind = {
+                        node_type = "word",
+                    },
+
+                    operands = {
+                        node_types = {
+                            "ptr",
+                            "ident",
+                            "int",
+                            "string",
+                            "float",
+                            "list",
+                            "tc_infix",
+                            "reg",
+                        },
+                        multiple = true,
+                        optional = true,
+                    },
+                },
+            },
+
             mnemonic = "global",
             operand_index = 1,
 
@@ -298,7 +621,34 @@ M.scope_members = {
 
     declarations = {
         {
-            node_type = "instruction",
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = "kind",
+                },
+
+                children = {
+                    kind = {
+                        node_type = "word",
+                    },
+
+                    operands = {
+                        node_types = {
+                            "ptr",
+                            "ident",
+                            "int",
+                            "string",
+                            "float",
+                            "list",
+                            "tc_infix",
+                            "reg",
+                        },
+                        multiple = true,
+                        optional = true,
+                    },
+                },
+            },
 
             member = {
                 kind = "instruction",
@@ -1524,3 +1874,4 @@ M.stack = {
 
 
 return M
+

@@ -214,7 +214,7 @@ local function parse_instruction_with_adapter(adapter, bufnr, node, effect_spec)
         return nil
     end
 
-    return parser_fn(bufnr, node, effect_spec)
+    return parser_fn(bufnr, node, effect_spec, adapter)
 end
 
 function M.make_global_context()
