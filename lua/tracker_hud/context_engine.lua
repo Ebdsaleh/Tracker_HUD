@@ -12,6 +12,8 @@ local M = {}
 
 local register_effect_index_cache = setmetatable({}, { __mode = "k" })
 local instruction_event_index_cache = setmetatable({}, { __mode = "k" })
+local boundary_effect_index_cache = setmetatable({}, { __mode = "k" })
+local stack_effect_index_cache = setmetatable({}, { __mode = "k" })
 
 
 local function get_syntax(spec)
@@ -1843,6 +1845,156 @@ function M.collect_register_effects(context, adapter, opts)
     return facts
 end
 
+
+local function get_boundary_effect_node_type(effect_spec)
+    if not core.is_table(effect_spec) then
+        return nil
+    end
+
+    return get_syntax_node_type(effect_spec)
+        or effect_spec.node_type
+end
+
+
+local function get_boundary_effect_mnemonic(
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(effect_spec) then
+        return normalize_mnemonic(fallback_mnemonic)
+    end
+
+    return normalize_mnemonic(
+        get_syntax_field_text(effect_spec, "kind")
+        or effect_spec.mnemonic
+        or fallback_mnemonic
+    )
+end
+
+
+local function add_boundary_effect_to_index(
+    index,
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(index)
+        or not core.is_table(effect_spec)
+    then
+        return
+    end
+
+    local node_type =
+        get_boundary_effect_node_type(
+            effect_spec
+        )
+
+    local mnemonic =
+        get_boundary_effect_mnemonic(
+            effect_spec,
+            fallback_mnemonic
+        )
+
+    if not core.is_non_empty_string(node_type)
+        or not mnemonic
+    then
+        return
+    end
+
+    index.node_types[node_type] = true
+    index.by_node_type[node_type] =
+        index.by_node_type[node_type] or {}
+
+    local node_bucket =
+        index.by_node_type[node_type]
+
+    node_bucket[mnemonic] =
+        node_bucket[mnemonic] or {}
+
+    table.insert(
+        node_bucket[mnemonic],
+        effect_spec
+    )
+
+    node_bucket.__first =
+        node_bucket.__first or effect_spec
+end
+
+
+local function build_boundary_effect_index(boundary_effects)
+    local index = {
+        node_types = {},
+        by_node_type = {},
+    }
+
+    if not core.is_table(boundary_effects) then
+        return index
+    end
+
+    -- Temporary compatibility with old flat adapter data.
+    for _, effect_spec in ipairs(boundary_effects) do
+        add_boundary_effect_to_index(
+            index,
+            effect_spec
+        )
+    end
+
+    -- Tree-sitter-first mnemonic-indexed adapter data.
+    for mnemonic, effect_specs in pairs(
+        boundary_effects
+    ) do
+        if type(mnemonic) == "string"
+            and core.is_table(effect_specs)
+        then
+            for _, effect_spec in ipairs(
+                effect_specs
+            ) do
+                add_boundary_effect_to_index(
+                    index,
+                    effect_spec,
+                    mnemonic
+                )
+            end
+        end
+    end
+
+    return index
+end
+
+
+local function get_boundary_effect_index(adapter)
+    if not core.is_table(adapter) then
+        return build_boundary_effect_index(nil)
+    end
+
+    local boundary_effects =
+        adapter.boundary_effects
+
+    if not core.is_table(boundary_effects) then
+        return build_boundary_effect_index(nil)
+    end
+
+    local cached =
+        boundary_effect_index_cache[
+            boundary_effects
+        ]
+
+    if cached then
+        return cached
+    end
+
+    local index =
+        build_boundary_effect_index(
+            boundary_effects
+        )
+
+    boundary_effect_index_cache[
+        boundary_effects
+    ] = index
+
+    return index
+end
+
+
 local function get_register_fact_from_context(context, register_name)
     if not core.is_table(context)
         or not core.is_non_empty_string(register_name)
@@ -1971,12 +2123,21 @@ end
 
 
 local function boundary_instruction_matches(instruction, effect_spec)
-    if not core.is_table(instruction) or not core.is_table(effect_spec) then
+    if not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
         return false
     end
 
-    if core.is_non_empty_string(effect_spec.mnemonic)
-        and instruction.mnemonic ~= effect_spec.mnemonic
+    local expected_mnemonic =
+        get_boundary_effect_mnemonic(
+            effect_spec
+        )
+
+    if expected_mnemonic
+        and normalize_mnemonic(
+            instruction.mnemonic
+        ) ~= expected_mnemonic
     then
         return false
     end
@@ -2073,7 +2234,9 @@ function M.collect_boundary_effects(context, adapter, opts)
         or not root_node
         or not core.is_table(context)
         or not core.is_table(adapter)
-        or not core.is_table(adapter.boundary_effects)
+        or not core.is_table(
+            adapter.boundary_effects
+        )
     then
         return {}
     end
@@ -2082,34 +2245,100 @@ function M.collect_boundary_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
+    local effect_index =
+        get_boundary_effect_index(adapter)
+
+    local nodes = {}
+    local seen_nodes = {}
+
+    for node_type, _ in pairs(
+        effect_index.node_types
+    ) do
+        for _, node in ipairs(
+            collect_nodes_by_type(
+                root_node,
+                node_type
+            )
+        ) do
+            local start_row,
+                start_column,
+                end_row,
+                end_column = node:range()
+
+            local node_line = start_row + 1
+
+            if not cursor_line
+                or node_line <= cursor_line
+            then
+                local key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[key] then
+                    seen_nodes[key] = true
+
+                    table.insert(nodes, {
+                        node = node,
+                        line = node_line,
+                        column = start_column,
+                    })
+                end
+            end
+        end
+    end
+
+    table.sort(nodes, function(left, right)
+        if left.line == right.line then
+            return left.column < right.column
+        end
+
+        return left.line < right.line
+    end)
+
     local facts = {}
 
-    for _, effect_spec in ipairs(adapter.boundary_effects) do
-        if core.is_table(effect_spec)
-            and core.is_non_empty_string(effect_spec.node_type)
-            and core.is_non_empty_string(effect_spec.mnemonic)
-        then
-            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+    for _, entry in ipairs(nodes) do
+        local node_type = entry.node:type()
+        local node_bucket =
+            effect_index.by_node_type[
+                node_type
+            ]
 
-            for _, node in ipairs(nodes) do
-                local node_line = node:start() + 1
+        if node_bucket then
+            local representative_effect_spec =
+                node_bucket.__first
 
-                if not cursor_line or node_line <= cursor_line then
-                    local instruction = collect_instruction_operands(
-                        adapter,
-                        node,
-                        bufnr,
-                        effect_spec
-                    )
+            local instruction =
+                collect_instruction_operands(
+                    adapter,
+                    entry.node,
+                    bufnr,
+                    representative_effect_spec
+                )
 
-                    apply_boundary_effect(
-                        facts,
-                        context,
-                        adapter,
-                        instruction,
-                        effect_spec
-                    )
-                end
+            local mnemonic = instruction
+                and normalize_mnemonic(
+                    instruction.mnemonic
+                )
+
+            local effect_specs = mnemonic
+                and node_bucket[mnemonic]
+                or nil
+
+            for _, effect_spec in ipairs(
+                effect_specs or {}
+            ) do
+                apply_boundary_effect(
+                    facts,
+                    context,
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
             end
         end
     end
@@ -2498,6 +2727,156 @@ function M.collect_instruction_events(context, adapter, opts)
 end
 
 
+
+local function get_stack_effect_node_type(effect_spec)
+    if not core.is_table(effect_spec) then
+        return nil
+    end
+
+    return get_syntax_node_type(effect_spec)
+        or effect_spec.node_type
+end
+
+
+local function get_stack_effect_mnemonic(
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(effect_spec) then
+        return normalize_mnemonic(fallback_mnemonic)
+    end
+
+    return normalize_mnemonic(
+        get_syntax_field_text(effect_spec, "kind")
+        or effect_spec.mnemonic
+        or fallback_mnemonic
+    )
+end
+
+
+local function add_stack_effect_to_index(
+    index,
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(index)
+        or not core.is_table(effect_spec)
+    then
+        return
+    end
+
+    local node_type =
+        get_stack_effect_node_type(
+            effect_spec
+        )
+
+    local mnemonic =
+        get_stack_effect_mnemonic(
+            effect_spec,
+            fallback_mnemonic
+        )
+
+    if not core.is_non_empty_string(node_type)
+        or not mnemonic
+    then
+        return
+    end
+
+    index.node_types[node_type] = true
+    index.by_node_type[node_type] =
+        index.by_node_type[node_type] or {}
+
+    local node_bucket =
+        index.by_node_type[node_type]
+
+    node_bucket[mnemonic] =
+        node_bucket[mnemonic] or {}
+
+    table.insert(
+        node_bucket[mnemonic],
+        effect_spec
+    )
+
+    node_bucket.__first =
+        node_bucket.__first or effect_spec
+end
+
+
+local function build_stack_effect_index(stack_effects)
+    local index = {
+        node_types = {},
+        by_node_type = {},
+    }
+
+    if not core.is_table(stack_effects) then
+        return index
+    end
+
+    -- Temporary compatibility with old flat adapter data.
+    for _, effect_spec in ipairs(stack_effects) do
+        add_stack_effect_to_index(
+            index,
+            effect_spec
+        )
+    end
+
+    -- Tree-sitter-first mnemonic-indexed adapter data.
+    for mnemonic, effect_specs in pairs(
+        stack_effects
+    ) do
+        if type(mnemonic) == "string"
+            and core.is_table(effect_specs)
+        then
+            for _, effect_spec in ipairs(
+                effect_specs
+            ) do
+                add_stack_effect_to_index(
+                    index,
+                    effect_spec,
+                    mnemonic
+                )
+            end
+        end
+    end
+
+    return index
+end
+
+
+local function get_stack_effect_index(adapter)
+    if not core.is_table(adapter) then
+        return build_stack_effect_index(nil)
+    end
+
+    local stack_effects =
+        adapter.stack_effects
+
+    if not core.is_table(stack_effects) then
+        return build_stack_effect_index(nil)
+    end
+
+    local cached =
+        stack_effect_index_cache[
+            stack_effects
+        ]
+
+    if cached then
+        return cached
+    end
+
+    local index =
+        build_stack_effect_index(
+            stack_effects
+        )
+
+    stack_effect_index_cache[
+        stack_effects
+    ] = index
+
+    return index
+end
+
+
 local function stack_operand_value_matches(operand, operand_spec)
     if type(operand_spec.value) ~= "string" then
         return true
@@ -2660,7 +3039,16 @@ local function apply_stack_effect(facts, adapter, instruction, effect_spec)
         return
     end
 
-    if instruction.mnemonic ~= effect_spec.mnemonic then
+    local expected_mnemonic =
+        get_stack_effect_mnemonic(
+            effect_spec
+        )
+
+    if expected_mnemonic
+        and normalize_mnemonic(
+            instruction.mnemonic
+        ) ~= expected_mnemonic
+    then
         return
     end
 
@@ -2689,7 +3077,9 @@ function M.collect_stack_effects(context, adapter, opts)
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
-        or not core.is_table(adapter.stack_effects)
+        or not core.is_table(
+            adapter.stack_effects
+        )
     then
         return {}
     end
@@ -2698,33 +3088,99 @@ function M.collect_stack_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
+    local effect_index =
+        get_stack_effect_index(adapter)
+
+    local nodes = {}
+    local seen_nodes = {}
+
+    for node_type, _ in pairs(
+        effect_index.node_types
+    ) do
+        for _, node in ipairs(
+            collect_nodes_by_type(
+                root_node,
+                node_type
+            )
+        ) do
+            local start_row,
+                start_column,
+                end_row,
+                end_column = node:range()
+
+            local node_line = start_row + 1
+
+            if not cursor_line
+                or node_line <= cursor_line
+            then
+                local key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[key] then
+                    seen_nodes[key] = true
+
+                    table.insert(nodes, {
+                        node = node,
+                        line = node_line,
+                        column = start_column,
+                    })
+                end
+            end
+        end
+    end
+
+    table.sort(nodes, function(left, right)
+        if left.line == right.line then
+            return left.column < right.column
+        end
+
+        return left.line < right.line
+    end)
+
     local facts = {}
 
-    for _, effect_spec in ipairs(adapter.stack_effects) do
-        if core.is_table(effect_spec)
-            and core.is_non_empty_string(effect_spec.node_type)
-            and core.is_non_empty_string(effect_spec.mnemonic)
-        then
-            local nodes = collect_nodes_by_type(root_node, effect_spec.node_type)
+    for _, entry in ipairs(nodes) do
+        local node_type = entry.node:type()
+        local node_bucket =
+            effect_index.by_node_type[
+                node_type
+            ]
 
-            for _, node in ipairs(nodes) do
-                local node_line = node:start() + 1
+        if node_bucket then
+            local representative_effect_spec =
+                node_bucket.__first
 
-                if not cursor_line or node_line <= cursor_line then
-                    local instruction = collect_instruction_operands(
-                        adapter,
-                        node,
-                        bufnr,
-                        effect_spec
-                    )
+            local instruction =
+                collect_instruction_operands(
+                    adapter,
+                    entry.node,
+                    bufnr,
+                    representative_effect_spec
+                )
 
-                    apply_stack_effect(
-                        facts,
-                        adapter,
-                        instruction,
-                        effect_spec
-                    )
-                end
+            local mnemonic = instruction
+                and normalize_mnemonic(
+                    instruction.mnemonic
+                )
+
+            local effect_specs = mnemonic
+                and node_bucket[mnemonic]
+                or nil
+
+            for _, effect_spec in ipairs(
+                effect_specs or {}
+            ) do
+                apply_stack_effect(
+                    facts,
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
             end
         end
     end
@@ -2734,3 +3190,4 @@ end
 
 
 return M
+

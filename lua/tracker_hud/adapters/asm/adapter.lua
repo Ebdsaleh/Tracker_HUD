@@ -767,7 +767,6 @@ local function apply_variant(variant)
     M.boundary_effects = variant.boundary_effects or {}
     M.instruction_events = variant.instruction_events or {}
     M.warning_rules = variant.warning_rules or {}
-    M.syscall = variant.syscall
 
     -- Additional Parsing rules
     -- Variants may override the default ASM instruction parser if their
