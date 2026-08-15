@@ -1309,6 +1309,40 @@ local function get_register_inspect_line(request)
         return nil
     end
 
+    local signature = get_register_inspect_adapter_signature(
+        adapter
+    )
+
+    local cached = source_index.get_line(
+        bufnr,
+        "registers",
+        line_number
+    )
+
+    if type(cached) == "table"
+        and cached.adapter_signature == signature
+        and source_index.line_is_current(
+            bufnr,
+            line_number,
+            cached
+        )
+    then
+        -- Cursor movement inside an unchanged line should be cheap. Tree-sitter
+        -- discovery was already performed when this source-index line was
+        -- compiled, so reuse it directly.
+        return cached
+    end
+
+    if type(cached) == "table"
+        and cached.adapter_signature ~= signature
+    then
+        source_index.invalidate_line(
+            bufnr,
+            "registers",
+            line_number
+        )
+    end
+
     local ok, parser = pcall(
         vim.treesitter.get_parser,
         bufnr
@@ -1323,26 +1357,6 @@ local function get_register_inspect_line(request)
 
     if not root_node then
         return nil
-    end
-
-    local signature = get_register_inspect_adapter_signature(
-        adapter
-    )
-
-    local cached = source_index.get_line(
-        bufnr,
-        "registers",
-        line_number
-    )
-
-    if type(cached) == "table"
-        and cached.adapter_signature ~= signature
-    then
-        source_index.invalidate_line(
-            bufnr,
-            "registers",
-            line_number
-        )
     end
 
     local compiled_line = source_index.ensure_line(
@@ -1371,7 +1385,6 @@ local function get_register_inspect_line(request)
 
     return compiled_line
 end
-
 
 local function copy_target_ids(target_ids)
     local result = {}
@@ -1589,17 +1602,97 @@ local function register_targets_are_expanded(target_paths)
 end
 
 
-local function reveal_register_inspect_targets(
-    request,
+local function resolve_register_cursor_inspection(request)
+    if type(request) ~= "table"
+        or type(request.context) ~= "table"
+    then
+        return nil
+    end
+
+    local source_column = tonumber(request.column) or 0
+    local compiled_line = get_register_inspect_line(
+        request
+    )
+
+    if type(compiled_line) ~= "table" then
+        return nil
+    end
+
+    local occurrence = source_index_compiler.find_occurrence(
+        compiled_line,
+        source_column
+    )
+
+    if occurrence then
+        local target_ids = copy_target_ids(
+            occurrence.targets
+                and occurrence.targets.state
+                or {}
+        )
+
+        -- A concrete token occurrence owns its own cursor semantics.
+        -- Mnemonics expose operation effect targets; operands expose their
+        -- exact occurrence. Tokens with no register target do not silently
+        -- become whole-line register inspections.
+        if #target_ids == 0 then
+            return nil
+        end
+
+        return {
+            target_ids = target_ids,
+            roles = build_register_occurrence_role_overrides(
+                occurrence,
+                target_ids
+            ),
+            occurrence = occurrence,
+        }
+    end
+
+    -- No concrete token occupies the cursor column. Treat the position as
+    -- whole-statement/post-statement context: every unique state target is
+    -- visible and duplicate register occurrences use their final source role.
+    local line_targets =
+        source_index_compiler.get_line_targets(
+            compiled_line
+        )
+
+    local target_ids = copy_target_ids(
+        line_targets.state or {}
+    )
+
+    if #target_ids == 0 then
+        return nil
+    end
+
+    return {
+        target_ids = target_ids,
+        roles = build_register_line_role_overrides(
+            compiled_line,
+            target_ids
+        ),
+        occurrence = nil,
+    }
+end
+
+
+local function apply_register_cursor_inspection(
+    context,
     target_ids,
-    role_overrides,
-    occurrence
+    role_overrides
 )
-    local context = request.context
+    if type(context) ~= "table" then
+        return false
+    end
+
     local active_ids = {}
 
     for _, target_id in ipairs(target_ids or {}) do
         active_ids[target_id] = true
+    end
+
+    if next(active_ids) == nil then
+        context.register_inspection = nil
+        return false
     end
 
     context.register_inspection = {
@@ -1607,6 +1700,49 @@ local function reveal_register_inspect_targets(
         target_ids = active_ids,
         roles = role_overrides or {},
     }
+
+    return true
+end
+
+
+function M.update_register_cursor_inspection(request)
+    if type(request) ~= "table"
+        or type(request.context) ~= "table"
+    then
+        return false
+    end
+
+    request.context.register_inspection = nil
+
+    local resolved = resolve_register_cursor_inspection(
+        request
+    )
+
+    if not resolved then
+        return false
+    end
+
+    return apply_register_cursor_inspection(
+        request.context,
+        resolved.target_ids,
+        resolved.roles
+    )
+end
+
+
+local function reveal_register_inspect_targets(
+    request,
+    target_ids,
+    role_overrides,
+    occurrence
+)
+    local context = request.context
+
+    apply_register_cursor_inspection(
+        context,
+        target_ids,
+        role_overrides
+    )
 
     local register_nodes = build_register_nodes_for_context(
         context
@@ -1681,74 +1817,21 @@ function M.inspect_registers(request)
 
     request.context.register_inspection = nil
 
-    local source_column = tonumber(request.column) or 0
-    local compiled_line = get_register_inspect_line(
+    local resolved = resolve_register_cursor_inspection(
         request
     )
 
-    if type(compiled_line) ~= "table" then
-        return false
-    end
-
-    local occurrence = source_index_compiler.find_occurrence(
-        compiled_line,
-        source_column
-    )
-
-    if occurrence then
-        local target_ids = copy_target_ids(
-            occurrence.targets
-                and occurrence.targets.state
-                or {}
-        )
-
-        -- A concrete token occurrence owns its own Inspect semantics.
-        -- For mnemonics this is the operation's affected register-state
-        -- targets; for operands it is the exact operand occurrence. Do not
-        -- silently fall back to whole-line inspection when that token has no
-        -- register target.
-        if #target_ids == 0 then
-            return false
-        end
-
-        return reveal_register_inspect_targets(
-            request,
-            target_ids,
-            build_register_occurrence_role_overrides(
-                occurrence,
-                target_ids
-            ),
-            occurrence
-        )
-    end
-
-    -- No concrete token occupies the cursor column. Inspect the whole source
-    -- line: reveal every unique register target and use the LAST occurrence
-    -- role for duplicates, matching post-statement semantics.
-    local line_targets =
-        source_index_compiler.get_line_targets(
-            compiled_line
-        )
-
-    local target_ids = copy_target_ids(
-        line_targets.state or {}
-    )
-
-    if #target_ids == 0 then
+    if not resolved then
         return false
     end
 
     return reveal_register_inspect_targets(
         request,
-        target_ids,
-        build_register_line_role_overrides(
-            compiled_line,
-            target_ids
-        ),
-        nil
+        resolved.target_ids,
+        resolved.roles,
+        resolved.occurrence
     )
 end
-
 
 function M.inspect_events(request)
     if type(request) ~= "table" or type(request.context) ~= "table" then
@@ -2215,4 +2298,7 @@ function M.build(context, opts)
 end
 
 return M
+
+
+
 

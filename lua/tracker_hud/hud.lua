@@ -531,12 +531,46 @@ function M.clear(_config)
 end
 
 
+local function refresh_cursor_inspection(
+    context,
+    source_winid
+)
+    if type(context) ~= "table" then
+        return false
+    end
+
+    -- Cursor semantics and expansion state are intentionally independent.
+    -- Moving the source cursor updates what the current occurrence means;
+    -- <leader>t remains responsible only for revealing/collapsing targets.
+    context.register_inspection = nil
+
+    if inspect_mode.get_mode() ~= "registers"
+        or not is_valid_window(source_winid)
+    then
+        return false
+    end
+
+    local bufnr = vim.api.nvim_win_get_buf(source_winid)
+
+    if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+        return false
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(source_winid)
+
+    return hud_sections.update_register_cursor_inspection({
+        bufnr = bufnr,
+        winid = source_winid,
+        line = cursor and cursor[1],
+        column = cursor and cursor[2],
+        context = context,
+        mode = "registers",
+    })
+end
+
+
 function M.render(context, config, source_winid)
     config = config or {}
-
-    last_context = context
-    last_config = config
-    last_source_winid = source_winid
 
     if type(context) == "table"
         and type(context.section_layout) == "table"
@@ -545,9 +579,17 @@ function M.render(context, config, source_winid)
         inspect_mode.set_modes(context.section_layout.order)
     end
 
+    refresh_cursor_inspection(
+        context,
+        source_winid
+    )
+
+    last_context = context
+    last_config = config
+    last_source_winid = source_winid
+
     render_panel(context, config, source_winid)
 end
-
 
 
 function M.close_panel()
@@ -651,6 +693,12 @@ function M.update_panel()
 
     local current_winid = vim.api.nvim_get_current_win()
     local panel_cursor = get_panel_cursor_location()
+
+    refresh_cursor_inspection(
+        last_context,
+        last_source_winid
+    )
+
     local lines = format_panel_lines(last_context)
 
     vim.bo[panel_bufnr].modifiable = true
@@ -904,4 +952,7 @@ function M.toggle_target(target)
 end
 
 return M
+
+
+
 
