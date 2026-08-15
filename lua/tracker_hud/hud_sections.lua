@@ -11,6 +11,10 @@ local heap_tree = require("tracker_hud.sections.low_level.heap_tree")
 local warning_tree = require("tracker_hud.warning_tree")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local symbol_state = require("tracker_hud.symbol_state")
+local adapter_registry = require("tracker_hud.adapters.registry")
+local context_engine = require("tracker_hud.context_engine")
+local source_index = require("tracker_hud.source_index")
+local source_index_compiler = require("tracker_hud.source_index.compiler")
 
 
 local M = {}
@@ -176,9 +180,18 @@ end
 
 local function get_node_marker(node, opts)
     local active_marker = " "
+    local explicit_active_ids = type(opts) == "table"
+        and opts.explicit_active_node_ids
+        or nil
 
-    if node_has_children(node) and node_matches_cursor(node, opts) then
-        active_marker = "*"
+    if node_has_children(node) then
+        if type(explicit_active_ids) == "table" then
+            if explicit_active_ids[node.id] == true then
+                active_marker = "*"
+            end
+        elseif node_matches_cursor(node, opts) then
+            active_marker = "*"
+        end
     end
 
     if not node_has_children(node) then
@@ -1237,30 +1250,320 @@ local function inspect_hud_nodes_for_source_position(request, section_id, nodes)
 end
 
 
-function M.inspect_registers(request)
-    if type(request) ~= "table" or type(request.context) ~= "table" then
-        return false
+local function get_register_inspect_adapter_signature(adapter)
+    if type(adapter) ~= "table" then
+        return "<none>"
     end
 
-    local register_nodes = build_register_nodes_for_context(request.context)
+    local targets = adapter.active_targets or {}
 
-    if not register_nodes or #register_nodes == 0 then
-        return false
+    return table.concat({
+        tostring(adapter.name or ""),
+        tostring(adapter.active_variant_name or ""),
+        tostring(targets.architecture or ""),
+        tostring(targets.platform or ""),
+        tostring(targets.abi or ""),
+        tostring(targets.syntax or ""),
+        tostring(targets.mode or ""),
+    }, "|")
+end
+
+
+local function get_register_inspect_line(request)
+    local bufnr = tonumber(request.bufnr)
+    local line_number = tonumber(request.line)
+
+    if not bufnr
+        or not line_number
+        or not vim.api.nvim_buf_is_valid(bufnr)
+    then
+        return nil
     end
 
-    local ok, target_node_id = inspect_hud_nodes_for_source_position(
-        request,
-        "registers",
-        register_nodes
+    local filetype = vim.bo[bufnr].filetype
+    local adapter = adapter_registry.get_adapter(filetype)
+
+    if type(adapter) ~= "table"
+        or type(adapter.register_effects) ~= "table"
+    then
+        return nil
+    end
+
+    local ok, parser = pcall(
+        vim.treesitter.get_parser,
+        bufnr
     )
 
-    if ok then
-        return true, target_node_id
+    if not ok or not parser then
+        return nil
     end
 
-    -- Fallback: Registers may contain static architecture rows that do not map
-    -- to the current source position. In that case, toggle the section itself.
-    return toggle_section_fallback("registers")
+    local tree = parser:parse()[1]
+    local root_node = tree and tree:root() or nil
+
+    if not root_node then
+        return nil
+    end
+
+    local signature = get_register_inspect_adapter_signature(
+        adapter
+    )
+
+    local cached = source_index.get_line(
+        bufnr,
+        "registers",
+        line_number
+    )
+
+    if type(cached) == "table"
+        and cached.adapter_signature ~= signature
+    then
+        source_index.invalidate_line(
+            bufnr,
+            "registers",
+            line_number
+        )
+    end
+
+    local compiled_line = source_index.ensure_line(
+        bufnr,
+        "registers",
+        line_number,
+        function()
+            local occurrences =
+                context_engine.discover_register_source_occurrences(
+                    bufnr,
+                    root_node,
+                    adapter,
+                    line_number
+                )
+
+            local compiled =
+                source_index_compiler.compile_line(
+                    occurrences
+                )
+
+            compiled.adapter_signature = signature
+
+            return compiled
+        end
+    )
+
+    return compiled_line
+end
+
+
+local function copy_target_ids(target_ids)
+    local result = {}
+
+    for _, target_id in ipairs(target_ids or {}) do
+        if type(target_id) == "string"
+            and target_id ~= ""
+        then
+            table.insert(result, target_id)
+        end
+    end
+
+    return result
+end
+
+
+local function build_register_line_role_overrides(
+    compiled_line,
+    selected_ids
+)
+    local selected = {}
+    local roles = {}
+
+    for _, target_id in ipairs(selected_ids or {}) do
+        selected[target_id] = true
+    end
+
+    -- Occurrences are source-ordered. Later occurrences overwrite earlier
+    -- roles for the same register, so line-level inspection behaves as though
+    -- execution has moved past the statement. For `xor rdi, rdi`, RDI is
+    -- therefore presented as the second/source occurrence.
+    for _, occurrence in ipairs(
+        compiled_line.occurrences or {}
+    ) do
+        if type(occurrence.role) == "string"
+            and occurrence.role ~= ""
+        then
+            for _, target_id in ipairs(
+                occurrence.targets
+                    and occurrence.targets.state
+                    or {}
+            ) do
+                if selected[target_id] then
+                    roles[target_id] = occurrence.role
+                end
+            end
+        end
+    end
+
+    return roles
+end
+
+
+local function build_register_occurrence_role_overrides(
+    occurrence,
+    selected_ids
+)
+    local roles = {}
+
+    if type(occurrence) ~= "table"
+        or type(occurrence.role) ~= "string"
+        or occurrence.role == ""
+    then
+        return roles
+    end
+
+    for _, target_id in ipairs(selected_ids or {}) do
+        roles[target_id] = occurrence.role
+    end
+
+    return roles
+end
+
+
+local function collapse_register_detail_nodes(nodes)
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            if node.kind == "register" and node.id then
+                hud_nodes.collapse(node.id)
+            end
+
+            collapse_register_detail_nodes(node.children)
+        end
+    end
+end
+
+
+local function reveal_register_inspect_targets(
+    context,
+    target_ids,
+    role_overrides
+)
+    local active_ids = {}
+
+    for _, target_id in ipairs(target_ids or {}) do
+        active_ids[target_id] = true
+    end
+
+    context.register_inspection = {
+        active = true,
+        target_ids = active_ids,
+        roles = role_overrides or {},
+    }
+
+    local register_nodes = build_register_nodes_for_context(
+        context
+    )
+
+    collapse_register_detail_nodes(register_nodes)
+    M.set_expanded("registers", true)
+
+    local target_node_id = nil
+    local found_any = false
+
+    for _, target_id in ipairs(target_ids or {}) do
+        local node_path = find_node_path_by_id(
+            register_nodes,
+            target_id
+        )
+
+        if node_path and #node_path > 0 then
+            found_any = true
+            target_node_id = target_id
+
+            for _, node in ipairs(node_path) do
+                if node_has_children(node) and node.id then
+                    hud_nodes.expand(node.id)
+                end
+            end
+        end
+    end
+
+    if not found_any then
+        context.register_inspection = nil
+        return false, nil
+    end
+
+    return true, target_node_id
+end
+
+
+function M.inspect_registers(request)
+    if type(request) ~= "table"
+        or type(request.context) ~= "table"
+    then
+        return false
+    end
+
+    request.context.register_inspection = nil
+
+    local source_column = tonumber(request.column) or 0
+    local compiled_line = get_register_inspect_line(
+        request
+    )
+
+    if type(compiled_line) ~= "table" then
+        return false
+    end
+
+    local occurrence = source_index_compiler.find_occurrence(
+        compiled_line,
+        source_column
+    )
+
+    if occurrence then
+        local target_ids = copy_target_ids(
+            occurrence.targets
+                and occurrence.targets.state
+                or {}
+        )
+
+        -- Mnemonics intentionally address implicit effects only. If a
+        -- mnemonic has no implicit register target, do not silently turn it
+        -- into line-level inspection.
+        if #target_ids == 0 then
+            return false
+        end
+
+        return reveal_register_inspect_targets(
+            request.context,
+            target_ids,
+            build_register_occurrence_role_overrides(
+                occurrence,
+                target_ids
+            )
+        )
+    end
+
+    -- No concrete token occupies the cursor column. Inspect the whole source
+    -- line: reveal every unique register target and use the LAST occurrence
+    -- role for duplicates, matching post-statement semantics.
+    local line_targets =
+        source_index_compiler.get_line_targets(
+            compiled_line
+        )
+
+    local target_ids = copy_target_ids(
+        line_targets.state or {}
+    )
+
+    if #target_ids == 0 then
+        return false
+    end
+
+    return reveal_register_inspect_targets(
+        request.context,
+        target_ids,
+        build_register_line_role_overrides(
+            compiled_line,
+            target_ids
+        )
+    )
 end
 
 
@@ -1551,10 +1854,19 @@ function M.build(context, opts)
     })
 
     local register_nodes = register_tree.build(context.registers or {}, context)
+    local register_inspection = type(context.register_inspection) == "table"
+        and context.register_inspection.active == true
+        and context.register_inspection
+        or nil
+    local register_active_ids = register_inspection
+        and register_inspection.target_ids
+        or nil
+
     local register_render = build_hud_tree_lines(register_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        explicit_active_node_ids = register_active_ids,
     })
 
     local event_nodes = event_tree.build(context.events or {}, context)
@@ -1614,11 +1926,13 @@ function M.build(context, opts)
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
-            active = section_has_cursor_target(
-                register_nodes,
-                active_source_line,
-                active_source_column
-            ),
+            active = register_inspection ~= nil
+                and next(register_active_ids or {}) ~= nil
+                or section_has_cursor_target(
+                    register_nodes,
+                    active_source_line,
+                    active_source_column
+                ),
             lines = register_render.lines,
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",

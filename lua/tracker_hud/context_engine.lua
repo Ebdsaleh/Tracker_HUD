@@ -1846,6 +1846,348 @@ function M.collect_register_effects(context, adapter, opts)
 end
 
 
+
+--
+-- Discover source occurrences for explicit Registers inspection.
+--
+-- Register state remains line-based, while Inspect selection is occurrence-based.
+-- This function does not mutate register state and does not render HUD nodes.
+-- It describes which presentation register rows are addressed by the exact
+-- Tree-sitter mnemonic/operand occurrences on one source line.
+--
+
+local function resolve_register_occurrence_name(adapter, register_name)
+    if not core.is_non_empty_string(register_name) then
+        return nil
+    end
+
+    local normalized = register_name:lower()
+
+    for canonical, family in pairs(
+        core.is_table(adapter) and adapter.register_families or {}
+    ) do
+        if core.is_table(family)
+            and core.is_table(family.aliases)
+            and core.is_table(family.aliases[normalized])
+        then
+            return tostring(family.canonical or canonical):lower()
+        end
+    end
+
+    return normalized
+end
+
+
+local function register_occurrence_target_id(adapter, register_name)
+    local canonical = resolve_register_occurrence_name(
+        adapter,
+        register_name
+    )
+
+    if not canonical then
+        return nil
+    end
+
+    return "register:" .. canonical
+end
+
+
+local function normalize_register_occurrence_role(role)
+    if not core.is_non_empty_string(role) then
+        return nil
+    end
+
+    local normalized = role:lower()
+
+    if normalized:match("^destination") then
+        return "destination"
+    end
+
+    if normalized:match("^source") then
+        return "source"
+    end
+
+    return role
+end
+
+
+local function add_unique_string(result, seen, value)
+    if not core.is_non_empty_string(value)
+        or seen[value]
+    then
+        return
+    end
+
+    seen[value] = true
+    table.insert(result, value)
+end
+
+
+local function get_register_operand_occurrence_role(
+    effect_specs,
+    operand_index
+)
+    for _, effect_spec in ipairs(effect_specs or {}) do
+        for _, operand_spec in ipairs(effect_spec.operands or {}) do
+            if tonumber(operand_spec.index) == operand_index then
+                local role = normalize_register_occurrence_role(
+                    operand_spec.role
+                )
+
+                if role then
+                    return role
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+
+local function get_matching_register_effect_specs(
+    effect_index,
+    adapter,
+    instruction_node,
+    bufnr
+)
+    if not instruction_node then
+        return nil, {}
+    end
+
+    local node_bucket = effect_index.by_node_type[
+        instruction_node:type()
+    ]
+
+    if not node_bucket then
+        return nil, {}
+    end
+
+    local instruction = collect_instruction_operands(
+        adapter,
+        instruction_node,
+        bufnr,
+        node_bucket.__first
+    )
+
+    if not core.is_table(instruction) then
+        return nil, {}
+    end
+
+    local mnemonic = normalize_mnemonic(
+        instruction.mnemonic
+    )
+
+    local candidates = mnemonic
+        and node_bucket[mnemonic]
+        or nil
+
+    local matching = {}
+
+    for _, effect_spec in ipairs(candidates or {}) do
+        if operands_match_effect(instruction, effect_spec)
+            and condition_matches(
+                instruction,
+                effect_spec.condition
+            )
+        then
+            table.insert(matching, effect_spec)
+        end
+    end
+
+    return instruction, matching
+end
+
+
+local function build_register_mnemonic_occurrence(
+    adapter,
+    instruction,
+    effect_specs
+)
+    if not core.is_table(instruction)
+        or not core.is_table(instruction.mnemonic_range)
+    then
+        return nil
+    end
+
+    local target_ids = {}
+    local seen_target_ids = {}
+
+    -- A mnemonic occurrence addresses only implicit register effects.
+    -- Explicit operand-backed targets are represented by their operand
+    -- occurrences instead.
+    for _, effect_spec in ipairs(effect_specs or {}) do
+        local effect = effect_spec.effect
+
+        if core.is_table(effect)
+            and core.is_non_empty_string(effect.target_register)
+        then
+            add_unique_string(
+                target_ids,
+                seen_target_ids,
+                register_occurrence_target_id(
+                    adapter,
+                    effect.target_register
+                )
+            )
+        end
+    end
+
+    local range = instruction.mnemonic_range
+
+    return {
+        kind = "mnemonic",
+        text = instruction.mnemonic,
+        start_column = range.source_start_column,
+        end_column = range.source_end_column,
+        targets = {
+            state = target_ids,
+        },
+        metadata = {
+            mnemonic = instruction.mnemonic,
+        },
+    }
+end
+
+
+local function build_register_operand_occurrence(
+    adapter,
+    operand,
+    operand_index,
+    effect_specs
+)
+    if not core.is_table(operand)
+        or operand.kind ~= "register"
+    then
+        return nil
+    end
+
+    local target_id = register_occurrence_target_id(
+        adapter,
+        operand.text
+    )
+
+    if not target_id then
+        return nil
+    end
+
+    return {
+        kind = "operand",
+        text = operand.text,
+        start_column = operand.source_start_column,
+        end_column = operand.source_end_column,
+        operand_index = operand_index,
+        role = get_register_operand_occurrence_role(
+            effect_specs,
+            operand_index
+        ),
+        targets = {
+            state = {
+                target_id,
+            },
+        },
+        metadata = {
+            register_name = resolve_register_occurrence_name(
+                adapter,
+                operand.text
+            ),
+            written_name = operand.text,
+        },
+    }
+end
+
+
+function M.discover_register_source_occurrences(
+    bufnr,
+    root_node,
+    adapter,
+    line_number
+)
+    if not bufnr
+        or not root_node
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.register_effects)
+        or not core.is_number(line_number)
+    then
+        return {}
+    end
+
+    local effect_index = get_register_effect_index(adapter)
+    local occurrences = {}
+    local seen_nodes = {}
+
+    for node_type, _ in pairs(effect_index.node_types) do
+        for _, node in ipairs(
+            collect_nodes_by_type(root_node, node_type)
+        ) do
+            local start_row,
+                start_column,
+                end_row,
+                end_column = node:range()
+
+            if start_row + 1 == line_number then
+                local node_key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[node_key] then
+                    seen_nodes[node_key] = true
+
+                    local instruction, matching_specs =
+                        get_matching_register_effect_specs(
+                            effect_index,
+                            adapter,
+                            node,
+                            bufnr
+                        )
+
+                    if instruction and #matching_specs > 0 then
+                        local mnemonic_occurrence =
+                            build_register_mnemonic_occurrence(
+                                adapter,
+                                instruction,
+                                matching_specs
+                            )
+
+                        if mnemonic_occurrence then
+                            table.insert(
+                                occurrences,
+                                mnemonic_occurrence
+                            )
+                        end
+
+                        for operand_index, operand in ipairs(
+                            instruction.operands or {}
+                        ) do
+                            local operand_occurrence =
+                                build_register_operand_occurrence(
+                                    adapter,
+                                    operand,
+                                    operand_index,
+                                    matching_specs
+                                )
+
+                            if operand_occurrence then
+                                table.insert(
+                                    occurrences,
+                                    operand_occurrence
+                                )
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return occurrences
+end
+
+
 local function get_boundary_effect_node_type(effect_spec)
     if not core.is_table(effect_spec) then
         return nil

@@ -96,7 +96,20 @@ local function append_alias_children(children, register)
 end
 
 
-local function build_register_node(register)
+local function get_inspection_role(context, register_id)
+    if not core.is_table(context)
+        or not core.is_table(context.register_inspection)
+        or context.register_inspection.active ~= true
+        or not core.is_table(context.register_inspection.roles)
+    then
+        return nil
+    end
+
+    return context.register_inspection.roles[register_id]
+end
+
+
+local function build_register_node(register, context)
     if not core.is_table(register) then
         return nil
     end
@@ -111,10 +124,19 @@ local function build_register_node(register)
         "kind: " .. tostring(register.kind or "<unknown>")
     ))
 
+    local inspection_role = get_inspection_role(
+        context,
+        register.id
+    )
+
     table.insert(children, build_register_detail_node(
         register,
         "role",
-        "role: " .. tostring(register.role or "<unknown>")
+        "role: " .. tostring(
+            inspection_role
+            or register.role
+            or "<unknown>"
+        )
     ))
 
     table.insert(children, build_register_detail_node(
@@ -175,14 +197,14 @@ local function build_group_node(group)
 end
 
 
-function M.build(registers, _context)
+function M.build(registers, context)
     local nodes = {}
 
     local active_group_id = nil
     local active_group_node = nil
 
     for _, register in ipairs(registers or {}) do
-        local node = build_register_node(register)
+        local node = build_register_node(register, context)
 
         if node then
             local group = get_register_group(register)
