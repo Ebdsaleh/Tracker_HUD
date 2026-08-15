@@ -1602,6 +1602,75 @@ local function register_targets_are_expanded(target_paths)
 end
 
 
+local function find_previous_register_occurrence_in_gap(
+    compiled_line,
+    source_column
+)
+    if type(compiled_line) ~= "table"
+        or type(compiled_line.occurrences) ~= "table"
+    then
+        return nil
+    end
+
+    local previous = nil
+
+    for _, occurrence in ipairs(compiled_line.occurrences) do
+        local start_column = tonumber(occurrence.start_column)
+        local end_column = tonumber(occurrence.end_column)
+        local metadata = type(occurrence.metadata) == "table"
+            and occurrence.metadata
+            or {}
+
+        local instruction_start = tonumber(
+            metadata.instruction_start_column
+        )
+        local instruction_end = tonumber(
+            metadata.instruction_end_column
+        )
+
+        if start_column and end_column then
+            if source_column < start_column then
+                if previous then
+                    local previous_metadata =
+                        type(previous.metadata) == "table"
+                        and previous.metadata
+                        or {}
+
+                    local previous_instruction_start = tonumber(
+                        previous_metadata.instruction_start_column
+                    )
+                    local previous_instruction_end = tonumber(
+                        previous_metadata.instruction_end_column
+                    )
+
+                    if previous_instruction_start
+                        and previous_instruction_end
+                        and instruction_start
+                        and instruction_end
+                        and previous_instruction_start
+                            == instruction_start
+                        and previous_instruction_end
+                            == instruction_end
+                        and source_column >= previous.end_column
+                        and source_column < occurrence.start_column
+                    then
+                        return previous
+                    end
+                end
+
+                return nil
+            end
+
+            if source_column >= end_column then
+                previous = occurrence
+            end
+        end
+    end
+
+    return nil
+end
+
+
 local function resolve_register_cursor_inspection(request)
     if type(request) ~= "table"
         or type(request.context) ~= "table"
@@ -1623,6 +1692,18 @@ local function resolve_register_cursor_inspection(request)
         source_column
     )
 
+    if not occurrence then
+        -- Punctuation/whitespace BETWEEN semantic occurrences is not a new
+        -- semantic state. Keep the most recent occurrence active until the
+        -- cursor actually enters the next occurrence. This makes an operand
+        -- separator such as the comma in `xor rdi, rdi` inherit the first
+        -- RDI's destination semantics instead of jumping ahead to the source.
+        occurrence = find_previous_register_occurrence_in_gap(
+            compiled_line,
+            source_column
+        )
+    end
+
     if occurrence then
         local target_ids = copy_target_ids(
             occurrence.targets
@@ -1630,10 +1711,9 @@ local function resolve_register_cursor_inspection(request)
                 or {}
         )
 
-        -- A concrete token occurrence owns its own cursor semantics.
-        -- Mnemonics expose operation effect targets; operands expose their
-        -- exact occurrence. Tokens with no register target do not silently
-        -- become whole-line register inspections.
+        -- A concrete token occurrence, or the separator/gap immediately
+        -- following it, owns the current cursor semantics. Mnemonics expose
+        -- operation effect targets; operands expose their exact occurrence.
         if #target_ids == 0 then
             return nil
         end
@@ -1648,8 +1728,9 @@ local function resolve_register_cursor_inspection(request)
         }
     end
 
-    -- No concrete token occupies the cursor column. Treat the position as
-    -- whole-statement/post-statement context: every unique state target is
+    -- The cursor is outside the instruction's semantic occurrence span
+    -- (for example leading/trailing whitespace). Preserve the established
+    -- whole-statement/post-statement view: every unique state target is
     -- visible and duplicate register occurrences use their final source role.
     local line_targets =
         source_index_compiler.get_line_targets(
@@ -2298,7 +2379,3 @@ function M.build(context, opts)
 end
 
 return M
-
-
-
-

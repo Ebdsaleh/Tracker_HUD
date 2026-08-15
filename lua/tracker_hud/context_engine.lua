@@ -2105,6 +2105,10 @@ local function build_register_mnemonic_occurrence(
             mnemonic = instruction.mnemonic,
             inspection_kind = "operation",
             target_roles = target_roles,
+            instruction_start_column =
+                instruction.source_start_column,
+            instruction_end_column =
+                instruction.source_end_column,
         },
     }
 end
@@ -2112,6 +2116,7 @@ end
 
 local function build_register_operand_occurrence(
     adapter,
+    instruction,
     operand,
     operand_index,
     effect_specs
@@ -2152,6 +2157,12 @@ local function build_register_operand_occurrence(
                 operand.text
             ),
             written_name = operand.text,
+            instruction_start_column = instruction
+                and instruction.source_start_column
+                or nil,
+            instruction_end_column = instruction
+                and instruction.source_end_column
+                or nil,
         },
     }
 end
@@ -2226,6 +2237,7 @@ function M.discover_register_source_occurrences(
                             local operand_occurrence =
                                 build_register_operand_occurrence(
                                     adapter,
+                                    instruction,
                                     operand,
                                     operand_index,
                                     matching_specs
