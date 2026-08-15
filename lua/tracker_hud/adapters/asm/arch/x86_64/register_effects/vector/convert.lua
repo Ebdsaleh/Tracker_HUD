@@ -1,3 +1,4 @@
+
 -- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/vector/convert.lua
 --
 -- x86-64 register effects: vector / convert.
@@ -3688,6 +3689,198 @@ return {
                             target_register = "rip",
                             role = "converted packed word integers to single-precision values by pi2fw",
                         },
+        },
+    },
+
+    ["packsswb"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "packsswb",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+            effect = {
+                kind = "register_write",
+                name = "packsswb_simd_integer_pack",
+                target_register = "rip",
+                role = "packed signed words to signed bytes by packsswb",
+            },
+        },
+    },
+
+    ["packssdw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "packssdw",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+            effect = {
+                kind = "register_write",
+                name = "packssdw_simd_integer_pack",
+                target_register = "rip",
+                role = "packed signed doublewords to signed words by packssdw",
+            },
+        },
+    },
+
+    ["packuswb"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "packuswb",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+            effect = {
+                kind = "register_write",
+                name = "packuswb_simd_integer_pack",
+                target_register = "rip",
+                role = "packed signed words to unsigned bytes by packuswb",
+            },
+        },
+    },
+
+    ["packusdw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "packusdw",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "source" } },
+            effect = {
+                kind = "register_write",
+                name = "packusdw_simd_integer_pack",
+                target_register = "rip",
+                role = "packed signed doublewords to unsigned words by packusdw",
+            },
+        },
+    },
+
+    ["vpacksswb"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "vpacksswb",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "left" }, { index = 3, role = "right" } },
+            effect = {
+                kind = "register_write",
+                name = "vpacksswb_vector_pack",
+                target_register = "rip",
+                role = "packed signed words to signed bytes by vpacksswb",
+            },
+        },
+    },
+
+    ["vpackssdw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "vpackssdw",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "left" }, { index = 3, role = "right" } },
+            effect = {
+                kind = "register_write",
+                name = "vpackssdw_vector_pack",
+                target_register = "rip",
+                role = "packed signed doublewords to signed words by vpackssdw",
+            },
+        },
+    },
+
+    ["vpackuswb"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "vpackuswb",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "left" }, { index = 3, role = "right" } },
+            effect = {
+                kind = "register_write",
+                name = "vpackuswb_vector_pack",
+                target_register = "rip",
+                role = "packed signed words to unsigned bytes by vpackuswb",
+            },
+        },
+    },
+
+    ["vpackusdw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "vpackusdw",
+                    },
+                },
+            },
+
+            operands = { { index = 1, role = "destination" }, { index = 2, role = "left" }, { index = 3, role = "right" } },
+            effect = {
+                kind = "register_write",
+                name = "vpackusdw_vector_pack",
+                target_register = "rip",
+                role = "packed signed doublewords to unsigned words by vpackusdw",
+            },
         },
     },
 

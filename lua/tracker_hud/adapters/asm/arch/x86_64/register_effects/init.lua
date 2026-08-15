@@ -2,11 +2,8 @@
 --
 -- x86-64 register-effect module aggregator.
 --
--- Categorized modules use the Tree-sitter-first, mnemonic-indexed
--- representation. Remaining legacy modules stay loadable during migration.
---
--- The aggregator preserves the mnemonic index for migrated modules while also
--- retaining sequential legacy entries until those files are converted.
+-- Every register-effect rule is categorized, Tree-sitter-first, and
+-- mnemonic-indexed. No legacy flat register-effect module is consumed.
 
 local M = {}
 
@@ -23,29 +20,14 @@ local function merge_indexed_rules(rules)
             M[mnemonic] = M[mnemonic] or {}
 
             for _, effect_spec in ipairs(effect_specs) do
-                table.insert(
-                    M[mnemonic],
-                    effect_spec
-                )
+                table.insert(M[mnemonic], effect_spec)
             end
         end
     end
 end
 
 
-local function append_legacy_rules(rules)
-    if type(rules) ~= "table" then
-        return
-    end
-
-    for _, rule in ipairs(rules) do
-        table.insert(M, rule)
-    end
-end
-
-
 local categorized_modules = {
-
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.multiply_divide",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.compare_test",
@@ -62,6 +44,8 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.control.branches",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.control.calls_returns",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.control.loops",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.control.system_calls",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.control.interrupts",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.stack.push_pop",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.stack.frames",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.flags.direct",
@@ -107,22 +91,6 @@ local categorized_modules = {
 
 for _, module_name in ipairs(categorized_modules) do
     merge_indexed_rules(require(module_name))
-end
-
-
--- Temporary migration compatibility.
--- Remove a legacy module from this list only after every entry in that module
--- has been moved into the categorized Tree-sitter-first files.
-local legacy_modules = {
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.arithmetic",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.system",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.simd",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.misc",
-}
-
-
-for _, module_name in ipairs(legacy_modules) do
-    append_legacy_rules(require(module_name))
 end
 
 

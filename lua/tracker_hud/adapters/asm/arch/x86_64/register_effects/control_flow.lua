@@ -2,13 +2,7 @@
 --
 -- Legacy compatibility module.
 --
--- All former control-flow register effects have been migrated into:
---
---     register_effects/control/branches.lua
---     register_effects/control/calls_returns.lua
---     register_effects/control/loops.lua
---
--- New code must use the categorized Tree-sitter-first modules.
+-- All former register-effect records have migrated to categorized,
+-- Tree-sitter-first, mnemonic-indexed modules.
 
 return {}
-

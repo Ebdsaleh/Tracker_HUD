@@ -115,5 +115,39 @@ return {
             },
         },
     },
-}
 
+    ["psmash"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "psmash",
+                    },
+                },
+            },
+
+            kind = "security_event",
+            category = "platform_security",
+            name = "psmash",
+            role = "split secure nested paging mapping by psmash",
+
+            operands = {},
+
+            event = {
+                name = "psmash_updates_platform_state",
+                display_name = "psmash",
+                role = "split secure nested paging mapping by psmash",
+            },
+
+            effect = {
+                kind = "platform_security_state",
+                name = "psmash_updates_platform_state",
+                role = "split secure nested paging mapping by psmash",
+            },
+        },
+    },
+}

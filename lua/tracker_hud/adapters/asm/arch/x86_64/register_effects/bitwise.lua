@@ -1,10 +1,8 @@
 -- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/bitwise.lua
 --
--- x86-64 legacy bitwise register effects.
+-- Legacy compatibility module.
 --
--- Temporary legacy compatibility during the Tree-sitter-first migration.
--- Only records not yet moved into categorized modules remain here.
+-- All former register-effect records have migrated to categorized,
+-- Tree-sitter-first, mnemonic-indexed modules.
 
-return {
-
-}
+return {}

@@ -122,5 +122,41 @@ return {
             },
         },
     },
-}
 
+    ["ptwrite"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "ptwrite",
+                    },
+                },
+            },
+
+            kind = "processor_event",
+            category = "profiling",
+            name = "ptwrite",
+            role = "source",
+
+            operands = {
+                { index = 1, role = "source" },
+            },
+
+            event = {
+                name = "ptwrite_updates_trace_state",
+                display_name = "ptwrite",
+                role = "source",
+            },
+
+            effect = {
+                kind = "profiling_state_update",
+                name = "ptwrite_updates_trace_state",
+                role = "source",
+            },
+        },
+    },
+}

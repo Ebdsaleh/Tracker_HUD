@@ -258,4 +258,28 @@ return {
         },
         },
     },
+
+    ["pvalidate"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pvalidate",
+                    },
+                },
+            },
+
+            operands = {},
+            effect = {
+                kind = "register_write",
+                name = "pvalidate_updates_rflags",
+                target_register = "rflags",
+                role = "updated by page validation pvalidate",
+            },
+        },
+    },
 }

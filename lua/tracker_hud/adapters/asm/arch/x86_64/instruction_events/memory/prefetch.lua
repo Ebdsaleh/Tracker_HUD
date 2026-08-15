@@ -157,5 +157,263 @@ return {
             },
         },
     },
-}
 
+    ["prefetch"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetch",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetch",
+            role = "memory_operand",
+
+            operands = {
+                { index = 1, role = "memory_operand" },
+            },
+
+            event = {
+                name = "prefetch_touches_memory",
+                display_name = "prefetch",
+                role = "memory_operand",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetch_touches_memory",
+                role = "memory_operand",
+            },
+        },
+    },
+
+    ["prefetchw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetchw",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetchw",
+            role = "memory_operand",
+
+            operands = {
+                { index = 1, role = "memory_operand" },
+            },
+
+            event = {
+                name = "prefetchw_touches_memory",
+                display_name = "prefetchw",
+                role = "memory_operand",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetchw_touches_memory",
+                role = "memory_operand",
+            },
+        },
+    },
+
+    ["prefetch0"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetch0",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetch0",
+            role = "address",
+
+            operands = {
+                { index = 1, role = "address" },
+            },
+
+            event = {
+                name = "prefetch0_cache_hint",
+                display_name = "prefetch0",
+                role = "address",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetch0_cache_hint",
+                role = "address",
+            },
+        },
+    },
+
+    ["prefetch1"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetch1",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetch1",
+            role = "address",
+
+            operands = {
+                { index = 1, role = "address" },
+            },
+
+            event = {
+                name = "prefetch1_cache_hint",
+                display_name = "prefetch1",
+                role = "address",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetch1_cache_hint",
+                role = "address",
+            },
+        },
+    },
+
+    ["prefetch2"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetch2",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetch2",
+            role = "address",
+
+            operands = {
+                { index = 1, role = "address" },
+            },
+
+            event = {
+                name = "prefetch2_cache_hint",
+                display_name = "prefetch2",
+                role = "address",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetch2_cache_hint",
+                role = "address",
+            },
+        },
+    },
+
+    ["prefetchit0"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetchit0",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetchit0",
+            role = "address",
+
+            operands = {
+                { index = 1, role = "address" },
+            },
+
+            event = {
+                name = "prefetchit0_code_prefetch_hint",
+                display_name = "prefetchit0",
+                role = "address",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetchit0_code_prefetch_hint",
+                role = "address",
+            },
+        },
+    },
+
+    ["prefetchit1"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "prefetchit1",
+                    },
+                },
+            },
+
+            kind = "cache_event",
+            category = "cache_prefetch",
+            name = "prefetchit1",
+            role = "address",
+
+            operands = {
+                { index = 1, role = "address" },
+            },
+
+            event = {
+                name = "prefetchit1_code_prefetch_hint",
+                display_name = "prefetchit1",
+                role = "address",
+            },
+
+            effect = {
+                kind = "cache_prefetch",
+                name = "prefetchit1_code_prefetch_hint",
+                role = "address",
+            },
+        },
+    },
+}

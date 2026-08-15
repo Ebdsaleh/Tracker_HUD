@@ -262,4 +262,56 @@ return {
         },
         },
     },
+
+    ["verr"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "verr",
+                    },
+                },
+            },
+
+            operands = {
+                { index = 1, role = "selector" },
+            },
+            effect = {
+                kind = "register_write",
+                name = "verr_updates_rflags",
+                target_register = "rflags",
+                role = "updated by readable-segment test verr",
+            },
+        },
+    },
+
+    ["verw"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "verw",
+                    },
+                },
+            },
+
+            operands = {
+                { index = 1, role = "selector" },
+            },
+            effect = {
+                kind = "register_write",
+                name = "verw_updates_rflags",
+                target_register = "rflags",
+                role = "updated by writable-segment test verw",
+            },
+        },
+    },
 }
