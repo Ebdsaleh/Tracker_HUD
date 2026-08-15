@@ -1411,15 +1411,35 @@ local function build_register_occurrence_role_overrides(
 )
     local roles = {}
 
-    if type(occurrence) ~= "table"
-        or type(occurrence.role) ~= "string"
-        or occurrence.role == ""
-    then
+    if type(occurrence) ~= "table" then
         return roles
     end
 
-    for _, target_id in ipairs(selected_ids or {}) do
-        roles[target_id] = occurrence.role
+    local target_roles = type(occurrence.metadata) == "table"
+        and occurrence.metadata.target_roles
+        or nil
+
+    if type(target_roles) == "table" then
+        for _, target_id in ipairs(selected_ids or {}) do
+            local role = target_roles[target_id]
+
+            if type(role) == "string" and role ~= "" then
+                roles[target_id] = role
+            end
+        end
+    end
+
+    -- Operand occurrences carry one role because they address one concrete
+    -- source occurrence. Mnemonic/operation occurrences may address several
+    -- targets with different roles, so their target-specific map above wins.
+    if type(occurrence.role) == "string"
+        and occurrence.role ~= ""
+    then
+        for _, target_id in ipairs(selected_ids or {}) do
+            if roles[target_id] == nil then
+                roles[target_id] = occurrence.role
+            end
+        end
     end
 
     return roles
@@ -1523,9 +1543,11 @@ function M.inspect_registers(request)
                 or {}
         )
 
-        -- Mnemonics intentionally address implicit effects only. If a
-        -- mnemonic has no implicit register target, do not silently turn it
-        -- into line-level inspection.
+        -- A concrete token occurrence owns its own Inspect semantics.
+        -- For mnemonics this is the operation's affected register-state
+        -- targets; for operands it is the exact operand occurrence. Do not
+        -- silently fall back to whole-line inspection when that token has no
+        -- register target.
         if #target_ids == 0 then
             return false
         end

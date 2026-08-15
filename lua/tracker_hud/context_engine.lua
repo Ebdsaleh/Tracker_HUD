@@ -1999,6 +1999,26 @@ local function get_matching_register_effect_specs(
 end
 
 
+local function get_register_effect_target_operand_role(
+    effect_spec,
+    operand_index
+)
+    if not core.is_table(effect_spec) then
+        return nil
+    end
+
+    for _, operand_spec in ipairs(effect_spec.operands or {}) do
+        if tonumber(operand_spec.index) == operand_index then
+            return normalize_register_occurrence_role(
+                operand_spec.role
+            )
+        end
+    end
+
+    return nil
+end
+
+
 local function build_register_mnemonic_occurrence(
     adapter,
     instruction,
@@ -2012,24 +2032,62 @@ local function build_register_mnemonic_occurrence(
 
     local target_ids = {}
     local seen_target_ids = {}
+    local target_roles = {}
 
-    -- A mnemonic occurrence addresses only implicit register effects.
-    -- Explicit operand-backed targets are represented by their operand
-    -- occurrences instead.
+    -- The mnemonic represents the operation itself. Inspecting it therefore
+    -- addresses every register STATE TARGET affected by the matching semantic
+    -- effects: explicit destination operands plus implicit architectural
+    -- targets such as RFLAGS. Source-only operands remain operand occurrences
+    -- and are not promoted to operation targets.
     for _, effect_spec in ipairs(effect_specs or {}) do
         local effect = effect_spec.effect
 
-        if core.is_table(effect)
-            and core.is_non_empty_string(effect.target_register)
-        then
-            add_unique_string(
-                target_ids,
-                seen_target_ids,
-                register_occurrence_target_id(
-                    adapter,
-                    effect.target_register
+        if core.is_table(effect) then
+            if core.is_non_empty_string(effect.target_register) then
+                add_unique_string(
+                    target_ids,
+                    seen_target_ids,
+                    register_occurrence_target_id(
+                        adapter,
+                        effect.target_register
+                    )
                 )
+            end
+
+            local target_operand = tonumber(
+                effect.target_operand
             )
+
+            local operand = target_operand
+                and instruction.operands
+                and instruction.operands[target_operand]
+                or nil
+
+            if core.is_table(operand)
+                and operand.kind == "register"
+            then
+                local target_id =
+                    register_occurrence_target_id(
+                        adapter,
+                        operand.text
+                    )
+
+                add_unique_string(
+                    target_ids,
+                    seen_target_ids,
+                    target_id
+                )
+
+                local role =
+                    get_register_effect_target_operand_role(
+                        effect_spec,
+                        target_operand
+                    )
+
+                if target_id and role then
+                    target_roles[target_id] = role
+                end
+            end
         end
     end
 
@@ -2045,6 +2103,8 @@ local function build_register_mnemonic_occurrence(
         },
         metadata = {
             mnemonic = instruction.mnemonic,
+            inspection_kind = "operation",
+            target_roles = target_roles,
         },
     }
 end
