@@ -2,254 +2,107 @@
 
 By [@Ebdsaleh](https://github.com/Ebdsaleh)
 
-Tracker HUD is an experimental Neovim plugin that displays a live code-awareness HUD based on the cursor position. It uses Tree-sitter plus adapter-provided language facts to track the current function, nested scope depth, branch context, scope members, and low-level ASM state, giving a breadcrumb-style view of where the cursor is inside the code.
+Tracker HUD is an experimental Neovim plugin that provides a live, cursor-aware code-analysis HUD. It is built around Tree-sitter and declarative language adapters: Tree-sitter identifies the exact syntax under the cursor, adapters describe what that syntax means, and Tracker HUD turns those facts into scopes, members, register state, instruction events, stack/heap information, warnings, and source-side inspection behavior.
 
-The long-term goal is to extend this into a systems-programming analysis HUD capable of tracking stack and heap state in assembly, unfreed pointers in C/C++, and ownership/lifetime status in Rust.
+The current implementation is still a proof-of-concept, but the architecture is now substantially more structured than the early versions. The built-in Lua adapter is the reference high-level-language adapter, while the ASM adapter currently has the deepest low-level support through its x86-64 variant.
 
-> Current status: early proof-of-concept, but usable. Tracker HUD currently focuses on cursor-aware structural tracking, interactive panel display, panel positioning/resizing, scope breadcrumbs, adapter-driven Lua scope member discovery, return-value inspection, structural value ownership, source-side inspect controls, ASM/x86-64 register, stack, heap, and warning tracking, generic boundary-effect collection, split x86-64 register-effect modules, mnemonic-indexed register-effect lookup for faster ASM HUD updates, directory-backed built-in adapter modules, strict plugin-wide source directive parsing, and syntax-aware ASM directive comments.
+> **Current status:** experimental but usable. The supported display is the docked panel. Lua supports structural scope/member inspection. ASM/x86-64 now uses a Tree-sitter-first Adapter Contract v1, categorized mnemonic-indexed semantic datasets, occurrence-aware Register inspection, instruction Events, Stack effects, syscall boundary effects, Heap routing, and conservative Warnings.
+
+The long-term direction is a systems-programming analysis HUD: complete the low-level ASM model, then extend the same adapter-driven architecture toward C/C++ pointer and lifetime state and Rust ownership/lifetime information.
 
 ---
 
 ## Features
 
+### Core HUD
+
 - Tree-sitter-powered cursor context tracking
-- Function/block scope breadcrumb display
-- Nested scope depth tracking
-- Basic branch awareness for `if` / `elseif` / `else`
-- Winbar display mode
-- Docked panel display mode
-- Panel positions:
-  - `left`
-  - `right`
-  - `top`
-  - `bottom`
+- Docked panel display
+- Panel positions: `left`, `right`, `top`, and `bottom`
 - Launch-time automatic panel sizing
-- Runtime panel resizing command
-- Runtime panel position command
-- Configurable resize keymaps
-- Panel focus restoration so the HUD does not steal editing focus
-- HUD panel closes with the source file
-- Adapter-based language context architecture
-- Directory-backed built-in adapter modules using `adapters/<name>/init.lua` and `adapters/<name>/adapter.lua`
-- Lua construct adapter with spec-driven branch alternatives
-- Clear missing-adapter messages for unsupported filetypes
-- Interactive HUD sections
-- Expand/collapse HUD sections with `<CR>`
-- Double-click HUD section/control interaction with the mouse
-- Stable HUD status block for current line, scope lines, and scope depth
-- Scope Members section for adapter-driven local declaration discovery
-- Scope Members filtering by active scope and cursor position
-- Show All Scope Members HUD control
-- `<Tab>` source jump from HUD rows when Show All Scope Members is enabled
-- Contract v2 adapter model using `construct`, `scope`, `member`, and `value` specs
-- Adapter-driven value type labels for Lua scalar, structural, callable, and call values
-- Lua return statement tracking
-- Return values displayed as scope members
-- Structural values such as Lua tables attach under their owning member
-- Shared HUD control registry
-- Active Inspect Mode displayed in the HUD panel statusline
-- Configurable Inspect Mode cycling keymap
-- Configurable source-side inspect/reveal keymap
-- Source-side Scope Members inspect reveal
-- Scope Members inspect reveal expands the relevant HUD breadcrumb path
-- Scope Members inspect reveal keeps focus in the source file
-- Scope Members inspect reveal positions the HUD cursor on the revealed row
-- Shared Tree-sitter utility helpers
-- Shared adapter construct/value utility helpers
-- Dedicated Scope Member model helpers for member record creation and labeling
-- Column-aware Scope Members inspect targeting
-- Scope Members inspect fallback to nearest member on the current line
-- Source-side Scope Members inspect toggle for individual expandable members
-- Expand all Scope Members in the current owning scope
-- Collapse all Scope Members in the current owning scope
-- Scope Members expansion state persists as cursor-filtered members become visible
-- Identifier return values can resolve to visible scope members where possible
-- Scope Members filtering uses the nearest member-owning scope instead of the nearest syntax construct
-- ASM adapter architecture with x86-64 variant support
-- Nested ASM adapter module structure under `adapters/asm/`
-- Nested x86-64 architecture variant module under `adapters/asm/arch/x86_64/`
-- x86-64 architecture directive detection using strict source directives such as `; arch=x86-64;`
-- Strict plugin-wide source directive parsing with helpful malformed-directive diagnostics
-- ASM syntax-aware directive comment handling for NASM-style `;`, GAS-style `#` / `//`, and MASM-style `;` conventions
-- ASM label range scopes for label-local context
-- x86-64 register section with canonical register families and aliases
-- x86-64 register write effects for common instructions such as `mov`, `xor`, `add`, `sub`, `inc`, and `dec`
-- Broad x86-64 instruction-effect coverage split into focused register-effect modules
-- Mnemonic-indexed register-effect lookup for faster ASM register tracking
-- x86-64 stack section with stack concepts and stack effects such as `push`, `pop`, `call`, `ret`, `leave`, `sub rsp`, and `add rsp`
-- Generic boundary-effect collection for adapter-described runtime/system boundaries
-- x86-64 syscall convention spec with syscall-number, return, and argument registers
-- Heap HUD section between Stack and Warnings
-- Heap model/tree/rendering pipeline using `heap.lua`, `heap_model.lua`, and `heap_tree.lua`
-- Heap entries routed from heap-category boundary effects such as `mmap`, `munmap`, and `brk`
-- Heap included in Inspect Mode cycling
-- Heap supports source-side inspect, expand-all, collapse-all, and panel-row expansion
-- Warnings section with tree-backed warning entries from adapter rules and Tree-sitter syntax diagnostics
+- Runtime panel resizing and repositioning
+- Panel focus restoration so Tracker HUD does not steal source focus
+- HUD panel closes with the tracked source window
+- Interactive expandable/collapsible HUD trees
+- `<CR>` panel-row toggling
+- Double-click panel-row toggling
+- Stable current-line, current-scope, and depth status information
+- Adapter-driven section layout and Inspect Mode order
+- Shared presentation/model/tree infrastructure for reusable section families
+
+### Source-side Inspect workflow
+
+- Active Inspect Mode shown in the HUD statusline
+- Configurable Inspect Mode cycling
+- Configurable source-side Inspect action
+- Symmetric Inspect toggling: if `<leader>t` can expand/reveal a target, the same action can collapse it
+- Tree-aware expand-all / collapse-all for supported Inspect modes
+- Column-aware Scope Members inspection
+- Occurrence-aware Registers inspection
+- Registers semantic state updates proactively as the source cursor moves
+- Register expansion/collapse state is independent from current occurrence semantics
+- Mnemonic inspection represents **operation effects**
+- Operand inspection represents the exact **operand occurrence and role**
+- Operand separators/gaps preserve the most recently reached semantic occurrence until the next real operand begins
+- Lazy source-index caching for occurrence-aware Registers inspection
+
+### Lua adapter
+
+- Functions and anonymous function definitions
+- Lexical and structural scopes
+- `if` / `elseif` / `else` branch alternatives
+- Local declarations
+- Function parameters
+- Assignments
+- Table fields
+- Return values
+- Scalar values
+- Function/call values
+- Structural table values
+- Identifier return-value resolution through visible Scope Members where possible
+- Tree-sitter-first adapter declarations using exact syntax plus Tracker HUD semantics
+
+### ASM / x86-64 adapter
+
+- Strict source target directives such as `; arch=x86-64;`
+- NASM/GAS/MASM-aware directive comment prefixes
+- Label range scopes
+- ASM scope members such as labels and globals
+- Canonical x86-64 register families and aliases
+- General, pointer, flags, and vector register presentation groups
+- Categorized mnemonic-indexed register effects
+- Categorized mnemonic-indexed instruction Events
+- Categorized mnemonic-indexed Stack effects
+- Categorized mnemonic-indexed syscall boundary effects
+- Heap facts derived from heap-category boundary effects
+- Conservative state/syntax warnings
+- Occurrence-aware Register Inspect behavior
+- Operation-effect inspection directly from mnemonic semantics
+- Static state tracking up to the cursor without emulating the CPU
 
 ---
 
 ## Requirements
 
 - Neovim with Lua support
-- `nvim-treesitter`
-- Tree-sitter parsers for the languages you want to inspect
+- [`nvim-treesitter`](https://github.com/nvim-treesitter/nvim-treesitter)
+- A Tree-sitter parser for each language you want Tracker HUD to inspect
+- A Tracker HUD adapter for full language-aware context
 
-Tracker HUD requires both a Tree-sitter parser and a Tracker HUD adapter for full structural context. If a parser exists but no adapter is available for the filetype, the HUD will still appear and report that no adapter is available.
-
----
-
-## Language adapters
-
-Tracker HUD now uses a modular adapter architecture.
-
-The HUD shell can appear for many filetypes, but structural context is only available when Tracker HUD has an adapter for that filetype.
-
-Current adapter support:
-
-| Filetype | Status |
-|---|---|
-| `lua` | Supported: scopes, branches, fields, locals, return values, scalar values, calls, assignments, and structural table values |
-| `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter with x86-64 variant facts: labels, scope members, registers, register aliases, broad register effects, mnemonic-indexed effect lookup, stack effects, syscall boundary effects, heap boundary routing, and warning rules |
-| other filetypes | HUD appears, but structural adapter support is not yet implemented |
-
-Adapters are lightweight language construct specifications. The shared context engine handles common Tree-sitter helpers, construct validation, node matching, node parsing, scope construction, branch display formatting, value metadata routing, and context output.
-
-Tracker HUD uses a Contract v2 adapter model. Adapters describe language syntax using four normalized concepts:
+A Tree-sitter parser and a Tracker HUD adapter serve different purposes:
 
 ```text
-construct
-scope
-member
-value
+Tree-sitter
+    -> tells Tracker HUD what syntax exists
+
+Adapter
+    -> tells Tracker HUD what that syntax means
+
+Tracker HUD core
+    -> turns those facts into scopes, state, trees, warnings, and Inspect behavior
 ```
 
-This keeps the engine language-neutral. For example, Lua tables, JavaScript objects, Python dictionaries, Rust structs, C structs, and custom DSL object blocks can all be described as structural values/scopes by their adapters without requiring engine changes.
-
-
-### Built-in adapter module layout
-
-Built-in adapters use directory-backed modules instead of loose `*_adapter.lua` files.
-
-```text
-lua/tracker_hud/adapters/
-    <adapter_name>/
-        init.lua      -- adapter entry point
-        adapter.lua   -- adapter facts/specs
-```
-
-For example, the built-in Lua adapter lives under `adapters/lua/`, while the ASM adapter lives under `adapters/asm/`. The loader discovers adapter entry points through `*/init.lua` under the configured adapter paths.
-
-The ASM adapter also owns nested architecture variants:
-
-```text
-lua/tracker_hud/adapters/asm/
-    init.lua
-    adapter.lua
-    instruction_utils.lua
-    arch/
-        x86_64/
-            init.lua
-            adapter.lua
-            register_effects/
-                init.lua
-                data_movement.lua
-                arithmetic.lua
-                bitwise.lua
-                control_flow.lua
-                stack_frame.lua
-                system_flags.lua
-                system.lua
-                simd.lua
-                crypto.lua
-                misc.lua
-```
-
-The user-facing architecture name remains `x86-64`, and the source directive remains `; arch=x86-64;`. The Lua module path uses `x86_64` so it maps cleanly to Lua `require()` paths.
-
-### Source directives
-
-Tracker HUD supports strict source directives for adapter-owned metadata. The directive grammar is plugin-wide, while directive names, accepted values, and language-specific meanings remain adapter-owned.
-
-Directive declarations must start at the initial column of a line and must use exactly this shape:
-
-```text
-<comment-prefix><one-space><directive-name><assignment-symbol><value><terminator>
-```
-
-For the current ASM adapter, the assignment symbol is `=` and the directive terminator is `;`. Valid examples include:
-
-```asm
-; arch=x86-64;
-; platform=linux;
-; syntax=nasm;
-# syntax=gas;
-// syntax=gas;
-```
-
-Malformed directive-looking lines produce targeted diagnostics instead of being silently accepted. For example:
-
-```asm
-;  syntax=gas;
-```
-
-reports that only one space is permitted between the comment prefix and directive. Similarly, indented directives, whitespace around the assignment symbol, missing terminators, and embedded directive-looking text can be reported as malformed directive attempts. Directive-looking examples wrapped in double quotes, such as `"; syntax=gas;"`, are treated as prose examples and ignored.
-
-For ASM/x86-64, source directives can currently describe target metadata such as `arch`, `platform`, `abi`, `syntax`, and `mode`. Source directives override setup target defaults, and setup target defaults override adapter or variant defaults.
-
-Syntax-aware ASM directive comments are variant-described:
-
-```text
-nasm -> ;
-gas  -> #, //
-masm -> ;
-```
-
-Bootstrap directive scanning can still accept known ASM directive comment prefixes so a file can declare its syntax. If a directive is accepted through a bootstrap prefix that conflicts with the resolved active syntax, Tracker HUD reports a target warning explaining the mismatch.
-
-
-### ASM / x86-64 adapter
-
-Tracker HUD includes an ASM adapter with an x86-64 architecture variant.
-
-Add a strict directive near the top of an ASM file to select the x86-64 variant:
-
-```asm
-; arch=x86-64;
-```
-
-ASM target metadata can also be supplied with additional strict directives:
-
-```asm
-; platform=linux;
-; abi=linux_syscall;
-; syntax=nasm;
-; mode=long64;
-```
-
-For GAS-style files, use the active syntax's comment convention when possible:
-
-```asm
-# syntax=gas;
-# arch=x86-64;
-# platform=linux;
-```
-
-The x86-64 variant currently describes:
-
-- label range scopes
-- labels and `global` declarations as scope members
-- canonical registers such as `rax`, `rbx`, `rcx`, `rsp`, and `rbp`
-- register alias families such as `rax` / `eax` / `ax` / `ah` / `al`
-- broad static register effects for x86-64 instructions
-- split register-effect modules grouped by instruction category
-- mnemonic-indexed register-effect lookup in the context engine
-- stack effects for push/pop/call/return/frame operations
-- syscall convention data
-- generic boundary effects for syscall-style runtime/system boundaries
-- heap-category syscall effects such as `mmap`, `munmap`, and `brk`
-- warning rules for unresolved or missing low-level state
-
-This is still static and syntax/effect based. It is not an emulator and does not calculate full runtime values. The x86-64 register-effect rules describe conservative instruction effects; the context engine indexes those rules by mnemonic so the HUD does not need to scan every rule for every instruction.
+If a parser exists but Tracker HUD has no adapter for that filetype, the panel can still appear, but language-specific structural analysis will not be available.
 
 ---
 
@@ -266,14 +119,13 @@ This is still static and syntax/effect based. It is not an emulator and does not
 }
 ```
 
-A fuller example:
+A panel-oriented configuration:
 
 ```lua
 {
     "Ebdsaleh/Tracker_HUD",
     config = function()
         require("tracker_hud").setup({
-            display = "panel",
             panel_position = "left",
             panel_size = "auto",
         })
@@ -281,99 +133,209 @@ A fuller example:
 }
 ```
 
+Tracker HUD currently supports the docked **panel** display. Older README examples that used a winbar are no longer representative of the current configuration.
+
 ---
 
 ## Important leader-key note
 
-If you use Tracker HUD's default keymaps, set your leader key **before** Lazy loads plugins.
-
-Good:
+If you use Tracker HUD's default keymaps, set your leader before Lazy loads plugins.
 
 ```lua
 vim.g.mapleader = " "
 vim.g.maplocalleader = " "
 
 require("lazy").setup({
-    -- plugins here
+    -- plugins
 })
 ```
 
-Avoid setting `mapleader` after `lazy.setup()`, because plugin mappings such as `<leader>+`, `<leader>-`, and `<leader><CR>` may be created using Neovim's default leader instead of the key you expect.
+If `mapleader` is assigned after plugin setup, mappings such as `<leader>+`, `<leader>t`, or `<leader><leader>` may be registered against a different leader than expected.
 
 ---
 
 ## Basic setup
 
-### Winbar mode
+Tracker HUD's current default display is the docked panel:
 
 ```lua
 require("tracker_hud").setup({
-    display = "winbar",
-})
-```
-
-Example output:
-
-```text
-[+] HUD: Scope: [29] function foo() -> [52] While -> ([61] If : Else [64])
-```
-
-### Panel mode
-
-```lua
-require("tracker_hud").setup({
-    display = "panel",
-    panel_position = "left",
+    panel_position = "right",
     panel_size = "auto",
 })
 ```
 
-Panel mode opens a docked HUD window and keeps focus in the source file.
+The panel stays separate from the source buffer and is marked so Tree-sitter/LSP work is not accidentally run against the HUD itself.
 
 ---
 
-## Interactive HUD panel
+## HUD sections
 
-In panel mode, Tracker HUD displays multiple HUD sections.
+Tracker HUD has three mandatory core sections:
 
-Current sections include:
+```text
+Scope
+Scope Members
+Warnings
+```
+
+Adapters can add additional sections and define their presentation order.
+
+For Lua, the normal section order is:
+
+```text
+Scope
+Scope Members
+Warnings
+```
+
+For ASM/x86-64, the normal section order is:
 
 ```text
 Scope
 Scope Members
 Registers
+Events
 Stack
 Heap
 Warnings
 ```
 
-Sections can be expanded or collapsed from inside the HUD panel.
+The same resolved section order also drives Inspect Mode cycling, so Inspect Mode stays aligned with the active adapter rather than relying on one hardcoded global list.
+
+### Panel interaction
 
 | Input | Action |
 |---|---|
-| `<CR>` | Toggle the HUD section, control, or node under the cursor |
-| `<Tab>` | Jump to the selected HUD row's source location when Show All Scope Members is enabled |
-| Double left click | Toggle the HUD section or control under the mouse cursor |
+| `<CR>` | Toggle the section/node under the HUD cursor |
+| `<Tab>` | Jump to a Scope Members source location when Show All is enabled |
+| Double left click | Toggle the section/control/node under the mouse |
 
-The HUD panel preserves panel cursor position during interactive updates.
+The HUD preserves its panel cursor position during interactive updates where possible.
 
-### Scope Members
+---
 
-The `Scope Members` section displays statically discovered members from the current language adapter.
+## Inspect Mode
 
-For Lua, Tracker HUD currently detects:
+Tracker HUD treats the source cursor as an inspection point. The active Inspect Mode decides which HUD section interprets that source position.
+
+Default mappings:
+
+```text
+<leader><leader>   cycle Inspect Mode
+<leader>t          inspect/toggle the source target
+<leader>.          expand all for the active Inspect Mode where supported
+<leader>,          collapse all for the active Inspect Mode where supported
+```
+
+### Inspect is a toggle
+
+`<leader>t` is intentionally symmetric:
+
+```text
+first Inspect
+    -> reveal / expand the current target
+
+same Inspect again
+    -> collapse it
+```
+
+For occurrence-aware Registers inspection, moving to another source occurrence updates the semantic role without forcing the register row open or closed. Expansion state is a UI choice; occurrence semantics are source state.
+
+### Register Inspect semantics
+
+The x86-64 Registers section distinguishes three useful inspection levels.
+
+#### 1. Mnemonic: inspect the operation's effects
+
+```asm
+[mov] rax, 60
+```
+
+Tracker HUD derives the affected state from the existing instruction-effect specs, so this selects `rax` as the destination without needing a special `mov` Inspect scenario.
+
+```asm
+[xor] rdi, rdi
+```
+
+The operation affects the destination `rdi` and `rflags`, so both can be selected.
+
+```asm
+[cmp] rax, rbx
+```
+
+`cmp` changes flags but not either source register, so `rflags` is the operation target.
+
+#### 2. Operand: inspect the exact occurrence
+
+```asm
+xor [rdi], rdi
+```
+
+The first occurrence is presented as the destination.
+
+```asm
+xor rdi, [rdi]
+```
+
+The second occurrence is presented as the source.
+
+The underlying register fact remains the same architectural state; the occurrence role is a separate Inspect presentation overlay.
+
+#### 3. Separator/gap: preserve the most recent occurrence
+
+For:
+
+```asm
+xor rdi, rdi
+```
+
+cursor movement behaves conceptually like:
+
+```text
+[xor] rdi, rdi
+    -> operation effects
+
+xor [rdi], rdi
+    -> destination RDI
+
+xor rdi[,] rdi
+    -> still destination RDI
+
+xor rdi, [rdi]
+    -> source RDI
+```
+
+The comma is an operand separator/delimiter. It does not create a new semantic state and it does not jump ahead to the next operand before the cursor reaches that operand.
+
+### Proactive Register cursor state
+
+While Inspect Mode is `Registers`, occurrence semantics stay synchronized with cursor movement even when the row is already expanded.
+
+For example, if `rdi` is open while the cursor is on the destination occurrence and the cursor moves to the source occurrence, the open details update from `destination` to `source` without another `<leader>t` press.
+
+This uses a cached source-index line rather than rescanning the entire x86 rule set on each column movement.
+
+---
+
+## Scope Members
+
+The `Scope Members` section displays statically discovered members described by the active language adapter.
+
+For Lua, this currently includes:
 
 - local declarations
 - function parameters
 - table fields
+- assignments
 - return values
 - scalar values such as strings, numbers, booleans, and nil
 - call values
 - structural table values
 
-By default, Scope Members shows members relevant to the active scope and current cursor position.
+By default, Scope Members is filtered to the active member-owning scope and current cursor position.
 
-The HUD also provides a control:
+The HUD includes a control:
 
 ```text
 [ ] Show All Scope Members
@@ -385,74 +347,587 @@ When enabled:
 [+] Show All Scope Members
 ```
 
-the Scope Members section displays all discovered scope members from the current file. In this mode, pressing `<Tab>` on a scope/member row jumps the source cursor to that row's source location.
+all discovered Scope Members in the file are shown, and `<Tab>` on a supported row jumps the source cursor to that member's source location.
 
-Structural values are attached under the member that owns them. For example, a returned Lua table is shown under the `return_value` member instead of floating as a separate first-class scope member.
+Structural values remain attached to their owning member rather than being rendered as unrelated top-level rows.
 
-Scope Members also supports source-side inspection commands.
+### Scope Members source inspection
 
-When `Inspect Mode` is set to `Scope Members`, pressing the source inspect keymap reveals the member at the source cursor position. If the matched member is expandable, the command toggles that member open or closed.
+With Inspect Mode set to `Scope Members`, `<leader>t` targets the member at the source cursor position. Targeting is column-aware. When the cursor is not directly inside a member/value range, Tracker HUD can fall back to the nearest member on the current line.
 
-Inspect targeting is column-aware. If the cursor is not directly on a symbol or value, Tracker HUD falls back to the nearest Scope Members node on the current line.
+Expandable members use symmetric toggle behavior: Inspect can both open and close the selected member.
 
-Tracker HUD can also expand or collapse all Scope Members inside the current owning scope. This updates the HUD node expansion state without disabling cursor-based visibility filtering. Members that appear later in the scope remain hidden until the source cursor reaches them, but when they become visible they use the stored expanded/collapsed state.
+`<leader>.` and `<leader>,` expand/collapse members inside the current owning scope while preserving cursor-based visibility filtering.
 
+---
 
-### Registers, Stack, and Heap
+## Adapter architecture
 
-For supported low-level adapters, Tracker HUD can display register, stack, and heap-oriented facts.
+Tracker HUD's current **Adapter Contract v1** is Tree-sitter-first.
 
-For ASM/x86-64, the `Registers` section currently tracks architecture registers, register alias families, and static instruction effects up to the cursor position. Register effects are declared by the x86-64 adapter and indexed by mnemonic in the shared context engine before being normalized for display. The `Stack` section tracks architecture stack concepts and common stack effects such as pushes, pops, calls, returns, and frame restoration.
-
-The `Heap` section is now a real tree-backed HUD section. It is populated from generic boundary effects whose resolved category is `heap`. In the x86-64 adapter, this includes syscall boundary effects such as `mmap`, `munmap`, and `brk`.
-
-Example Heap output:
+The central rule is:
 
 ```text
-Heap [-]
-[-] (memory region) mmap #9 -> rax
-    kind: memory_region
-    category: heap
-    effect key: 9
-    result register: rax
-    source line: 9
+Tree-sitter says what exists syntactically
+        ->
+adapter says what that syntax means in this language/architecture
+        ->
+Tracker HUD says how those semantics behave in the HUD
 ```
 
-The Heap section supports panel-row expansion, source-side inspect mode, expand-all, and collapse-all using the same tree navigation model as Registers and Stack.
+The core should not re-describe grammar facts that Tree-sitter and the adapter already provide.
 
+### Tree-sitter-first construct shape
 
-### Warnings
+A construct declaration starts with exact Tree-sitter syntax:
 
-The `Warnings` section displays tree-backed warning entries collected from adapter-described warning rules and Tree-sitter syntax diagnostics. For ASM/x86-64, warnings are conservative: they report unresolved, missing, or syntax-level state that Tracker HUD can describe from static facts, but they do not prove full runtime correctness.
+```lua
+["function_declaration"] = {
+    syntax = {
+        node_type = "function_declaration",
+
+        fields = {
+            name = "name",
+            parameters = "parameters",
+            body = "body",
+        },
+
+        tokens = {
+            start = "function",
+            args_open = "(",
+            args_close = ")",
+            scope_close = "end",
+        },
+    },
+
+    construct = {
+        kind = "function",
+        language_term = "function",
+        label = "Function",
+    },
+
+    scope = {
+        kind = "lexical",
+        affects_visibility = true,
+        owns_members = true,
+    },
+
+    value = {
+        kind = "function",
+        language_term = "function",
+        type_label = "function",
+    },
+}
+```
+
+The current syntax contract can describe:
+
+- `syntax.node_type`
+- exact Tree-sitter `fields`
+- relevant named `children`
+- grammar `tokens`
+- syntax exclusions such as ancestor node types
+
+Language/Tracker HUD semantics remain separate from syntax through concepts such as:
+
+```text
+construct
+scope
+member
+value
+mutability
+```
+
+Mutability is orthogonal to construct identity and can describe binding, internal state, and shape independently.
+
+### Instruction-driven semantic datasets
+
+x86-64 instruction data uses the same Tree-sitter-first principle and is indexed directly by mnemonic:
+
+```lua
+["xor"] = {
+    {
+        syntax = {
+            node_type = "instruction",
+
+            fields = {
+                kind = {
+                    field = "kind",
+                    node_type = "word",
+                    text = "xor",
+                },
+            },
+        },
+
+        operands = {
+            -- semantic operand declarations
+        },
+
+        effect = {
+            -- register/stack/event/boundary semantics
+        },
+    },
+}
+```
+
+Adapter Contract v1 validates this representation and rejects the old flat instruction-rule format for current bundled adapters.
+
+This lets Tracker HUD derive behavior generically. It does not need separate Inspect code for every `mov`, `xor`, `cmp`, `add`, or future instruction scenario.
+
+### Built-in adapter layout
+
+```text
+lua/tracker_hud/adapters/
+    contract.lua
+    loader.lua
+    registry.lua
+    variant_utils.lua
+
+    lua/
+        init.lua
+        adapter.lua
+
+    asm/
+        init.lua
+        adapter.lua
+        instruction_utils.lua
+        arch/
+            x86_64/
+                init.lua
+                adapter.lua
+                ...
+```
+
+`adapters/<name>/init.lua` is the adapter entry point. The adapter registry validates Contract v1 when an adapter is registered and validates the resolved active adapter again after architecture/variant configuration.
+
+### Current built-in adapter support
+
+| Filetype | Status |
+|---|---|
+| `lua` | Supported: scopes, branches, locals, parameters, assignments, returns, values, and structural table members |
+| `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter and x86-64 variant: labels, registers, Events, Stack, syscall boundaries, Heap routing, warnings, and source inspection |
+| other filetypes | Panel may appear, but structural adapter support is not yet implemented |
+
+---
+
+## Source directives
+
+Tracker HUD supports strict source directives for adapter-owned target metadata.
+
+The plugin owns the directive grammar; the adapter owns the directive vocabulary and accepted values.
+
+A directive must begin at the initial column and use this shape:
+
+```text
+<comment-prefix><one-space><directive-name><assignment-symbol><value><terminator>
+```
+
+For the current ASM adapter, the assignment symbol is `=` and the terminator is `;`.
+
+Valid NASM-style examples:
+
+```asm
+; arch=x86-64;
+; platform=linux;
+; abi=linux_syscall;
+; syntax=nasm;
+; mode=long64;
+```
+
+GAS-style syntax directives can use `#` or `//`:
+
+```asm
+# syntax=gas;
+# arch=x86-64;
+# platform=linux;
+```
+
+```asm
+// syntax=gas;
+// arch=x86-64;
+```
+
+Current ASM syntax comment-prefix declarations are:
+
+```text
+nasm -> ;
+gas  -> #, //
+masm -> ;
+```
+
+Malformed directive-looking lines produce targeted diagnostics instead of being silently accepted. Tracker HUD can report issues such as:
+
+- indentation before the directive
+- extra spaces after the comment prefix
+- whitespace around `=`
+- missing terminator
+- invalid/unknown target values
+- bootstrap comment-prefix conflicts with the resolved syntax
+
+Source directives override setup target defaults. Setup target defaults override adapter/variant defaults.
+
+---
+
+## ASM / x86-64
+
+Add the architecture directive near the top of an ASM file:
+
+```asm
+; arch=x86-64;
+```
+
+A typical target declaration is:
+
+```asm
+; arch=x86-64;
+; platform=linux;
+; abi=linux_syscall;
+; syntax=nasm;
+; mode=long64;
+```
+
+### Current target metadata
+
+The x86-64 variant currently models target fields including:
+
+```text
+architecture
+platform
+abi
+syntax
+mode
+```
+
+Current platform declarations include Linux support and declared Windows/Darwin variants; the implemented syscall boundary model currently targets Linux `linux_syscall` semantics.
+
+### Register model
+
+The x86-64 adapter describes canonical register families and aliases, for example:
+
+```text
+RAX
+    RAX  64-bit full write
+    EAX  32-bit zero-extend into RAX
+    AX   16-bit partial write
+    AH    8-bit high partial write
+    AL    8-bit low partial write
+```
+
+The HUD groups register presentation into categories such as:
+
+```text
+General
+Pointers
+Flags
+Vector
+```
+
+Register facts are static/effect-based. Unknown or partially known values remain explicit rather than being guessed.
+
+---
+
+## x86-64 register effects
+
+Register effects are fully categorized, Tree-sitter-first, and mnemonic-indexed. The active aggregator does not consume the old flat legacy rule tables.
+
+Current category tree:
+
+```text
+register_effects/
+    integer/
+        arithmetic.lua
+        multiply_divide.lua
+        compare_test.lua
+        bitwise.lua
+        shifts_rotates.lua
+        bit_manipulation.lua
+        data_movement.lua
+        conditional.lua
+        atomic.lua
+
+    string/
+        movement.lua
+        compare_scan.lua
+        io.lua
+        repeat_prefix.lua
+
+    control/
+        branches.lua
+        calls_returns.lua
+        loops.lua
+        system_calls.lua
+        interrupts.lua
+
+    stack/
+        push_pop.lua
+        frames.lua
+
+    flags/
+        direct.lua
+
+    processor/
+        io.lua
+        identification.lua
+        descriptor_segment.lua
+        control_state.lua
+        protection_state.lua
+        timing_random.lua
+        profiling.lua
+        transactional.lua
+        virtualization.lua
+
+    vector/
+        movement.lua
+        integer_arithmetic.lua
+        floating_arithmetic.lua
+        logical.lua
+        compare.lua
+        convert.lua
+        shuffle_permute.lua
+        broadcast_insert_extract.lua
+
+    mask/
+        movement.lua
+        arithmetic.lua
+        logical.lua
+        shifts.lua
+        compare.lua
+
+    x87/
+        data_movement.lua
+        arithmetic.lua
+        compare.lua
+        control_state.lua
+
+    amx/
+        configuration.lua
+        movement.lua
+        compute.lua
+
+    crypto/
+        aes.lua
+        sha.lua
+        carryless_gfni.lua
+        key_locker.lua
+        sm3_sm4.lua
+
+    legacy/
+        bcd_ascii.lua
+        segment.lua
+        compatibility.lua
+```
+
+Categorization follows instruction meaning rather than whichever register happens to be affected. For example, direct flag-manipulation instructions live under `flags`, while arithmetic instructions that also update `rflags` remain with their arithmetic family.
+
+---
+
+## x86-64 Events
+
+`Events` represents meaningful instruction/runtime/processor actions that should not be modeled as fake register writes simply to make them visible.
+
+The instruction-event dataset is Tree-sitter-first and mnemonic-indexed:
+
+```text
+instruction_events/
+    memory/
+        ordering.lua
+        cache_control.lua
+        prefetch.lua
+        tlb.lua
+
+    processor/
+        identification.lua
+        serialization.lua
+        timing.lua
+        entropy.lua
+        wait_hint.lua
+        descriptor_state.lua
+        extended_state.lua
+        floating_state.lua
+        protection_state.lua
+        profiling.lua
+        control_state.lua
+        segment_state.lua
+
+    control/
+        interrupts.lua
+        exceptions.lua
+        system_calls.lua
+        transactional.lua
+
+    security/
+        sgx.lua
+        tdx.lua
+        cet.lua
+        mpx.lua
+        key_locker.lua
+        trusted_execution.lua
+        platform_security.lua
+        user_interrupts.lua
+        hardware_crypto.lua
+
+    virtualization/
+        vmx.lua
+        svm.lua
+```
+
+This separation allows operations such as prefetch, profiling, security, virtualization, and processor-state events to appear in the HUD without pretending that they wrote `rip` or another unrelated register.
+
+---
+
+## x86-64 Stack
+
+Stack instruction semantics are also categorized and mnemonic-indexed:
+
+```text
+stack_effects/
+    data.lua
+    allocation.lua
+    control.lua
+    frames.lua
+```
+
+Current modeled examples include:
+
+- `push`
+- `pop`
+- `sub rsp, immediate`
+- `add rsp, immediate`
+- `call`
+- `ret`
+- `leave`
+
+The Stack HUD remains a static semantic model rather than a runtime stack debugger.
+
+---
+
+## Boundaries, Heap, and syscalls
+
+Boundary effects model runtime/system boundaries separately from normal register effects.
+
+The current x86-64 boundary dataset is:
+
+```text
+boundary_effects/
+    system_calls.lua
+```
+
+For Linux `syscall`, Tracker HUD currently describes:
+
+```text
+number register:  rax
+return register:  rax
+arguments:        rdi, rsi, rdx, r10, r8, r9
+```
+
+Known syscall effects currently include:
+
+| Number | Name | Category |
+|---:|---|---|
+| `0` | `read` | I/O |
+| `1` | `write` | I/O |
+| `9` | `mmap` | Heap |
+| `11` | `munmap` | Heap |
+| `12` | `brk` | Heap |
+| `60` | `exit` | Process |
+
+Heap-category boundary effects are normalized into the Heap HUD. For example, `mmap` can produce a memory-region fact, while `munmap` can consume pointer/size state.
+
+Boundary metadata also feeds conservative warning checks for missing syscall numbers, unknown syscall effects, and missing required arguments.
+
+---
+
+## Warnings
+
+Warnings are derived from already-collected context facts and Tree-sitter syntax diagnostics. They are intentionally conservative.
+
+Current low-level warnings can report conditions such as:
+
+- a syscall number register with no known value
+- an unknown syscall number
+- a required syscall argument whose register value is not known
+- syntax-level Tree-sitter errors
+- other adapter-described state gaps
+
+Warnings are not proof that a program is invalid. Tracker HUD is a static code-awareness layer, not a full verifier.
+
+---
+
+## Source index
+
+Tracker HUD includes a generic per-buffer source index:
+
+```text
+buffer
+    -> section
+        -> line
+            -> occurrences
+            -> presentation targets
+```
+
+The source-index core does not know about x86, Registers, Events, Stack, Heap, or any concrete adapter section. Adapter/context-specific discovery supplies semantic occurrences; the generic compiler normalizes and caches them.
+
+Occurrence ranges use 0-based byte columns with an end-exclusive end column.
+
+The source index is currently used for lazy, occurrence-aware Registers inspection. A line remains cached while its source text and active adapter target signature remain current. Moving between operands on an already compiled line therefore does not require rescanning the entire semantic dataset.
+
+---
+
+## Section architecture
+
+Tracker HUD separates universal section mechanics from reusable category behavior and concrete domain semantics:
+
+```text
+generic Section
+    -> category template
+        -> concrete section
+```
+
+Current low-level section implementations follow a consistent model/tree split:
+
+```text
+sections/
+    templates/
+        lookup.lua
+        lookup_model.lua
+        lookup_tree.lua
+
+    low_level/
+        registers.lua
+        register_model.lua
+        register_tree.lua
+
+        stack.lua
+        stack_model.lua
+        stack_tree.lua
+
+        heap.lua
+        heap_model.lua
+        heap_tree.lua
+```
+
+Section identity uses stable string IDs. Adapter presentation controls visible order; navigation indexes are not semantic identity.
 
 ---
 
 ## Configuration
 
-Default configuration:
+Current defaults:
 
 ```lua
 require("tracker_hud").setup({
-    display = "winbar", -- "winbar" or "panel"
+    display = "panel", -- panel is the supported display
 
     show_line_numbers = true,
     show_branch_context = true,
     separator = " -> ",
 
-    -- "left", "right", "top", or "bottom"
     panel_position = "right",
-
-    -- Number = fixed size.
-    -- "auto" = calculate once when panel opens.
     panel_size = "auto",
 
-    -- Auto-size padding.
-    -- Left/right uses width padding.
-    -- Top/bottom uses height padding.
     panel_auto_width_padding = 2,
     panel_auto_height_padding = 2,
 
-    -- Fallbacks if auto-size cannot calculate.
     panel_default_width = 52,
     panel_default_height = 9,
 
@@ -467,40 +942,36 @@ require("tracker_hud").setup({
         collapse_all_members_in_scope = "<leader>,",
         step = 2,
     },
+
+    adapter_paths = {
+        "tracker_hud/adapters",
+    },
+
+    targets = {
+        architecture = nil,
+        platform = nil,
+        abi = nil,
+        syntax = nil,
+        mode = nil,
+    },
 })
 ```
 
----
+### Target precedence
 
-## Display modes
+For target metadata such as ASM architecture/platform/syntax:
 
-### `display = "winbar"`
-
-Uses Neovim's winbar to show a compact one-line HUD.
-
-```lua
-require("tracker_hud").setup({
-    display = "winbar",
-})
+```text
+source directive
+    > setup targets
+        > adapter/variant defaults
 ```
-
-### `display = "panel"`
-
-Uses a docked panel window.
-
-```lua
-require("tracker_hud").setup({
-    display = "panel",
-    panel_position = "left",
-    panel_size = "auto",
-})
-```
-
-The panel is a scratch buffer and should not be treated as a source file by Tree-sitter or LSP.
 
 ---
 
 ## Panel positioning
+
+Supported positions:
 
 ```lua
 panel_position = "left"
@@ -523,13 +994,9 @@ For `top` and `bottom`, panel size means height in rows.
 panel_size = "auto"
 ```
 
-Auto sizing is calculated once when the panel opens.
+Auto sizing is calculated when the panel opens. It does not constantly resize itself while the cursor moves.
 
-It does **not** constantly grow and shrink while you move the cursor.
-
-For left/right panels, auto size is based on the longest rendered HUD line.
-
-For top/bottom panels, auto size is based on the number of rendered HUD lines.
+For left/right panels, automatic size is based on rendered width. For top/bottom panels, it is based on rendered height.
 
 ### Fixed size
 
@@ -537,15 +1004,10 @@ For top/bottom panels, auto size is based on the number of rendered HUD lines.
 panel_size = 52
 ```
 
-For left/right panels, this means 52 columns.
-
-For top/bottom panels, this means 52 rows.
-
-Usually, top/bottom panels should use a smaller value:
+For a bottom/top panel, a smaller value is normally more useful:
 
 ```lua
 require("tracker_hud").setup({
-    display = "panel",
     panel_position = "bottom",
     panel_size = 9,
 })
@@ -557,17 +1019,13 @@ require("tracker_hud").setup({
 
 ### `:TrackerHudSize`
 
-Resize the HUD panel while Neovim is running.
+Set the current panel size:
 
 ```vim
 :TrackerHudSize 52
 ```
 
-For left/right panels, this changes the panel width.
-
-For top/bottom panels, this changes the panel height.
-
-You can also reset the panel to auto-calculated size:
+Reset to automatic sizing:
 
 ```vim
 :TrackerHudSize auto
@@ -575,7 +1033,7 @@ You can also reset the panel to auto-calculated size:
 
 ### `:TrackerHudPos`
 
-Move the HUD panel while Neovim is running.
+Move the current panel:
 
 ```vim
 :TrackerHudPos left
@@ -584,33 +1042,27 @@ Move the HUD panel while Neovim is running.
 :TrackerHudPos bottom
 ```
 
-This changes the current session only. It does not rewrite your Neovim configuration.
+These commands affect the current session; they do not rewrite your Neovim configuration.
 
 ---
 
 ## Keymaps
 
-Tracker HUD registers normal-mode panel resize keymaps by default.
+Default normal-mode mappings:
 
 | Mapping | Action |
 |---|---|
-| `<leader>+` | Increase HUD panel size |
-| `<leader>-` | Decrease HUD panel size |
-| `<leader><CR>` | Auto-size HUD panel |
-| `<leader><leader>` | Cycle active Inspect Mode |
-| `<leader>t` | Inspect/reveal/toggle current source cursor in the active HUD section |
+| `<leader>+` | Increase panel size |
+| `<leader>-` | Decrease panel size |
+| `<leader><CR>` | Recalculate automatic panel size |
+| `<leader><leader>` | Cycle the active Inspect Mode |
+| `<leader>t` | Inspect/toggle the source target for the active HUD section |
 | `<leader>.` | Expand all entries for the active Inspect Mode where supported |
 | `<leader>,` | Collapse all entries for the active Inspect Mode where supported |
 
-Inspect Mode currently cycles through:
+`<leader>.` / `<leader>,` are scope-aware for Scope Members and tree-aware for Registers, Events, Stack, Heap, and Warnings.
 
-```text
-Scope -> Scope Members -> Registers -> Stack -> Heap -> Warnings
-```
-
-`<leader>.` and `<leader>,` are tree-aware for Scope Members, Registers, Stack, and Heap. Warnings is tree-backed and can be inspected as a HUD section; warning entries are still static/diagnostic facts rather than full program-analysis results.
-
-The size change amount is controlled by:
+The resize amount is controlled by:
 
 ```lua
 keymaps = {
@@ -618,29 +1070,7 @@ keymaps = {
 }
 ```
 
-For left/right panels, `step = 2` means 2 columns.
-
-For top/bottom panels, `step = 2` means 2 rows.
-
-### Custom keymaps
-
-```lua
-require("tracker_hud").setup({
-    keymaps = {
-        enabled = true,
-        increase_size = "<leader>+",
-        decrease_size = "<leader>-",
-        auto_size = "<leader><CR>",
-        cycle_inspect_mode = "<leader><leader>",
-        inspect_source = "<leader>t",
-        expand_all_members_in_scope = "<leader>.",
-        collapse_all_members_in_scope = "<leader>,",
-        step = 4,
-    },
-})
-```
-
-### Disable keymaps
+### Disable default keymaps
 
 ```lua
 require("tracker_hud").setup({
@@ -660,16 +1090,36 @@ vim.g.maplocalleader = " "
 
 require("lazy").setup({
     {
+        "nvim-treesitter/nvim-treesitter",
+        build = ":TSUpdate",
+        config = function()
+            require("nvim-treesitter.config").setup({
+                highlight = {
+                    enable = true,
+                    additional_vim_regex_highlighting = false,
+                },
+            })
+        end,
+    },
+
+    {
         "Ebdsaleh/Tracker_HUD",
         config = function()
             require("tracker_hud").setup({
-                display = "panel",
                 panel_position = "left",
                 panel_size = "auto",
 
                 show_line_numbers = true,
                 show_branch_context = true,
                 separator = " -> ",
+
+                targets = {
+                    architecture = nil,
+                    platform = nil,
+                    abi = nil,
+                    syntax = nil,
+                    mode = nil,
+                },
 
                 keymaps = {
                     enabled = true,
@@ -685,78 +1135,54 @@ require("lazy").setup({
             })
         end,
     },
-
-    {
-        "nvim-treesitter/nvim-treesitter",
-        build = ":TSUpdate",
-        config = function()
-            require("nvim-treesitter.config").setup({
-                ensure_installed = {
-                    "lua",
-                    "rust",
-                    "c",
-                    "cpp",
-                    "python",
-                    "vim",
-                    "vimdoc",
-                    "query",
-                },
-                highlight = {
-                    enable = true,
-                    additional_vim_regex_highlighting = false,
-                },
-            })
-        end,
-    },
 })
 ```
+
+Install the Tree-sitter parsers appropriate for the files you want to inspect.
 
 ---
 
 ## Current limitations
 
-Tracker HUD is still early.
+Tracker HUD is still experimental and primarily static.
 
-Current functionality is focused on structural awareness:
+Current limitations include:
 
-- current function/scope
-- nested scope depth
-- basic `if` / `elseif` / `else` branch context for Lua
-- HUD panel behavior
-- runtime panel position/size controls
-- resizing and focus handling
-- Scope member tracking is static and syntax-based only
-- Scope Members tracks adapter-described values, not runtime values
-- Local initializer tracking is currently syntax-based and depends on adapter support
-- Scope Members does not yet fully model shadowing, lifetime, mutation, or control-flow visibility
-- Registers, Stack, Heap, and Warnings are static/effect-based sections, not full runtime analysis
-- ASM register-effect coverage is broad but conservative; unknown or partial state may still appear when the HUD cannot safely resolve a value
-
-It does **not yet** perform full memory, ownership, lifetime, stack, heap, alias, or control-flow analysis.
+- ASM/x86-64 state is effect-based; Tracker HUD is not a CPU emulator
+- Register values may remain unknown or partial when they cannot be safely derived
+- Stack and Heap modeling is currently incomplete compared with a debugger/runtime trace
+- Heap facts currently depend on modeled boundary effects such as selected Linux syscalls
+- Warnings are conservative state diagnostics, not formal correctness proofs
+- Scope Members does not yet fully model all shadowing, mutation, lifetime, aliasing, or control-flow visibility cases
+- Only the bundled Lua and ASM adapters currently provide substantial language-aware behavior
+- Windows/Darwin x86-64 target declarations exist, but the deepest current syscall boundary implementation is Linux-oriented
+- Full memory ownership, lifetime, pointer alias, and control-flow analysis are future work
 
 ---
 
 ## Roadmap
 
-Planned future work:
+Planned/future work includes:
 
-- Better panel formatting
-- Structured Scope Member entries instead of display strings
-- Loop variable discovery
-- Better shadowing and lifetime handling for Scope Members
-- More complete adapter capability declarations
-- Additional Contract v2 adapter documentation
-- HUD highlights/colors for section headers, controls, warnings, and muted text
+- Continue completing the ASM/x86-64 adapter and low-level state model
+- Broader Stack and Heap transition semantics
+- More complete warning generation from Register/Stack/Heap facts
+- More instruction/event coverage where architectural facts are still missing
+- Further source-index consumers where occurrence-aware inspection provides a real benefit
+- Better visual highlighting/colors for section headers, active targets, warnings, and muted details
+- Better Scope Members shadowing/lifetime handling
+- Loop-variable discovery and richer high-level member semantics
+- C/C++ pointer allocation/free and lifetime tracking
 - Rust ownership and lifetime hints
-- More complete ASM stack pointer / heap tracking
-- Heap-state transitions for allocate/free/unmap/invalidated memory
-- More complete warning generation from Heap/Register/Stack facts
-- C/C++ pointer allocation/free tracking
 - Diagnostics integration
-- Optional virtual text warnings
-- Additional language adapters and analyzer modules
+- Optional virtual-text warnings
+- Additional language adapters
 
-Current core structure:
+---
+
+## Current source structure
+
+A condensed view of the current architecture:
 
 ```text
 lua/tracker_hud/
@@ -764,67 +1190,129 @@ lua/tracker_hud/
     config.lua
     core.lua
     state.lua
+
     context.lua
     context_engine.lua
     treesitter_utils.lua
     construct_utils.lua
     directive_utils.lua
+    target_diagnostics.lua
+    treesitter_errors.lua
+
     inspect_mode.lua
+    presentation.lua
+
+    section.lua
+    section_layout.lua
+    section_model.lua
+    section_tree.lua
+
+    events.lua
+    event_model.lua
+    event_tree.lua
+
+    warnings.lua
+    warning_tree.lua
+
     scope_members.lua
     scope_member_model.lua
     scope_member_tree.lua
     symbol_state.lua
-    registers.lua
-    register_model.lua
-    register_tree.lua
-    stack.lua
-    stack_model.lua
-    stack_tree.lua
-    heap.lua
-    heap_model.lua
-    heap_tree.lua
+
     hud.lua
     hud_sections.lua
     hud_controls.lua
     hud_nodes.lua
     hud_inspect.lua
+
     constructs/
         contract.lua
+
+    source_index/
+        init.lua
+        compiler.lua
+
+    sections/
+        templates/
+            lookup.lua
+            lookup_model.lua
+            lookup_tree.lua
+
+        low_level/
+            registers.lua
+            register_model.lua
+            register_tree.lua
+            stack.lua
+            stack_model.lua
+            stack_tree.lua
+            heap.lua
+            heap_model.lua
+            heap_tree.lua
+
     adapters/
+        contract.lua
         loader.lua
         registry.lua
         variant_utils.lua
+
         lua/
             init.lua
             adapter.lua
+
         asm/
             init.lua
             adapter.lua
             instruction_utils.lua
+
             arch/
                 x86_64/
                     init.lua
                     adapter.lua
+
                     register_effects/
                         init.lua
-                        data_movement.lua
-                        arithmetic.lua
-                        bitwise.lua
-                        control_flow.lua
-                        stack_frame.lua
-                        system_flags.lua
-                        system.lua
-                        simd.lua
-                        crypto.lua
-                        misc.lua
+                        integer/
+                        string/
+                        control/
+                        stack/
+                        flags/
+                        processor/
+                        vector/
+                        mask/
+                        x87/
+                        amx/
+                        crypto/
+                        legacy/
+
+                    instruction_events/
+                        init.lua
+                        memory/
+                        processor/
+                        control/
+                        security/
+                        virtualization/
+
+                    stack_effects/
+                        init.lua
+                        data.lua
+                        allocation.lua
+                        control.lua
+                        frames.lua
+
+                    boundary_effects/
+                        init.lua
+                        system_calls.lua
 ```
+
+Some old compatibility modules remain as empty `return {}` files after the migration. They are no longer consumed by the active categorized aggregators.
+
 ---
 
 ## Native Windows Perl note
 
-Native Windows Perl LSP support is currently not a target for Tracker HUD development.
+Native Windows Perl LSP support is currently not a Tracker HUD development target.
 
-Perl support may still be possible through Tree-sitter or through POSIX-like environments such as WSL, MSYS2, Linux, or OpenBSD, but native Windows Perl LSP behavior has proven unstable due to server/runtime/piping compatibility issues.
+Perl may still be usable through Tree-sitter or POSIX-like environments such as WSL, MSYS2, Linux, or OpenBSD, but native Windows Perl LSP behavior has previously been unreliable because of server/runtime/piping compatibility.
 
 ---
 
@@ -832,13 +1320,35 @@ Perl support may still be possible through Tree-sitter or through POSIX-like env
 
 ### Next version
 
-- Added `directive_utils.lua` for strict plugin-wide source directive parsing
-- Kept directive grammar in the core while leaving directive vocabulary, values, and meanings adapter-owned
-- Added malformed directive diagnostics for common formatting mistakes such as indentation, extra spaces after the comment prefix, whitespace around the assignment symbol, and missing directive terminators
-- Added support for ignoring directive-looking examples wrapped in double quotes
-- Updated ASM source target detection to use strict directive parsing for `arch`, `platform`, `abi`, `syntax`, and `mode`
-- Added ASM syntax-aware directive comment handling so variants can describe NASM-style `;`, GAS-style `#` / `//`, and MASM-style `;` conventions
-- Added target warnings for bootstrap directives whose comment prefix conflicts with the resolved active ASM syntax
+- Made the docked panel the supported display path and aligned the README/configuration with the current panel-only default
+- Added strict plugin-wide source directive parsing through `directive_utils.lua`
+- Kept directive grammar core-owned while leaving directive names, accepted values, and meanings adapter-owned
+- Added malformed-directive diagnostics for indentation, spacing, assignment formatting, missing terminators, invalid values, and syntax-prefix conflicts
+- Added syntax-aware NASM/GAS/MASM directive comment handling
+- Added Adapter Contract v1 as the canonical Tree-sitter-first adapter validator
+- Made `contract_version = 1` mandatory for current bundled adapters
+- Migrated both Lua and ASM adapters to the Tree-sitter-first syntax contract
+- Added exact syntax validation for node types, fields, children, tokens, exclusions, scope members, range scopes, and branch alternatives
+- Converted x86-64 register effects to categorized mnemonic-indexed Tree-sitter-first modules
+- Split register effects into integer, string, control, stack, flags, processor, vector, mask, x87, AMX, crypto, and legacy families
+- Converted x86-64 instruction events to categorized mnemonic-indexed Tree-sitter-first modules
+- Added/expanded the `Events` HUD section for processor, memory, control, security, and virtualization events
+- Removed fake register-visibility effects where an instruction is more accurately represented as an Event
+- Converted x86-64 Stack effects to categorized mnemonic-indexed Tree-sitter-first modules
+- Converted x86-64 syscall boundary effects to a categorized mnemonic-indexed module
+- Removed duplicated syscall metadata in favor of one boundary/calling-convention model
+- Added adapter-driven section descriptors and presentation order
+- Added reusable generic Section / Model / Tree infrastructure and lookup-style section templates
+- Added generic per-buffer, per-section, per-line source-index infrastructure
+- Wired lazy source-index compilation into occurrence-aware Registers inspection
+- Added mnemonic-as-operation Inspect semantics so inspecting a command reveals its affected register state
+- Added exact operand-occurrence inspection with destination/source roles
+- Made Register occurrence semantics update proactively as the cursor moves, independently of expansion state
+- Preserved the previous semantic occurrence while the cursor crosses operand separators/gaps
+- Made source-side Inspect actions symmetric so the same `<leader>t` action can expand and collapse targets
+- Kept Scope Members inspection column-aware and tree-aware
+- Preserved Lua Scope Members behavior while the low-level ASM architecture was reorganized
+
 
 ### `v0.7.6`
 
@@ -1002,3 +1512,4 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
+
