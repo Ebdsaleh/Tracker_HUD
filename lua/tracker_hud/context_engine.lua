@@ -11,6 +11,7 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 local M = {}
 
 local register_effect_index_cache = setmetatable({}, { __mode = "k" })
+local instruction_event_index_cache = setmetatable({}, { __mode = "k" })
 
 
 local function get_syntax(spec)
@@ -54,6 +55,28 @@ local function get_syntax_field(spec, key)
         )
     then
         return field_name.field
+    end
+
+    return nil
+end
+
+
+
+local function get_syntax_field_text(spec, key)
+    local syntax = get_syntax(spec)
+    local fields = syntax.fields or {}
+    local field_spec = fields[key]
+
+    if not core.is_table(field_spec) then
+        return nil
+    end
+
+    if core.is_non_empty_string(field_spec.text) then
+        return field_spec.text
+    end
+
+    if core.is_non_empty_string(field_spec.value) then
+        return field_spec.value
     end
 
     return nil
@@ -2032,13 +2055,176 @@ function M.collect_boundary_effects(context, adapter, opts)
 end
 
 
-local function instruction_event_matches(instruction, event_spec)
-    if not core.is_table(instruction) or not core.is_table(event_spec) then
+local function get_instruction_event_node_type(event_spec)
+    if not core.is_table(event_spec) then
+        return nil
+    end
+
+    return get_syntax_node_type(event_spec)
+        or event_spec.node_type
+end
+
+
+local function get_instruction_event_mnemonic(
+    event_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(event_spec) then
+        return normalize_mnemonic(fallback_mnemonic)
+    end
+
+    return normalize_mnemonic(
+        get_syntax_field_text(event_spec, "kind")
+        or event_spec.mnemonic
+        or fallback_mnemonic
+    )
+end
+
+
+local function add_instruction_event_to_index(
+    index,
+    event_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(index)
+        or not core.is_table(event_spec)
+    then
+        return
+    end
+
+    local node_type =
+        get_instruction_event_node_type(
+            event_spec
+        )
+
+    local mnemonic =
+        get_instruction_event_mnemonic(
+            event_spec,
+            fallback_mnemonic
+        )
+
+    if not core.is_non_empty_string(node_type)
+        or not mnemonic
+    then
+        return
+    end
+
+    index.node_types[node_type] = true
+    index.by_node_type[node_type] =
+        index.by_node_type[node_type] or {}
+
+    local node_bucket =
+        index.by_node_type[node_type]
+
+    node_bucket[mnemonic] =
+        node_bucket[mnemonic] or {}
+
+    table.insert(
+        node_bucket[mnemonic],
+        event_spec
+    )
+
+    node_bucket.__first =
+        node_bucket.__first or event_spec
+end
+
+
+local function build_instruction_event_index(
+    instruction_events
+)
+    local index = {
+        node_types = {},
+        by_node_type = {},
+    }
+
+    if not core.is_table(instruction_events) then
+        return index
+    end
+
+    -- Remaining legacy flat event specs.
+    for _, event_spec in ipairs(
+        instruction_events
+    ) do
+        add_instruction_event_to_index(
+            index,
+            event_spec
+        )
+    end
+
+    -- Tree-sitter-first mnemonic-indexed event specs.
+    for mnemonic, rules in pairs(
+        instruction_events
+    ) do
+        if type(mnemonic) == "string"
+            and core.is_table(rules)
+        then
+            for _, event_spec in ipairs(rules) do
+                add_instruction_event_to_index(
+                    index,
+                    event_spec,
+                    mnemonic
+                )
+            end
+        end
+    end
+
+    return index
+end
+
+
+local function get_instruction_event_index(adapter)
+    if not core.is_table(adapter) then
+        return build_instruction_event_index(nil)
+    end
+
+    local instruction_events =
+        adapter.instruction_events
+
+    if not core.is_table(instruction_events) then
+        return build_instruction_event_index(nil)
+    end
+
+    local cached =
+        instruction_event_index_cache[
+            instruction_events
+        ]
+
+    if cached then
+        return cached
+    end
+
+    local index =
+        build_instruction_event_index(
+            instruction_events
+        )
+
+    instruction_event_index_cache[
+        instruction_events
+    ] = index
+
+    return index
+end
+
+
+local function instruction_event_matches(
+    instruction,
+    event_spec
+)
+    if not core.is_table(instruction)
+        or not core.is_table(event_spec)
+    then
         return false
     end
 
-    if core.is_non_empty_string(event_spec.mnemonic)
-        and instruction.mnemonic ~= event_spec.mnemonic
+    local expected_mnemonic =
+        get_instruction_event_mnemonic(
+            event_spec
+        )
+
+    if expected_mnemonic
+        and normalize_mnemonic(
+            instruction.mnemonic
+        ) ~= expected_mnemonic
     then
         return false
     end
@@ -2058,7 +2244,9 @@ local function make_instruction_event_fact(adapter, instruction, event_spec)
     return {
         kind = event_spec.kind or "instruction_event",
         category = event_spec.category or "instruction",
-        name = event_spec.name or event_spec.mnemonic or "instruction_event",
+        name = event_spec.name
+            or get_instruction_event_mnemonic(event_spec)
+            or "instruction_event",
         role = event_spec.role,
 
         source = "instruction",
@@ -2075,7 +2263,8 @@ local function make_instruction_event_fact(adapter, instruction, event_spec)
             architecture = adapter.architecture,
             variant = adapter.active_variant_name,
             mnemonic = instruction.mnemonic,
-            event = event_spec.name or event_spec.mnemonic,
+            event = event_spec.name
+                or get_instruction_event_mnemonic(event_spec),
         },
     }
 end
@@ -2121,34 +2310,98 @@ function M.collect_instruction_events(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
+    local event_index =
+        get_instruction_event_index(adapter)
+
+    local nodes = {}
+    local seen_nodes = {}
+
+    -- Discover each relevant Tree-sitter node once per node type.
+    for node_type, _ in pairs(
+        event_index.node_types
+    ) do
+        for _, node in ipairs(
+            collect_nodes_by_type(
+                root_node,
+                node_type
+            )
+        ) do
+            local start_row,
+                start_column,
+                end_row,
+                end_column = node:range()
+
+            local node_line = start_row + 1
+
+            if not cursor_line
+                or node_line <= cursor_line
+            then
+                local key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[key] then
+                    seen_nodes[key] = true
+
+                    table.insert(nodes, {
+                        node = node,
+                        line = node_line,
+                        column = start_column,
+                    })
+                end
+            end
+        end
+    end
+
+    table.sort(nodes, function(left, right)
+        if left.line == right.line then
+            return left.column < right.column
+        end
+
+        return left.line < right.line
+    end)
+
     local facts = {}
 
-    for _, event_spec in ipairs(adapter.instruction_events) do
-        if core.is_table(event_spec)
-            and core.is_non_empty_string(event_spec.node_type)
-            and core.is_non_empty_string(event_spec.mnemonic)
-        then
-            local nodes = collect_nodes_by_type(root_node, event_spec.node_type)
+    for _, entry in ipairs(nodes) do
+        local node_type = entry.node:type()
+        local node_bucket =
+            event_index.by_node_type[node_type]
 
-            for _, node in ipairs(nodes) do
-                local start_row = node:start()
-                local node_line = start_row + 1
+        if node_bucket then
+            local representative_event_spec =
+                node_bucket.__first
 
-                if not cursor_line or node_line <= cursor_line then
-                    local instruction = collect_instruction_operands(
-                        adapter,
-                        node,
-                        bufnr,
-                        event_spec
-                    )
+            local instruction =
+                collect_instruction_operands(
+                    adapter,
+                    entry.node,
+                    bufnr,
+                    representative_event_spec
+                )
 
-                    apply_instruction_event(
-                        facts,
-                        adapter,
-                        instruction,
-                        event_spec
-                    )
-                end
+            local mnemonic = instruction
+                and normalize_mnemonic(
+                    instruction.mnemonic
+                )
+
+            local event_specs = mnemonic
+                and node_bucket[mnemonic]
+                or nil
+
+            for _, event_spec in ipairs(
+                event_specs or {}
+            ) do
+                apply_instruction_event(
+                    facts,
+                    adapter,
+                    instruction,
+                    event_spec
+                )
             end
         end
     end
@@ -2159,7 +2412,8 @@ function M.collect_instruction_events(context, adapter, opts)
 
         if left_line and right_line then
             if left_line == right_line then
-                return tostring(left.name or "") < tostring(right.name or "")
+                return tostring(left.name or "")
+                    < tostring(right.name or "")
             end
 
             return left_line < right_line
@@ -2173,7 +2427,8 @@ function M.collect_instruction_events(context, adapter, opts)
             return false
         end
 
-        return tostring(left.name or "") < tostring(right.name or "")
+        return tostring(left.name or "")
+            < tostring(right.name or "")
     end)
 
     return facts

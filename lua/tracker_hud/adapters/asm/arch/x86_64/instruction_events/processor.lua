@@ -1,18 +1,13 @@
 -- lua/tracker_hud/adapters/asm/arch/x86_64/instruction_events/processor.lua
 --
--- x86-64 instruction event specs: processor.
+-- Legacy x86-64 processor instruction-event specs still awaiting migration.
 --
--- Rich event specs preserve instruction-event metadata now, so
--- fake RIP register-effect entries can be removed without losing
--- the instruction's event/effect meaning.
---  759
--- 2095
---
-
+-- Control-domain and memory-domain events have been removed from this file and
+-- migrated into the categorized Tree-sitter-first modules. The entries below
+-- remain behaviorally authoritative until their destination categories are
+-- migrated in later checkpoints.
 
 return {
-
-    -- processor
 
     -- cpuid
     {
@@ -39,8 +34,6 @@ return {
         },
     },
 
-    -- serialization
-
     -- serialize
     {
         kind = "processor_event",
@@ -65,36 +58,6 @@ return {
             role = "serializes instruction execution",
         },
     },
-
-    -- bound
-    {
-        kind = "processor_event",
-        category = "exception_check",
-        name = "bound",
-        role = "checks an array index against bounds",
-
-        node_type = "instruction",
-        mnemonic = "bound",
-
-        operands = {
-            { index = 1, role = "index" },
-            { index = 2, role = "bounds" },
-        },
-
-        event = {
-            name = "bound_checks_array_bounds",
-            display_name = "bound",
-            role = "checks an array index against bounds",
-        },
-
-        effect = {
-            kind = "bounds_check",
-            name = "bound_checks_array_bounds",
-            role = "checks an array index against bounds",
-        },
-    },
-
-    -- timestamp
 
     -- rdtsc
     {
@@ -146,8 +109,6 @@ return {
         },
     },
 
-    -- random
-
     -- rdrand
     {
         kind = "processor_event",
@@ -197,467 +158,6 @@ return {
             role = "reads hardware-generated seed data",
         },
     },
-
-
-        -- interrupt / system-call control transfer
-
-    -- int
-    {
-        kind = "processor_event",
-        category = "interrupt",
-        name = "int",
-        role = "transfers control through a software interrupt",
-
-        node_type = "instruction",
-        mnemonic = "int",
-
-        operands = {
-            { index = 1, role = "interrupt_vector" },
-        },
-
-        event = {
-            name = "int_software_interrupt",
-            display_name = "int",
-            role = "transfers control through a software interrupt",
-        },
-
-        effect = {
-            kind = "interrupt_transfer",
-            name = "int_software_interrupt",
-            role = "transfers control through a software interrupt",
-        },
-    },
-
-    -- int3
-    {
-        kind = "processor_event",
-        category = "interrupt",
-        name = "int3",
-        role = "transfers control through the breakpoint interrupt",
-
-        node_type = "instruction",
-        mnemonic = "int3",
-
-        operands = {},
-
-        event = {
-            name = "int3_breakpoint_interrupt",
-            display_name = "int3",
-            role = "transfers control through the breakpoint interrupt",
-        },
-
-        effect = {
-            kind = "interrupt_transfer",
-            name = "int3_breakpoint_interrupt",
-            role = "transfers control through the breakpoint interrupt",
-        },
-    },
-
-    -- into
-    {
-        kind = "processor_event",
-        category = "interrupt",
-        name = "into",
-        role = "transfers control through the overflow interrupt when overflow is set",
-
-        node_type = "instruction",
-        mnemonic = "into",
-
-        operands = {},
-
-        event = {
-            name = "into_overflow_interrupt",
-            display_name = "into",
-            role = "transfers control through the overflow interrupt when overflow is set",
-        },
-
-        effect = {
-            kind = "interrupt_transfer",
-            name = "into_overflow_interrupt",
-            role = "transfers control through the overflow interrupt when overflow is set",
-        },
-    },
-
-    -- iret
-    {
-        kind = "processor_event",
-        category = "interrupt_return",
-        name = "iret",
-        role = "returns from an interrupt handler",
-
-        node_type = "instruction",
-        mnemonic = "iret",
-
-        operands = {},
-
-        event = {
-            name = "iret_interrupt_return",
-            display_name = "iret",
-            role = "returns from an interrupt handler",
-        },
-
-        effect = {
-            kind = "interrupt_return",
-            name = "iret_interrupt_return",
-            role = "returns from an interrupt handler",
-        },
-    },
-
-    -- iretw
-    {
-        kind = "processor_event",
-        category = "interrupt_return",
-        name = "iretw",
-        role = "returns from an interrupt handler using word operand size",
-
-        node_type = "instruction",
-        mnemonic = "iretw",
-
-        operands = {},
-
-        event = {
-            name = "iretw_interrupt_return",
-            display_name = "iretw",
-            role = "returns from an interrupt handler using word operand size",
-        },
-
-        effect = {
-            kind = "interrupt_return",
-            name = "iretw_interrupt_return",
-            role = "returns from an interrupt handler using word operand size",
-        },
-    },
-
-    -- iretd
-    {
-        kind = "processor_event",
-        category = "interrupt_return",
-        name = "iretd",
-        role = "returns from an interrupt handler using doubleword operand size",
-
-        node_type = "instruction",
-        mnemonic = "iretd",
-
-        operands = {},
-
-        event = {
-            name = "iretd_interrupt_return",
-            display_name = "iretd",
-            role = "returns from an interrupt handler using doubleword operand size",
-        },
-
-        effect = {
-            kind = "interrupt_return",
-            name = "iretd_interrupt_return",
-            role = "returns from an interrupt handler using doubleword operand size",
-        },
-    },
-
-    -- iretq
-    {
-        kind = "processor_event",
-        category = "interrupt_return",
-        name = "iretq",
-        role = "returns from an interrupt handler in 64-bit mode",
-
-        node_type = "instruction",
-        mnemonic = "iretq",
-
-        operands = {},
-
-        event = {
-            name = "iretq_interrupt_return",
-            display_name = "iretq",
-            role = "returns from an interrupt handler in 64-bit mode",
-        },
-
-        effect = {
-            kind = "interrupt_return",
-            name = "iretq_interrupt_return",
-            role = "returns from an interrupt handler in 64-bit mode",
-        },
-    },
-
-    -- sysenter
-    {
-        kind = "processor_event",
-        category = "system_call",
-        name = "sysenter",
-        role = "enters a fast system-call handler",
-
-        node_type = "instruction",
-        mnemonic = "sysenter",
-
-        operands = {},
-
-        event = {
-            name = "sysenter_system_call_entry",
-            display_name = "sysenter",
-            role = "enters a fast system-call handler",
-        },
-
-        effect = {
-            kind = "system_call_entry",
-            name = "sysenter_system_call_entry",
-            role = "enters a fast system-call handler",
-        },
-    },
-
-    -- sysexit
-    {
-        kind = "processor_event",
-        category = "system_call",
-        name = "sysexit",
-        role = "returns from a fast system-call handler",
-
-        node_type = "instruction",
-        mnemonic = "sysexit",
-
-        operands = {},
-
-        event = {
-            name = "sysexit_system_call_return",
-            display_name = "sysexit",
-            role = "returns from a fast system-call handler",
-        },
-
-        effect = {
-            kind = "system_call_return",
-            name = "sysexit_system_call_return",
-            role = "returns from a fast system-call handler",
-        },
-    },
-
-    -- sysret
-    {
-        kind = "processor_event",
-        category = "system_call",
-        name = "sysret",
-        role = "returns from a system-call handler",
-
-        node_type = "instruction",
-        mnemonic = "sysret",
-
-        operands = {},
-
-        event = {
-            name = "sysret_system_call_return",
-            display_name = "sysret",
-            role = "returns from a system-call handler",
-        },
-
-        effect = {
-            kind = "system_call_return",
-            name = "sysret_system_call_return",
-            role = "returns from a system-call handler",
-        },
-    },
-
-    -- sysretq
-    {
-        kind = "processor_event",
-        category = "system_call",
-        name = "sysretq",
-        role = "returns from a system-call handler in 64-bit mode",
-
-        node_type = "instruction",
-        mnemonic = "sysretq",
-
-        operands = {},
-
-        event = {
-            name = "sysretq_system_call_return",
-            display_name = "sysretq",
-            role = "returns from a system-call handler in 64-bit mode",
-        },
-
-        effect = {
-            kind = "system_call_return",
-            name = "sysretq_system_call_return",
-            role = "returns from a system-call handler in 64-bit mode",
-        },
-    },
-
-       -- icebp
-    {
-        kind = "processor_event",
-        category = "interrupt",
-        name = "icebp",
-        role = "transfers control through the one-byte debug interrupt",
-
-        node_type = "instruction",
-        mnemonic = "icebp",
-
-        operands = {},
-
-        event = {
-            name = "icebp_debug_interrupt",
-            display_name = "icebp",
-            role = "transfers control through the one-byte debug interrupt",
-        },
-
-        effect = {
-            kind = "interrupt_transfer",
-            name = "icebp_debug_interrupt",
-            role = "transfers control through the one-byte debug interrupt",
-        },
-    },
-
-    -- int1
-    {
-        kind = "processor_event",
-        category = "interrupt",
-        name = "int1",
-        role = "transfers control through the debug interrupt",
-
-        node_type = "instruction",
-        mnemonic = "int1",
-
-        operands = {},
-
-        event = {
-            name = "int1_debug_interrupt",
-            display_name = "int1",
-            role = "transfers control through the debug interrupt",
-        },
-
-        effect = {
-            kind = "interrupt_transfer",
-            name = "int1_debug_interrupt",
-            role = "transfers control through the debug interrupt",
-        },
-    },
-
-    -- ud0
-    {
-        kind = "processor_event",
-        category = "exception",
-        name = "ud0",
-        role = "raises an invalid-instruction exception",
-
-        node_type = "instruction",
-        mnemonic = "ud0",
-
-        operands = {},
-
-        event = {
-            name = "ud0_invalid_instruction_exception",
-            display_name = "ud0",
-            role = "raises an invalid-instruction exception",
-        },
-
-        effect = {
-            kind = "exception",
-            name = "ud0_invalid_instruction_exception",
-            role = "raises an invalid-instruction exception",
-        },
-    },
-
-    -- ud1
-    {
-        kind = "processor_event",
-        category = "exception",
-        name = "ud1",
-        role = "raises an invalid-instruction exception",
-
-        node_type = "instruction",
-        mnemonic = "ud1",
-
-        operands = {},
-
-        event = {
-            name = "ud1_invalid_instruction_exception",
-            display_name = "ud1",
-            role = "raises an invalid-instruction exception",
-        },
-
-        effect = {
-            kind = "exception",
-            name = "ud1_invalid_instruction_exception",
-            role = "raises an invalid-instruction exception",
-        },
-    },
-
-    -- ud2
-    {
-        kind = "processor_event",
-        category = "exception",
-        name = "ud2",
-        role = "raises an invalid-instruction exception",
-
-        node_type = "instruction",
-        mnemonic = "ud2",
-
-        operands = {},
-
-        event = {
-            name = "ud2_invalid_instruction_exception",
-            display_name = "ud2",
-            role = "raises an invalid-instruction exception",
-        },
-
-        effect = {
-            kind = "processor_exception",
-            name = "ud2_invalid_instruction_exception",
-            role = "raises an invalid-instruction exception",
-        },
-    },
-
-
-    -- ud2a
-    {
-        kind = "processor_event",
-        category = "exception",
-        name = "ud2a",
-        role = "raises an invalid-instruction exception",
-
-        node_type = "instruction",
-        mnemonic = "ud2a",
-
-        operands = {},
-
-        event = {
-            name = "ud2a_invalid_instruction_exception",
-            display_name = "ud2a",
-            role = "raises an invalid-instruction exception",
-        },
-
-        effect = {
-            kind = "exception",
-            name = "ud2a_invalid_instruction_exception",
-            role = "raises an invalid-instruction exception",
-        },
-    },
-
-    -- user interrupt / lightweight profiling
-
-    -- uiret
-    {
-        kind = "processor_event",
-        category = "interrupt_return",
-        name = "uiret",
-        role = "returns from a user interrupt handler",
-
-        node_type = "instruction",
-        mnemonic = "uiret",
-
-        operands = {},
-
-        event = {
-            name = "uiret_user_interrupt_return",
-            display_name = "uiret",
-            role = "returns from a user interrupt handler",
-        },
-
-        effect = {
-            kind = "interrupt_return",
-            name = "uiret_user_interrupt_return",
-            role = "returns from a user interrupt handler",
-        },
-    },
-
-
- -- processor control / wait / invalidation
 
     -- monitor
     {
@@ -809,31 +309,6 @@ return {
         },
     },
 
-    -- rsm
-    {
-        kind = "processor_event",
-        category = "processor_mode",
-        name = "rsm",
-        role = "resumes execution from system management mode",
-
-        node_type = "instruction",
-        mnemonic = "rsm",
-
-        operands = {},
-
-        event = {
-            name = "rsm_resumes_from_system_management_mode",
-            display_name = "rsm",
-            role = "resumes execution from system management mode",
-        },
-
-        effect = {
-            kind = "processor_mode_return",
-            name = "rsm_resumes_from_system_management_mode",
-            role = "resumes execution from system management mode",
-        },
-    },
-
     -- skinit
     {
         kind = "security_event",
@@ -858,8 +333,6 @@ return {
             role = "starts secure kernel initialization",
         },
     },
-
-    -- processor no-op / wait / base / transaction state
 
     -- nop
     {
@@ -908,135 +381,6 @@ return {
             kind = "processor_wait",
             name = "fwait_waits_for_fpu",
             role = "waits for pending floating-point operations",
-        },
-    },
-
-   -- xbegin
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xbegin",
-        role = "begins a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xbegin",
-
-        operands = {
-            { index = 1, role = "abort_target" },
-        },
-
-        event = {
-            name = "xbegin_begins_transaction",
-            display_name = "xbegin",
-            role = "begins a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_begin",
-            name = "xbegin_begins_transaction",
-            role = "begins a transactional execution region",
-        },
-    },
-
-    -- xend
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xend",
-        role = "ends a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xend",
-
-        operands = {},
-
-        event = {
-            name = "xend_ends_transaction",
-            display_name = "xend",
-            role = "ends a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_end",
-            name = "xend_ends_transaction",
-            role = "ends a transactional execution region",
-        },
-    },
-
-    -- xabort
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xabort",
-        role = "aborts a transactional execution region",
-
-        node_type = "instruction",
-        mnemonic = "xabort",
-
-        operands = {
-            { index = 1, role = "abort_code" },
-        },
-
-        event = {
-            name = "xabort_aborts_transaction",
-            display_name = "xabort",
-            role = "aborts a transactional execution region",
-        },
-
-        effect = {
-            kind = "transaction_abort",
-            name = "xabort_aborts_transaction",
-            role = "aborts a transactional execution region",
-        },
-    },
-
-    -- xsusldtrk
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xsusldtrk",
-        role = "suspends transactional load tracking",
-
-        node_type = "instruction",
-        mnemonic = "xsusldtrk",
-
-        operands = {},
-
-        event = {
-            name = "xsusldtrk_suspends_load_tracking",
-            display_name = "xsusldtrk",
-            role = "suspends transactional load tracking",
-        },
-
-        effect = {
-            kind = "transaction_load_tracking_suspend",
-            name = "xsusldtrk_suspends_load_tracking",
-            role = "suspends transactional load tracking",
-        },
-    },
-
-    -- xresldtrk
-    {
-        kind = "processor_event",
-        category = "transactional_memory",
-        name = "xresldtrk",
-        role = "resumes transactional load tracking",
-
-        node_type = "instruction",
-        mnemonic = "xresldtrk",
-
-        operands = {},
-
-        event = {
-            name = "xresldtrk_resumes_load_tracking",
-            display_name = "xresldtrk",
-            role = "resumes transactional load tracking",
-        },
-
-        effect = {
-            kind = "transaction_load_tracking_resume",
-            name = "xresldtrk_resumes_load_tracking",
-            role = "resumes transactional load tracking",
         },
     },
 
@@ -1144,34 +488,6 @@ return {
         },
     },
 
-    -- smi
-    {
-        kind = "processor_event",
-        category = "processor_mode",
-        name = "smi",
-        role = "enters the system-management interrupt path",
-
-        node_type = "instruction",
-        mnemonic = "smi",
-
-        operands = {},
-
-        event = {
-            name = "smi_enters_system_management_interrupt",
-            display_name = "smi",
-            role = "enters the system-management interrupt path",
-        },
-
-        effect = {
-            kind = "processor_mode_entry",
-            name = "smi_enters_system_management_interrupt",
-            role = "enters the system-management interrupt path",
-        },
-    },
-
-
-    -- processor_state
-
     -- wrmsr
     {
         kind = "processor_state_event",
@@ -1271,8 +587,6 @@ return {
             role = "writes extended control register state",
         },
     },
-
-        -- fpu / simd state management
 
     -- fxsave
     {
@@ -1640,8 +954,6 @@ return {
         },
     },
 
-    -- extended_state
-
     -- xsave
     {
         kind = "processor_state_event",
@@ -1941,8 +1253,6 @@ return {
             role = "restored supervisor 64-bit extended processor state by xrstors64",
         },
     },
-
-    -- descriptor / control state
 
     -- lgdt
     {
@@ -2268,7 +1578,7 @@ return {
         },
     },
 
-     -- lwpval
+    -- lwpval
     {
         kind = "processor_state_event",
         category = "lightweight_profiling",
@@ -2297,57 +1607,6 @@ return {
         },
     },
 
-   
-    -- sti
-    {
-        kind = "processor_state_event",
-        category = "interrupt_state",
-        name = "sti",
-        role = "sets the interrupt flag",
-
-        node_type = "instruction",
-        mnemonic = "sti",
-
-        operands = {},
-
-        event = {
-            name = "sti_sets_interrupt_flag",
-            display_name = "sti",
-            role = "sets the interrupt flag",
-        },
-
-        effect = {
-            kind = "interrupt_state_enable",
-            name = "sti_sets_interrupt_flag",
-            role = "sets the interrupt flag",
-        },
-    },
-
-    -- cli
-    {
-        kind = "processor_state_event",
-        category = "interrupt_state",
-        name = "cli",
-        role = "clears the interrupt flag",
-
-        node_type = "instruction",
-        mnemonic = "cli",
-
-        operands = {},
-
-        event = {
-            name = "cli_clears_interrupt_flag",
-            display_name = "cli",
-            role = "clears the interrupt flag",
-        },
-
-        effect = {
-            kind = "interrupt_state_disable",
-            name = "cli_clears_interrupt_flag",
-            role = "clears the interrupt flag",
-        },
-    },
-
     -- clts
     {
         kind = "processor_state_event",
@@ -2370,86 +1629,6 @@ return {
             kind = "processor_state_update",
             name = "clts_clears_task_switched_flag",
             role = "clears the task-switched flag",
-        },
-    },
-
-    -- invlpg
-    {
-        kind = "processor_state_event",
-        category = "tlb_invalidation",
-        name = "invlpg",
-        role = "invalidates a TLB entry for a memory page",
-
-        node_type = "instruction",
-        mnemonic = "invlpg",
-
-        operands = {
-            { index = 1, role = "memory_operand" },
-        },
-
-        event = {
-            name = "invlpg_invalidates_page_tlb_entry",
-            display_name = "invlpg",
-            role = "invalidates a TLB entry for a memory page",
-        },
-
-        effect = {
-            kind = "tlb_invalidation",
-            name = "invlpg_invalidates_page_tlb_entry",
-            role = "invalidates a TLB entry for a memory page",
-        },
-    },
-
-    -- invlpga
-    {
-        kind = "processor_state_event",
-        category = "tlb_invalidation",
-        name = "invlpga",
-        role = "invalidates a TLB entry for an address space",
-
-        node_type = "instruction",
-        mnemonic = "invlpga",
-
-        operands = {},
-
-        event = {
-            name = "invlpga_invalidates_address_space_tlb_entry",
-            display_name = "invlpga",
-            role = "invalidates a TLB entry for an address space",
-        },
-
-        effect = {
-            kind = "tlb_invalidation",
-            name = "invlpga_invalidates_address_space_tlb_entry",
-            role = "invalidates a TLB entry for an address space",
-        },
-    },
-
-    -- invpcid
-    {
-        kind = "processor_state_event",
-        category = "tlb_invalidation",
-        name = "invpcid",
-        role = "invalidates cached translations by process-context identifier",
-
-        node_type = "instruction",
-        mnemonic = "invpcid",
-
-        operands = {
-            { index = 1, role = "invalidation_type" },
-            { index = 2, role = "descriptor" },
-        },
-
-        event = {
-            name = "invpcid_invalidates_context_translations",
-            display_name = "invpcid",
-            role = "invalidates cached translations by process-context identifier",
-        },
-
-        effect = {
-            kind = "tlb_invalidation",
-            name = "invpcid_invalidates_context_translations",
-            role = "invalidates cached translations by process-context identifier",
         },
     },
 
@@ -2502,7 +1681,6 @@ return {
             role = "writes protection-key rights state",
         },
     },
-
 
     -- wrfsbase
     {
@@ -2557,6 +1735,5 @@ return {
             role = "writes GS base address state",
         },
     },
-
- }
+}
 
