@@ -66,9 +66,12 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.stack.frames",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.flags.direct",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.io",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.identification",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.descriptor_segment",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.control_state",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.protection_state",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.timing_random",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.profiling",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.transactional",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.processor.virtualization",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.vector.movement",
@@ -126,4 +129,3 @@ end
 
 
 return M
-

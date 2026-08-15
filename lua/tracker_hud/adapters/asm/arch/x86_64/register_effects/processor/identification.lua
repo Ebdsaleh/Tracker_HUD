@@ -1,6 +1,6 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/legacy/bcd_ascii.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/processor/identification.lua
 --
--- x86-64 register effects: legacy / BCD and ASCII adjustment.
+-- x86-64 register effects: processor / identification.
 --
 -- Tree-sitter-first, mnemonic-indexed register-effect specifications.
 --
@@ -9,7 +9,7 @@
 
 return {
 
-    ["aaa"] = {
+    ["cpuid"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -18,7 +18,7 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aaa",
+                        text = "cpuid",
                     },
                 },
             },
@@ -26,36 +26,163 @@ return {
         operands = {},
         effect = {
             kind = "register_write",
-            name = "aaa_updates_rflags",
-            target_register = "rflags",
-            role = "updated by aaa",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aaa",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aaa_updates_rax",
+            name = "cpuid_writes_rax",
             target_register = "rax",
-            written_alias = "ax",
-            role = "adjusted ascii addition result by aaa",
+            role = "written by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rbx",
+            target_register = "rbx",
+            role = "written by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rcx",
+            target_register = "rcx",
+            role = "written by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rdx",
+            target_register = "rdx",
+            role = "written by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rax",
+            target_register = "rax",
+            role = "written with processor identification leaf result by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rbx",
+            target_register = "rbx",
+            role = "written with processor identification leaf result by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rcx",
+            target_register = "rcx",
+            role = "written with processor identification leaf result by cpuid",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "cpuid_writes_rdx",
+            target_register = "rdx",
+            role = "written with processor identification leaf result by cpuid",
         },
         },
     },
 
-    ["aas"] = {
+    ["rdpid"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -64,223 +191,19 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aas",
+                        text = "rdpid",
                     },
                 },
             },
 
-        operands = {},
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
         effect = {
             kind = "register_write",
-            name = "aas_updates_rflags",
-            target_register = "rflags",
-            role = "updated by aas",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aas",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aas_updates_rax",
-            target_register = "rax",
-            written_alias = "ax",
-            role = "adjusted ascii subtraction result by aas",
-        },
-        },
-    },
-
-    ["aam"] = {
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aam",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aam_updates_rflags",
-            target_register = "rflags",
-            role = "updated by aam",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aam",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aam_updates_rax",
-            target_register = "rax",
-            written_alias = "ax",
-            role = "adjusted ascii multiply result by aam",
-        },
-        },
-    },
-
-    ["aad"] = {
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aad",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aad_updates_rflags",
-            target_register = "rflags",
-            role = "updated by aad",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "aad",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "aad_updates_rax",
-            target_register = "rax",
-            written_alias = "ax",
-            role = "adjusted ascii division result by aad",
-        },
-        },
-    },
-
-    ["daa"] = {
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "daa",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "daa_updates_rflags",
-            target_register = "rflags",
-            role = "updated by daa",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "daa",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "daa_updates_rax",
-            target_register = "rax",
-            written_alias = "al",
-            role = "decimal-adjusted al after addition by daa",
-        },
-        },
-    },
-
-    ["das"] = {
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "das",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "das_updates_rflags",
-            target_register = "rflags",
-            role = "updated by das",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "das",
-                    },
-                },
-            },
-
-        operands = {},
-        effect = {
-            kind = "register_write",
-            name = "das_updates_rax",
-            target_register = "rax",
-            written_alias = "al",
-            role = "decimal-adjusted al after subtraction by das",
+            name = "rdpid_writes_destination",
+            target_operand = 1,
+            role = "written with processor id by rdpid",
         },
         },
     },

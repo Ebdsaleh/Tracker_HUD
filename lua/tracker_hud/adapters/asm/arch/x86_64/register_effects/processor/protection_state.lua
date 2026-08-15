@@ -1,6 +1,6 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/legacy/segment.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/processor/protection_state.lua
 --
--- x86-64 register effects: legacy / segmented addressing.
+-- x86-64 register effects: processor / protection and security state.
 --
 -- Tree-sitter-first, mnemonic-indexed register-effect specifications.
 --
@@ -9,7 +9,7 @@
 
 return {
 
-    ["arpl"] = {
+    ["rdpkru"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -18,25 +18,149 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "arpl",
+                        text = "rdpkru",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpkru_writes_rax",
+            target_register = "rax",
+            role = "written with protection-key rights by rdpkru",
+        },
+        },
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "rdpkru",
+                    },
+                },
+            },
+
+        operands = {},
+        effect = {
+            kind = "register_write",
+            name = "rdpkru_writes_rdx",
+            target_register = "rdx",
+            role = "cleared high result by rdpkru",
+        },
+        },
+    },
+
+    ["rdsspd"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "rdsspd",
                     },
                 },
             },
 
         operands = {
-            { index = 1, role = "selector" },
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdsspd_writes_gpr",
+            target_operand = 1,
+            role = "written with 32-bit shadow stack pointer by rdsspd",
+        },
+        },
+    },
+
+    ["rdsspq"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "rdsspq",
+                    },
+                },
+            },
+
+        operands = {
+            { index = 1, kind = "register", role = "destination" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "rdsspq_writes_gpr",
+            target_operand = 1,
+            role = "written with 64-bit shadow stack pointer by rdsspq",
+        },
+        },
+    },
+
+    ["bndmk"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "bndmk",
+                    },
+                },
+            },
+
+        operands = {
+            { index = 1, role = "bounds_destination" },
+            { index = 2, role = "address" },
+        },
+        effect = {
+            kind = "register_write",
+            name = "bndmk_updates_bounds_state",
+            target_register = "rip",
+            role = "made bounds register from address by bndmk",
+        },
+        },
+    },
+
+    ["bndmov"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "bndmov",
+                    },
+                },
+            },
+
+        operands = {
+            { index = 1, role = "destination" },
             { index = 2, role = "source" },
         },
         effect = {
             kind = "register_write",
-            name = "arpl_updates_rflags",
-            target_register = "rflags",
-            role = "updated by access-rights privilege adjustment arpl",
+            name = "bndmov_updates_bounds_state",
+            target_register = "rip",
+            role = "moved bounds register state by bndmov",
         },
         },
     },
 
-    ["lds"] = {
+    ["bndldx"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -45,49 +169,25 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "lds",
+                        text = "bndldx",
                     },
                 },
             },
 
         operands = {
-            { index = 1, kind = "register", role = "destination" },
-            { index = 2, role = "far_pointer" },
+            { index = 1, role = "bounds_destination" },
+            { index = 2, role = "address" },
         },
         effect = {
             kind = "register_write",
-            name = "lds_writes_destination",
-            target_operand = 1,
-            role = "written from far pointer by lds",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "lds",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "lds_updates_segment_state",
+            name = "bndldx_updates_bounds_state",
             target_register = "rip",
-            role = "loaded ds segment state by lds",
+            role = "loaded bounds using address translation by bndldx",
         },
         },
     },
 
-    ["les"] = {
+    ["eenter"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -96,49 +196,22 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "les",
+                        text = "eenter",
                     },
                 },
             },
 
-        operands = {
-            { index = 1, kind = "register", role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
+        operands = {},
         effect = {
             kind = "register_write",
-            name = "les_writes_destination",
-            target_operand = 1,
-            role = "written from far pointer by les",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "les",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "les_updates_segment_state",
+            name = "eenter_updates_rip",
             target_register = "rip",
-            role = "loaded es segment state by les",
+            role = "entered sgx enclave by eenter",
         },
         },
     },
 
-    ["lfs"] = {
+    ["eexit"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -147,49 +220,22 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "lfs",
+                        text = "eexit",
                     },
                 },
             },
 
-        operands = {
-            { index = 1, kind = "register", role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
+        operands = {},
         effect = {
             kind = "register_write",
-            name = "lfs_writes_destination",
-            target_operand = 1,
-            role = "written from far pointer by lfs",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "lfs",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "lfs_updates_segment_state",
+            name = "eexit_updates_rip",
             target_register = "rip",
-            role = "loaded fs segment state by lfs",
+            role = "exited sgx enclave by eexit",
         },
         },
     },
 
-    ["lgs"] = {
+    ["eresume"] = {
         {
             syntax = {
                 node_type = "instruction",
@@ -198,95 +244,17 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "lgs",
+                        text = "eresume",
                     },
                 },
             },
 
-        operands = {
-            { index = 1, kind = "register", role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
+        operands = {},
         effect = {
             kind = "register_write",
-            name = "lgs_writes_destination",
-            target_operand = 1,
-            role = "written from far pointer by lgs",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "lgs",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "lgs_updates_segment_state",
+            name = "eresume_updates_rip",
             target_register = "rip",
-            role = "loaded gs segment state by lgs",
-        },
-        },
-    },
-
-    ["lss"] = {
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "lss",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, kind = "register", role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "lss_writes_destination",
-            target_operand = 1,
-            role = "written from far pointer by lss",
-        },
-        },
-        {
-            syntax = {
-                node_type = "instruction",
-
-                fields = {
-                    kind = {
-                        field = "kind",
-                        node_type = "word",
-                        text = "lss",
-                    },
-                },
-            },
-
-        operands = {
-            { index = 1, role = "destination" },
-            { index = 2, role = "far_pointer" },
-        },
-        effect = {
-            kind = "register_write",
-            name = "lss_updates_segment_state",
-            target_register = "rip",
-            role = "loaded ss segment state by lss",
+            role = "resumed sgx enclave by eresume",
         },
         },
     },
