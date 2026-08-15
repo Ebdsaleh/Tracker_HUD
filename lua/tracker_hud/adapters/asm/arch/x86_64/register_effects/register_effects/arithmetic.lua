@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/simd/vector_convert.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/arithmetic.lua
 --
 -- Legacy compatibility module.
 --

@@ -1,11 +1,13 @@
 -- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/simd.lua
 
--- x86-64 SIMD register effect specs.
+-- x86-64 legacy SIMD register-effect aggregator.
 --
--- Split into smaller modules so fake RIP visibility effects can be cleaned
--- up one category at a time without editing one giant file.
+-- Most SIMD effects have migrated into categorized Tree-sitter-first vector,
+-- mask, crypto, x87, and AMX modules. Only the final legacy leftovers remain
+-- here until their proper non-vector destinations are completed.
 
 local M = {}
+
 
 local function extend(result, entries)
     for _, entry in ipairs(entries or {}) do
@@ -13,12 +15,10 @@ local function extend(result, entries)
     end
 end
 
+
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.misc"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.packed_fp"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_convert"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.scalar_fp"))
-extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.amx"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.crypto"))
 extend(M, require("tracker_hud.adapters.asm.arch.x86_64.register_effects.simd.vector_move"))
+
 
 return M

@@ -1,3 +1,4 @@
+
 -- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/init.lua
 --
 -- x86-64 register-effect module aggregator.
@@ -114,7 +115,6 @@ end
 -- Remove a legacy module from this list only after every entry in that module
 -- has been moved into the categorized Tree-sitter-first files.
 local legacy_modules = {
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.simd",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.misc",
@@ -127,3 +127,5 @@ end
 
 
 return M
+
+
