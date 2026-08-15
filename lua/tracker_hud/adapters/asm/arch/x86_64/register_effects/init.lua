@@ -2,21 +2,50 @@
 --
 -- x86-64 register-effect module aggregator.
 --
--- The categorized modules are the destination for the Tree-sitter-first
--- migration. Legacy modules remain loaded during migration so behavior is
--- unchanged while entries are moved in small, testable batches.
+-- Categorized modules use the Tree-sitter-first, mnemonic-indexed
+-- representation. Remaining legacy modules stay loadable during migration.
+--
+-- The aggregator preserves the mnemonic index for migrated modules while also
+-- retaining sequential legacy entries until those files are converted.
 
 local M = {}
 
 
-local function append_rules(rules)
-    for _, rule in ipairs(rules or {}) do
+local function merge_indexed_rules(rules)
+    if type(rules) ~= "table" then
+        return
+    end
+
+    for mnemonic, effect_specs in pairs(rules) do
+        if type(mnemonic) == "string"
+            and type(effect_specs) == "table"
+        then
+            M[mnemonic] = M[mnemonic] or {}
+
+            for _, effect_spec in ipairs(effect_specs) do
+                table.insert(
+                    M[mnemonic],
+                    effect_spec
+                )
+            end
+        end
+    end
+end
+
+
+local function append_legacy_rules(rules)
+    if type(rules) ~= "table" then
+        return
+    end
+
+    for _, rule in ipairs(rules) do
         table.insert(M, rule)
     end
 end
 
 
 local categorized_modules = {
+
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.multiply_divide",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.compare_test",
@@ -72,7 +101,7 @@ local categorized_modules = {
 
 
 for _, module_name in ipairs(categorized_modules) do
-    append_rules(require(module_name))
+    merge_indexed_rules(require(module_name))
 end
 
 
@@ -83,8 +112,6 @@ local legacy_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.data_movement",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.bitwise",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.control_flow",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.stack_frame",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system_flags",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.simd",
@@ -94,8 +121,9 @@ local legacy_modules = {
 
 
 for _, module_name in ipairs(legacy_modules) do
-    append_rules(require(module_name))
+    append_legacy_rules(require(module_name))
 end
 
 
 return M
+

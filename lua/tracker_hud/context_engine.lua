@@ -113,32 +113,77 @@ local function normalize_mnemonic(mnemonic)
 end
 
 
-local function add_register_effect_to_index(index, effect_spec, fallback_mnemonic)
-    if not core.is_table(index) or not core.is_table(effect_spec) then
+local function get_register_effect_node_type(effect_spec)
+    if not core.is_table(effect_spec) then
+        return nil
+    end
+
+    return get_syntax_node_type(effect_spec)
+        or effect_spec.node_type
+end
+
+
+local function get_register_effect_mnemonic(
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(effect_spec) then
+        return normalize_mnemonic(fallback_mnemonic)
+    end
+
+    return normalize_mnemonic(
+        get_syntax_field_text(effect_spec, "kind")
+        or effect_spec.mnemonic
+        or fallback_mnemonic
+    )
+end
+
+
+local function add_register_effect_to_index(
+    index,
+    effect_spec,
+    fallback_mnemonic
+)
+    if not core.is_table(index)
+        or not core.is_table(effect_spec)
+    then
         return
     end
 
-    local node_type = effect_spec.node_type
+    local node_type =
+        get_register_effect_node_type(
+            effect_spec
+        )
 
-    if not core.is_non_empty_string(node_type) then
-        return
-    end
+    local mnemonic =
+        get_register_effect_mnemonic(
+            effect_spec,
+            fallback_mnemonic
+        )
 
-    local mnemonic = normalize_mnemonic(effect_spec.mnemonic or fallback_mnemonic)
-
-    if not mnemonic then
+    if not core.is_non_empty_string(node_type)
+        or not mnemonic
+    then
         return
     end
 
     index.node_types[node_type] = true
-    index.by_node_type[node_type] = index.by_node_type[node_type] or {}
+    index.by_node_type[node_type] =
+        index.by_node_type[node_type] or {}
 
-    local node_bucket = index.by_node_type[node_type]
+    local node_bucket =
+        index.by_node_type[node_type]
 
-    node_bucket[mnemonic] = node_bucket[mnemonic] or {}
-    table.insert(node_bucket[mnemonic], effect_spec)
+    node_bucket[mnemonic] =
+        node_bucket[mnemonic] or {}
 
-    node_bucket.__first = node_bucket.__first or effect_spec
+    table.insert(
+        node_bucket[mnemonic],
+        effect_spec
+    )
+
+    node_bucket.__first =
+        node_bucket.__first or effect_spec
 end
 
 
@@ -165,12 +210,21 @@ local function build_register_effect_index(register_effects)
         add_register_effect_to_index(index, effect_spec)
     end
 
-    -- Future indexed format:
+    -- Tree-sitter-first mnemonic-indexed format:
     --
     -- {
     --     mov = {
     --         {
-    --             node_type = "instruction",
+    --             syntax = {
+    --                 node_type = "instruction",
+    --                 fields = {
+    --                     kind = {
+    --                         field = "kind",
+    --                         node_type = "word",
+    --                         text = "mov",
+    --                     },
+    --                 },
+    --             },
     --             ...
     --         },
     --     },
@@ -1656,7 +1710,16 @@ local function apply_register_effect(facts_by_register, adapter, instruction, ef
         return
     end
 
-    if instruction.mnemonic ~= effect_spec.mnemonic then
+    local expected_mnemonic =
+        get_register_effect_mnemonic(
+            effect_spec
+        )
+
+    if expected_mnemonic
+        and normalize_mnemonic(
+            instruction.mnemonic
+        ) ~= expected_mnemonic
+    then
         return
     end
 
@@ -2671,4 +2734,3 @@ end
 
 
 return M
-
