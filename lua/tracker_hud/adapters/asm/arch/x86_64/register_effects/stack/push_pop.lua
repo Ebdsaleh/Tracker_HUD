@@ -721,5 +721,104 @@ return {
         },
     },
 
-}
+    ["pusha"] = {
+    {
+            syntax = {
+                node_type = "instruction",
 
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pusha",
+                    },
+                },
+            },
+
+            operands = {},
+            effect = {
+                kind = "register_write",
+                name = "pusha_decreases_rsp",
+                target_register = "rsp",
+                role = "decreased by legacy push-all pusha",
+                value_delta = -32,
+            },
+        },
+    },
+
+    ["pushad"] = {
+    {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pushad",
+                    },
+                },
+            },
+
+            operands = {},
+            effect = {
+                kind = "register_write",
+                name = "pushad_decreases_rsp",
+                target_register = "rsp",
+                role = "decreased by legacy push-all doubleword pushad",
+                value_delta = -32,
+            },
+        },
+    },
+
+    ["pushal"] = {
+    {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pushal",
+                    },
+                },
+            },
+
+            operands = {},
+            effect = {
+                kind = "register_write",
+                name = "pushal_decreases_rsp",
+                target_register = "rsp",
+                role = "decreased by legacy push-all long pushal",
+                value_delta = -32,
+            },
+        },
+    },
+
+    ["pushaw"] = {
+    {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pushaw",
+                    },
+                },
+            },
+
+            operands = {},
+            effect = {
+                kind = "register_write",
+                name = "pushaw_decreases_rsp",
+                target_register = "rsp",
+                role = "decreased by legacy push-all word pushaw",
+                value_delta = -16,
+            },
+        },
+    },
+
+}

@@ -1,6 +1,6 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/mask/arithmetic.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/crypto/sm3_sm4.lua
 --
--- x86-64 register effects: mask / arithmetic.
+-- x86-64 register effects: crypto / sm3 sm4.
 --
 -- Tree-sitter-first, mnemonic-indexed register-effect specifications.
 --
@@ -9,7 +9,7 @@
 -- Tracker_HUD.
 
 return {
-    ["kaddb"] = {
+    ["vsm3msg1"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -18,7 +18,7 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "kaddb",
+                        text = "vsm3msg1",
                     },
                 },
             },
@@ -30,14 +30,14 @@ return {
             },
             effect = {
                 kind = "register_write",
-                name = "kaddb_mask_add",
+                name = "vsm3msg1_crypto",
                 target_register = "rip",
-                role = "added byte mask state by kaddb",
+                role = "performed sm3 message schedule step by vsm3msg1",
             },
         },
     },
 
-    ["kaddw"] = {
+    ["vsm3msg2"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -46,7 +46,7 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "kaddw",
+                        text = "vsm3msg2",
                     },
                 },
             },
@@ -58,14 +58,14 @@ return {
             },
             effect = {
                 kind = "register_write",
-                name = "kaddw_mask_add",
+                name = "vsm3msg2_crypto",
                 target_register = "rip",
-                role = "added word mask state by kaddw",
+                role = "performed sm3 message schedule step by vsm3msg2",
             },
         },
     },
 
-    ["kaddd"] = {
+    ["vsm3rnds2"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -74,7 +74,7 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "kaddd",
+                        text = "vsm3rnds2",
                     },
                 },
             },
@@ -83,17 +83,18 @@ return {
                 { index = 1, role = "destination" },
                 { index = 2, role = "left" },
                 { index = 3, role = "right" },
+                { index = 4, role = "round_selector" },
             },
             effect = {
                 kind = "register_write",
-                name = "kaddd_mask_add",
+                name = "vsm3rnds2_crypto",
                 target_register = "rip",
-                role = "added doubleword mask state by kaddd",
+                role = "performed two sm3 rounds by vsm3rnds2",
             },
         },
     },
 
-    ["kaddq"] = {
+    ["vsm4key4"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -102,7 +103,7 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "kaddq",
+                        text = "vsm4key4",
                     },
                 },
             },
@@ -114,9 +115,37 @@ return {
             },
             effect = {
                 kind = "register_write",
-                name = "kaddq_mask_add",
+                name = "vsm4key4_crypto",
                 target_register = "rip",
-                role = "added quadword mask state by kaddq",
+                role = "performed four sm4 key schedule rounds by vsm4key4",
+            },
+        },
+    },
+
+    ["vsm4rnds4"] = {
+    {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "vsm4rnds4",
+                    },
+                },
+            },
+
+            operands = {
+                { index = 1, role = "destination" },
+                { index = 2, role = "left" },
+                { index = 3, role = "right" },
+            },
+            effect = {
+                kind = "register_write",
+                name = "vsm4rnds4_crypto",
+                target_register = "rip",
+                role = "performed four sm4 encryption rounds by vsm4rnds4",
             },
         },
     },

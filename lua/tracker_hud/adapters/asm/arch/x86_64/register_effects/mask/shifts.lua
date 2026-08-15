@@ -1,6 +1,6 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/crypto/key_locker.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/register_effects/mask/shifts.lua
 --
--- x86-64 register effects: crypto / key locker.
+-- x86-64 register effects: mask / shifts.
 --
 -- Tree-sitter-first, mnemonic-indexed register-effect specifications.
 --
@@ -9,7 +9,7 @@
 -- Tracker_HUD.
 
 return {
-    ["aesenc128kl"] = {
+    ["kshiftlb"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -18,25 +18,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesenc128kl",
+                        text = "kshiftlb",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesenc128kl_key_locker",
+                name = "kshiftlb_mask_shift",
                 target_register = "rip",
-                role = "encrypted block using 128-bit key locker handle by aesenc128kl",
+                role = "shifted byte mask state left by kshiftlb",
             },
         },
     },
 
-    ["aesdec128kl"] = {
+    ["kshiftlw"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -45,25 +46,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesdec128kl",
+                        text = "kshiftlw",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesdec128kl_key_locker",
+                name = "kshiftlw_mask_shift",
                 target_register = "rip",
-                role = "decrypted block using 128-bit key locker handle by aesdec128kl",
+                role = "shifted word mask state left by kshiftlw",
             },
         },
     },
 
-    ["aesenc256kl"] = {
+    ["kshiftld"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -72,25 +74,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesenc256kl",
+                        text = "kshiftld",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesenc256kl_key_locker",
+                name = "kshiftld_mask_shift",
                 target_register = "rip",
-                role = "encrypted block using 256-bit key locker handle by aesenc256kl",
+                role = "shifted doubleword mask state left by kshiftld",
             },
         },
     },
 
-    ["aesdec256kl"] = {
+    ["kshiftlq"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -99,25 +102,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesdec256kl",
+                        text = "kshiftlq",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesdec256kl_key_locker",
+                name = "kshiftlq_mask_shift",
                 target_register = "rip",
-                role = "decrypted block using 256-bit key locker handle by aesdec256kl",
+                role = "shifted quadword mask state left by kshiftlq",
             },
         },
     },
 
-    ["aesencwide128kl"] = {
+    ["kshiftrb"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -126,25 +130,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesencwide128kl",
+                        text = "kshiftrb",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesencwide128kl_key_locker",
+                name = "kshiftrb_mask_shift",
                 target_register = "rip",
-                role = "encrypted wide block using 128-bit key locker handle by aesencwide128kl",
+                role = "shifted byte mask state right by kshiftrb",
             },
         },
     },
 
-    ["aesdecwide128kl"] = {
+    ["kshiftrw"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -153,25 +158,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesdecwide128kl",
+                        text = "kshiftrw",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesdecwide128kl_key_locker",
+                name = "kshiftrw_mask_shift",
                 target_register = "rip",
-                role = "decrypted wide block using 128-bit key locker handle by aesdecwide128kl",
+                role = "shifted word mask state right by kshiftrw",
             },
         },
     },
 
-    ["aesencwide256kl"] = {
+    ["kshiftrd"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -180,25 +186,26 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesencwide256kl",
+                        text = "kshiftrd",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesencwide256kl_key_locker",
+                name = "kshiftrd_mask_shift",
                 target_register = "rip",
-                role = "encrypted wide block using 256-bit key locker handle by aesencwide256kl",
+                role = "shifted doubleword mask state right by kshiftrd",
             },
         },
     },
 
-    ["aesdecwide256kl"] = {
+    ["kshiftrq"] = {
     {
             syntax = {
                 node_type = "instruction",
@@ -207,20 +214,21 @@ return {
                     kind = {
                         field = "kind",
                         node_type = "word",
-                        text = "aesdecwide256kl",
+                        text = "kshiftrq",
                     },
                 },
             },
 
             operands = {
                 { index = 1, role = "destination" },
-                { index = 2, role = "key_handle" },
+                { index = 2, role = "source" },
+                { index = 3, role = "count" },
             },
             effect = {
                 kind = "register_write",
-                name = "aesdecwide256kl_key_locker",
+                name = "kshiftrq_mask_shift",
                 target_register = "rip",
-                role = "decrypted wide block using 256-bit key locker handle by aesdecwide256kl",
+                role = "shifted quadword mask state right by kshiftrq",
             },
         },
     },

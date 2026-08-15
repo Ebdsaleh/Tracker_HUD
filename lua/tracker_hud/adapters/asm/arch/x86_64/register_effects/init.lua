@@ -85,6 +85,7 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.mask.movement",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.mask.arithmetic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.mask.logical",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.mask.shifts",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.mask.compare",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.x87.data_movement",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.x87.arithmetic",
@@ -97,6 +98,7 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto.sha",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto.carryless_gfni",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto.key_locker",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto.sm3_sm4",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.legacy.bcd_ascii",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.legacy.segment",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.legacy.compatibility",
@@ -118,7 +120,6 @@ local legacy_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system_flags",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.system",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.simd",
-    "tracker_hud.adapters.asm.arch.x86_64.register_effects.crypto",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.misc",
 }
 
@@ -129,3 +130,5 @@ end
 
 
 return M
+
+
