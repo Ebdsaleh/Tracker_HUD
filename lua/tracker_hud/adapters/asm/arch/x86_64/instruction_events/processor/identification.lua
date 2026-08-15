@@ -2,10 +2,46 @@
 --
 -- x86-64 instruction events: processor / identification.
 --
--- Migration scaffold.
+-- Tree-sitter-first, mnemonic-indexed event specifications.
 --
--- New entries moved here should use the Tree-sitter-first adapter shape.
--- This file intentionally starts empty so the existing legacy modules remain
--- behaviorally authoritative until their entries are migrated.
+-- Tree-sitter identifies the instruction and mnemonic syntax first.
+-- x86-64 / Tracker_HUD event semantics are layered onto that syntax.
 
-return {}
+return {
+    ["cpuid"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "cpuid",
+                    },
+                },
+            },
+
+            kind = "processor_event",
+            category = "processor",
+            name = "cpuid",
+            role = "queries processor information and feature flags",
+
+            operands = {
+            },
+
+            event = {
+                name = "cpuid_processor_query",
+                display_name = "cpuid",
+                role = "queries processor information and feature flags",
+            },
+
+            effect = {
+                kind = "processor_query",
+                name = "cpuid_processor_query",
+                role = "queries processor information and feature flags",
+            },
+        },
+    },
+}
+

@@ -2,10 +2,46 @@
 --
 -- x86-64 instruction events: processor / serialization.
 --
--- Migration scaffold.
+-- Tree-sitter-first, mnemonic-indexed event specifications.
 --
--- New entries moved here should use the Tree-sitter-first adapter shape.
--- This file intentionally starts empty so the existing legacy modules remain
--- behaviorally authoritative until their entries are migrated.
+-- Tree-sitter identifies the instruction and mnemonic syntax first.
+-- x86-64 / Tracker_HUD event semantics are layered onto that syntax.
 
-return {}
+return {
+    ["serialize"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "serialize",
+                    },
+                },
+            },
+
+            kind = "processor_event",
+            category = "serialization",
+            name = "serialize",
+            role = "serializes instruction execution",
+
+            operands = {
+            },
+
+            event = {
+                name = "serialize_processor_serialization",
+                display_name = "serialize",
+                role = "serializes instruction execution",
+            },
+
+            effect = {
+                kind = "processor_serialization",
+                name = "serialize_processor_serialization",
+                role = "serializes instruction execution",
+            },
+        },
+    },
+}
+
