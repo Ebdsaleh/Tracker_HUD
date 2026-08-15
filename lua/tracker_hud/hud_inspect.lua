@@ -118,7 +118,9 @@ local function inspect_scope(request)
         )
     end
 
-    hud_sections.set_expanded("scope", true)
+    -- Inspect is a toggle action everywhere: if it can reveal/open a
+    -- section, pressing the same action again must be able to collapse it.
+    hud_sections.toggle("scope")
 
     return make_result(true, nil, nil)
 end
@@ -132,7 +134,7 @@ local function inspect_section_shell(section_id, section_label, request)
         )
     end
 
-    hud_sections.set_expanded(section_id, true)
+    hud_sections.toggle(section_id)
 
     return make_result(true, nil, nil)
 end
@@ -276,3 +278,4 @@ function M.collapse_all(mode, request)
 end
 
 return M
+

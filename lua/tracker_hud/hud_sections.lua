@@ -25,6 +25,19 @@ local section_state = {
     warnings = false,
 }
 
+-- Explicit source Inspect is a toggle action.
+--
+-- Registers need one small piece of source-action identity because two
+-- different source occurrences can address the same register node:
+--
+--     xor [rdi], rdi    -> RDI destination
+--     xor rdi, [rdi]    -> RDI source
+--
+-- Moving between those occurrences should reveal the newly selected
+-- occurrence, while pressing Inspect again on the SAME occurrence should
+-- collapse what that action opened.
+local last_register_inspect_key = nil
+
 
 local function validate_section(section_id)
     return type(section_id) == "string"
@@ -757,24 +770,31 @@ local function reveal_path_and_toggle_best_node(section_id, node_path)
     end
 
     local section_was_expanded = M.is_expanded(section_id)
+    local toggle_node, toggle_index =
+        find_deepest_expandable_node_in_path(node_path)
 
-    -- Always reveal the section first.
-    M.set_expanded(section_id, true)
-
-    local toggle_node, toggle_index = find_deepest_expandable_node_in_path(node_path)
     local target_node = toggle_node or node_path[#node_path]
     local target_node_id = target_node and target_node.id
+
+    -- A source target with no expandable HUD node can still reveal the
+    -- section. Make that reveal symmetric too: the same Inspect action can
+    -- collapse the section again.
+    if not toggle_node then
+        M.set_expanded(section_id, not section_was_expanded)
+        return true, target_node_id
+    end
+
+    -- First press from a collapsed section is always a reveal operation.
+    M.set_expanded(section_id, true)
 
     for index, node in ipairs(node_path) do
         if node_has_children(node) then
             if not section_was_expanded then
-                -- First press opens/reveals the path.
                 hud_nodes.set_expanded(node.id, true)
-            elseif index < (toggle_index or #node_path) then
-                -- Ancestors stay open so the target remains visible.
+            elseif index < toggle_index then
+                -- Ancestors stay open so the toggled target remains visible.
                 hud_nodes.set_expanded(node.id, true)
             elseif node == toggle_node then
-                -- Second press toggles the target.
                 local currently_expanded = hud_nodes.is_expanded(
                     node.id,
                     get_node_default_expanded(node)
@@ -1459,11 +1479,123 @@ local function collapse_register_detail_nodes(nodes)
 end
 
 
-local function reveal_register_inspect_targets(
-    context,
-    target_ids,
-    role_overrides
+local function build_register_inspect_key(
+    request,
+    occurrence,
+    target_ids
 )
+    local parts = {
+        tostring(request.bufnr or ""),
+        tostring(request.line or ""),
+    }
+
+    if type(occurrence) == "table" then
+        table.insert(parts, "occurrence")
+        table.insert(parts, tostring(occurrence.kind or ""))
+        table.insert(parts, tostring(occurrence.start_column or ""))
+        table.insert(parts, tostring(occurrence.end_column or ""))
+    else
+        -- Whole-line inspection is source-position-sensitive. Moving from
+        -- leading whitespace to trailing whitespace is a new inspect action,
+        -- even though both positions intentionally resolve to the same
+        -- post-statement target set.
+        table.insert(parts, "line")
+        table.insert(parts, tostring(request.column or ""))
+    end
+
+    for _, target_id in ipairs(target_ids or {}) do
+        table.insert(parts, tostring(target_id))
+    end
+
+    return table.concat(parts, "|")
+end
+
+
+local function collect_register_target_paths(
+    register_nodes,
+    target_ids
+)
+    local paths = {}
+    local target_node_id = nil
+
+    for _, target_id in ipairs(target_ids or {}) do
+        local node_path = find_node_path_by_id(
+            register_nodes,
+            target_id
+        )
+
+        if node_path and #node_path > 0 then
+            table.insert(paths, node_path)
+            target_node_id = target_id
+        end
+    end
+
+    return paths, target_node_id
+end
+
+
+local function set_register_target_paths_expanded(
+    target_paths,
+    expanded
+)
+    for _, node_path in ipairs(target_paths or {}) do
+        for index, node in ipairs(node_path) do
+            if node_has_children(node) and node.id then
+                local is_target = index == #node_path
+
+                if is_target then
+                    hud_nodes.set_expanded(
+                        node.id,
+                        expanded
+                    )
+                else
+                    -- Presentation/group ancestors remain open so a collapsed
+                    -- target stays visible and can be toggled back open.
+                    hud_nodes.set_expanded(
+                        node.id,
+                        true
+                    )
+                end
+            end
+        end
+    end
+end
+
+
+local function register_targets_are_expanded(target_paths)
+    local found_expandable_target = false
+
+    for _, node_path in ipairs(target_paths or {}) do
+        local target_node = node_path[#node_path]
+
+        if node_has_children(target_node)
+            and target_node.id
+        then
+            found_expandable_target = true
+
+            if not hud_nodes.is_expanded(
+                target_node.id,
+                get_node_default_expanded(
+                    target_node
+                )
+            )
+            then
+                return false
+            end
+        end
+    end
+
+    return found_expandable_target
+end
+
+
+local function reveal_register_inspect_targets(
+    request,
+    target_ids,
+    role_overrides,
+    occurrence
+)
+    local context = request.context
     local active_ids = {}
 
     for _, target_id in ipairs(target_ids or {}) do
@@ -1480,34 +1612,61 @@ local function reveal_register_inspect_targets(
         context
     )
 
-    collapse_register_detail_nodes(register_nodes)
-    M.set_expanded("registers", true)
-
-    local target_node_id = nil
-    local found_any = false
-
-    for _, target_id in ipairs(target_ids or {}) do
-        local node_path = find_node_path_by_id(
+    local target_paths, target_node_id =
+        collect_register_target_paths(
             register_nodes,
-            target_id
+            target_ids
         )
 
-        if node_path and #node_path > 0 then
-            found_any = true
-            target_node_id = target_id
-
-            for _, node in ipairs(node_path) do
-                if node_has_children(node) and node.id then
-                    hud_nodes.expand(node.id)
-                end
-            end
-        end
-    end
-
-    if not found_any then
+    if #target_paths == 0 then
         context.register_inspection = nil
         return false, nil
     end
+
+    local inspect_key = build_register_inspect_key(
+        request,
+        occurrence,
+        target_ids
+    )
+
+    local same_inspect_action =
+        inspect_key == last_register_inspect_key
+
+    local section_was_expanded =
+        M.is_expanded("registers")
+
+    if same_inspect_action
+        and section_was_expanded
+        and register_targets_are_expanded(
+            target_paths
+        )
+    then
+        -- Same <leader>t action on the same source occurrence: collapse the
+        -- exact register targets that action previously revealed.
+        set_register_target_paths_expanded(
+            target_paths,
+            false
+        )
+    else
+        if not same_inspect_action then
+            -- A different source occurrence is a new inspection. Hide stale
+            -- register details first, then reveal only the new semantic
+            -- targets. This is what lets first-RDI (destination) -> second-RDI
+            -- (source) stay visibly useful even though both address RDI.
+            collapse_register_detail_nodes(
+                register_nodes
+            )
+        end
+
+        M.set_expanded("registers", true)
+
+        set_register_target_paths_expanded(
+            target_paths,
+            true
+        )
+    end
+
+    last_register_inspect_key = inspect_key
 
     return true, target_node_id
 end
@@ -1553,12 +1712,13 @@ function M.inspect_registers(request)
         end
 
         return reveal_register_inspect_targets(
-            request.context,
+            request,
             target_ids,
             build_register_occurrence_role_overrides(
                 occurrence,
                 target_ids
-            )
+            ),
+            occurrence
         )
     end
 
@@ -1579,12 +1739,13 @@ function M.inspect_registers(request)
     end
 
     return reveal_register_inspect_targets(
-        request.context,
+        request,
         target_ids,
         build_register_line_role_overrides(
             compiled_line,
             target_ids
-        )
+        ),
+        nil
     )
 end
 
