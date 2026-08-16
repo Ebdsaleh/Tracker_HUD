@@ -2,11 +2,13 @@
 
 By [@Ebdsaleh](https://github.com/Ebdsaleh)
 
+**Current release:** `v0.7.7`
+
 Tracker HUD is an experimental Neovim plugin that provides a live, cursor-aware code-analysis HUD. It is built around Tree-sitter and declarative language adapters: Tree-sitter identifies the exact syntax under the cursor, adapters describe what that syntax means, and Tracker HUD turns those facts into scopes, members, register state, instruction events, stack/heap information, warnings, and source-side inspection behavior.
 
 The current implementation is still a proof-of-concept, but the architecture is now substantially more structured than the early versions. The built-in Lua adapter is the reference high-level-language adapter, while the ASM adapter currently has the deepest low-level support through its x86-64 variant.
 
-> **Current status:** experimental but usable. The supported display is the docked panel. Lua supports structural scope/member inspection. ASM/x86-64 now uses a Tree-sitter-first Adapter Contract v1, categorized mnemonic-indexed semantic datasets, occurrence-aware Register inspection, instruction Events, Stack effects, syscall boundary effects, Heap routing, and conservative Warnings.
+> **Current status (`v0.7.7`):** experimental but usable. The supported display is the docked panel. Lua supports structural scope/member inspection. ASM/x86-64 uses a Tree-sitter-first Adapter Contract v1, fully categorized mnemonic-indexed instruction datasets, occurrence-aware Register inspection, instruction Events, Stack effects, syscall boundary effects, Heap routing, and conservative Warnings.
 
 The long-term direction is a systems-programming analysis HUD: complete the low-level ASM model, then extend the same adapter-driven architecture toward C/C++ pointer and lifetime state and Rust ownership/lifetime information.
 
@@ -1182,73 +1184,10 @@ Planned/future work includes:
 
 ## Current source structure
 
-A condensed view of the current architecture:
+The current `lua/tracker_hud/` source tree for `v0.7.7` is:
 
 ```text
 lua/tracker_hud/
-    init.lua
-    config.lua
-    core.lua
-    state.lua
-
-    context.lua
-    context_engine.lua
-    treesitter_utils.lua
-    construct_utils.lua
-    directive_utils.lua
-    target_diagnostics.lua
-    treesitter_errors.lua
-
-    inspect_mode.lua
-    presentation.lua
-
-    section.lua
-    section_layout.lua
-    section_model.lua
-    section_tree.lua
-
-    events.lua
-    event_model.lua
-    event_tree.lua
-
-    warnings.lua
-    warning_tree.lua
-
-    scope_members.lua
-    scope_member_model.lua
-    scope_member_tree.lua
-    symbol_state.lua
-
-    hud.lua
-    hud_sections.lua
-    hud_controls.lua
-    hud_nodes.lua
-    hud_inspect.lua
-
-    constructs/
-        contract.lua
-
-    source_index/
-        init.lua
-        compiler.lua
-
-    sections/
-        templates/
-            lookup.lua
-            lookup_model.lua
-            lookup_tree.lua
-
-        low_level/
-            registers.lua
-            register_model.lua
-            register_tree.lua
-            stack.lua
-            stack_model.lua
-            stack_tree.lua
-            heap.lua
-            heap_model.lua
-            heap_tree.lua
-
     adapters/
         contract.lua
         loader.lua
@@ -1256,55 +1195,217 @@ lua/tracker_hud/
         variant_utils.lua
 
         lua/
-            init.lua
             adapter.lua
+            init.lua
 
         asm/
-            init.lua
             adapter.lua
+            init.lua
             instruction_utils.lua
 
             arch/
                 x86_64/
-                    init.lua
                     adapter.lua
-
-                    register_effects/
-                        init.lua
-                        integer/
-                        string/
-                        control/
-                        stack/
-                        flags/
-                        processor/
-                        vector/
-                        mask/
-                        x87/
-                        amx/
-                        crypto/
-                        legacy/
-
-                    instruction_events/
-                        init.lua
-                        memory/
-                        processor/
-                        control/
-                        security/
-                        virtualization/
-
-                    stack_effects/
-                        init.lua
-                        data.lua
-                        allocation.lua
-                        control.lua
-                        frames.lua
+                    init.lua
 
                     boundary_effects/
                         init.lua
                         system_calls.lua
+
+                    instruction_events/
+                        init.lua
+
+                        control/
+                            exceptions.lua
+                            interrupts.lua
+                            system_calls.lua
+                            transactional.lua
+
+                        memory/
+                            cache_control.lua
+                            ordering.lua
+                            prefetch.lua
+                            tlb.lua
+
+                        processor/
+                            control_state.lua
+                            descriptor_state.lua
+                            entropy.lua
+                            extended_state.lua
+                            floating_state.lua
+                            identification.lua
+                            profiling.lua
+                            protection_state.lua
+                            segment_state.lua
+                            serialization.lua
+                            timing.lua
+                            wait_hint.lua
+
+                        security/
+                            cet.lua
+                            hardware_crypto.lua
+                            key_locker.lua
+                            mpx.lua
+                            platform_security.lua
+                            sgx.lua
+                            tdx.lua
+                            trusted_execution.lua
+                            user_interrupts.lua
+
+                        virtualization/
+                            svm.lua
+                            vmx.lua
+
+                    register_effects/
+                        init.lua
+
+                        amx/
+                            compute.lua
+                            configuration.lua
+                            movement.lua
+
+                        control/
+                            branches.lua
+                            calls_returns.lua
+                            interrupts.lua
+                            loops.lua
+                            system_calls.lua
+
+                        crypto/
+                            aes.lua
+                            carryless_gfni.lua
+                            key_locker.lua
+                            sha.lua
+                            sm3_sm4.lua
+
+                        flags/
+                            direct.lua
+
+                        integer/
+                            arithmetic.lua
+                            atomic.lua
+                            bit_manipulation.lua
+                            bitwise.lua
+                            compare_test.lua
+                            conditional.lua
+                            data_movement.lua
+                            multiply_divide.lua
+                            shifts_rotates.lua
+
+                        legacy/
+                            bcd_ascii.lua
+                            compatibility.lua
+                            segment.lua
+
+                        mask/
+                            arithmetic.lua
+                            compare.lua
+                            logical.lua
+                            movement.lua
+                            shifts.lua
+
+                        processor/
+                            control_state.lua
+                            descriptor_segment.lua
+                            identification.lua
+                            io.lua
+                            profiling.lua
+                            protection_state.lua
+                            timing_random.lua
+                            transactional.lua
+                            virtualization.lua
+
+                        stack/
+                            frames.lua
+                            push_pop.lua
+
+                        string/
+                            compare_scan.lua
+                            io.lua
+                            movement.lua
+                            repeat_prefix.lua
+
+                        vector/
+                            broadcast_insert_extract.lua
+                            compare.lua
+                            convert.lua
+                            floating_arithmetic.lua
+                            integer_arithmetic.lua
+                            logical.lua
+                            movement.lua
+                            shuffle_permute.lua
+
+                        x87/
+                            arithmetic.lua
+                            compare.lua
+                            control_state.lua
+                            data_movement.lua
+
+                    stack_effects/
+                        allocation.lua
+                        control.lua
+                        data.lua
+                        frames.lua
+                        init.lua
+
+    constructs/
+        contract.lua
+
+    sections/
+        low_level/
+            heap.lua
+            heap_model.lua
+            heap_tree.lua
+            register_model.lua
+            register_tree.lua
+            registers.lua
+            stack.lua
+            stack_model.lua
+            stack_tree.lua
+
+        templates/
+            lookup.lua
+            lookup_model.lua
+            lookup_tree.lua
+
+    source_index/
+        compiler.lua
+        init.lua
+
+    config.lua
+    construct_utils.lua
+    context.lua
+    context_engine.lua
+    core.lua
+    directive_utils.lua
+    event_model.lua
+    event_tree.lua
+    events.lua
+    hud.lua
+    hud_controls.lua
+    hud_inspect.lua
+    hud_nodes.lua
+    hud_sections.lua
+    init.lua
+    inspect_mode.lua
+    presentation.lua
+    scope_member_model.lua
+    scope_member_tree.lua
+    scope_members.lua
+    section.lua
+    section_layout.lua
+    section_model.lua
+    section_tree.lua
+    state.lua
+    symbol_state.lua
+    target_diagnostics.lua
+    treesitter_errors.lua
+    treesitter_utils.lua
+    warning_tree.lua
+    warnings.lua
 ```
 
-Some old compatibility modules remain as empty `return {}` files after the migration. They are no longer consumed by the active categorized aggregators.
+The old flat x86-64 `register_effects` and `instruction_events` compatibility modules have been removed. The active release tree now contains only the categorized datasets consumed by the current aggregators.
 
 ---
 
@@ -1318,36 +1419,43 @@ Perl may still be usable through Tree-sitter or POSIX-like environments such as 
 
 ## Version notes
 
-### Next version
+### `v0.7.7`
 
-- Made the docked panel the supported display path and aligned the README/configuration with the current panel-only default
+- Made the docked panel the supported display path and aligned configuration/documentation with the panel-only default
 - Added strict plugin-wide source directive parsing through `directive_utils.lua`
-- Kept directive grammar core-owned while leaving directive names, accepted values, and meanings adapter-owned
+- Kept directive grammar core-owned while leaving directive names, accepted values, aliases, and meanings adapter-owned
 - Added malformed-directive diagnostics for indentation, spacing, assignment formatting, missing terminators, invalid values, and syntax-prefix conflicts
 - Added syntax-aware NASM/GAS/MASM directive comment handling
-- Added Adapter Contract v1 as the canonical Tree-sitter-first adapter validator
-- Made `contract_version = 1` mandatory for current bundled adapters
-- Migrated both Lua and ASM adapters to the Tree-sitter-first syntax contract
-- Added exact syntax validation for node types, fields, children, tokens, exclusions, scope members, range scopes, and branch alternatives
-- Converted x86-64 register effects to categorized mnemonic-indexed Tree-sitter-first modules
-- Split register effects into integer, string, control, stack, flags, processor, vector, mask, x87, AMX, crypto, and legacy families
-- Converted x86-64 instruction events to categorized mnemonic-indexed Tree-sitter-first modules
-- Added/expanded the `Events` HUD section for processor, memory, control, security, and virtualization events
-- Removed fake register-visibility effects where an instruction is more accurately represented as an Event
+- Added target diagnostics for resolved architecture/platform/ABI/syntax/mode state
+- Added Tree-sitter-first **Adapter Contract v1** as the canonical bundled-adapter validation model
+- Made `contract_version = 1` mandatory for bundled adapters
+- Migrated both Lua and ASM adapters to exact Tree-sitter-first syntax declarations
+- Added validation for syntax node types, fields, children, tokens, exclusions, scope members, range scopes, branch alternatives, section descriptors, presentation order, and instruction-rule datasets
+- Revalidated the configured ASM adapter after x86-64 variant resolution so variant-provided data must also satisfy Adapter Contract v1
+- Converted all x86-64 register-effect data to categorized mnemonic-indexed Tree-sitter-first modules
+- Organized register effects into integer, string, control, stack, flags, processor, vector, mask, x87, AMX, crypto, and architectural-legacy instruction families
+- Converted all x86-64 instruction-event data to categorized mnemonic-indexed Tree-sitter-first modules
+- Added/expanded the `Events` HUD section for memory, processor, control, security, and virtualization events
+- Removed fake register-visibility effects where the instruction is more accurately represented as an Event
 - Converted x86-64 Stack effects to categorized mnemonic-indexed Tree-sitter-first modules
-- Converted x86-64 syscall boundary effects to a categorized mnemonic-indexed module
-- Removed duplicated syscall metadata in favor of one boundary/calling-convention model
-- Added adapter-driven section descriptors and presentation order
-- Added reusable generic Section / Model / Tree infrastructure and lookup-style section templates
+- Converted syscall boundary effects to a categorized mnemonic-indexed boundary module
+- Removed duplicated syscall metadata in favor of the calling-convention/boundary model
+- Removed obsolete flat x86-64 register-effect and instruction-event compatibility modules after migration
+- Added adapter-driven section descriptors and adapter-controlled section presentation/Inspect order
+- Added reusable generic `Section` / `Model` / `Tree` infrastructure
+- Added reusable lookup-style section templates used by low-level state sections
 - Added generic per-buffer, per-section, per-line source-index infrastructure
+- Kept source indexing opt-in through adapter section descriptors rather than making Scope/Scope Members depend on it
 - Wired lazy source-index compilation into occurrence-aware Registers inspection
-- Added mnemonic-as-operation Inspect semantics so inspecting a command reveals its affected register state
+- Added mnemonic-as-operation Inspect semantics so inspecting an instruction mnemonic reveals the register state that operation affects
 - Added exact operand-occurrence inspection with destination/source roles
-- Made Register occurrence semantics update proactively as the cursor moves, independently of expansion state
-- Preserved the previous semantic occurrence while the cursor crosses operand separators/gaps
-- Made source-side Inspect actions symmetric so the same `<leader>t` action can expand and collapse targets
-- Kept Scope Members inspection column-aware and tree-aware
-- Preserved Lua Scope Members behavior while the low-level ASM architecture was reorganized
+- Made Register occurrence semantics update proactively as the source cursor moves, independently of HUD expansion state
+- Preserved the most recently reached operand occurrence while the cursor crosses instruction separators/gaps, so punctuation does not jump ahead semantically
+- Made source-side Inspect actions symmetric: if `<leader>t` can expand/reveal a target, the same action can collapse it
+- Preserved exact occurrence identity when two source operands refer to the same architectural register
+- Kept Scope Members inspection column-aware, tree-aware, and independent from the low-level source-index path
+- Preserved Lua Scope Members behavior while the low-level ASM architecture and datasets were reorganized
+- Updated the README with the current keymaps, Inspect semantics, Adapter Contract v1, categorized x86-64 data layout, source-index model, and full `lua/tracker_hud/` source tree
 
 
 ### `v0.7.6`
@@ -1512,4 +1620,3 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
-
