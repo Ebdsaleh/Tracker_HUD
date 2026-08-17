@@ -9,6 +9,14 @@ M.defaults = {
     show_branch_context = true,
     separator = " -> ",
 
+    -- Public identifier namespace.
+    -- User commands are derived from this prefix (for example: HudSize).
+    -- Future public identifiers such as highlight groups can use the same
+    -- resolver without hard-coding the plugin name throughout the codebase.
+    namespace = {
+        prefix = "Hud",
+    },
+
     -- "left", "right", "top", or "bottom"
     panel_position = "right",
 

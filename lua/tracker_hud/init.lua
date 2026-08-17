@@ -7,11 +7,13 @@ local state = require("tracker_hud.state")
 local context = require("tracker_hud.context")
 local hud = require("tracker_hud.hud")
 local adapter_loader = require("tracker_hud.adapters.loader")
+local namespace = require("tracker_hud.namespace")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
 
 local config = vim.deepcopy(config_module.defaults)
+local registered_user_commands = {}
 
 
 local function is_valid_window(winid)
@@ -111,12 +113,36 @@ local function update_hud()
 end
 
 
+local function command_name(suffix)
+    return namespace.name(config, suffix)
+end
+
+
+local function clear_registered_user_commands()
+    for _, name in ipairs(registered_user_commands) do
+        pcall(vim.api.nvim_del_user_command, name)
+    end
+
+    registered_user_commands = {}
+end
+
+
+local function register_user_command(suffix, callback, opts)
+    local name = command_name(suffix)
+
+    vim.api.nvim_create_user_command(name, callback, opts)
+    table.insert(registered_user_commands, name)
+
+    return name
+end
+
+
 local function resize_panel_command(command_opts)
     local requested_size = command_opts.args
 
     if requested_size == nil or requested_size == "" then
         vim.notify(
-            "Usage: :TrackerHudSize <number|auto>",
+            "Usage: :" .. command_name("Size") .. " <number|auto>",
             vim.log.levels.INFO
         )
         return
@@ -246,7 +272,7 @@ local function set_panel_position_command(command_opts)
 
     if not valid_positions[requested_position] then 
         vim.notify(
-            "Usage: :TrackerHudPos <left|right|top|bottom>",
+            "Usage: :" .. command_name("Pos") .. " <left|right|top|bottom>",
             vim.log.levels.WARN
         )
         return
@@ -272,6 +298,12 @@ end
 
 function M.setup(opts)
     config = config_module.resolve(opts)
+
+    -- Resolve once during setup so invalid public prefixes fail before any
+    -- commands, keymaps, or autocmds are registered.
+    namespace.prefix(config)
+
+    clear_registered_user_commands()
     adapter_loader.reload(config.adapter_paths)
 
     vim.api.nvim_clear_autocmds({
@@ -295,7 +327,7 @@ function M.setup(opts)
         end,
     })
 
-    vim.api.nvim_create_user_command("TrackerHudSize", resize_panel_command, {
+    register_user_command("Size", resize_panel_command, {
         nargs = 1,
         complete = function()
             return { "auto" }
@@ -303,7 +335,7 @@ function M.setup(opts)
         force = true,
     })
 
-    vim.api.nvim_create_user_command("TrackerHudPos", set_panel_position_command, {
+    register_user_command("Pos", set_panel_position_command, {
         nargs = 1,
         complete = function()
             return { "left", "right", "top", "bottom" }
@@ -315,3 +347,4 @@ function M.setup(opts)
 end
 
 return M
+
