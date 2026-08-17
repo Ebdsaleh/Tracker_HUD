@@ -15,6 +15,7 @@ local adapter_registry = require("tracker_hud.adapters.registry")
 local context_engine = require("tracker_hud.context_engine")
 local source_index = require("tracker_hud.source_index")
 local source_index_compiler = require("tracker_hud.source_index.compiler")
+local hud_text = require("tracker_hud.hud_text")
 
 
 local M = {}
@@ -267,7 +268,721 @@ local function build_scope_range_label(node)
 end
 
 
-local function append_scope_member_tree_lines(result, nodes, depth, opts)
+local function node_base_style(node, opts)
+    local explicit = get_node_style(node, opts)
+
+    if explicit then
+        return explicit
+    end
+
+    if type(node) ~= "table" then
+        return nil
+    end
+
+    if node.kind == "scope" then
+        return "scope"
+    end
+
+    if node.kind == "member" then
+        return "member"
+    end
+
+    if node.kind == "register"
+        or node.kind == "register_group"
+    then
+        return "register"
+    end
+
+    if node.kind == "register_alias" then
+        return "register_alias"
+    end
+
+    if node.kind == "stack" then
+        return "stack"
+    end
+
+    if node.kind == "heap_entry"
+        or node.kind == "heap_root"
+    then
+        return "heap"
+    end
+
+    if type(node.event) == "table" then
+        return "event"
+    end
+
+    if node.kind == "warning" then
+        return "warning"
+    end
+
+    if node.kind == "detail"
+        or node.kind == "warning_detail"
+    then
+        return "metadata"
+    end
+
+    return "name"
+end
+
+
+local function add_literal_spans(
+    line,
+    label_offset,
+    label,
+    literal,
+    style,
+    priority
+)
+    if type(line) ~= "table"
+        or type(label) ~= "string"
+        or type(literal) ~= "string"
+        or literal == ""
+        or type(style) ~= "string"
+    then
+        return
+    end
+
+    local search_from = 1
+
+    while true do
+        local start_index, end_index =
+            label:find(
+                literal,
+                search_from,
+                true
+            )
+
+        if not start_index then
+            break
+        end
+
+        hud_text.add_span(
+            line,
+            label_offset + start_index - 1,
+            label_offset + end_index,
+            style,
+            priority
+        )
+
+        search_from = end_index + 1
+    end
+end
+
+
+local function add_pattern_capture_span(
+    line,
+    label_offset,
+    label,
+    pattern,
+    style,
+    priority
+)
+    if type(label) ~= "string" then
+        return
+    end
+
+    local captured = label:match(pattern)
+
+    if type(captured) ~= "string"
+        or captured == ""
+    then
+        return
+    end
+
+    local capture_start, capture_end =
+        label:find(captured, 1, true)
+
+    if not capture_start then
+        return
+    end
+
+    hud_text.add_span(
+        line,
+        label_offset + capture_start - 1,
+        label_offset + capture_end,
+        style,
+        priority
+    )
+end
+
+
+local function style_common_punctuation(
+    line,
+    label_offset,
+    label
+)
+    for _, literal in ipairs({
+        "(",
+        ")",
+        "[",
+        "]",
+        "#",
+    }) do
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            literal,
+            "punctuation",
+            245
+        )
+    end
+
+    for _, literal in ipairs({
+        " = ",
+        " <- ",
+        " -> ",
+        " @ ",
+        " - ",
+    }) do
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            literal,
+            "operator",
+            245
+        )
+    end
+end
+
+
+local function style_detail_label(
+    line,
+    label_offset,
+    label,
+    node,
+    semantic_override
+)
+    local key, value_start =
+        label:match("^([^:]+):%s*()")
+
+    if type(key) ~= "string"
+        or not value_start
+    then
+        return false
+    end
+
+    local key_start = 1
+    local key_end = #key
+    local value = label:sub(value_start)
+
+    local normalized_key = key:lower()
+    local key_style = "metadata_key"
+    local value_style = "metadata_value"
+
+    if normalized_key == "kind" then
+        key_style = "kind"
+        value_style = "kind"
+    elseif normalized_key == "category" then
+        key_style = "category"
+        value_style = "category"
+    elseif normalized_key == "type" then
+        key_style = "type"
+        value_style = "type"
+    elseif normalized_key == "value" then
+        value_style = "value"
+    elseif normalized_key == "role" then
+        key_style = "role"
+        value_style = semantic_override
+            or "role"
+    elseif normalized_key == "source" then
+        key_style = "origin"
+        value_style = "origin"
+    elseif normalized_key == "written alias" then
+        key_style = "register_alias"
+        value_style = "register_alias"
+    elseif normalized_key:find("register", 1, true) then
+        value_style = "register"
+    elseif normalized_key == "line"
+        or normalized_key == "source line"
+    then
+        value_style = "line_number"
+    elseif normalized_key == "offset"
+        or normalized_key == "size"
+        or normalized_key == "effect key"
+    then
+        value_style = "value"
+    end
+
+    hud_text.add_span(
+        line,
+        label_offset + key_start - 1,
+        label_offset + key_end,
+        key_style,
+        230
+    )
+
+    local colon_start = label:find(":", 1, true)
+
+    if colon_start then
+        hud_text.add_span(
+            line,
+            label_offset + colon_start - 1,
+            label_offset + colon_start,
+            "punctuation",
+            245
+        )
+    end
+
+    if value ~= "" then
+        hud_text.add_span(
+            line,
+            label_offset + value_start - 1,
+            label_offset + #label,
+            value_style,
+            semantic_override and 260 or 230
+        )
+    end
+
+    return true
+end
+
+
+local function style_known_node_fields(
+    line,
+    label_offset,
+    label,
+    node,
+    semantic_override
+)
+    if type(node) ~= "table" then
+        return
+    end
+
+    if node.kind == "detail"
+        or node.kind == "warning_detail"
+    then
+        if style_detail_label(
+            line,
+            label_offset,
+            label,
+            node,
+            semantic_override
+        ) then
+            return
+        end
+    end
+
+    -- Leading line-number token used by Scope Members.
+    add_pattern_capture_span(
+        line,
+        label_offset,
+        label,
+        "^%[(%d+)%]",
+        "line_number",
+        235
+    )
+
+    -- Leading classification/category token used by members, registers,
+    -- stack, heap, and events.
+    add_pattern_capture_span(
+        line,
+        label_offset,
+        label,
+        "^%((.-)%)",
+        (
+            type(node.event) == "table"
+            and "category"
+            or "kind"
+        ),
+        235
+    )
+
+    if node.kind == "member"
+        and type(node.member) == "table"
+    then
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(node.member.name or ""),
+            "member",
+            240
+        )
+    elseif node.kind == "register"
+        and type(node.register) == "table"
+    then
+        local register = node.register
+
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(register.name or ""),
+            semantic_override or "register",
+            semantic_override and 260 or 240
+        )
+
+        if register.value ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(register.value),
+                "value",
+                235
+            )
+        end
+
+        local metadata = register.metadata or {}
+
+        if metadata.alias_written then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(metadata.alias_written),
+                "register_alias",
+                240
+            )
+        end
+
+        if type(metadata.alias_spec) == "table"
+            and metadata.alias_spec.write_mode
+        then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(metadata.alias_spec.write_mode),
+                "qualifier",
+                240
+            )
+        end
+    elseif node.kind == "register_alias" then
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(node.alias_name or ""),
+            semantic_override or "register_alias",
+            semantic_override and 260 or 240
+        )
+
+        local alias_spec = node.alias_spec or {}
+
+        if alias_spec.bits ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(alias_spec.bits),
+                "value",
+                235
+            )
+        end
+
+        if alias_spec.offset ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(alias_spec.offset),
+                "value",
+                235
+            )
+        end
+
+        if alias_spec.write_mode then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(alias_spec.write_mode),
+                "qualifier",
+                240
+            )
+        end
+    elseif node.kind == "stack"
+        and type(node.stack_entry) == "table"
+    then
+        local entry = node.stack_entry
+
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(entry.name or ""),
+            "stack",
+            240
+        )
+
+        if entry.offset ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(entry.offset),
+                "value",
+                235
+            )
+        end
+
+        if entry.value ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(entry.value),
+                "value",
+                235
+            )
+        end
+    elseif node.kind == "heap_entry"
+        and type(node.heap_entry) == "table"
+    then
+        local entry = node.heap_entry
+
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(entry.name or ""),
+            "heap",
+            240
+        )
+
+        if entry.effect_key ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(entry.effect_key),
+                "value",
+                235
+            )
+        end
+
+        if entry.result_register ~= nil then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(entry.result_register),
+                "register",
+                240
+            )
+        end
+    elseif type(node.event) == "table" then
+        local event = node.event
+
+        add_literal_spans(
+            line,
+            label_offset,
+            label,
+            tostring(event.name or ""),
+            "event",
+            240
+        )
+
+        if event.role then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(event.role),
+                "role",
+                240
+            )
+        end
+    elseif node.kind == "warning"
+        and type(node.warning) == "table"
+    then
+        local warning = node.warning
+
+        if warning.severity then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(warning.severity),
+                "warning_severity",
+                250
+            )
+        end
+
+        if warning.category then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(warning.category),
+                "warning_category",
+                250
+            )
+        end
+
+        if warning.message then
+            add_literal_spans(
+                line,
+                label_offset,
+                label,
+                tostring(warning.message),
+                "warning_message",
+                250
+            )
+        end
+    elseif node.kind == "scope" then
+        hud_text.add_span(
+            line,
+            label_offset,
+            label_offset + #label,
+            "scope",
+            230
+        )
+    end
+
+    style_common_punctuation(
+        line,
+        label_offset,
+        label
+    )
+end
+
+
+local function build_node_line(
+    node,
+    marker,
+    label,
+    indent,
+    range_label,
+    opts
+)
+    local line = hud_text.new()
+    local semantic_override =
+        get_node_style(node, opts)
+
+    hud_text.append(
+        line,
+        indent or "",
+        nil
+    )
+
+    local marker_offset = #line.text
+
+    hud_text.append(
+        line,
+        marker or "",
+        "tree_marker"
+    )
+
+    if type(marker) == "string" then
+        local active_start =
+            marker:find("*", 1, true)
+
+        if active_start then
+            hud_text.add_span(
+                line,
+                marker_offset + active_start - 1,
+                marker_offset + active_start,
+                "active",
+                270
+            )
+        end
+    end
+
+    hud_text.append(line, " ", nil)
+
+    local label_offset = #line.text
+
+    hud_text.append(
+        line,
+        label,
+        node_base_style(node, opts)
+    )
+
+    style_known_node_fields(
+        line,
+        label_offset,
+        label,
+        node,
+        semantic_override
+    )
+
+    if range_label then
+        hud_text.append(
+            line,
+            "  ",
+            nil
+        )
+
+        local range_offset = #line.text
+
+        hud_text.append(
+            line,
+            range_label,
+            "scope_range"
+        )
+
+        add_pattern_capture_span(
+            line,
+            range_offset,
+            range_label,
+            "^%[scope%s+(%d+)",
+            "line_number",
+            235
+        )
+
+        local second_line =
+            range_label:match("%-%s+(%d+)%]$")
+
+        if second_line then
+            local start_index =
+                range_label:find(
+                    second_line,
+                    1,
+                    true
+                )
+
+            if start_index then
+                hud_text.add_span(
+                    line,
+                    range_offset + start_index - 1,
+                    range_offset + start_index - 1 + #second_line,
+                    "line_number",
+                    235
+                )
+            end
+        end
+
+        style_common_punctuation(
+            line,
+            range_offset,
+            range_label
+        )
+    end
+
+    return line
+end
+
+
+local function append_rendered_line(
+    result,
+    rendered,
+    target
+)
+    table.insert(
+        result.lines,
+        hud_text.to_text(rendered)
+    )
+
+    result.spans[#result.lines] =
+        hud_text.spans(rendered)
+
+    if target then
+        result.targets[#result.lines] =
+            target
+    end
+end
+
+
+local function append_scope_member_tree_lines(
+    result,
+    nodes,
+    depth,
+    opts
+)
     depth = depth or 0
     opts = opts or {}
 
@@ -276,73 +991,161 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
 
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
-            local label = node.label or tostring(node.id or "")
-            local matches_cursor = node_matches_cursor(node, opts)
+            local label =
+                node.label
+                or tostring(node.id or "")
+
+            local matches_cursor =
+                node_matches_cursor(node, opts)
 
             if matches_cursor then
                 result.active = true
             end
 
-            local marker = get_node_marker(node, opts)
-            local rendered_label = marker .. " " .. label
-            local range_label = build_scope_range_label(node)
+            local marker =
+                get_node_marker(node, opts)
 
-            if node.kind == "scope" and range_label then
-                local inline_label = rendered_label .. "  " .. range_label
-                local rendered_inline = indent .. inline_label
+            local range_label =
+                build_scope_range_label(node)
 
-                if fit_width(rendered_inline, panel_width) then
-                    table.insert(result.lines, rendered_inline)
-                    result.targets[#result.lines] = {
-                        kind = "node",
-                        id = node.id,
-                        source_line = node.source_line,
-                        source_column = node.source_column,
-                        style = get_node_style(node, opts),
-                    }
+            local target = {
+                kind = "node",
+                id = node.id,
+                source_line = node.source_line,
+                source_column = node.source_column,
+                style = get_node_style(node, opts),
+            }
+
+            if node.kind == "scope"
+                and range_label
+            then
+                local inline =
+                    build_node_line(
+                        node,
+                        marker,
+                        label,
+                        indent,
+                        range_label,
+                        opts
+                    )
+
+                if fit_width(
+                    inline.text,
+                    panel_width
+                ) then
+                    append_rendered_line(
+                        result,
+                        inline,
+                        target
+                    )
                 else
-                    table.insert(result.lines, indent .. rendered_label)
-                    result.targets[#result.lines] = {
-                        kind = "node",
-                        id = node.id,
-                        source_line = node.source_line,
-                        source_column = node.source_column,
-                        style = get_node_style(node, opts),
-                    }
+                    append_rendered_line(
+                        result,
+                        build_node_line(
+                            node,
+                            marker,
+                            label,
+                            indent,
+                            nil,
+                            opts
+                        ),
+                        target
+                    )
 
-                    table.insert(result.lines, indent .. "  " .. range_label)
+                    local range_line =
+                        hud_text.new()
+
+                    hud_text.append(
+                        range_line,
+                        indent .. "  ",
+                        nil
+                    )
+
+                    local range_offset =
+                        #range_line.text
+
+                    hud_text.append(
+                        range_line,
+                        range_label,
+                        "scope_range"
+                    )
+
+                    style_common_punctuation(
+                        range_line,
+                        range_offset,
+                        range_label
+                    )
+
+                    append_rendered_line(
+                        result,
+                        range_line,
+                        nil
+                    )
                 end
             else
-                table.insert(result.lines, indent .. rendered_label)
-                result.targets[#result.lines] = {
-                    kind = "node",
-                    id = node.id,
-                    source_line = node.source_line,
-                    source_column = node.source_column,
-                    style = get_node_style(node, opts),
-                }
+                append_rendered_line(
+                    result,
+                    build_node_line(
+                        node,
+                        marker,
+                        label,
+                        indent,
+                        nil,
+                        opts
+                    ),
+                    target
+                )
             end
 
             if node_has_children(node)
-                and hud_nodes.is_expanded(node.id, get_node_default_expanded(node))
+                and hud_nodes.is_expanded(
+                    node.id,
+                    get_node_default_expanded(
+                        node
+                    )
+                )
             then
-                append_scope_member_tree_lines(result, node.children, depth + 1, opts)
+                append_scope_member_tree_lines(
+                    result,
+                    node.children,
+                    depth + 1,
+                    opts
+                )
             end
         elseif type(node) == "string" then
-            table.insert(result.lines, indent .. node)
+            local line =
+                hud_text.plain(
+                    indent .. node,
+                    "metadata"
+                )
+
+            append_rendered_line(
+                result,
+                line,
+                nil
+            )
         end
     end
 end
 
 
-local function build_scope_member_tree_lines(nodes, opts)
+local function build_scope_member_tree_lines(
+    nodes,
+    opts
+)
     local result = {
         lines = {},
         targets = {},
+        spans = {},
         active = false,
     }
 
-    append_scope_member_tree_lines(result, nodes, 0, opts)
+    append_scope_member_tree_lines(
+        result,
+        nodes,
+        0,
+        opts
+    )
 
     return result
 end
@@ -352,10 +1155,16 @@ local function build_hud_tree_lines(nodes, opts)
     local result = {
         lines = {},
         targets = {},
+        spans = {},
         active = false,
     }
 
-    append_scope_member_tree_lines(result, nodes, 0, opts)
+    append_scope_member_tree_lines(
+        result,
+        nodes,
+        0,
+        opts
+    )
 
     return result
 end
@@ -2311,6 +3120,7 @@ function M.build(context, opts)
             title = "Scope",
             expanded = M.is_expanded("scope"),
             lines = {},
+            line_spans = {},
             empty_text = "<no scope context>",
         },
 
@@ -2319,6 +3129,7 @@ function M.build(context, opts)
             title = "Scope Members",
             expanded = M.is_expanded("scope_members"),
             lines = scope_member_render.lines,
+            line_spans = scope_member_render.spans,
             active = section_has_cursor_target(
                 scope_member_nodes,
                 active_source_line,
@@ -2340,6 +3151,7 @@ function M.build(context, opts)
                     active_source_column
                 ),
             lines = register_render.lines,
+            line_spans = register_render.spans,
             line_targets = register_render.targets,
             empty_text = "<no registers tracked yet>",
         },
@@ -2354,6 +3166,7 @@ function M.build(context, opts)
                 active_source_column
             ),
             lines = event_render.lines,
+            line_spans = event_render.spans,
             line_targets = event_render.targets,
             empty_text = "<no events tracked yet>",
         },
@@ -2368,6 +3181,7 @@ function M.build(context, opts)
                 active_source_column
             ),
             lines = stack_render.lines,
+            line_spans = stack_render.spans,
             line_targets = stack_render.targets,
             empty_text = "<no stack entries tracked yet>",
         },
@@ -2382,6 +3196,7 @@ function M.build(context, opts)
                 active_source_column
             ),
             lines = heap_render.lines,
+            line_spans = heap_render.spans,
             line_targets = heap_render.targets,
             empty_text = "<no heap entries tracked yet>",
         },
@@ -2396,6 +3211,7 @@ function M.build(context, opts)
                 active_source_column
             ),
             lines = warning_render.lines,
+            line_spans = warning_render.spans,
             line_targets = warning_render.targets,
             empty_text = "<no warnings>",
         },
@@ -2405,6 +3221,8 @@ function M.build(context, opts)
         id = "show_all_scope_members",
         kind = "control",
         title = hud_controls.build_title("show_all_scope_members"),
+        control_label = "Show All Scope Members",
+        control_enabled = hud_controls.is_enabled("show_all_scope_members"),
     }
 
     local section_order = context.section_layout
@@ -2422,16 +3240,51 @@ function M.build(context, opts)
 
     if context.path and #context.path > 0 then
         for index, item in ipairs(context.path) do
-            local prefix = "  "
+            local line = hud_text.new()
+
+            hud_text.append(line, "  ", nil)
 
             if index > 1 then
-                prefix = "  -> "
+                hud_text.append(
+                    line,
+                    "-> ",
+                    "separator"
+                )
             end
 
-            table.insert(scope_section.lines, prefix .. item)
+            hud_text.append(
+                line,
+                item,
+                "scope"
+            )
+
+            table.insert(
+                scope_section.lines,
+                line.text
+            )
+
+            scope_section.line_spans[
+                #scope_section.lines
+            ] = line.spans
         end
     else
-        table.insert(scope_section.lines, "  " .. context.label)
+        local line = hud_text.new()
+
+        hud_text.append(line, "  ", nil)
+        hud_text.append(
+            line,
+            context.label,
+            "scope"
+        )
+
+        table.insert(
+            scope_section.lines,
+            line.text
+        )
+
+        scope_section.line_spans[
+            #scope_section.lines
+        ] = line.spans
     end
 
     return sections

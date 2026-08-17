@@ -60,11 +60,17 @@ local function build_heap_node(entry)
         add_detail(children, entry, "source", "source line: " .. tostring(entry.source_line))
     end
 
-    return lookup_tree.new_node(entry, {
+    local node = lookup_tree.new_node(entry, {
         kind = "heap_entry",
         label = entry.label or entry.name or "<heap entry>",
         children = children,
     })
+
+    if node then
+        node.heap_entry = entry
+    end
+
+    return node
 
 end
 
@@ -90,3 +96,4 @@ end
 
 
 return M
+

@@ -36,6 +36,7 @@ function M.build(events)
                 children = {},
                 default_expanded = false,
                 metadata = event.metadata or {},
+                event = event,
             }
 
             if event.role and event.role ~= "" then
@@ -64,3 +65,4 @@ function M.build(events)
 end
 
 return M
+

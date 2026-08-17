@@ -6,6 +6,7 @@ local hud_nodes = require("tracker_hud.hud_nodes")
 local inspect_mode = require("tracker_hud.inspect_mode")
 local hud_inspect = require("tracker_hud.hud_inspect")
 local highlights = require("tracker_hud.highlights")
+local hud_text = require("tracker_hud.hud_text")
 
 local M = {}
 
@@ -75,13 +76,64 @@ local function find_panel_line_for_target_id(target_id)
     return nil
 end
 
-local function set_panel_statusline()
+local function statusline_escape(text)
+    return tostring(text or ""):gsub("%%", "%%%%")
+end
+
+
+local function statusline_group(config, style)
+    if not highlights.is_enabled(
+        config or {}
+    ) then
+        return ""
+    end
+
+    local group = highlights.group_name(
+        config or {},
+        style
+    )
+
+    if not group then
+        return ""
+    end
+
+    return "%#" .. group .. "#"
+end
+
+
+local function set_panel_statusline(config)
     if not is_valid_window(panel_winid) then
         return
     end
 
-    vim.wo[panel_winid].statusline = 
-        "Tracker HUD [-] " .. inspect_mode.get_status_label()
+    local title_group =
+        statusline_group(
+            config,
+            "status_title"
+        )
+
+    local marker_group =
+        statusline_group(
+            config,
+            "status_marker"
+        )
+
+    local inspect_group =
+        statusline_group(
+            config,
+            "inspect_mode"
+        )
+
+    vim.wo[panel_winid].statusline =
+        title_group
+        .. "Tracker HUD "
+        .. marker_group
+        .. "[-] "
+        .. inspect_group
+        .. statusline_escape(
+            inspect_mode.get_status_label()
+        )
+        .. "%*"
 end
 
 local function get_panel_position(config)
@@ -235,51 +287,142 @@ local function target_has_diagnostic(targets, key)
     return false
 end
 
-local function format_target_part(targets, key, label)
+local function append_target_part(
+    line,
+    targets,
+    key,
+    label
+)
     local value = targets[key]
 
-    if type(value) ~= "string" or value == "" then
+    if type(value) ~= "string"
+        or value == ""
+    then
         value = "<unknown>"
     end
 
-    if target_has_diagnostic(targets, key) then
-        value = value .. " [?]"
-    end
+    hud_text.append(
+        line,
+        label,
+        "target_key"
+    )
 
-    return label .. "=" .. value
+    hud_text.append(
+        line,
+        "=",
+        "operator"
+    )
+
+    hud_text.append(
+        line,
+        value,
+        "target_value"
+    )
+
+    if target_has_diagnostic(
+        targets,
+        key
+    ) then
+        hud_text.append(
+            line,
+            " ",
+            nil
+        )
+
+        hud_text.append(
+            line,
+            "[?]",
+            "diagnostic"
+        )
+    end
 end
+
 
 local function build_target_lines(targets)
     if type(targets) ~= "table" then
         return {}
     end
 
-    local lines = {
-        "Target: "
-            .. format_target_part(targets, "architecture", "arch")
-            .. " | "
-            .. format_target_part(targets, "platform", "platform")
-            .. " | "
-            .. format_target_part(targets, "abi", "abi")
-            .. " | "
-            .. format_target_part(targets, "syntax", "syntax")
-            .. " | "
-            .. format_target_part(targets, "mode", "mode"),
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        "Target:",
+        "target_label"
+    )
+
+    hud_text.append(line, " ", nil)
+
+    local parts = {
+        {
+            key = "architecture",
+            label = "arch",
+        },
+        {
+            key = "platform",
+            label = "platform",
+        },
+        {
+            key = "abi",
+            label = "abi",
+        },
+        {
+            key = "syntax",
+            label = "syntax",
+        },
+        {
+            key = "mode",
+            label = "mode",
+        },
     }
 
+    for index, part in ipairs(parts) do
+        if index > 1 then
+            hud_text.append(
+                line,
+                " | ",
+                "separator"
+            )
+        end
+
+        append_target_part(
+            line,
+            targets,
+            part.key,
+            part.label
+        )
+    end
+
+    local lines = { line }
+
     if type(targets.diagnostics) == "table" then
-        for _, diagnostic in ipairs(targets.diagnostics) do
+        for _, diagnostic in ipairs(
+            targets.diagnostics
+        ) do
             if type(diagnostic) == "table" then
                 local message = nil
 
-                if type(diagnostic.messages) == "table" then
-                    message = diagnostic.messages.panel
+                if type(diagnostic.messages)
+                    == "table"
+                then
+                    message =
+                        diagnostic.messages.panel
                 end
 
-                message = message or diagnostic.message
+                message =
+                    message
+                    or diagnostic.message
 
-                if type(message) == "string" and message ~= "" then
-                    table.insert(lines, message)
+                if type(message) == "string"
+                    and message ~= ""
+                then
+                    table.insert(
+                        lines,
+                        hud_text.plain(
+                            message,
+                            "diagnostic"
+                        )
+                    )
                 end
             end
         end
@@ -364,7 +507,7 @@ local function create_panel(config, source_winid, lines)
     vim.wo[panel_winid].relativenumber = false
     vim.wo[panel_winid].signcolumn = "no"
 
-    set_panel_statusline()
+    set_panel_statusline(config)
 
 
     if is_vertical_panel(panel_position) then
@@ -382,40 +525,290 @@ end
 
 
 
-local function append_line(lines, line_styles, text, style)
+local function append_line(
+    lines,
+    line_styles,
+    line_spans,
+    rendered,
+    style
+)
+    local text = hud_text.to_text(rendered)
+
     table.insert(lines, text)
 
     if style then
         line_styles[#lines] = style
     end
 
+    local spans = hud_text.spans(rendered)
+
+    if #spans > 0 then
+        line_spans[#lines] = spans
+    end
+
     return #lines
 end
 
 
-local function append_section_lines(lines, line_styles, section)
+local function build_tip_line()
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        "Tip:",
+        "tip_label"
+    )
+
+    hud_text.append(
+        line,
+        " ",
+        nil
+    )
+
+    hud_text.append(
+        line,
+        "Ctrl+w h/j/k/l",
+        "key_hint"
+    )
+
+    hud_text.append(
+        line,
+        " to focus panel, ",
+        "tip"
+    )
+
+    hud_text.append(
+        line,
+        "Enter",
+        "key_hint"
+    )
+
+    hud_text.append(
+        line,
+        " to toggle, ",
+        "tip"
+    )
+
+    hud_text.append(
+        line,
+        "Tab",
+        "key_hint"
+    )
+
+    hud_text.append(
+        line,
+        " to jump when Show All is enabled.",
+        "tip"
+    )
+
+    return line
+end
+
+
+local function build_status_value_line(
+    label,
+    value,
+    value_style
+)
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        label,
+        "status_label"
+    )
+
+    hud_text.append(
+        line,
+        ":",
+        "punctuation"
+    )
+
+    if value ~= nil
+        and tostring(value) ~= ""
+    then
+        hud_text.append(
+            line,
+            " ",
+            nil
+        )
+
+        hud_text.append(
+            line,
+            tostring(value),
+            value_style or "status_value"
+        )
+    end
+
+    return line
+end
+
+
+local function build_scope_lines_status(context)
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        "Current scope lines",
+        "status_label"
+    )
+
+    hud_text.append(
+        line,
+        ":",
+        "punctuation"
+    )
+
+    if context.start_line
+        and context.end_line
+    then
+        hud_text.append(line, " ", nil)
+
+        hud_text.append(
+            line,
+            tostring(context.start_line),
+            "line_number"
+        )
+
+        hud_text.append(
+            line,
+            " - ",
+            "separator"
+        )
+
+        hud_text.append(
+            line,
+            tostring(context.end_line),
+            "line_number"
+        )
+    end
+
+    return line
+end
+
+
+local function build_current_line_status(context)
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        "Current Line",
+        "status_label"
+    )
+
+    hud_text.append(
+        line,
+        ":",
+        "punctuation"
+    )
+
+    if context.cursor
+        and context.cursor.line
+    then
+        hud_text.append(line, " ", nil)
+        hud_text.append(line, "[", "punctuation")
+
+        hud_text.append(
+            line,
+            tostring(context.cursor.line),
+            "line_number"
+        )
+
+        hud_text.append(line, "]", "punctuation")
+    end
+
+    return line
+end
+
+
+local function build_control_line(section)
+    local line = hud_text.new()
+
+    local enabled =
+        section.control_enabled == true
+
+    hud_text.append(
+        line,
+        enabled and "[+]" or "[ ]",
+        "control_marker"
+    )
+
+    hud_text.append(line, " ", nil)
+
+    hud_text.append(
+        line,
+        section.control_label
+            or section.title
+            or "<control>",
+        "control"
+    )
+
+    return line
+end
+
+
+local function build_section_header_line(section)
+    local line = hud_text.new()
+    local marker =
+        section.expanded and "[-]" or "[+]"
+
+    hud_text.append(
+        line,
+        section.title or "<section>",
+        "section"
+    )
+
+    hud_text.append(line, " ", nil)
+
+    hud_text.append(
+        line,
+        marker,
+        "section_marker"
+    )
+
+    if section.active then
+        hud_text.append(line, " ", nil)
+
+        hud_text.append(
+            line,
+            "*",
+            "active"
+        )
+    end
+
+    return line
+end
+
+
+local function append_section_lines(
+    lines,
+    line_styles,
+    line_spans,
+    section
+)
     if section.kind == "control" then
         append_line(
             lines,
             line_styles,
-            section.title or "<control>",
-            "control"
+            line_spans,
+            build_control_line(section),
+            nil
         )
+
         panel_line_targets[#lines] = {
             kind = "control",
             id = section.id,
         }
+
         return
     end
-
-    local marker = section.expanded and "[-]" or "[+]"
-    local active_marker = section.active and " *" or ""
 
     append_line(
         lines,
         line_styles,
-        section.title .. " " .. marker .. active_marker,
-        section.active and "active" or "section"
+        line_spans,
+        build_section_header_line(section),
+        nil
     )
 
     panel_line_targets[#lines] = {
@@ -424,151 +817,268 @@ local function append_section_lines(lines, line_styles, section)
     }
 
     if section.expanded then
-        if section.lines and #section.lines > 0 then
-            for index, line in ipairs(section.lines) do
-                local target = section.line_targets
+        if section.lines
+            and #section.lines > 0
+        then
+            for index, line_text in ipairs(
+                section.lines
+            ) do
+                local target =
+                    section.line_targets
                     and section.line_targets[index]
                     or nil
+
+                local rendered = {
+                    text = line_text,
+                    spans = (
+                        section.line_spans
+                        and section.line_spans[index]
+                    ) or {},
+                }
 
                 append_line(
                     lines,
                     line_styles,
-                    line,
+                    line_spans,
+                    rendered,
                     target and target.style or nil
                 )
 
                 if target then
-                    panel_line_targets[#lines] = target
+                    panel_line_targets[#lines] =
+                        target
                 end
             end
         else
+            local empty_line = hud_text.new()
+
+            hud_text.append(
+                empty_line,
+                "  ",
+                nil
+            )
+
+            hud_text.append(
+                empty_line,
+                section.empty_text
+                    or "<empty>",
+                "empty"
+            )
+
             append_line(
                 lines,
                 line_styles,
-                "  " .. (section.empty_text or "<empty>"),
-                "muted"
+                line_spans,
+                empty_line,
+                nil
             )
         end
     end
 
-    append_line(lines, line_styles, "", nil)
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        "",
+        nil
+    )
 end
 
 
 local function format_panel_lines(context)
     local line_styles = {}
+    local line_spans = {}
 
     if not context then
         local lines = {}
 
-        append_line(lines, line_styles, "Tracker HUD", "title")
-        append_line(lines, line_styles, "", nil)
         append_line(
             lines,
             line_styles,
-            "No Tree-sitter context available.",
-            "muted"
-        )
-        append_line(lines, line_styles, "", nil)
-        append_line(
-            lines,
-            line_styles,
-            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-            "tip"
+            line_spans,
+            hud_text.plain(
+                "Tracker HUD",
+                "title"
+            ),
+            nil
         )
 
-        return lines, line_styles
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            "",
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            hud_text.plain(
+                "No Tree-sitter context available.",
+                "muted"
+            ),
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            "",
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            build_tip_line(),
+            nil
+        )
+
+        return lines, line_styles, line_spans
     end
 
     panel_line_targets = {}
 
     local lines = {}
 
-    append_line(lines, line_styles, "Tracker HUD", "title")
-    append_line(lines, line_styles, "", nil)
     append_line(
         lines,
         line_styles,
-        "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-        "tip"
+        line_spans,
+        hud_text.plain(
+            "Tracker HUD",
+            "title"
+        ),
+        nil
     )
-    append_line(lines, line_styles, "", nil)
 
-    -- Current Scope Lines:
-    local scope_line_text = "Current scope lines:"
-
-    if context.start_line and context.end_line then
-        scope_line_text = scope_line_text
-            .. " "
-            .. tostring(context.start_line)
-            .. " - "
-            .. tostring(context.end_line)
-    end
-    append_line(lines, line_styles, scope_line_text, "metadata")
-
-    -- Depth:
     append_line(
         lines,
         line_styles,
-        "Depth: " .. tostring(context.depth or 0),
-        "metadata"
+        line_spans,
+        "",
+        nil
     )
 
-    -- Current Line:
-    local current_line_text = "Current Line:"
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        build_tip_line(),
+        nil
+    )
 
-    if context.cursor and context.cursor.line then
-        current_line_text = current_line_text
-            .. " ["
-            .. tostring(context.cursor.line)
-            .. "]"
-    end
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        "",
+        nil
+    )
 
-    append_line(lines, line_styles, current_line_text, "metadata")
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        build_scope_lines_status(context),
+        nil
+    )
 
-    local target_lines = build_target_lines(context.targets)
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        build_status_value_line(
+            "Depth",
+            context.depth or 0,
+            "status_value"
+        ),
+        nil
+    )
+
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        build_current_line_status(context),
+        nil
+    )
+
+    local target_lines =
+        build_target_lines(context.targets)
 
     if #target_lines > 0 then
-        append_line(lines, line_styles, "", nil)
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            "",
+            nil
+        )
 
-        for index, line in ipairs(target_lines) do
+        for _, target_line in ipairs(
+            target_lines
+        ) do
             append_line(
                 lines,
                 line_styles,
-                line,
-                index == 1 and "metadata" or "warning"
+                line_spans,
+                target_line,
+                nil
             )
         end
     end
 
-    append_line(lines, line_styles, "", nil)
+    append_line(
+        lines,
+        line_styles,
+        line_spans,
+        "",
+        nil
+    )
 
     local panel_width = resolved_panel_size
+
     if is_valid_window(panel_winid) then
-        local ok, width = pcall(vim.api.nvim_win_get_width, panel_winid)
+        local ok, width =
+            pcall(
+                vim.api.nvim_win_get_width,
+                panel_winid
+            )
 
         if ok and width then
             panel_width = width
         end
     end
 
-    local sections = hud_sections.build(context, {
-        panel_width = panel_width,
-    })
+    local sections =
+        hud_sections.build(context, {
+            panel_width = panel_width,
+        })
 
     for _, section in ipairs(sections) do
-        append_section_lines(lines, line_styles, section)
+        append_section_lines(
+            lines,
+            line_styles,
+            line_spans,
+            section
+        )
     end
 
-    return lines, line_styles
+    return lines, line_styles, line_spans
 end
 
 
 local function render_panel(context, config, source_winid)
-    local lines, line_styles = format_panel_lines(context)
+    local lines, line_styles, line_spans =
+        format_panel_lines(context)
 
     create_panel(config, source_winid, lines)
-    set_panel_statusline()
+    set_panel_statusline(config)
 
     if not is_valid_buffer(panel_bufnr) then
         return
@@ -577,7 +1087,12 @@ local function render_panel(context, config, source_winid)
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
-    highlights.apply_line_styles(panel_bufnr, config, line_styles)
+    highlights.apply_styles(
+        panel_bufnr,
+        config,
+        line_styles,
+        line_spans
+    )
 
     local panel_position = get_panel_position(config)
     restore_focus(source_winid, nil, panel_position)
@@ -585,26 +1100,76 @@ end
 
 function M.clear(config)
     if is_valid_buffer(panel_bufnr) then
-        local lines = {
-            "Tracker HUD",
+        local lines = {}
+        local line_styles = {}
+        local line_spans = {}
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            hud_text.plain(
+                "Tracker HUD",
+                "title"
+            ),
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
             "",
-            "No active context.",
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            hud_text.plain(
+                "No active context.",
+                "muted"
+            ),
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
             "",
-            "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-        }
+            nil
+        )
+
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            build_tip_line(),
+            nil
+        )
 
         vim.bo[panel_bufnr].modifiable = true
-        vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
+
+        vim.api.nvim_buf_set_lines(
+            panel_bufnr,
+            0,
+            -1,
+            false,
+            lines
+        )
+
         vim.bo[panel_bufnr].modifiable = false
 
-        highlights.apply_line_styles(panel_bufnr, config or {}, {
-            [1] = "title",
-            [3] = "muted",
-            [5] = "tip",
-        })
+        highlights.apply_styles(
+            panel_bufnr,
+            config or {},
+            line_styles,
+            line_spans
+        )
     end
 end
-
 
 
 local function refresh_cursor_inspection(
@@ -775,17 +1340,19 @@ function M.update_panel()
         last_source_winid
     )
 
-    local lines, line_styles = format_panel_lines(last_context)
+    local lines, line_styles, line_spans =
+        format_panel_lines(last_context)
 
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
-    highlights.apply_line_styles(
+    highlights.apply_styles(
         panel_bufnr,
         last_config or {},
-        line_styles
+        line_styles,
+        line_spans
     )
-    set_panel_statusline()
+    set_panel_statusline(last_config or {})
 
     set_panel_cursor_location(panel_cursor)
 
@@ -1033,3 +1600,4 @@ function M.toggle_target(target)
 end
 
 return M
+

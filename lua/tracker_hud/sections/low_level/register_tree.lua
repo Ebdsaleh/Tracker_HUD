@@ -52,6 +52,13 @@ local function build_alias_node(register, alias_name, alias_spec)
         id = register.id .. ":alias:" .. alias_name,
         kind = "register_alias",
         label = alias_label(register, alias_name, alias_spec),
+
+        -- Structured presentation facts. The HUD renderer can target each
+        -- visible component without reparsing the label string.
+        register = register,
+        alias_name = alias_name,
+        alias_spec = alias_spec,
+
         source_line = register.source_line,
         source_column = register.source_column or 0,
         source_start_line = register.source_start_line,
@@ -233,3 +240,4 @@ function M.build(registers, context)
 end
 
 return M
+
