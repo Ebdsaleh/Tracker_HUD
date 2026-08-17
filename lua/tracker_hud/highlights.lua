@@ -66,6 +66,7 @@ local STYLE_SUFFIXES = {
     stack = "Stack",
     heap = "Heap",
     event = "Event",
+    boundary = "Boundary",
 
     -- Occurrence/effect semantics.
     destination = "Destination",
@@ -77,6 +78,11 @@ local STYLE_SUFFIXES = {
     warning_severity = "WarningSeverity",
     warning_category = "WarningCategory",
     warning_message = "WarningMessage",
+    warning_detail_key = "WarningDetailKey",
+    warning_detail_value = "WarningDetailValue",
+    warning_rule = "WarningRule",
+    resolved = "Resolved",
+    unresolved = "Unresolved",
 
     -- Fallbacks.
     muted = "Muted",
@@ -129,15 +135,25 @@ local DEFAULT_LINKS = {
     stack = "Identifier",
     heap = "Identifier",
     event = "Special",
+    boundary = "DiagnosticWarn",
 
     destination = "DiagnosticOk",
     source = "DiagnosticInfo",
-    implicit = "DiagnosticHint",
+
+    -- Implicit architectural effects deliberately share the warning color
+    -- family by default without sharing warning semantics. This makes hidden
+    -- register side-effects such as syscall clobbers visually obvious.
+    implicit = "DiagnosticWarn",
 
     warning = "DiagnosticWarn",
     warning_severity = "DiagnosticWarn",
-    warning_category = "Type",
+    warning_category = "Special",
     warning_message = "DiagnosticWarn",
+    warning_detail_key = "Comment",
+    warning_detail_value = "Identifier",
+    warning_rule = "Keyword",
+    resolved = "DiagnosticOk",
+    unresolved = "DiagnosticWarn",
 
     muted = "Comment",
     empty = "Comment",

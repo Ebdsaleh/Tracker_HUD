@@ -539,6 +539,117 @@ local function style_detail_label(
 end
 
 
+local function warning_detail_value_style(node)
+    if type(node) ~= "table" then
+        return "warning_detail_value"
+    end
+
+    local detail_kind = node.detail_kind
+
+    if detail_kind == "line" then
+        return "line_number"
+    end
+
+    if detail_kind == "source" then
+        return "origin"
+    end
+
+    if detail_kind == "register" then
+        return "register"
+    end
+
+    if detail_kind == "boundary" then
+        return "boundary"
+    end
+
+    if detail_kind == "rule" then
+        return "warning_rule"
+    end
+
+    if detail_kind == "argument_index"
+        or detail_kind == "value"
+    then
+        return "value"
+    end
+
+    if detail_kind == "argument_name" then
+        return "name"
+    end
+
+    if detail_kind == "resolution" then
+        if node.detail_value == false
+            or tostring(node.detail_value):lower() == "false"
+        then
+            return "unresolved"
+        end
+
+        return "resolved"
+    end
+
+    return "warning_detail_value"
+end
+
+
+local function style_structured_warning_detail(
+    line,
+    label_offset,
+    label,
+    node
+)
+    if type(node) ~= "table"
+        or node.kind ~= "warning_detail"
+        or node.detail_key == nil
+        or node.detail_value == nil
+    then
+        return false
+    end
+
+    local key = tostring(node.detail_key)
+    local value = tostring(node.detail_value)
+    local key_start, key_end = label:find(key, 1, true)
+
+    if key_start then
+        hud_text.add_span(
+            line,
+            label_offset + key_start - 1,
+            label_offset + key_end,
+            "warning_detail_key",
+            245
+        )
+    end
+
+    local colon_start = label:find(":", 1, true)
+
+    if colon_start then
+        hud_text.add_span(
+            line,
+            label_offset + colon_start - 1,
+            label_offset + colon_start,
+            "punctuation",
+            255
+        )
+    end
+
+    local value_start = nil
+
+    if colon_start then
+        value_start = label:find(value, colon_start + 1, true)
+    end
+
+    if value_start then
+        hud_text.add_span(
+            line,
+            label_offset + value_start - 1,
+            label_offset + value_start - 1 + #value,
+            warning_detail_value_style(node),
+            260
+        )
+    end
+
+    return true
+end
+
+
 local function style_known_node_fields(
     line,
     label_offset,
@@ -547,6 +658,22 @@ local function style_known_node_fields(
     semantic_override
 )
     if type(node) ~= "table" then
+        return
+    end
+
+    if node.kind == "warning_detail"
+        and style_structured_warning_detail(
+            line,
+            label_offset,
+            label,
+            node
+        )
+    then
+        style_common_punctuation(
+            line,
+            label_offset,
+            label
+        )
         return
     end
 
@@ -3054,6 +3181,24 @@ function M.build(context, opts)
 
     local register_style_by_node_id = {}
 
+    -- Register facts produced by an architectural target_register effect are
+    -- implicit/side-effect state even when the user is not actively
+    -- inspecting them. Keep that semantic affordance visible in the tree.
+    -- Active occurrence inspection below still takes precedence.
+    for _, register in ipairs(context.registers or {}) do
+        local metadata = type(register) == "table"
+            and register.metadata
+            or nil
+
+        if type(metadata) == "table"
+            and metadata.effect_target_origin == "implicit_register"
+            and type(register.id) == "string"
+        then
+            register_style_by_node_id[register.id] = "implicit"
+            register_style_by_node_id[register.id .. ":role"] = "implicit"
+        end
+    end
+
     if register_inspection then
         for register_id, active in pairs(register_active_ids or {}) do
             if active == true then
@@ -3204,6 +3349,12 @@ function M.build(context, opts)
         warnings = {
             id = "warnings",
             title = "Warnings",
+            title_style = (#warning_nodes > 0)
+                and "warning"
+                or "section",
+            marker_style = (#warning_nodes > 0)
+                and "warning"
+                or "section_marker",
             expanded = M.is_expanded("warnings"),
             active = section_has_cursor_target(
                 warning_nodes,

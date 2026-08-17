@@ -1697,6 +1697,14 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
             variant = adapter.active_variant_name,
             mnemonic = instruction.mnemonic,
             effect = effect.name,
+
+            -- Semantic origin of the effect target. This is deliberately
+            -- presentation-neutral: consumers can distinguish an explicitly
+            -- named operand write from an architectural/implicit register
+            -- effect without reverse-engineering the instruction text.
+            effect_target_origin = target_index
+                and "operand"
+                or "implicit_register",
         },
     }
 

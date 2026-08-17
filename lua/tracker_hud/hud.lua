@@ -755,7 +755,7 @@ local function build_section_header_line(section)
     hud_text.append(
         line,
         section.title or "<section>",
-        "section"
+        section.title_style or "section"
     )
 
     hud_text.append(line, " ", nil)
@@ -763,7 +763,7 @@ local function build_section_header_line(section)
     hud_text.append(
         line,
         marker,
-        "section_marker"
+        section.marker_style or "section_marker"
     )
 
     if section.active then
