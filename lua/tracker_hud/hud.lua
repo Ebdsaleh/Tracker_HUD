@@ -776,6 +776,13 @@ local function build_section_header_line(section)
         )
     end
 
+    if section.relevance then
+        hud_text.set_relevance(
+            line,
+            section.relevance
+        )
+    end
+
     return line
 end
 
@@ -841,7 +848,10 @@ local function append_section_lines(
                     line_styles,
                     line_spans,
                     rendered,
-                    target and target.style or nil
+                    target and {
+                        style = target.style,
+                        relevance = target.relevance,
+                    } or nil
                 )
 
                 if target then
@@ -1058,6 +1068,7 @@ local function format_panel_lines(context)
     local sections =
         hud_sections.build(context, {
             panel_width = panel_width,
+            inspect_mode = inspect_mode.get_mode(),
         })
 
     for _, section in ipairs(sections) do
@@ -1600,4 +1611,3 @@ function M.toggle_target(target)
 end
 
 return M
-

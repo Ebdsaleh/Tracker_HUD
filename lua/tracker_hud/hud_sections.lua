@@ -16,6 +16,7 @@ local context_engine = require("tracker_hud.context_engine")
 local source_index = require("tracker_hud.source_index")
 local source_index_compiler = require("tracker_hud.source_index.compiler")
 local hud_text = require("tracker_hud.hud_text")
+local hud_relevance = require("tracker_hud.hud_relevance")
 
 
 local M = {}
@@ -1084,6 +1085,16 @@ local function build_node_line(
 end
 
 
+local function apply_render_relevance(rendered, relevance)
+    hud_text.set_relevance(
+        rendered,
+        relevance
+    )
+
+    return rendered
+end
+
+
 local function append_rendered_line(
     result,
     rendered,
@@ -1108,7 +1119,8 @@ local function append_scope_member_tree_lines(
     result,
     nodes,
     depth,
-    opts
+    opts,
+    inherited_relevance
 )
     depth = depth or 0
     opts = opts or {}
@@ -1118,6 +1130,12 @@ local function append_scope_member_tree_lines(
 
     for _, node in ipairs(nodes or {}) do
         if type(node) == "table" then
+            local relevance = hud_relevance.classify_node(
+                node,
+                opts,
+                inherited_relevance
+            )
+
             local label =
                 node.label
                 or tostring(node.id or "")
@@ -1141,19 +1159,23 @@ local function append_scope_member_tree_lines(
                 source_line = node.source_line,
                 source_column = node.source_column,
                 style = get_node_style(node, opts),
+                relevance = relevance,
             }
 
             if node.kind == "scope"
                 and range_label
             then
                 local inline =
-                    build_node_line(
-                        node,
-                        marker,
-                        label,
-                        indent,
-                        range_label,
-                        opts
+                    apply_render_relevance(
+                        build_node_line(
+                            node,
+                            marker,
+                            label,
+                            indent,
+                            range_label,
+                            opts
+                        ),
+                        relevance
                     )
 
                 if fit_width(
@@ -1168,13 +1190,16 @@ local function append_scope_member_tree_lines(
                 else
                     append_rendered_line(
                         result,
-                        build_node_line(
-                            node,
-                            marker,
-                            label,
-                            indent,
-                            nil,
-                            opts
+                        apply_render_relevance(
+                            build_node_line(
+                                node,
+                                marker,
+                                label,
+                                indent,
+                                nil,
+                                opts
+                            ),
+                            relevance
                         ),
                         target
                     )
@@ -1203,6 +1228,11 @@ local function append_scope_member_tree_lines(
                         range_label
                     )
 
+                    hud_text.set_relevance(
+                        range_line,
+                        relevance
+                    )
+
                     append_rendered_line(
                         result,
                         range_line,
@@ -1212,13 +1242,16 @@ local function append_scope_member_tree_lines(
             else
                 append_rendered_line(
                     result,
-                    build_node_line(
-                        node,
-                        marker,
-                        label,
-                        indent,
-                        nil,
-                        opts
+                    apply_render_relevance(
+                        build_node_line(
+                            node,
+                            marker,
+                            label,
+                            indent,
+                            nil,
+                            opts
+                        ),
+                        relevance
                     ),
                     target
                 )
@@ -1236,7 +1269,8 @@ local function append_scope_member_tree_lines(
                     result,
                     node.children,
                     depth + 1,
-                    opts
+                    opts,
+                    relevance
                 )
             end
         elseif type(node) == "string" then
@@ -1245,6 +1279,13 @@ local function append_scope_member_tree_lines(
                     indent .. node,
                     "metadata"
                 )
+
+            hud_text.set_relevance(
+                line,
+                inherited_relevance
+                    or opts.section_relevance
+                    or "historical"
+            )
 
             append_rendered_line(
                 result,
@@ -1623,6 +1664,78 @@ local function section_has_cursor_target(nodes, source_line, source_column)
     return fallback ~= nil and fallback.path ~= nil
 end
 
+
+
+local function section_has_exact_cursor_target(
+    nodes,
+    source_line,
+    source_column
+)
+    source_line = tonumber(source_line)
+    source_column = tonumber(source_column) or 0
+
+    if not source_line then
+        return false
+    end
+
+    local node_path = find_deepest_node_path_for_position(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    return node_path ~= nil and #node_path > 0
+end
+
+
+local function classify_section_relevance(
+    section_id,
+    inspect_mode,
+    affected_line,
+    exact_symbol
+)
+    return hud_relevance.classify({
+        affected_line = affected_line == true,
+        inspect_match = inspect_mode == section_id,
+        exact_symbol = exact_symbol == true,
+    })
+end
+
+
+local function mark_descendants(
+    nodes,
+    root_ids,
+    result,
+    inherited
+)
+    result = result or {}
+    inherited = inherited == true
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            local active = inherited
+                or (
+                    type(root_ids) == "table"
+                    and root_ids[node.id] == true
+                )
+
+            if active and node.id then
+                result[node.id] = true
+            end
+
+            if node_has_children(node) then
+                mark_descendants(
+                    node.children,
+                    root_ids,
+                    result,
+                    active
+                )
+            end
+        end
+    end
+
+    return result
+end
 
 
 local function build_scope_member_nodes_for_context(context, use_all_members)
@@ -2662,6 +2775,8 @@ local function resolve_register_cursor_inspection(request)
         source_column
     )
 
+    local exact_occurrence = occurrence ~= nil
+
     if not occurrence then
         -- Punctuation/whitespace BETWEEN semantic occurrences is not a new
         -- semantic state. Keep the most recent occurrence active until the
@@ -2695,6 +2810,7 @@ local function resolve_register_cursor_inspection(request)
                 target_ids
             ),
             occurrence = occurrence,
+            exact_occurrence = exact_occurrence,
         }
     end
 
@@ -2722,6 +2838,7 @@ local function resolve_register_cursor_inspection(request)
             target_ids
         ),
         occurrence = nil,
+        exact_occurrence = false,
     }
 end
 
@@ -2729,7 +2846,9 @@ end
 local function apply_register_cursor_inspection(
     context,
     target_ids,
-    role_overrides
+    role_overrides,
+    occurrence,
+    exact_occurrence
 )
     if type(context) ~= "table" then
         return false
@@ -2750,6 +2869,8 @@ local function apply_register_cursor_inspection(
         active = true,
         target_ids = active_ids,
         roles = role_overrides or {},
+        occurrence = occurrence,
+        exact_occurrence = exact_occurrence == true,
     }
 
     return true
@@ -2776,7 +2897,9 @@ function M.update_register_cursor_inspection(request)
     return apply_register_cursor_inspection(
         request.context,
         resolved.target_ids,
-        resolved.roles
+        resolved.roles,
+        resolved.occurrence,
+        resolved.exact_occurrence
     )
 end
 
@@ -2785,14 +2908,17 @@ local function reveal_register_inspect_targets(
     request,
     target_ids,
     role_overrides,
-    occurrence
+    occurrence,
+    exact_occurrence
 )
     local context = request.context
 
     apply_register_cursor_inspection(
         context,
         target_ids,
-        role_overrides
+        role_overrides,
+        occurrence,
+        exact_occurrence
     )
 
     local register_nodes = build_register_nodes_for_context(
@@ -2880,7 +3006,8 @@ function M.inspect_registers(request)
         request,
         resolved.target_ids,
         resolved.roles,
-        resolved.occurrence
+        resolved.occurrence,
+        resolved.exact_occurrence
     )
 end
 
@@ -3151,6 +3278,7 @@ function M.build(context, opts)
     local show_all_scope_members = hud_controls.is_enabled("show_all_scope_members")
     local scope_members = context.scope_members or {}
     opts = opts or {}
+    local active_inspect_mode = opts.inspect_mode
     local active_source_line = context.cursor and context.cursor.line
     local active_source_column = nil
     if context.cursor and context.cursor.column then
@@ -3164,10 +3292,29 @@ function M.build(context, opts)
     scope_members = symbol_state.enrich_members(scope_members, context)
 
     local scope_member_nodes = scope_member_tree.build(scope_members, context)
+    local scope_member_affected = section_has_cursor_target(
+        scope_member_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local scope_member_exact = section_has_exact_cursor_target(
+        scope_member_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local scope_member_relevance = classify_section_relevance(
+        "scope_members",
+        active_inspect_mode,
+        scope_member_affected,
+        scope_member_exact
+    )
     local scope_member_render = build_scope_member_tree_lines(scope_member_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        section_id = "scope_members",
+        inspect_mode = active_inspect_mode,
+        section_relevance = scope_member_relevance,
     })
 
     local register_nodes = register_tree.build(context.registers or {}, context)
@@ -3221,41 +3368,149 @@ function M.build(context, opts)
         end
     end
 
+    local register_affected = register_inspection ~= nil
+        and next(register_active_ids or {}) ~= nil
+        or section_has_cursor_target(
+            register_nodes,
+            active_source_line,
+            active_source_column
+        )
+
+    local register_exact = register_inspection ~= nil
+        and register_inspection.exact_occurrence == true
+
+    local register_relevance = classify_section_relevance(
+        "registers",
+        active_inspect_mode,
+        register_affected,
+        register_exact
+    )
+
+    local register_focused_ids = {}
+
+    if register_exact then
+        register_focused_ids = mark_descendants(
+            register_nodes,
+            register_active_ids
+        )
+    end
+
     local register_render = build_hud_tree_lines(register_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = register_active_ids,
         style_by_node_id = register_style_by_node_id,
+        section_id = "registers",
+        inspect_mode = active_inspect_mode,
+        section_relevance = register_relevance,
+        focused_node_ids = register_focused_ids,
+        focused_node_ids_strict = true,
     })
 
     local event_nodes = event_tree.build(context.events or {}, context)
+    local event_affected = section_has_cursor_target(
+        event_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local event_exact = section_has_exact_cursor_target(
+        event_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local event_relevance = classify_section_relevance(
+        "events",
+        active_inspect_mode,
+        event_affected,
+        event_exact
+    )
     local event_render = build_hud_tree_lines(event_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        section_id = "events",
+        inspect_mode = active_inspect_mode,
+        section_relevance = event_relevance,
     })
 
 
     local stack_nodes = stack_tree.build(context.stack or {}, context)
+    local stack_affected = section_has_cursor_target(
+        stack_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local stack_exact = section_has_exact_cursor_target(
+        stack_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local stack_relevance = classify_section_relevance(
+        "stack",
+        active_inspect_mode,
+        stack_affected,
+        stack_exact
+    )
     local stack_render = build_hud_tree_lines(stack_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        section_id = "stack",
+        inspect_mode = active_inspect_mode,
+        section_relevance = stack_relevance,
     })
 
     local heap_root = heap_tree.build_tree(context.heap or {})
+    local heap_affected = section_has_cursor_target(
+        heap_root.children or {},
+        active_source_line,
+        active_source_column
+    )
+    local heap_exact = section_has_exact_cursor_target(
+        heap_root.children or {},
+        active_source_line,
+        active_source_column
+    )
+    local heap_relevance = classify_section_relevance(
+        "heap",
+        active_inspect_mode,
+        heap_affected,
+        heap_exact
+    )
     local heap_render = build_hud_tree_lines(heap_root.children or {}, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        section_id = "heap",
+        inspect_mode = active_inspect_mode,
+        section_relevance = heap_relevance,
     })
 
     local warning_nodes = build_warning_nodes_for_context(context)
+    local warning_affected = section_has_cursor_target(
+        warning_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local warning_exact = section_has_exact_cursor_target(
+        warning_nodes,
+        active_source_line,
+        active_source_column
+    )
+    local warning_relevance = classify_section_relevance(
+        "warnings",
+        active_inspect_mode,
+        warning_affected,
+        warning_exact
+    )
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        section_id = "warnings",
+        inspect_mode = active_inspect_mode,
+        section_relevance = warning_relevance,
     })
 
 
@@ -3266,6 +3521,9 @@ function M.build(context, opts)
             expanded = M.is_expanded("scope"),
             lines = {},
             line_spans = {},
+            relevance = (active_inspect_mode == "scope")
+                and "current"
+                or "contextual",
             empty_text = "<no scope context>",
         },
 
@@ -3275,11 +3533,8 @@ function M.build(context, opts)
             expanded = M.is_expanded("scope_members"),
             lines = scope_member_render.lines,
             line_spans = scope_member_render.spans,
-            active = section_has_cursor_target(
-                scope_member_nodes,
-                active_source_line,
-                active_source_column
-            ),
+            active = scope_member_affected,
+            relevance = scope_member_relevance,
             line_targets = scope_member_render.targets,
             empty_text = "<no scope members tracked yet>",
         },
@@ -3288,13 +3543,8 @@ function M.build(context, opts)
             id = "registers",
             title = "Registers",
             expanded = M.is_expanded("registers"),
-            active = register_inspection ~= nil
-                and next(register_active_ids or {}) ~= nil
-                or section_has_cursor_target(
-                    register_nodes,
-                    active_source_line,
-                    active_source_column
-                ),
+            active = register_affected,
+            relevance = register_relevance,
             lines = register_render.lines,
             line_spans = register_render.spans,
             line_targets = register_render.targets,
@@ -3305,11 +3555,8 @@ function M.build(context, opts)
             id = "events",
             title = "Events",
             expanded = M.is_expanded("events"),
-            active = section_has_cursor_target(
-                event_nodes,
-                active_source_line,
-                active_source_column
-            ),
+            active = event_affected,
+            relevance = event_relevance,
             lines = event_render.lines,
             line_spans = event_render.spans,
             line_targets = event_render.targets,
@@ -3320,11 +3567,8 @@ function M.build(context, opts)
             id = "stack",
             title = "Stack",
             expanded = M.is_expanded("stack"),
-            active = section_has_cursor_target(
-                stack_nodes,
-                active_source_line,
-                active_source_column
-            ),
+            active = stack_affected,
+            relevance = stack_relevance,
             lines = stack_render.lines,
             line_spans = stack_render.spans,
             line_targets = stack_render.targets,
@@ -3335,11 +3579,8 @@ function M.build(context, opts)
             id = "heap",
             title = "Heap",
             expanded = M.is_expanded("heap"),
-            active = section_has_cursor_target(
-                heap_root.children or {},
-                active_source_line,
-                active_source_column
-            ),
+            active = heap_affected,
+            relevance = heap_relevance,
             lines = heap_render.lines,
             line_spans = heap_render.spans,
             line_targets = heap_render.targets,
@@ -3356,11 +3597,8 @@ function M.build(context, opts)
                 and "warning"
                 or "section_marker",
             expanded = M.is_expanded("warnings"),
-            active = section_has_cursor_target(
-                warning_nodes,
-                active_source_line,
-                active_source_column
-            ),
+            active = warning_affected,
+            relevance = warning_relevance,
             lines = warning_render.lines,
             line_spans = warning_render.spans,
             line_targets = warning_render.targets,
@@ -3409,6 +3647,11 @@ function M.build(context, opts)
                 "scope"
             )
 
+            hud_text.set_relevance(
+                line,
+                scope_section.relevance
+            )
+
             table.insert(
                 scope_section.lines,
                 line.text
@@ -3428,6 +3671,11 @@ function M.build(context, opts)
             "scope"
         )
 
+        hud_text.set_relevance(
+            line,
+            scope_section.relevance
+        )
+
         table.insert(
             scope_section.lines,
             line.text
@@ -3442,4 +3690,3 @@ function M.build(context, opts)
 end
 
 return M
-

@@ -152,6 +152,7 @@ function M.clone(line)
                 start_col = span.start_col,
                 end_col = span.end_col,
                 priority = span.priority,
+                relevance = span.relevance,
             })
         end
     end
@@ -179,6 +180,8 @@ function M.prefixed(prefix, line, prefix_style)
                     style = span.style,
                     start_col = offset + tonumber(span.start_col),
                     end_col = offset + tonumber(span.end_col),
+                    priority = span.priority,
+                    relevance = span.relevance,
                 })
             end
         end
@@ -234,6 +237,31 @@ function M.parse_detail(text, opts)
 end
 
 
+function M.set_relevance(line, relevance)
+    if type(line) ~= "table"
+        or type(line.spans) ~= "table"
+        or type(relevance) ~= "string"
+        or relevance == ""
+    then
+        return line
+    end
+
+    for _, span in ipairs(line.spans) do
+        if type(span) == "table" then
+            span.relevance = relevance
+        end
+    end
+
+    return line
+end
+
+
+function M.with_relevance(line, relevance)
+    local result = M.clone(line)
+    return M.set_relevance(result, relevance)
+end
+
+
 function M.to_text(line)
     if type(line) == "table" then
         return normalize_text(line.text)
@@ -255,4 +283,3 @@ end
 
 
 return M
-

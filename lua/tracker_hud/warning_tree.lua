@@ -117,6 +117,10 @@ local function build_warning_detail_node(warning, key, value, id_suffix)
 
         source_line = warning.source_line,
         source_column = warning.source_column,
+        source_start_line = warning.source_start_line,
+        source_start_column = warning.source_start_column,
+        source_end_line = warning.source_end_line,
+        source_end_column = warning.source_end_column,
     }
 end
 
@@ -263,4 +267,3 @@ end
 
 
 return M
-

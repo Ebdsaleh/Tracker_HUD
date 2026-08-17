@@ -84,6 +84,13 @@ local STYLE_SUFFIXES = {
     resolved = "Resolved",
     unresolved = "Unresolved",
 
+    -- Relevance state. These are presentation modifiers stacked on top of
+    -- semantic groups; they are not semantic identities themselves.
+    focused = "Focused",
+    current = "Current",
+    contextual = "Contextual",
+    historical = "Historical",
+
     -- Fallbacks.
     muted = "Muted",
     empty = "Empty",
@@ -118,7 +125,7 @@ local DEFAULT_LINKS = {
     type = "Type",
     value = "Constant",
     role = "Keyword",
-    origin = "Comment",
+    origin = "String",
 
     status_label = "Comment",
     status_value = "Identifier",
@@ -127,8 +134,8 @@ local DEFAULT_LINKS = {
     target_value = "Identifier",
     diagnostic = "DiagnosticWarn",
     metadata = "Comment",
-    metadata_key = "Comment",
-    metadata_value = "Comment",
+    metadata_key = "Identifier",
+    metadata_value = "String",
 
     register = "Identifier",
     register_alias = "Identifier",
@@ -149,8 +156,8 @@ local DEFAULT_LINKS = {
     warning_severity = "DiagnosticWarn",
     warning_category = "Special",
     warning_message = "DiagnosticWarn",
-    warning_detail_key = "Comment",
-    warning_detail_value = "Identifier",
+    warning_detail_key = "Identifier",
+    warning_detail_value = "String",
     warning_rule = "Keyword",
     resolved = "DiagnosticOk",
     unresolved = "DiagnosticWarn",
@@ -158,6 +165,34 @@ local DEFAULT_LINKS = {
     muted = "Comment",
     empty = "Comment",
 }
+
+local DEFAULT_RELEVANCE_DEFINITIONS = {
+    -- Exact semantic occurrence: strongest state while preserving the
+    -- underlying semantic foreground color.
+    focused = {
+        bold = true,
+        underline = true,
+    },
+
+    -- Current line + matching Inspect Mode, but not an exact symbol.
+    current = {
+        bold = true,
+    },
+
+    -- Current line, but another Inspect Mode owns the user's attention.
+    -- Italic preserves semantic color while clearly lowering emphasis.
+    contextual = {
+        italic = true,
+    },
+
+    -- Retained state from an earlier source position. The semantic meaning is
+    -- still present in the model, but presentation deliberately becomes
+    -- past-tense/muted.
+    historical = {
+        link = "Comment",
+    },
+}
+
 
 local render_namespace =
     vim.api.nvim_create_namespace(
@@ -217,6 +252,31 @@ function M.setup(config)
         end
     end
 
+    for relevance, definition in pairs(
+        DEFAULT_RELEVANCE_DEFINITIONS
+    ) do
+        local group = M.group_name(
+            config,
+            relevance
+        )
+
+        if group then
+            local resolved = {
+                default = true,
+            }
+
+            for key, value in pairs(definition) do
+                resolved[key] = value
+            end
+
+            vim.api.nvim_set_hl(
+                0,
+                group,
+                resolved
+            )
+        end
+    end
+
     return true
 end
 
@@ -239,13 +299,71 @@ function M.clear_buffer(bufnr)
 end
 
 
+local function build_group_stack(
+    config,
+    style,
+    relevance
+)
+    local groups = {}
+
+    local semantic_group =
+        M.group_name(config, style)
+
+    if semantic_group then
+        table.insert(groups, semantic_group)
+    end
+
+    local relevance_group =
+        M.group_name(config, relevance)
+
+    if relevance_group then
+        table.insert(groups, relevance_group)
+    end
+
+    if #groups == 0 then
+        return nil
+    end
+
+    if #groups == 1 then
+        return groups[1]
+    end
+
+    -- Neovim extmarks support a stack of highlight groups. The semantic group
+    -- comes first and the relevance modifier comes last, so focused/current
+    -- typography can augment semantic color while historical can deliberately
+    -- mute it.
+    return groups
+end
+
+
+local function normalize_style_spec(spec)
+    if type(spec) == "string" then
+        return spec, nil
+    end
+
+    if type(spec) == "table" then
+        return spec.style, spec.relevance
+    end
+
+    return nil, nil
+end
+
+
 local function apply_line_style(
     bufnr,
     config,
     line_number,
-    style
+    style_spec
 )
-    local group = M.group_name(config, style)
+    local style, relevance =
+        normalize_style_spec(style_spec)
+
+    local group = build_group_stack(
+        config,
+        style,
+        relevance
+    )
+
     local numeric_line = tonumber(line_number)
 
     if not group or not numeric_line then
@@ -253,16 +371,20 @@ local function apply_line_style(
     end
 
     pcall(
-        vim.api.nvim_buf_add_highlight,
+        vim.api.nvim_buf_set_extmark,
         bufnr,
         render_namespace,
-        group,
         numeric_line - 1,
         0,
-        -1
+        {
+            end_row = numeric_line - 1,
+            end_col = -1,
+            strict = false,
+            hl_group = group,
+            priority = 150,
+        }
     )
 end
-
 
 local function apply_span(
     bufnr,
@@ -274,8 +396,11 @@ local function apply_span(
         return
     end
 
-    local group =
-        M.group_name(config, span.style)
+    local group = build_group_stack(
+        config,
+        span.style,
+        span.relevance
+    )
 
     local start_col =
         normalize_column(span.start_col)
@@ -395,4 +520,3 @@ end
 
 
 return M
-
