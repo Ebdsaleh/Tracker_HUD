@@ -8,6 +8,7 @@ local context = require("tracker_hud.context")
 local hud = require("tracker_hud.hud")
 local adapter_loader = require("tracker_hud.adapters.loader")
 local namespace = require("tracker_hud.namespace")
+local highlights = require("tracker_hud.highlights")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -300,8 +301,9 @@ function M.setup(opts)
     config = config_module.resolve(opts)
 
     -- Resolve once during setup so invalid public prefixes fail before any
-    -- commands, keymaps, or autocmds are registered.
+    -- commands, keymaps, autocmds, or highlight groups are registered.
     namespace.prefix(config)
+    highlights.setup(config)
 
     clear_registered_user_commands()
     adapter_loader.reload(config.adapter_paths)
@@ -327,6 +329,15 @@ function M.setup(opts)
         end,
     })
 
+    -- Colorschemes commonly clear user-defined highlight groups. Reapply our
+    -- default semantic links whenever the active colorscheme changes.
+    vim.api.nvim_create_autocmd("ColorScheme", {
+        group = hud_group,
+        callback = function()
+            highlights.setup(config)
+        end,
+    })
+
     register_user_command("Size", resize_panel_command, {
         nargs = 1,
         complete = function()
@@ -347,4 +358,3 @@ function M.setup(opts)
 end
 
 return M
-

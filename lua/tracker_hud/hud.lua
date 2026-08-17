@@ -5,6 +5,7 @@ local hud_controls = require("tracker_hud.hud_controls")
 local hud_nodes = require("tracker_hud.hud_nodes")
 local inspect_mode = require("tracker_hud.inspect_mode")
 local hud_inspect = require("tracker_hud.hud_inspect")
+local highlights = require("tracker_hud.highlights")
 
 local M = {}
 
@@ -381,9 +382,25 @@ end
 
 
 
-local function append_section_lines(lines, section)
+local function append_line(lines, line_styles, text, style)
+    table.insert(lines, text)
+
+    if style then
+        line_styles[#lines] = style
+    end
+
+    return #lines
+end
+
+
+local function append_section_lines(lines, line_styles, section)
     if section.kind == "control" then
-        table.insert(lines, section.title or "<control>")
+        append_line(
+            lines,
+            line_styles,
+            section.title or "<control>",
+            "control"
+        )
         panel_line_targets[#lines] = {
             kind = "control",
             id = section.id,
@@ -394,7 +411,12 @@ local function append_section_lines(lines, section)
     local marker = section.expanded and "[-]" or "[+]"
     local active_marker = section.active and " *" or ""
 
-    table.insert(lines, section.title .. " " .. marker .. active_marker)
+    append_line(
+        lines,
+        line_styles,
+        section.title .. " " .. marker .. active_marker,
+        section.active and "active" or "section"
+    )
 
     panel_line_targets[#lines] = {
         kind = "section",
@@ -404,40 +426,73 @@ local function append_section_lines(lines, section)
     if section.expanded then
         if section.lines and #section.lines > 0 then
             for index, line in ipairs(section.lines) do
-                table.insert(lines, line)
+                local target = section.line_targets
+                    and section.line_targets[index]
+                    or nil
 
-                if section.line_targets and section.line_targets[index] then
-                    panel_line_targets[#lines] = section.line_targets[index]
+                append_line(
+                    lines,
+                    line_styles,
+                    line,
+                    target and target.style or nil
+                )
+
+                if target then
+                    panel_line_targets[#lines] = target
                 end
             end
         else
-            table.insert(lines, "  " .. (section.empty_text or "<empty>"))
+            append_line(
+                lines,
+                line_styles,
+                "  " .. (section.empty_text or "<empty>"),
+                "muted"
+            )
         end
     end
 
-    table.insert(lines, "")
+    append_line(lines, line_styles, "", nil)
 end
 
 
 local function format_panel_lines(context)
+    local line_styles = {}
+
     if not context then
-        return {
-            "Tracker HUD",
-            "",
+        local lines = {}
+
+        append_line(lines, line_styles, "Tracker HUD", "title")
+        append_line(lines, line_styles, "", nil)
+        append_line(
+            lines,
+            line_styles,
             "No Tree-sitter context available.",
-            "",
+            "muted"
+        )
+        append_line(lines, line_styles, "", nil)
+        append_line(
+            lines,
+            line_styles,
             "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-        }
+            "tip"
+        )
+
+        return lines, line_styles
     end
 
     panel_line_targets = {}
 
-    local lines = {
-        "Tracker HUD",
-        "",
+    local lines = {}
+
+    append_line(lines, line_styles, "Tracker HUD", "title")
+    append_line(lines, line_styles, "", nil)
+    append_line(
+        lines,
+        line_styles,
         "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-        "",
-    }
+        "tip"
+    )
+    append_line(lines, line_styles, "", nil)
 
     -- Current Scope Lines:
     local scope_line_text = "Current scope lines:"
@@ -449,10 +504,15 @@ local function format_panel_lines(context)
             .. " - "
             .. tostring(context.end_line)
     end
-    table.insert(lines, scope_line_text)
+    append_line(lines, line_styles, scope_line_text, "metadata")
 
     -- Depth:
-    table.insert(lines, "Depth: " .. tostring(context.depth or 0))
+    append_line(
+        lines,
+        line_styles,
+        "Depth: " .. tostring(context.depth or 0),
+        "metadata"
+    )
 
     -- Current Line:
     local current_line_text = "Current Line:"
@@ -464,19 +524,24 @@ local function format_panel_lines(context)
             .. "]"
     end
 
-    table.insert(lines, current_line_text)
+    append_line(lines, line_styles, current_line_text, "metadata")
 
     local target_lines = build_target_lines(context.targets)
 
     if #target_lines > 0 then
-        table.insert(lines, "")
+        append_line(lines, line_styles, "", nil)
 
-        for _, line in ipairs(target_lines) do
-            table.insert(lines, line)
+        for index, line in ipairs(target_lines) do
+            append_line(
+                lines,
+                line_styles,
+                line,
+                index == 1 and "metadata" or "warning"
+            )
         end
     end
 
-    table.insert(lines, "")
+    append_line(lines, line_styles, "", nil)
 
     local panel_width = resolved_panel_size
     if is_valid_window(panel_winid) then
@@ -492,14 +557,15 @@ local function format_panel_lines(context)
     })
 
     for _, section in ipairs(sections) do
-        append_section_lines(lines, section)
+        append_section_lines(lines, line_styles, section)
     end
 
-    return lines
+    return lines, line_styles
 end
 
+
 local function render_panel(context, config, source_winid)
-    local lines = format_panel_lines(context)
+    local lines, line_styles = format_panel_lines(context)
 
     create_panel(config, source_winid, lines)
     set_panel_statusline()
@@ -511,24 +577,34 @@ local function render_panel(context, config, source_winid)
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
+    highlights.apply_line_styles(panel_bufnr, config, line_styles)
 
     local panel_position = get_panel_position(config)
     restore_focus(source_winid, nil, panel_position)
 end
 
-function M.clear(_config)
+function M.clear(config)
     if is_valid_buffer(panel_bufnr) then
-        vim.bo[panel_bufnr].modifiable = true
-        vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, {
+        local lines = {
             "Tracker HUD",
             "",
             "No active context.",
             "",
             "Tip: Ctrl+w h/j/k/l to focus panel, Enter to toggle, Tab to jump when Show All is enabled.",
-        })
+        }
+
+        vim.bo[panel_bufnr].modifiable = true
+        vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
         vim.bo[panel_bufnr].modifiable = false
+
+        highlights.apply_line_styles(panel_bufnr, config or {}, {
+            [1] = "title",
+            [3] = "muted",
+            [5] = "tip",
+        })
     end
 end
+
 
 
 local function refresh_cursor_inspection(
@@ -699,11 +775,16 @@ function M.update_panel()
         last_source_winid
     )
 
-    local lines = format_panel_lines(last_context)
+    local lines, line_styles = format_panel_lines(last_context)
 
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)
     vim.bo[panel_bufnr].modifiable = false
+    highlights.apply_line_styles(
+        panel_bufnr,
+        last_config or {},
+        line_styles
+    )
     set_panel_statusline()
 
     set_panel_cursor_location(panel_cursor)
@@ -952,7 +1033,3 @@ function M.toggle_target(target)
 end
 
 return M
-
-
-
-

@@ -17,6 +17,12 @@ M.defaults = {
         prefix = "Hud",
     },
 
+    -- Semantic HUD highlighting. Public highlight group names are generated
+    -- from namespace.prefix (for example: HudDestination).
+    highlights = {
+        enabled = true,
+    },
+
     -- "left", "right", "top", or "bottom"
     panel_position = "right",
 
@@ -81,3 +87,4 @@ end
 
 
 return M
+

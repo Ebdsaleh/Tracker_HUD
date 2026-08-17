@@ -219,6 +219,37 @@ local function get_node_marker(node, opts)
 end
 
 
+local function get_node_style(node, opts)
+    if type(node) ~= "table" then
+        return nil
+    end
+
+    local style_by_node_id = type(opts) == "table"
+        and opts.style_by_node_id
+        or nil
+
+    if type(style_by_node_id) == "table"
+        and style_by_node_id[node.id]
+    then
+        return style_by_node_id[node.id]
+    end
+
+    if type(node.style) == "string" and node.style ~= "" then
+        return node.style
+    end
+
+    if node.kind == "warning" then
+        return "warning"
+    end
+
+    if node.kind == "detail" or node.kind == "warning_detail" then
+        return "metadata"
+    end
+
+    return nil
+end
+
+
 local function build_scope_range_label(node)
     if type(node) ~= "table" then
         return nil
@@ -267,6 +298,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                         id = node.id,
                         source_line = node.source_line,
                         source_column = node.source_column,
+                        style = get_node_style(node, opts),
                     }
                 else
                     table.insert(result.lines, indent .. rendered_label)
@@ -275,6 +307,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                         id = node.id,
                         source_line = node.source_line,
                         source_column = node.source_column,
+                        style = get_node_style(node, opts),
                     }
 
                     table.insert(result.lines, indent .. "  " .. range_label)
@@ -286,6 +319,7 @@ local function append_scope_member_tree_lines(result, nodes, depth, opts)
                     id = node.id,
                     source_line = node.source_line,
                     source_column = node.source_column,
+                    style = get_node_style(node, opts),
                 }
             end
 
@@ -2209,11 +2243,36 @@ function M.build(context, opts)
         and register_inspection.target_ids
         or nil
 
+    local register_style_by_node_id = {}
+
+    if register_inspection then
+        for register_id, active in pairs(register_active_ids or {}) do
+            if active == true then
+                local role = register_inspection.roles
+                    and register_inspection.roles[register_id]
+                    or nil
+                local style = nil
+
+                if role == "destination" or role == "source" then
+                    style = role
+                else
+                    -- An operation-level register target without an explicit
+                    -- operand role is an implicit architectural effect.
+                    style = "implicit"
+                end
+
+                register_style_by_node_id[register_id] = style
+                register_style_by_node_id[register_id .. ":role"] = style
+            end
+        end
+    end
+
     local register_render = build_hud_tree_lines(register_nodes, {
         panel_width = opts.panel_width,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = register_active_ids,
+        style_by_node_id = register_style_by_node_id,
     })
 
     local event_nodes = event_tree.build(context.events or {}, context)
@@ -2379,3 +2438,4 @@ function M.build(context, opts)
 end
 
 return M
+
