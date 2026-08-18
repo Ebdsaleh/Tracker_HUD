@@ -490,6 +490,16 @@ local function style_detail_label(
     elseif normalized_key == "source" then
         key_style = "origin"
         value_style = "origin"
+    elseif normalized_key == "value source"
+        or normalized_key == "selected source"
+        or normalized_key == "source kind"
+        or normalized_key == "source role"
+    then
+        key_style = "origin"
+        value_style = "source"
+    elseif normalized_key == "source operand" then
+        key_style = "origin"
+        value_style = "value"
     elseif normalized_key == "written alias" then
         key_style = "register_alias"
         value_style = "register_alias"
@@ -2523,7 +2533,13 @@ local function build_register_line_role_overrides(
                     or {}
             ) do
                 if selected[target_id] then
-                    roles[target_id] = occurrence.role
+                    local target_roles = type(occurrence.metadata) == "table"
+                        and occurrence.metadata.target_roles
+                        or nil
+
+                    roles[target_id] = type(target_roles) == "table"
+                        and target_roles[target_id]
+                        or occurrence.role
                 end
             end
         end
@@ -3366,8 +3382,17 @@ function M.build(context, opts)
                     or nil
                 local style = nil
 
-                if role == "destination" or role == "source" then
-                    style = role
+                if type(role) == "string"
+                    and role:lower():match("^destination")
+                then
+                    style = "destination"
+                elseif type(role) == "string"
+                    and (
+                        role:lower():match("^source")
+                        or role:lower():find("from", 1, true)
+                    )
+                then
+                    style = "source"
                 else
                     -- An operation-level register target without an explicit
                     -- operand role is an implicit architectural effect.

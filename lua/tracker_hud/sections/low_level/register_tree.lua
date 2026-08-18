@@ -16,6 +16,130 @@ local function build_register_detail_node(register, detail_id, label)
     )
 end
 
+
+local function append_metadata_detail(children, register, detail_id, label, value)
+    if value == nil then
+        return
+    end
+
+    if type(value) == "string" and value == "" then
+        return
+    end
+
+    table.insert(children, build_register_detail_node(
+        register,
+        detail_id,
+        label .. ": " .. tostring(value)
+    ))
+end
+
+
+local function occurrence_targets_register(occurrence, register_id)
+    if not core.is_table(occurrence)
+        or not core.is_non_empty_string(register_id)
+        or not core.is_table(occurrence.targets)
+        or not core.is_table(occurrence.targets.state)
+    then
+        return false
+    end
+
+    for _, target_id in ipairs(occurrence.targets.state) do
+        if target_id == register_id then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function get_selected_source_metadata(context, register_id)
+    if not core.is_table(context)
+        or not core.is_table(context.register_inspection)
+        or context.register_inspection.active ~= true
+        or context.register_inspection.exact_occurrence ~= true
+    then
+        return nil
+    end
+
+    local occurrence = context.register_inspection.occurrence
+
+    if not occurrence_targets_register(occurrence, register_id) then
+        return nil
+    end
+
+    local metadata = core.is_table(occurrence.metadata)
+        and occurrence.metadata
+        or nil
+
+    if not core.is_table(metadata)
+        or not core.is_non_empty_string(metadata.value_source)
+    then
+        return nil
+    end
+
+    local source_role = type(metadata.source_role) == "string"
+        and metadata.source_role:lower()
+        or nil
+
+    if not source_role or not source_role:match("^source") then
+        return nil
+    end
+
+    return metadata
+end
+
+
+local function append_source_details(children, register, context)
+    local metadata = register.metadata or {}
+    local selected_metadata = get_selected_source_metadata(
+        context,
+        register.id
+    )
+
+    if selected_metadata then
+        append_metadata_detail(
+            children,
+            register,
+            "selected-source",
+            "selected source",
+            selected_metadata.value_source
+        )
+    end
+
+    append_metadata_detail(
+        children,
+        register,
+        "value-source",
+        "value source",
+        metadata.value_source
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "source-operand",
+        "source operand",
+        metadata.source_operand_text or metadata.source_operand
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "source-kind",
+        "source kind",
+        metadata.source_kind
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "source-role",
+        "source role",
+        metadata.source_role
+    )
+end
+
 local function alias_label(register, alias_name, alias_spec)
     local metadata = register.metadata or {}
     local written_alias = metadata.alias_written
@@ -152,6 +276,8 @@ local function build_register_node(register, context)
         "source: " .. tostring(register.source or "<unknown>")
     ))
 
+    append_source_details(children, register, context)
+
     local metadata = register.metadata or {}
 
     if core.is_non_empty_string(metadata.raw_name)
@@ -240,4 +366,3 @@ function M.build(registers, context)
 end
 
 return M
-

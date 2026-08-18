@@ -1495,6 +1495,153 @@ local function register_fact_is_resolved(fact)
 end
 
 
+local function get_effect_operand_spec(effect_spec, operand_index)
+    if not core.is_table(effect_spec)
+        or not core.is_table(effect_spec.operands)
+        or not operand_index
+    then
+        return nil
+    end
+
+    for _, operand_spec in ipairs(effect_spec.operands) do
+        if tonumber(operand_spec.index) == tonumber(operand_index) then
+            return operand_spec
+        end
+    end
+
+    return nil
+end
+
+
+local function format_operand_role_label(role)
+    if not core.is_non_empty_string(role) then
+        return nil
+    end
+
+    return role:gsub("_", " ")
+end
+
+
+local function get_operand_kind_label(kind)
+    if not core.is_non_empty_string(kind) then
+        return nil
+    end
+
+    if kind == "integer" then
+        return "immediate"
+    end
+
+    return kind:gsub("_", " ")
+end
+
+
+local function get_source_operand_index(effect)
+    if not core.is_table(effect) then
+        return nil
+    end
+
+    return tonumber(effect.value_operand)
+        or tonumber(effect.value_from_register_operand)
+        or tonumber(effect.value_delta_operand)
+        or tonumber(effect.size_operand)
+end
+
+
+local function build_value_source_label(operand)
+    if not core.is_table(operand)
+        or not core.is_non_empty_string(operand.text)
+    then
+        return nil
+    end
+
+    local kind_label = get_operand_kind_label(operand.kind)
+
+    if core.is_non_empty_string(kind_label) then
+        return kind_label .. " " .. operand.text
+    end
+
+    return operand.text
+end
+
+
+local function build_source_operand_metadata(effect_spec, instruction, effect)
+    if not core.is_table(instruction)
+        or not core.is_table(effect)
+    then
+        return {}
+    end
+
+    local metadata = {}
+    local source_index = get_source_operand_index(effect)
+    local source_operand = source_index
+        and instruction.operands
+        and instruction.operands[source_index]
+        or nil
+
+    if core.is_table(source_operand)
+        and core.is_non_empty_string(source_operand.text)
+    then
+        local operand_spec = get_effect_operand_spec(
+            effect_spec,
+            source_index
+        ) or {}
+
+        local kind_label = get_operand_kind_label(source_operand.kind)
+        local role_label = format_operand_role_label(operand_spec.role)
+        local value_source = build_value_source_label(source_operand)
+
+        metadata.source_operand_index = source_index
+        metadata.source_operand = source_operand.text
+        metadata.source_operand_text = source_operand.text
+        metadata.source_operand_kind = source_operand.kind
+        metadata.source_kind = kind_label
+        metadata.source_operand_role = operand_spec.role
+        metadata.source_role = role_label
+        metadata.value_source = value_source
+        metadata.value_source_kind = kind_label
+        metadata.value_source_text = source_operand.text
+
+        metadata.source_operand_line = source_operand.source_line
+        metadata.source_operand_column = source_operand.source_column
+        metadata.source_operand_start_line = source_operand.source_start_line
+        metadata.source_operand_start_column = source_operand.source_start_column
+        metadata.source_operand_end_line = source_operand.source_end_line
+        metadata.source_operand_end_column = source_operand.source_end_column
+
+        return metadata
+    end
+
+    if core.is_non_empty_string(effect.value_from_register) then
+        metadata.source_operand_kind = "register"
+        metadata.source_kind = "register"
+        metadata.source_operand_role = "source_register"
+        metadata.source_role = "source register"
+        metadata.source_operand = effect.value_from_register
+        metadata.source_operand_text = effect.value_from_register
+        metadata.value_source = "register " .. effect.value_from_register
+        metadata.value_source_kind = "register"
+        metadata.value_source_text = effect.value_from_register
+    end
+
+    return metadata
+end
+
+
+local function merge_source_metadata(target, source)
+    if not core.is_table(target) or not core.is_table(source) then
+        return target
+    end
+
+    for key, value in pairs(source) do
+        if value ~= nil then
+            target[key] = value
+        end
+    end
+
+    return target
+end
+
+
 local function resolve_register_effect_value(facts_by_register, instruction, effect)
     local value = effect.value
     local resolved = value ~= nil
@@ -1651,6 +1798,30 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
     )
 
     local static_spec = get_static_register_spec(adapter, target_register) or {}
+    local metadata = {
+        adapter = adapter.name,
+        architecture = adapter.architecture,
+        variant = adapter.active_variant_name,
+        mnemonic = instruction.mnemonic,
+        effect = effect.name,
+
+        -- Semantic origin of the effect target. This is deliberately
+        -- presentation-neutral: consumers can distinguish an explicitly
+        -- named operand write from an architectural/implicit register
+        -- effect without reverse-engineering the instruction text.
+        effect_target_origin = target_index
+            and "operand"
+            or "implicit_register",
+    }
+
+    merge_source_metadata(
+        metadata,
+        build_source_operand_metadata(
+            effect_spec,
+            instruction,
+            effect
+        )
+    )
 
     return {
         name = target_register:lower(),
@@ -1691,21 +1862,7 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
             or instruction.source_column
             or 0,
 
-        metadata = {
-            adapter = adapter.name,
-            architecture = adapter.architecture,
-            variant = adapter.active_variant_name,
-            mnemonic = instruction.mnemonic,
-            effect = effect.name,
-
-            -- Semantic origin of the effect target. This is deliberately
-            -- presentation-neutral: consumers can distinguish an explicitly
-            -- named operand write from an architectural/implicit register
-            -- effect without reverse-engineering the instruction text.
-            effect_target_origin = target_index
-                and "operand"
-                or "implicit_register",
-        },
+        metadata = metadata,
     }
 
 end
@@ -2122,6 +2279,167 @@ local function build_register_mnemonic_occurrence(
 end
 
 
+local function operand_role_is_source(role)
+    if not core.is_non_empty_string(role) then
+        return false
+    end
+
+    return role:lower():match("^source") ~= nil
+end
+
+
+local function operand_role_is_destination(role)
+    if not core.is_non_empty_string(role) then
+        return false
+    end
+
+    return role:lower():match("^destination") ~= nil
+end
+
+
+local function add_effect_target_register_ids(
+    target_ids,
+    seen_target_ids,
+    adapter,
+    instruction,
+    effect_spec
+)
+    if not core.is_table(target_ids)
+        or not core.is_table(seen_target_ids)
+        or not core.is_table(effect_spec)
+        or not core.is_table(effect_spec.effect)
+    then
+        return
+    end
+
+    local effect = effect_spec.effect
+
+    if core.is_non_empty_string(effect.target_register) then
+        add_unique_string(
+            target_ids,
+            seen_target_ids,
+            register_occurrence_target_id(
+                adapter,
+                effect.target_register
+            )
+        )
+    end
+
+    local target_operand_index = tonumber(effect.target_operand)
+    local target_operand = target_operand_index
+        and instruction
+        and instruction.operands
+        and instruction.operands[target_operand_index]
+        or nil
+
+    if core.is_table(target_operand)
+        and target_operand.kind == "register"
+    then
+        add_unique_string(
+            target_ids,
+            seen_target_ids,
+            register_occurrence_target_id(
+                adapter,
+                target_operand.text
+            )
+        )
+    end
+end
+
+
+local function get_effect_target_register_ids(
+    adapter,
+    instruction,
+    effect_spec
+)
+    local target_ids = {}
+    local seen_target_ids = {}
+
+    add_effect_target_register_ids(
+        target_ids,
+        seen_target_ids,
+        adapter,
+        instruction,
+        effect_spec
+    )
+
+    return target_ids
+end
+
+
+local function build_source_written_role(instruction, operand)
+    local kind_label = get_operand_kind_label(
+        core.is_table(operand) and operand.kind or nil
+    ) or "source"
+
+    local mnemonic = instruction and instruction.mnemonic or nil
+
+    if kind_label == "memory" then
+        return "loaded from memory"
+            .. (mnemonic and " by " .. mnemonic or "")
+    end
+
+    return "written from "
+        .. kind_label
+        .. (mnemonic and " by " .. mnemonic or "")
+end
+
+
+local function build_operand_occurrence_metadata(
+    adapter,
+    instruction,
+    operand,
+    operand_index,
+    operand_role,
+    target_roles
+)
+    local metadata = {
+        instruction_start_column = instruction
+            and instruction.source_start_column
+            or nil,
+        instruction_end_column = instruction
+            and instruction.source_end_column
+            or nil,
+        target_roles = target_roles,
+    }
+
+    if core.is_table(operand) then
+        metadata.operand_kind = operand.kind
+        metadata.operand_kind_label = get_operand_kind_label(operand.kind)
+        metadata.operand_role = operand_role
+        metadata.operand_role_label = format_operand_role_label(operand_role)
+        metadata.operand_index = operand_index
+    end
+
+    if core.is_table(operand)
+        and core.is_non_empty_string(operand.text)
+    then
+        metadata.source_operand_index = operand_index
+        metadata.source_operand = operand.text
+        metadata.source_operand_text = operand.text
+        metadata.source_operand_kind = operand.kind
+        metadata.source_kind = get_operand_kind_label(operand.kind)
+        metadata.source_operand_role = operand_role
+        metadata.source_role = format_operand_role_label(operand_role)
+        metadata.value_source = build_value_source_label(operand)
+        metadata.value_source_kind = get_operand_kind_label(operand.kind)
+        metadata.value_source_text = operand.text
+    end
+
+    if core.is_table(operand)
+        and operand.kind == "register"
+    then
+        metadata.register_name = resolve_register_occurrence_name(
+            adapter,
+            operand.text
+        )
+        metadata.written_name = operand.text
+    end
+
+    return metadata
+end
+
+
 local function build_register_operand_occurrence(
     adapter,
     instruction,
@@ -2130,17 +2448,94 @@ local function build_register_operand_occurrence(
     effect_specs
 )
     if not core.is_table(operand)
-        or operand.kind ~= "register"
+        or not core.is_non_empty_string(operand.text)
     then
         return nil
     end
 
-    local target_id = register_occurrence_target_id(
-        adapter,
-        operand.text
-    )
+    local target_ids = {}
+    local seen_target_ids = {}
+    local target_roles = {}
+    local own_register_id = nil
+    local occurrence_role = nil
+    local operand_role = nil
 
-    if not target_id then
+    if operand.kind == "register" then
+        own_register_id = register_occurrence_target_id(
+            adapter,
+            operand.text
+        )
+
+        add_unique_string(
+            target_ids,
+            seen_target_ids,
+            own_register_id
+        )
+    end
+
+    for _, effect_spec in ipairs(effect_specs or {}) do
+        local operand_spec = get_effect_operand_spec(
+            effect_spec,
+            operand_index
+        )
+
+        local raw_role = core.is_table(operand_spec)
+            and operand_spec.role
+            or nil
+
+        local normalized_role = normalize_register_occurrence_role(
+            raw_role
+        )
+
+        if normalized_role then
+            operand_role = operand_role or raw_role or normalized_role
+            occurrence_role = occurrence_role or normalized_role
+        end
+
+        if own_register_id and normalized_role then
+            target_roles[own_register_id] = normalized_role
+        end
+
+        if operand_role_is_source(raw_role or normalized_role) then
+            for _, target_id in ipairs(
+                get_effect_target_register_ids(
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
+            ) do
+                add_unique_string(
+                    target_ids,
+                    seen_target_ids,
+                    target_id
+                )
+
+                -- If the source operand and write target are the same canonical
+                -- register, keep the cursor meaning as "source". This preserves
+                -- useful same-register cases such as `xor rdi, rdi`.
+                if target_id ~= own_register_id then
+                    target_roles[target_id] = build_source_written_role(
+                        instruction,
+                        operand
+                    )
+                end
+            end
+        elseif operand_role_is_destination(raw_role or normalized_role) then
+            for _, target_id in ipairs(
+                get_effect_target_register_ids(
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
+            ) do
+                if target_id == own_register_id then
+                    target_roles[target_id] = "destination"
+                end
+            end
+        end
+    end
+
+    if #target_ids == 0 then
         return nil
     end
 
@@ -2150,28 +2545,18 @@ local function build_register_operand_occurrence(
         start_column = operand.source_start_column,
         end_column = operand.source_end_column,
         operand_index = operand_index,
-        role = get_register_operand_occurrence_role(
-            effect_specs,
-            operand_index
-        ),
+        role = occurrence_role,
         targets = {
-            state = {
-                target_id,
-            },
+            state = target_ids,
         },
-        metadata = {
-            register_name = resolve_register_occurrence_name(
-                adapter,
-                operand.text
-            ),
-            written_name = operand.text,
-            instruction_start_column = instruction
-                and instruction.source_start_column
-                or nil,
-            instruction_end_column = instruction
-                and instruction.source_end_column
-                or nil,
-        },
+        metadata = build_operand_occurrence_metadata(
+            adapter,
+            instruction,
+            operand,
+            operand_index,
+            operand_role,
+            target_roles
+        ),
     }
 end
 
@@ -3612,4 +3997,3 @@ end
 
 
 return M
-
