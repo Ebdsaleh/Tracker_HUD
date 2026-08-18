@@ -556,7 +556,11 @@ local function warning_detail_value_style(node)
     end
 
     if detail_kind == "register" then
-        return "register"
+        -- In the Warnings section, the register value itself should read as a
+        -- problematic warning fact rather than as a neutral register identity.
+        -- This keeps the key label semantic (register metadata) while giving
+        -- the concrete register name an amber/warning tone.
+        return "unresolved"
     end
 
     if detail_kind == "boundary" then

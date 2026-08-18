@@ -171,7 +171,6 @@ local DEFAULT_RELEVANCE_DEFINITIONS = {
     -- underlying semantic foreground color.
     focused = {
         bold = true,
-        underline = true,
     },
 
     -- Current line + matching Inspect Mode, but not an exact symbol.
@@ -520,3 +519,7 @@ end
 
 
 return M
+
+
+
+
