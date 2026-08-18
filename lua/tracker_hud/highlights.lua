@@ -170,7 +170,7 @@ local DEFAULT_STYLE_DEFINITIONS = {
     register = { fg = "#7DCFFF" },
     register_alias = { fg = "#89DDFF" },
     destination = { fg = "#9ECE6A" },
-    source = { fg = "#73DACA" },
+    source = { fg = "#9ECE6A" },
 
     -- Implicit architectural effects deliberately share the warning color
     -- family by default without sharing warning semantics. This makes hidden
@@ -755,4 +755,3 @@ end
 
 
 return M
-

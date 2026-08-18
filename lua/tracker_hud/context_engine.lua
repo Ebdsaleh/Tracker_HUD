@@ -2510,15 +2510,13 @@ local function build_register_operand_occurrence(
                     target_id
                 )
 
-                -- If the source operand and write target are the same canonical
-                -- register, keep the cursor meaning as "source". This preserves
-                -- useful same-register cases such as `xor rdi, rdi`.
-                if target_id ~= own_register_id then
-                    target_roles[target_id] = build_source_written_role(
-                        instruction,
-                        operand
-                    )
-                end
+                -- Exact operand inspection should teach syntactic roles, not
+                -- post-instruction state. When the cursor is on operand 2 in
+                -- `mov rax, 60`, the selected thing is a source operand even
+                -- though the revealed register state target is RAX. The
+                -- carried/post-line state still comes from the register fact's
+                -- own role, such as "written by mov".
+                target_roles[target_id] = "source"
             end
         elseif operand_role_is_destination(raw_role or normalized_role) then
             for _, target_id in ipairs(

@@ -105,8 +105,21 @@ local function append_source_details(children, register, context)
             "selected source",
             selected_metadata.value_source
         )
+
+        append_metadata_detail(
+            children,
+            register,
+            "source-role",
+            "source role",
+            selected_metadata.source_role
+        )
+
+        return
     end
 
+    -- Post-statement/state view: keep this deliberately compact. The
+    -- register's own `role` line already says what happened (`written by mov`,
+    -- `updated by xor`, etc.); this line only says where the value came from.
     append_metadata_detail(
         children,
         register,
@@ -114,31 +127,8 @@ local function append_source_details(children, register, context)
         "value source",
         metadata.value_source
     )
-
-    append_metadata_detail(
-        children,
-        register,
-        "source-operand",
-        "source operand",
-        metadata.source_operand_text or metadata.source_operand
-    )
-
-    append_metadata_detail(
-        children,
-        register,
-        "source-kind",
-        "source kind",
-        metadata.source_kind
-    )
-
-    append_metadata_detail(
-        children,
-        register,
-        "source-role",
-        "source role",
-        metadata.source_role
-    )
 end
+
 
 local function alias_label(register, alias_name, alias_spec)
     local metadata = register.metadata or {}

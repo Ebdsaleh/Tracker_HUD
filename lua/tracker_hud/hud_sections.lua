@@ -2507,45 +2507,16 @@ end
 
 
 local function build_register_line_role_overrides(
-    compiled_line,
-    selected_ids
+    _compiled_line,
+    _selected_ids
 )
-    local selected = {}
-    local roles = {}
-
-    for _, target_id in ipairs(selected_ids or {}) do
-        selected[target_id] = true
-    end
-
-    -- Occurrences are source-ordered. Later occurrences overwrite earlier
-    -- roles for the same register, so line-level inspection behaves as though
-    -- execution has moved past the statement. For `xor rdi, rdi`, RDI is
-    -- therefore presented as the second/source occurrence.
-    for _, occurrence in ipairs(
-        compiled_line.occurrences or {}
-    ) do
-        if type(occurrence.role) == "string"
-            and occurrence.role ~= ""
-        then
-            for _, target_id in ipairs(
-                occurrence.targets
-                    and occurrence.targets.state
-                    or {}
-            ) do
-                if selected[target_id] then
-                    local target_roles = type(occurrence.metadata) == "table"
-                        and occurrence.metadata.target_roles
-                        or nil
-
-                    roles[target_id] = type(target_roles) == "table"
-                        and target_roles[target_id]
-                        or occurrence.role
-                end
-            end
-        end
-    end
-
-    return roles
+    -- Whole-line inspection is a post-statement/state view, not an exact
+    -- operand view. Do not reuse operand roles here: if the cursor is on
+    -- trailing whitespace after `mov rax, 60`, RAX should present its carried
+    -- state role (`written by mov`) instead of the last operand role (`source`).
+    -- Returning no overrides lets register_tree fall back to each register
+    -- fact's own role.
+    return {}
 end
 
 
@@ -3393,14 +3364,18 @@ function M.build(context, opts)
                     )
                 then
                     style = "source"
-                else
-                    -- An operation-level register target without an explicit
-                    -- operand role is an implicit architectural effect.
+                elseif register_inspection.exact_occurrence == true then
+                    -- An exact operation-level register target without an
+                    -- explicit operand role is an implicit architectural
+                    -- effect. Whole-line/post-statement inspection intentionally
+                    -- falls back to normal register styling instead.
                     style = "implicit"
                 end
 
-                register_style_by_node_id[register_id] = style
-                register_style_by_node_id[register_id .. ":role"] = style
+                if style then
+                    register_style_by_node_id[register_id] = style
+                    register_style_by_node_id[register_id .. ":role"] = style
+                end
             end
         end
     end
