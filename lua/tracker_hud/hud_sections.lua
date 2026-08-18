@@ -555,16 +555,28 @@ local function warning_detail_value_style(node)
         return "origin"
     end
 
-    if detail_kind == "register" then
-        -- In the Warnings section, the register value itself should read as a
-        -- problematic warning fact rather than as a neutral register identity.
-        -- This keeps the key label semantic (register metadata) while giving
-        -- the concrete register name an amber/warning tone.
-        return "unresolved"
+    if detail_kind == "register"
+        or detail_kind == "pointer"
+        or detail_kind == "symbol"
+        or detail_kind == "address"
+        or detail_kind == "argument_name"
+    then
+        -- Warning subjects are the implicated things named by a warning.
+        -- They should not collapse into generic register/value styling, and
+        -- they should not share the hotter failure color used by unresolved.
+        return "warning_subject"
     end
 
     if detail_kind == "boundary" then
         return "boundary"
+    end
+
+    if detail_kind == "rule_source" then
+        return "warning_rule_source"
+    end
+
+    if detail_kind == "rule_check" then
+        return "warning_rule_check"
     end
 
     if detail_kind == "rule" then
@@ -575,10 +587,6 @@ local function warning_detail_value_style(node)
         or detail_kind == "value"
     then
         return "value"
-    end
-
-    if detail_kind == "argument_name" then
-        return "name"
     end
 
     if detail_kind == "resolution" then

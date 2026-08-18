@@ -6,10 +6,11 @@
 -- highlight-group names are resolved through tracker_hud.namespace so the
 -- final project name is not hard-coded into presentation logic.
 --
--- This module intentionally defines presentation TARGETS, not fixed colors.
--- Defaults link to standard Neovim groups. Users/colorschemes can override any
--- generated group, including font-style attributes such as bold, italic,
--- underline, undercurl, strikethrough, and reverse.
+-- This module gives semantic information a consistent visual vocabulary:
+-- semantic identity chooses the hue/family, while relevance chooses the
+-- intensity/emphasis. Users/colorschemes can still override any generated
+-- group, including font-style attributes such as bold, italic, underline,
+-- undercurl, strikethrough, and reverse.
 
 local namespace = require("tracker_hud.namespace")
 
@@ -80,12 +81,16 @@ local STYLE_SUFFIXES = {
     warning_message = "WarningMessage",
     warning_detail_key = "WarningDetailKey",
     warning_detail_value = "WarningDetailValue",
+    warning_subject = "WarningSubject",
     warning_rule = "WarningRule",
+    warning_rule_source = "WarningRuleSource",
+    warning_rule_check = "WarningRuleCheck",
     resolved = "Resolved",
     unresolved = "Unresolved",
 
     -- Relevance state. These are presentation modifiers stacked on top of
-    -- semantic groups; they are not semantic identities themselves.
+    -- semantic groups when a relevance-specific semantic group is not known.
+    -- They are not semantic identities themselves.
     focused = "Focused",
     current = "Current",
     contextual = "Contextual",
@@ -96,6 +101,7 @@ local STYLE_SUFFIXES = {
     empty = "Empty",
 }
 
+-- Fallback links for styles that do not need a dedicated default color.
 local DEFAULT_LINKS = {
     title = "Title",
     tip = "Comment",
@@ -115,7 +121,6 @@ local DEFAULT_LINKS = {
     separator = "Delimiter",
     operator = "Operator",
     qualifier = "Type",
-    line_number = "LineNr",
     scope = "Function",
     scope_range = "Comment",
     member = "Identifier",
@@ -123,9 +128,7 @@ local DEFAULT_LINKS = {
     kind = "Type",
     name = "Identifier",
     type = "Type",
-    value = "Constant",
     role = "Keyword",
-    origin = "String",
 
     status_label = "Comment",
     status_value = "Identifier",
@@ -134,63 +137,97 @@ local DEFAULT_LINKS = {
     target_value = "Identifier",
     diagnostic = "DiagnosticWarn",
     metadata = "Comment",
-    metadata_key = "Identifier",
-    metadata_value = "String",
 
-    register = "Identifier",
-    register_alias = "Identifier",
     stack = "Identifier",
     heap = "Identifier",
     event = "Special",
-    boundary = "DiagnosticWarn",
-
-    destination = "DiagnosticOk",
-    source = "DiagnosticInfo",
-
-    -- Implicit architectural effects deliberately share the warning color
-    -- family by default without sharing warning semantics. This makes hidden
-    -- register side-effects such as syscall clobbers visually obvious.
-    implicit = "DiagnosticWarn",
-
-    warning = "DiagnosticWarn",
-    warning_severity = "DiagnosticWarn",
-    warning_category = "Special",
-    warning_message = "DiagnosticWarn",
-    warning_detail_key = "Identifier",
-    warning_detail_value = "String",
-    warning_rule = "Keyword",
-    resolved = "DiagnosticOk",
-    unresolved = "DiagnosticWarn",
 
     muted = "Comment",
     empty = "Comment",
 }
 
+-- Default semantic colors. These are deliberately meaning-based rather than
+-- section-based:
+--
+--   cyan       -> keys / register-ish metadata
+--   blue       -> line numbers / ordinary numeric anchors
+--   teal       -> origin/source information
+--   purple     -> boundary/system entities
+--   violet     -> rule systems and checks
+--   amber      -> warning text / implicated subjects
+--   red        -> unresolved/failure state
+--   green      -> resolved/success state
+--
+-- The palette is TokyoNight-friendly but intentionally plain hex so it works
+-- with any colorscheme that does not override the generated Hud* groups.
+local DEFAULT_STYLE_DEFINITIONS = {
+    line_number = { fg = "#7AA2F7" },
+    value = { fg = "#C0CAF5" },
+    metadata_key = { fg = "#7DCFFF" },
+    metadata_value = { fg = "#C0CAF5" },
+    origin = { fg = "#73DACA" },
+
+    register = { fg = "#7DCFFF" },
+    register_alias = { fg = "#89DDFF" },
+    destination = { fg = "#9ECE6A" },
+    source = { fg = "#73DACA" },
+
+    -- Implicit architectural effects deliberately share the warning color
+    -- family by default without sharing warning semantics. This makes hidden
+    -- register side-effects such as syscall clobbers visually obvious.
+    implicit = { fg = "#E0AF68" },
+
+    boundary = { fg = "#BB9AF7" },
+
+    warning = { fg = "#E0AF68" },
+    warning_severity = { fg = "#E0AF68" },
+    warning_category = { fg = "#BB9AF7" },
+    warning_message = { fg = "#FFC777" },
+    warning_detail_key = { fg = "#7DCFFF" },
+    warning_detail_value = { fg = "#C0CAF5" },
+
+    -- Important: this is not the same as HudUnresolved.
+    -- A warning subject is the implicated thing, such as rax, buffer, syscall,
+    -- or another concrete target named by a warning.
+    warning_subject = { fg = "#FF9E64" },
+
+    warning_rule = { fg = "#C678DD" },
+    warning_rule_source = { fg = "#9D7CD8" },
+    warning_rule_check = { fg = "#FF75A0" },
+
+    resolved = { fg = "#9ECE6A" },
+    unresolved = { fg = "#F7768E" },
+}
+
+-- Relevance is an intensity/emphasis layer, not a replacement for the
+-- semantic hue. Styles with DEFAULT_STYLE_DEFINITIONS get combined groups such
+-- as HudWarningSubjectFocused and HudWarningSubjectHistorical so historical
+-- values can become dull amber/purple/red instead of collapsing to identical
+-- gray.
 local DEFAULT_RELEVANCE_DEFINITIONS = {
-    -- Exact semantic occurrence: strongest state while preserving the
-    -- underlying semantic foreground color.
     focused = {
         bold = true,
     },
 
-    -- Current line + matching Inspect Mode, but not an exact symbol.
-    current = {
-        bold = true,
-    },
+    current = {},
 
-    -- Current line, but another Inspect Mode owns the user's attention.
-    -- Italic preserves semantic color while clearly lowering emphasis.
     contextual = {
         italic = true,
     },
 
-    -- Retained state from an earlier source position. The semantic meaning is
-    -- still present in the model, but presentation deliberately becomes
-    -- past-tense/muted.
     historical = {
-        link = "Comment",
+        italic = true,
     },
 }
+
+local DEFAULT_RELEVANCE_COLOR_MIXES = {
+    focused = 0.00,
+    current = 0.00,
+    contextual = 0.34,
+    historical = 0.58,
+}
+
+local RELEVANCE_MUTE_TARGET = "#565F89"
 
 
 local render_namespace =
@@ -224,6 +261,89 @@ local function normalize_column(value)
 end
 
 
+local function copy_definition(definition)
+    local result = {}
+
+    for key, value in pairs(definition or {}) do
+        result[key] = value
+    end
+
+    return result
+end
+
+
+local function parse_hex_channel(value)
+    local parsed = tonumber(value, 16)
+
+    if type(parsed) ~= "number" then
+        return nil
+    end
+
+    return parsed
+end
+
+
+local function parse_hex_color(color)
+    if type(color) ~= "string" then
+        return nil
+    end
+
+    local r, g, b = color:match("^#(%x%x)(%x%x)(%x%x)$")
+
+    if not r then
+        return nil
+    end
+
+    return {
+        r = parse_hex_channel(r),
+        g = parse_hex_channel(g),
+        b = parse_hex_channel(b),
+    }
+end
+
+
+local function clamp_channel(value)
+    return math.max(0, math.min(255, math.floor(value + 0.5)))
+end
+
+
+local function format_hex_color(rgb)
+    if type(rgb) ~= "table"
+        or type(rgb.r) ~= "number"
+        or type(rgb.g) ~= "number"
+        or type(rgb.b) ~= "number"
+    then
+        return nil
+    end
+
+    return string.format(
+        "#%02X%02X%02X",
+        clamp_channel(rgb.r),
+        clamp_channel(rgb.g),
+        clamp_channel(rgb.b)
+    )
+end
+
+
+local function blend_hex_color(color, target, amount)
+    local source_rgb = parse_hex_color(color)
+    local target_rgb = parse_hex_color(target)
+    local numeric_amount = tonumber(amount) or 0
+
+    if not source_rgb or not target_rgb then
+        return color
+    end
+
+    numeric_amount = math.max(0, math.min(1, numeric_amount))
+
+    return format_hex_color({
+        r = source_rgb.r + ((target_rgb.r - source_rgb.r) * numeric_amount),
+        g = source_rgb.g + ((target_rgb.g - source_rgb.g) * numeric_amount),
+        b = source_rgb.b + ((target_rgb.b - source_rgb.b) * numeric_amount),
+    }) or color
+end
+
+
 function M.group_name(config, style)
     local suffix = STYLE_SUFFIXES[style]
 
@@ -235,19 +355,110 @@ function M.group_name(config, style)
 end
 
 
+local function composite_group_name(
+    config,
+    style,
+    relevance
+)
+    local style_suffix = STYLE_SUFFIXES[style]
+    local relevance_suffix = STYLE_SUFFIXES[relevance]
+
+    if not style_suffix
+        or not relevance_suffix
+        or type(DEFAULT_STYLE_DEFINITIONS[style]) ~= "table"
+    then
+        return nil
+    end
+
+    return namespace.name(
+        config,
+        style_suffix .. relevance_suffix
+    )
+end
+
+
+local function relevance_definition(relevance)
+    return DEFAULT_RELEVANCE_DEFINITIONS[relevance] or {}
+end
+
+
+local function composite_definition(style, relevance)
+    local base = DEFAULT_STYLE_DEFINITIONS[style]
+
+    if type(base) ~= "table" then
+        return nil
+    end
+
+    local result = copy_definition(base)
+    local mix = DEFAULT_RELEVANCE_COLOR_MIXES[relevance]
+
+    if type(result.fg) == "string" and mix ~= nil then
+        result.fg = blend_hex_color(
+            result.fg,
+            RELEVANCE_MUTE_TARGET,
+            mix
+        )
+    end
+
+    for key, value in pairs(relevance_definition(relevance)) do
+        result[key] = value
+    end
+
+    return result
+end
+
+
+local function set_default_highlight(group, definition)
+    if type(group) ~= "string"
+        or group == ""
+        or type(definition) ~= "table"
+    then
+        return false
+    end
+
+    local resolved = {
+        default = true,
+    }
+
+    for key, value in pairs(definition) do
+        resolved[key] = value
+    end
+
+    vim.api.nvim_set_hl(
+        0,
+        group,
+        resolved
+    )
+
+    return true
+end
+
+
 function M.setup(config)
     if not highlights_enabled(config) then
         return false
     end
 
     for style, link in pairs(DEFAULT_LINKS) do
+        if DEFAULT_STYLE_DEFINITIONS[style] == nil then
+            local group = M.group_name(config, style)
+
+            if group then
+                set_default_highlight(group, {
+                    link = link,
+                })
+            end
+        end
+    end
+
+    for style, definition in pairs(DEFAULT_STYLE_DEFINITIONS) do
         local group = M.group_name(config, style)
 
         if group then
-            vim.api.nvim_set_hl(0, group, {
-                link = link,
-                default = true,
-            })
+            set_default_highlight(
+                group,
+                definition
+            )
         end
     end
 
@@ -260,19 +471,34 @@ function M.setup(config)
         )
 
         if group then
-            local resolved = {
-                default = true,
-            }
-
-            for key, value in pairs(definition) do
-                resolved[key] = value
-            end
-
-            vim.api.nvim_set_hl(
-                0,
+            set_default_highlight(
                 group,
-                resolved
+                definition
             )
+        end
+    end
+
+    for style, _definition in pairs(DEFAULT_STYLE_DEFINITIONS) do
+        for relevance, _relevance_definition in pairs(
+            DEFAULT_RELEVANCE_DEFINITIONS
+        ) do
+            local group = composite_group_name(
+                config,
+                style,
+                relevance
+            )
+
+            local definition = composite_definition(
+                style,
+                relevance
+            )
+
+            if group and definition then
+                set_default_highlight(
+                    group,
+                    definition
+                )
+            end
         end
     end
 
@@ -303,6 +529,16 @@ local function build_group_stack(
     style,
     relevance
 )
+    local composite_group = composite_group_name(
+        config,
+        style,
+        relevance
+    )
+
+    if composite_group then
+        return composite_group
+    end
+
     local groups = {}
 
     local semantic_group =
@@ -328,9 +564,9 @@ local function build_group_stack(
     end
 
     -- Neovim extmarks support a stack of highlight groups. The semantic group
-    -- comes first and the relevance modifier comes last, so focused/current
-    -- typography can augment semantic color while historical can deliberately
-    -- mute it.
+    -- comes first and the relevance modifier comes last. For known semantic
+    -- colors we return a relevance-specific composite group above; this stack
+    -- remains the fallback for colorscheme-linked/custom styles.
     return groups
 end
 
@@ -519,7 +755,4 @@ end
 
 
 return M
-
-
-
 

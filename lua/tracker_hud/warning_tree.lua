@@ -68,12 +68,28 @@ local function detail_kind_for_key(key)
         return "register"
     end
 
+    if key == "pointer" then
+        return "pointer"
+    end
+
+    if key == "symbol" then
+        return "symbol"
+    end
+
+    if key == "address" then
+        return "address"
+    end
+
     if key == "boundary_name" or key == "boundary_kind" then
         return "boundary"
     end
 
-    if key == "rule_source" or key == "rule_check" then
-        return "rule"
+    if key == "rule_source" then
+        return "rule_source"
+    end
+
+    if key == "rule_check" then
+        return "rule_check"
     end
 
     if key == "resolved" then
