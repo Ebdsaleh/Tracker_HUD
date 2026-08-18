@@ -1185,7 +1185,8 @@ end
 
 local function refresh_cursor_inspection(
     context,
-    source_winid
+    source_winid,
+    config
 )
     if type(context) ~= "table" then
         return false
@@ -1217,6 +1218,7 @@ local function refresh_cursor_inspection(
         column = cursor and cursor[2],
         context = context,
         mode = "registers",
+        config = config,
     })
 end
 
@@ -1233,7 +1235,8 @@ function M.render(context, config, source_winid)
 
     refresh_cursor_inspection(
         context,
-        source_winid
+        source_winid,
+        config
     )
 
     last_context = context
@@ -1407,6 +1410,7 @@ local function build_source_inspect_request()
         column = cursor and cursor[2],
         context = last_context,
         mode = mode,
+        config = last_config or {},
     }
 end
 

@@ -2813,10 +2813,19 @@ local function resolve_register_cursor_inspection(request)
         }
     end
 
-    -- The cursor is outside the instruction's semantic occurrence span
-    -- (for example leading/trailing whitespace). Preserve the established
-    -- whole-statement/post-statement view: every unique state target is
-    -- visible and duplicate register occurrences use their final source role.
+    -- The cursor is outside the instruction's exact semantic occurrence
+    -- span. Whether that should read as a whole-line summary is configurable:
+    -- by default, leading whitespace before an instruction does not pre-read
+    -- it, while trailing whitespace after an instruction can still show the
+    -- post-instruction state.
+    if not context_engine.line_summary_allows_compiled_line_position(
+        request.config,
+        compiled_line,
+        source_column
+    ) then
+        return nil
+    end
+
     local line_targets =
         source_index_compiler.get_line_targets(
             compiled_line

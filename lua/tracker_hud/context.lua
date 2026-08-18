@@ -395,7 +395,7 @@ local function append_missing_range_scopes(scopes, range_scopes)
 end
 
 
-local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts)
+local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts, config)
     context.targets = vim.deepcopy(adapter.active_targets or {})
 
     context.section_layout = section_layout.resolve(adapter)
@@ -416,6 +416,7 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
     context.registers = registers.collect(context, adapter, {
         bufnr = bufnr,
         root_node = root_node,
+        config = config,
     })
 
     context.stack = stack.collect(context, adapter, {
@@ -542,7 +543,8 @@ function M.get_cursor_context(bufnr, config)
             bufnr,
             root_node,
             adapter,
-            scope_member_opts
+            scope_member_opts,
+            config
         )
     end
 
@@ -593,9 +595,9 @@ function M.get_cursor_context(bufnr, config)
         bufnr,
         root_node,
         adapter,
-        scope_member_opts
+        scope_member_opts,
+        config
     )
 end
 
 return M
-

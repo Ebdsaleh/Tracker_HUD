@@ -23,6 +23,22 @@ M.defaults = {
         enabled = true,
     },
 
+    -- Source-position line summaries.
+    --
+    -- The HUD is cursor-state-first: exact syntax tokens/operands own the
+    -- primary meaning. This option controls what happens when the cursor is
+    -- on whitespace or punctuation outside an exact semantic occurrence.
+    --
+    -- Default behavior:
+    --   leading whitespace before an instruction does not pre-read it;
+    --   trailing whitespace after an instruction may show post-instruction
+    --   state, because the cursor has moved past that instruction.
+    line_summary = {
+        enabled = true,
+        show_before_instruction = false,
+        show_after_instruction = true,
+    },
+
     -- "left", "right", "top", or "bottom"
     panel_position = "right",
 
@@ -87,4 +103,3 @@ end
 
 
 return M
-
