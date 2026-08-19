@@ -27,29 +27,25 @@ local function flow_details_enabled(opts)
 end
 
 
-local function build_register_detail_node(register, detail_id, label)
+local function build_register_detail_node(register, detail_id, label, opts)
     return lookup_tree.new_detail_node(
         register,
         detail_id,
-        label
+        label,
+        opts
     )
 end
 
 
-local function append_metadata_detail(children, register, detail_id, label, value)
-    if value == nil then
-        return
-    end
-
-    if type(value) == "string" and value == "" then
-        return
-    end
-
-    table.insert(children, build_register_detail_node(
+local function append_metadata_detail(children, register, detail_id, key, value, opts)
+    lookup_tree.add_detail(
+        children,
         register,
         detail_id,
-        label .. ": " .. tostring(value)
-    ))
+        key,
+        value,
+        opts
+    )
 end
 
 
@@ -310,32 +306,36 @@ local function build_register_node(register, context, opts)
 
     append_alias_children(children, register)
 
-    table.insert(children, build_register_detail_node(
+    append_metadata_detail(
+        children,
         register,
         "kind",
-        "kind: " .. tostring(register.kind or "<unknown>")
-    ))
+        "kind",
+        register.kind or "<unknown>"
+    )
 
     local inspection_role = get_inspection_role(
         context,
         register.id
     )
 
-    table.insert(children, build_register_detail_node(
+    append_metadata_detail(
+        children,
         register,
         "role",
-        "role: " .. tostring(
-            inspection_role
+        "role",
+        inspection_role
             or register.role
             or "<unknown>"
-        )
-    ))
+    )
 
-    table.insert(children, build_register_detail_node(
+    append_metadata_detail(
+        children,
         register,
         "source",
-        "source: " .. tostring(register.source or "<unknown>")
-    ))
+        "source",
+        register.source or "<unknown>"
+    )
 
     append_source_details(children, register, context, opts)
 
@@ -344,11 +344,13 @@ local function build_register_node(register, context, opts)
     if core.is_non_empty_string(metadata.raw_name)
         and metadata.raw_name ~= register.name
     then
-        table.insert(children, build_register_detail_node(
+        append_metadata_detail(
+            children,
             register,
             "raw-name",
-            "written alias: " .. metadata.raw_name
-        ))
+            "written alias",
+            metadata.raw_name
+        )
     end
 
     local node = lookup_tree.new_node(register, {

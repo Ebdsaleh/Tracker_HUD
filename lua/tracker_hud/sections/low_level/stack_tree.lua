@@ -8,14 +8,6 @@ local lookup_tree = require("tracker_hud.sections.templates.lookup_tree")
 local M = {}
 
 
-local function build_stack_detail_node(entry, detail_id, label)
-    return lookup_tree.new_detail_node(
-        entry,
-        detail_id,
-        label
-    )
-end
-
 local function build_stack_node(entry)
     if not core.is_table(entry) then
         return nil
@@ -23,40 +15,16 @@ local function build_stack_node(entry)
 
     local children = {}
 
-    table.insert(children, build_stack_detail_node(
-        entry,
-        "kind",
-        "kind: " .. tostring(entry.kind or "<unknown>")
-    ))
-
-    table.insert(children, build_stack_detail_node(
-        entry,
-        "offset",
-        "offset: " .. tostring(entry.offset or "<unknown>")
-    ))
-
-    table.insert(children, build_stack_detail_node(
-        entry,
-        "size",
-        "size: " .. tostring(entry.size or "<unknown>")
-    ))
-
-    table.insert(children, build_stack_detail_node(
-        entry,
-        "role",
-        "role: " .. tostring(entry.role or "<unknown>")
-    ))
-
-    table.insert(children, build_stack_detail_node(
-        entry,
-        "source",
-        "source: " .. tostring(entry.source or "<unknown>")
-    ))
+    lookup_tree.add_detail(children, entry, "kind", "kind", entry.kind or "<unknown>")
+    lookup_tree.add_detail(children, entry, "offset", "offset", entry.offset or "<unknown>")
+    lookup_tree.add_detail(children, entry, "size", "size", entry.size or "<unknown>")
+    lookup_tree.add_detail(children, entry, "role", "role", entry.role or "<unknown>")
+    lookup_tree.add_detail(children, entry, "source", "source", entry.source or "<unknown>")
 
     local node = lookup_tree.new_node(entry, {
-    kind = "stack",
-    label = entry.label or tostring(entry.name or "<unknown>"),
-    children = children,
+        kind = "stack",
+        label = entry.label or tostring(entry.name or "<unknown>"),
+        children = children,
     })
 
     if not node then
@@ -66,7 +34,6 @@ local function build_stack_node(entry)
     node.stack_entry = entry
 
     return node
-
 end
 
 

@@ -17,6 +17,7 @@ local source_index = require("tracker_hud.source_index")
 local source_index_compiler = require("tracker_hud.source_index.compiler")
 local hud_text = require("tracker_hud.hud_text")
 local hud_relevance = require("tracker_hud.hud_relevance")
+local visual_language = require("tracker_hud.visual_language")
 
 
 local M = {}
@@ -448,76 +449,19 @@ local function style_common_punctuation(
 end
 
 
-local function detail_styles_for_key(key, semantic_override)
-    local normalized_key = tostring(key or ""):lower()
-    local key_style = "metadata_key"
-    local value_style = "metadata_value"
-
-    if normalized_key == "kind" then
-        key_style = "kind"
-        value_style = "kind"
-    elseif normalized_key == "category" then
-        key_style = "category"
-        value_style = "category"
-    elseif normalized_key == "type" then
-        key_style = "type"
-        value_style = "type"
-    elseif normalized_key == "value" then
-        value_style = "value"
-    elseif normalized_key == "role" then
-        key_style = "role"
-        value_style = semantic_override
-            or "role"
-    elseif normalized_key == "source" then
-        key_style = "origin"
-        value_style = "origin"
-    elseif normalized_key == "value source"
-        or normalized_key == "selected source"
-        or normalized_key == "source kind"
-        or normalized_key == "source role"
+local function detail_styles_for_key(key, semantic_override, value, node)
+    if type(node) == "table"
+        and (node.detail_key_style or node.detail_value_style)
     then
-        key_style = "origin"
-        value_style = "source"
-    elseif normalized_key == "source operand" then
-        key_style = "origin"
-        value_style = "value"
-    elseif normalized_key == "writes to"
-        or normalized_key == "flows into"
-        or normalized_key == "value flow"
-    then
-        key_style = "origin"
-        value_style = "source"
-    elseif normalized_key == "operand kind" then
-        key_style = "kind"
-        value_style = "kind"
-    elseif normalized_key == "focused token" then
-        key_style = "metadata_key"
-        value_style = semantic_override or "metadata_value"
-    elseif normalized_key == "focused token kind" then
-        key_style = "kind"
-        value_style = "kind"
-    elseif normalized_key == "address role"
-        or normalized_key == "containing operand"
-    then
-        key_style = "memory"
-        value_style = "memory"
-    elseif normalized_key == "written alias" then
-        key_style = "register_alias"
-        value_style = "register_alias"
-    elseif normalized_key:find("register", 1, true) then
-        value_style = "register"
-    elseif normalized_key == "line"
-        or normalized_key == "source line"
-    then
-        value_style = "line_number"
-    elseif normalized_key == "offset"
-        or normalized_key == "size"
-        or normalized_key == "effect key"
-    then
-        value_style = "value"
+        return node.detail_key_style or "metadata_key",
+            node.detail_value_style or "metadata_value"
     end
 
-    return key_style, value_style
+    return visual_language.detail_styles_for_key(
+        key,
+        value,
+        semantic_override
+    )
 end
 
 
@@ -543,7 +487,9 @@ local function style_detail_label(
 
     local key_style, value_style = detail_styles_for_key(
         key,
-        semantic_override
+        semantic_override,
+        value,
+        node
     )
 
     hud_text.add_span(
@@ -1023,7 +969,6 @@ end
 
 local function parse_detail_parts(node, label)
     if type(node) == "table"
-        and node.kind == "warning_detail"
         and node.detail_key ~= nil
         and node.detail_value ~= nil
     then
@@ -1082,7 +1027,9 @@ local function build_annotated_detail_line(
     else
         key_style, value_style = detail_styles_for_key(
             key,
-            semantic_override
+            semantic_override,
+            value,
+            node
         )
     end
 

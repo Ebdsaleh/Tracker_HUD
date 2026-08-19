@@ -609,9 +609,9 @@ M.default_style_definitions = {
 
     register = { fg = "#7DCFFF" },
     register_alias = { fg = "#89DDFF" },
-    destination = { fg = "#B4BE82" },
-    source = { fg = "#B4BE82" },
-    affected = { fg = "#B4BE82" },
+    destination = { fg = "#8BD5CA" },
+    source = { fg = "#8BD5CA" },
+    affected = { fg = "#8BD5CA" },
 
     instruction = { fg = "#C0CAF5" },
     immediate = { fg = "#C0CAF5" },
@@ -723,6 +723,174 @@ M.semantic_aliases = {
     -- low-color annotation purposes.
     implicit = "affected",
 }
+
+
+local function normalize_detail_key(key)
+    if type(key) ~= "string" then
+        key = tostring(key or "")
+    end
+
+    return key:lower():gsub("_", " ")
+end
+
+local function normalize_detail_value(value)
+    if type(value) ~= "string" then
+        value = tostring(value or "")
+    end
+
+    return value:lower()
+end
+
+local function value_starts_with(value, prefix)
+    return normalize_detail_value(value):match("^" .. prefix) ~= nil
+end
+
+local function value_looks_unresolved(value)
+    local normalized = normalize_detail_value(value)
+
+    return normalized == "false"
+        or normalized == "unresolved"
+        or normalized == "unknown"
+        or normalized == "nil"
+        or normalized == "null"
+        or normalized:find("missing", 1, true) ~= nil
+        or normalized:find("failed", 1, true) ~= nil
+end
+
+local function value_looks_resolved(value)
+    local normalized = normalize_detail_value(value)
+
+    return normalized == "true"
+        or normalized == "resolved"
+        or normalized == "ok"
+        or normalized == "safe"
+        or normalized == "valid"
+end
+
+local function source_value_style(value)
+    local normalized = normalize_detail_value(value)
+
+    if normalized:find("memory", 1, true)
+        or normalized:find("[", 1, true)
+    then
+        return "memory"
+    end
+
+    if normalized:find("register", 1, true) then
+        return "register"
+    end
+
+    if normalized:find("immediate", 1, true) then
+        return "immediate"
+    end
+
+    if normalized:find("symbol", 1, true) then
+        return "symbol"
+    end
+
+    return "source"
+end
+
+function M.detail_styles_for_key(key, value, semantic_override)
+    local normalized_key = normalize_detail_key(key)
+    local key_style = "metadata_key"
+    local value_style = "metadata_value"
+
+    if normalized_key == "kind" then
+        key_style = "kind"
+        value_style = "kind"
+    elseif normalized_key == "category" then
+        key_style = "category"
+        value_style = "category"
+    elseif normalized_key == "type" then
+        key_style = "type"
+        value_style = "type"
+    elseif normalized_key == "value" then
+        value_style = "value"
+    elseif normalized_key == "role" then
+        value_style = semantic_override or "role"
+
+        if value_starts_with(value, "destination") then
+            value_style = "destination"
+        elseif value_starts_with(value, "source") then
+            value_style = "source"
+        elseif value_starts_with(value, "affected") then
+            value_style = "affected"
+        elseif value_starts_with(value, "written")
+            or value_starts_with(value, "updated")
+            or value_starts_with(value, "clobbered")
+            or value_starts_with(value, "zeroed")
+            or value_starts_with(value, "loaded")
+            or value_starts_with(value, "receives")
+        then
+            value_style = semantic_override or "affected"
+        end
+    elseif normalized_key == "source" then
+        key_style = "origin"
+        value_style = "origin"
+    elseif normalized_key == "value source"
+        or normalized_key == "selected source"
+        or normalized_key == "source kind"
+        or normalized_key == "source role"
+    then
+        key_style = "origin"
+        value_style = source_value_style(value)
+    elseif normalized_key == "source operand" then
+        key_style = "origin"
+        value_style = source_value_style(value)
+    elseif normalized_key == "writes to"
+        or normalized_key == "flows into"
+        or normalized_key == "value flow"
+    then
+        key_style = "origin"
+        value_style = "source"
+    elseif normalized_key == "operand kind"
+        or normalized_key == "focused token kind"
+    then
+        key_style = "kind"
+        value_style = "kind"
+    elseif normalized_key == "focused token" then
+        value_style = semantic_override or "metadata_value"
+    elseif normalized_key == "address role"
+        or normalized_key == "containing operand"
+    then
+        key_style = "memory"
+        value_style = "memory"
+    elseif normalized_key == "written alias" then
+        key_style = "register_alias"
+        value_style = "register_alias"
+    elseif normalized_key == "resolved" then
+        if value_looks_unresolved(value) then
+            value_style = "unresolved"
+        elseif value_looks_resolved(value) then
+            value_style = "resolved"
+        else
+            value_style = "metadata_value"
+        end
+    elseif normalized_key:find("boundary", 1, true) then
+        value_style = "boundary"
+    elseif normalized_key:find("rule", 1, true) then
+        value_style = "warning_rule"
+    elseif normalized_key:find("register", 1, true) then
+        value_style = "register"
+    elseif normalized_key:find("pointer", 1, true)
+        or normalized_key:find("address", 1, true)
+        or normalized_key:find("memory", 1, true)
+    then
+        value_style = "memory"
+    elseif normalized_key == "line"
+        or normalized_key == "source line"
+    then
+        value_style = "line_number"
+    elseif normalized_key == "offset"
+        or normalized_key == "size"
+        or normalized_key == "effect key"
+    then
+        value_style = "value"
+    end
+
+    return key_style, value_style
+end
 
 
 M.terminal_tier_aliases = {

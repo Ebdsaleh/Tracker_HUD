@@ -3,7 +3,8 @@
 -- Lookup-style section tree template.
 --
 -- Provides the common tree-node primitives used by lookup-style sections.
--- Concrete trees decide which details and children each entry exposes.
+-- Concrete trees decide which records and details they expose, while the
+-- shared section tree blueprint assigns structured key/value semantics.
 
 local section_tree = require("tracker_hud.section_tree")
 
@@ -15,8 +16,18 @@ function M.new_node(entry, opts)
 end
 
 
-function M.new_detail_node(entry, detail_id, label)
-    return section_tree.new_detail_node(entry, detail_id, label)
+function M.new_detail_node(entry, detail_id, label, opts)
+    return section_tree.new_detail_node(entry, detail_id, label, opts)
+end
+
+
+function M.new_detail(entry, detail_id, key, value, opts)
+    return section_tree.new_detail(entry, detail_id, key, value, opts)
+end
+
+
+function M.add_detail(children, entry, detail_id, key, value, opts)
+    return section_tree.add_detail(children, entry, detail_id, key, value, opts)
 end
 
 

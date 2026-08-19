@@ -8,25 +8,15 @@ local lookup_tree = require("tracker_hud.sections.templates.lookup_tree")
 local M = {}
 
 
-local function build_heap_detail_node(entry, detail_id, label)
-    return lookup_tree.new_detail_node(
+local function add_detail(children, entry, detail_id, key, value, opts)
+    lookup_tree.add_detail(
+        children,
         entry,
         detail_id,
-        label
+        key,
+        value,
+        opts
     )
-end
-
-
-local function add_detail(children, entry, detail_id, label)
-    if label == nil then
-        return
-    end
-
-    local node = build_heap_detail_node(entry, detail_id, label)
-
-    if node then
-        table.insert(children, node)
-    end
 end
 
 
@@ -37,28 +27,13 @@ local function build_heap_node(entry)
 
     local children = {}
 
-    add_detail(children, entry, "kind", "kind: " .. tostring(entry.kind or "unknown"))
-    add_detail(children, entry, "category", "category: " .. tostring(entry.category or "heap"))
-
-    if entry.effect_key ~= nil then
-        add_detail(children, entry, "effect_key", "effect key: " .. tostring(entry.effect_key))
-    end
-
-    if entry.result_register ~= nil then
-        add_detail(children, entry, "result", "result register: " .. tostring(entry.result_register))
-    end
-
-    if entry.pointer_register ~= nil then
-        add_detail(children, entry, "pointer", "pointer register: " .. tostring(entry.pointer_register))
-    end
-
-    if entry.size_register ~= nil then
-        add_detail(children, entry, "size", "size register: " .. tostring(entry.size_register))
-    end
-
-    if entry.source_line ~= nil then
-        add_detail(children, entry, "source", "source line: " .. tostring(entry.source_line))
-    end
+    add_detail(children, entry, "kind", "kind", entry.kind or "unknown")
+    add_detail(children, entry, "category", "category", entry.category or "heap")
+    add_detail(children, entry, "effect_key", "effect key", entry.effect_key)
+    add_detail(children, entry, "result", "result register", entry.result_register)
+    add_detail(children, entry, "pointer", "pointer register", entry.pointer_register)
+    add_detail(children, entry, "size", "size register", entry.size_register)
+    add_detail(children, entry, "source", "source line", entry.source_line)
 
     local node = lookup_tree.new_node(entry, {
         kind = "heap_entry",
@@ -71,7 +46,6 @@ local function build_heap_node(entry)
     end
 
     return node
-
 end
 
 
@@ -96,4 +70,3 @@ end
 
 
 return M
-
