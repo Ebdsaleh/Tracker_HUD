@@ -609,9 +609,12 @@ M.default_style_definitions = {
 
     register = { fg = "#7DCFFF" },
     register_alias = { fg = "#89DDFF" },
-    destination = { fg = "#8BD5CA" },
-    source = { fg = "#8BD5CA" },
-    affected = { fg = "#8BD5CA" },
+    -- Operand-role values (for example: role: source / role: destination).
+    -- This is intentionally greener than Origin so provenance lines such as
+    -- source: instruction do not look identical to operand-role values.
+    destination = { fg = "#83D197" },
+    source = { fg = "#83D197" },
+    affected = { fg = "#83D197" },
 
     instruction = { fg = "#C0CAF5" },
     immediate = { fg = "#C0CAF5" },
@@ -826,7 +829,10 @@ function M.detail_styles_for_key(key, value, semantic_override)
             value_style = semantic_override or "affected"
         end
     elseif normalized_key == "source" then
-        key_style = "origin"
+        -- `source:` is provenance/origin metadata, not the same semantic as
+        -- `role: source`. Keep the key in the normal metadata-key family and
+        -- only color the value as origin information.
+        key_style = "metadata_key"
         value_style = "origin"
     elseif normalized_key == "value source"
         or normalized_key == "selected source"
