@@ -90,6 +90,54 @@ M.width_modes = {
 }
 
 
+M.visual_modes = {
+    auto = {
+        label = "auto",
+        description = "Choose visual annotations from terminal and panel conditions.",
+    },
+
+    rich = {
+        label = "rich",
+        description = "Color-first HUD with no semantic tags or markers.",
+        force_colors = true,
+        force_tags = false,
+        force_markers = false,
+    },
+
+    tagged = {
+        label = "tagged",
+        description = "Explicit semantic tags such as [SRC], [DST], and [FAIL].",
+        force_colors = true,
+        force_tags = true,
+        force_markers = false,
+    },
+
+    markers = {
+        label = "markers",
+        description = "Compact semantic markers such as <, >, x, ?, and @.",
+        force_colors = true,
+        force_tags = false,
+        force_markers = true,
+    },
+
+    plain = {
+        label = "plain",
+        description = "Stable text only; no semantic color assumptions or annotation prefixes.",
+        force_colors = false,
+        force_tags = false,
+        force_markers = false,
+    },
+}
+
+M.visual_mode_order = {
+    "auto",
+    "rich",
+    "tagged",
+    "markers",
+    "plain",
+}
+
+
 M.tags = {
     warning = {
         full = "[WARN]",
@@ -994,6 +1042,96 @@ local function get_visual_config(config)
 end
 
 
+local function normalize_visual_mode_name(mode)
+    if type(mode) ~= "string" or mode == "" then
+        return nil
+    end
+
+    local normalized = mode:lower():gsub("%s+", "")
+
+    if M.visual_modes[normalized] then
+        return normalized
+    end
+
+    return nil
+end
+
+
+function M.visual_mode_names()
+    local result = {}
+
+    for _, mode in ipairs(M.visual_mode_order) do
+        table.insert(result, mode)
+    end
+
+    return result
+end
+
+
+function M.resolve_visual_mode(config)
+    local visual_config = get_visual_config(config)
+    local mode = normalize_visual_mode_name(visual_config.mode)
+
+    return mode or "auto"
+end
+
+
+function M.set_visual_mode(config, mode)
+    local normalized = normalize_visual_mode_name(mode)
+
+    if not normalized then
+        return nil, "invalid visual mode"
+    end
+
+    if type(config) ~= "table" then
+        return nil, "missing config"
+    end
+
+    if type(config.visual_language) ~= "table" then
+        config.visual_language = {}
+    end
+
+    config.visual_language.mode = normalized
+
+    return normalized
+end
+
+
+function M.colors_enabled(config)
+    local visual_config = get_visual_config(config)
+    local mode = M.resolve_visual_mode(config)
+
+    if mode == "plain" then
+        return false
+    end
+
+    local colors_config = type(visual_config.colors) == "table"
+        and visual_config.colors
+        or {}
+
+    if colors_config.enabled == false then
+        return false
+    end
+
+    if colors_config.enabled == true then
+        return true
+    end
+
+    local visual_mode = M.visual_modes[mode]
+
+    if type(visual_mode) == "table"
+        and type(visual_mode.force_colors) == "boolean"
+    then
+        return visual_mode.force_colors
+    end
+
+    local tier_name = M.resolve_terminal_tier(config)
+    local tier = M.display_tiers[tier_name] or M.display_tiers.truecolor
+
+    return tier.use_colors == true
+end
+
+
 local function get_vim_option(name)
     if type(vim) ~= "table" or type(vim.o) ~= "table" then
         return nil
@@ -1143,6 +1281,8 @@ end
 
 function M.resolve_annotation_mode(config, panel_width)
     local visual_config = get_visual_config(config)
+    local visual_mode_name = M.resolve_visual_mode(config)
+    local visual_mode = M.visual_modes[visual_mode_name] or M.visual_modes.auto
     local tier_name = M.resolve_terminal_tier(config)
     local tier = M.display_tiers[tier_name] or M.display_tiers.truecolor
     local width_mode_name = M.resolve_width_mode(config, panel_width)
@@ -1188,14 +1328,33 @@ function M.resolve_annotation_mode(config, panel_width)
         use_markers = false
     end
 
+    if type(visual_mode.force_tags) == "boolean" then
+        use_tags = visual_mode.force_tags
+    end
+
+    if type(visual_mode.force_markers) == "boolean" then
+        use_markers = visual_mode.force_markers
+    end
+
+    if visual_mode_name == "tagged"
+        and (tag_mode == nil or tag_mode == "auto" or tag_mode == false)
+    then
+        tag_mode = width_mode.prefer_tags
+
+        if tag_mode == false then
+            tag_mode = "full"
+        end
+    end
+
     if not tag_mode then
         use_tags = false
     end
 
     return {
+        visual_mode = visual_mode_name,
         terminal_tier = tier_name,
         width_mode = width_mode_name,
-        use_colors = tier.use_colors == true,
+        use_colors = M.colors_enabled(config),
         use_tags = use_tags,
         use_markers = use_markers,
         tag_mode = tag_mode or "full",

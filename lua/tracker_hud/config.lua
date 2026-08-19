@@ -30,7 +30,21 @@ M.defaults = {
     -- compact, ASCII, or graphical renderers can consume the same visual
     -- language tables from tracker_hud.visual_language.
     visual_language = {
+        -- Public runtime visual mode. This is also controlled by:
+        --   :<namespace-prefix>VisualMode auto|rich|tagged|markers|plain
+        --
+        -- auto    = choose semantic annotations from terminal/panel conditions
+        -- rich    = color-first HUD, no semantic tags or markers
+        -- tagged  = explicit semantic tags such as [SRC], [DST], [FAIL]
+        -- markers = compact markers such as <, >, x, ?, @
+        -- plain   = stable text only; disables semantic color rendering
+        mode = "auto",
+
         terminal_tier = "auto", -- "auto", "truecolor", "256", "16", "monochrome"
+
+        colors = {
+            enabled = "auto", -- true, false, or "auto"; plain mode disables color
+        },
 
         tags = {
             enabled = "auto", -- true, false, or "auto" for low-color terminals

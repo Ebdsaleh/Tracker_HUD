@@ -1352,7 +1352,8 @@ function M.update_panel()
 
     refresh_cursor_inspection(
         last_context,
-        last_source_winid
+        last_source_winid,
+        last_config or {}
     )
 
     local lines, line_styles, line_spans =

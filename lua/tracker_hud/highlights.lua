@@ -56,11 +56,14 @@ local render_namespace =
 
 
 local function highlights_enabled(config)
-    return not (
-        type(config) == "table"
+    if type(config) == "table"
         and type(config.highlights) == "table"
         and config.highlights.enabled == false
-    )
+    then
+        return false
+    end
+
+    return visual_language.colors_enabled(config)
 end
 
 

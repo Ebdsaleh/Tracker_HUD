@@ -9,6 +9,7 @@ local hud = require("tracker_hud.hud")
 local adapter_loader = require("tracker_hud.adapters.loader")
 local namespace = require("tracker_hud.namespace")
 local highlights = require("tracker_hud.highlights")
+local visual_language = require("tracker_hud.visual_language")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -297,6 +298,66 @@ local function set_panel_position_command(command_opts)
 end
 
 
+local function visual_mode_usage()
+    return "Usage: :" .. command_name("VisualMode") .. " <auto|rich|tagged|markers|plain>"
+end
+
+
+local function refresh_after_visual_language_change()
+    highlights.setup(config)
+
+    if state.source_context then
+        hud.render(
+            state.source_context,
+            config,
+            state.source_winid
+        )
+        return
+    end
+
+    hud.refresh()
+end
+
+
+local function set_visual_mode_command(command_opts)
+    local requested_mode = command_opts.args
+
+    if requested_mode == nil or requested_mode == "" then
+        vim.notify(
+            "tracker_hud: visual mode is '"
+                .. visual_language.resolve_visual_mode(config)
+                .. "'. "
+                .. visual_mode_usage(),
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    local mode, err = visual_language.set_visual_mode(
+        config,
+        requested_mode
+    )
+
+    if not mode then
+        vim.notify(
+            "tracker_hud: "
+                .. tostring(err or "invalid visual mode")
+                .. ". "
+                .. visual_mode_usage(),
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    refresh_after_visual_language_change()
+
+    vim.notify(
+        "tracker_hud: visual mode set to '" .. mode .. "'",
+        vim.log.levels.INFO
+    )
+end
+
+
 function M.setup(opts)
     config = config_module.resolve(opts)
 
@@ -350,6 +411,14 @@ function M.setup(opts)
         nargs = 1,
         complete = function()
             return { "left", "right", "top", "bottom" }
+        end,
+        force = true,
+    })
+
+    register_user_command("VisualMode", set_visual_mode_command, {
+        nargs = "?",
+        complete = function()
+            return visual_language.visual_mode_names()
         end,
         force = true,
     })
