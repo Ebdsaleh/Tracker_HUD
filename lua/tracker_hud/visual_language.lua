@@ -301,7 +301,9 @@ M.markers = {
 -- is also a focused destination operand and a warning subject.
 M.semantic_precedence = {
     "unresolved",
+    "resolved",
     "warning_subject",
+    "warning",
     "destination",
     "source",
     "affected",
@@ -311,6 +313,7 @@ M.semantic_precedence = {
     "register",
     "immediate",
     "symbol",
+    "instruction",
     "value",
     "metadata_key",
     "origin",
@@ -330,6 +333,14 @@ M.semantic_categories = {
         color_family = "cyan",
         tag = "metadata_key",
         marker = "metadata_key",
+    },
+
+    warning = {
+        label = "Warning",
+        meaning = "active warning or warning headline",
+        color_family = "amber",
+        tag = "warning",
+        marker = "warning",
     },
 
     value = {
@@ -682,6 +693,54 @@ M.address_roles = {
 }
 
 
+-- Rendering styles and semantic categories are related, but not identical.
+-- These aliases let renderers ask for tags/markers/priority with concrete HUD
+-- style keys such as `warning_rule_check` or `register_alias` while still
+-- preserving one stable semantic vocabulary.
+M.semantic_aliases = {
+    warning_severity = "warning",
+    warning_category = "boundary",
+    warning_message = "warning",
+    warning_detail_key = "metadata_key",
+    warning_detail_value = "value",
+    warning_rule_source = "warning_rule",
+    warning_rule_check = "warning_rule",
+
+    metadata = "metadata_key",
+    metadata_value = "value",
+    role = "value",
+    kind = "value",
+    category = "value",
+    type = "value",
+    line_number = "value",
+
+    register_alias = "register",
+    stack = "memory",
+    heap = "memory",
+
+    -- Implicit architectural side effects are not warnings, but in text/ASCII
+    -- mode they need a visible semantic cue. Treat them as affected state for
+    -- low-color annotation purposes.
+    implicit = "affected",
+}
+
+
+M.terminal_tier_aliases = {
+    ["truecolor"] = "truecolor",
+    ["24bit"] = "truecolor",
+    ["24-bit"] = "truecolor",
+    ["256"] = "color_256",
+    ["256-color"] = "color_256",
+    ["color_256"] = "color_256",
+    ["16"] = "ansi_16",
+    ["16-color"] = "ansi_16",
+    ["ansi"] = "ansi_16",
+    ["ansi_16"] = "ansi_16",
+    ["mono"] = "monochrome",
+    ["monochrome"] = "monochrome",
+}
+
+
 local function table_get(root, key)
     if type(root) ~= "table" or type(key) ~= "string" then
         return nil
@@ -691,8 +750,34 @@ local function table_get(root, key)
 end
 
 
+function M.semantic_style_for(style)
+    if type(style) ~= "string" or style == "" then
+        return nil
+    end
+
+    if M.semantic_categories[style] then
+        return style
+    end
+
+    return M.semantic_aliases[style]
+end
+
+
+function M.priority_for(style)
+    local semantic_style = M.semantic_style_for(style)
+    return semantic_style and M.semantic_priority[semantic_style] or nil
+end
+
+
+function M.category_for(style)
+    local semantic_style = M.semantic_style_for(style)
+    return semantic_style and M.semantic_categories[semantic_style] or nil
+end
+
+
 function M.tag_for(style, mode)
-    local entry = table_get(M.tags, style)
+    local semantic_style = M.semantic_style_for(style) or style
+    local entry = table_get(M.tags, semantic_style)
 
     if type(entry) ~= "table" then
         return nil
@@ -707,7 +792,8 @@ end
 
 
 function M.marker_for(style, ascii_safe)
-    local entry = table_get(M.markers, style)
+    local semantic_style = M.semantic_style_for(style) or style
+    local entry = table_get(M.markers, semantic_style)
 
     if type(entry) ~= "table" then
         return nil
@@ -721,13 +807,292 @@ function M.marker_for(style, ascii_safe)
 end
 
 
-function M.priority_for(style)
-    return M.semantic_priority[style]
+local function get_visual_config(config)
+    if type(config) ~= "table" then
+        return {}
+    end
+
+    if type(config.visual_language) == "table" then
+        return config.visual_language
+    end
+
+    return {}
 end
 
 
-function M.category_for(style)
-    return M.semantic_categories[style]
+local function get_vim_option(name)
+    if type(vim) ~= "table" or type(vim.o) ~= "table" then
+        return nil
+    end
+
+    local ok, value = pcall(function()
+        return vim.o[name]
+    end)
+
+    if ok then
+        return value
+    end
+
+    return nil
+end
+
+
+local function detect_color_count()
+    local value = get_vim_option("t_Co")
+    local numeric = tonumber(value)
+
+    if numeric then
+        return numeric
+    end
+
+    if type(vim) == "table" and type(vim.env) == "table" then
+        if tostring(vim.env.TERM or ""):find("256color", 1, true) then
+            return 256
+        end
+
+        if tostring(vim.env.TERM or ""):find("color", 1, true) then
+            return 16
+        end
+    end
+
+    return nil
+end
+
+
+local function normalize_tier_name(name)
+    if type(name) ~= "string" or name == "" then
+        return nil
+    end
+
+    return M.terminal_tier_aliases[name:lower()]
+end
+
+
+function M.detect_terminal_tier()
+    if get_vim_option("termguicolors") == true then
+        return "truecolor"
+    end
+
+    local colors = detect_color_count()
+
+    if colors and colors >= 256 then
+        return "color_256"
+    end
+
+    if colors and colors >= 16 then
+        return "ansi_16"
+    end
+
+    if colors and colors > 0 then
+        return "monochrome"
+    end
+
+    -- In non-Neovim/test environments, default to the least intrusive rich
+    -- tier so semantic annotations stay opt-in unless a low-color terminal is
+    -- actually detected.
+    return "truecolor"
+end
+
+
+function M.resolve_terminal_tier(config)
+    local visual_config = get_visual_config(config)
+    local requested = visual_config.terminal_tier
+
+    if requested == "auto" or requested == nil then
+        return M.detect_terminal_tier()
+    end
+
+    return normalize_tier_name(requested) or "truecolor"
+end
+
+
+local function normalize_width_mode(mode)
+    if type(mode) ~= "string" or mode == "" then
+        return nil
+    end
+
+    if M.width_modes[mode] then
+        return mode
+    end
+
+    return nil
+end
+
+
+function M.resolve_width_mode(config, panel_width)
+    local visual_config = get_visual_config(config)
+    local width_config = type(visual_config.width) == "table"
+        and visual_config.width
+        or {}
+
+    local requested = normalize_width_mode(width_config.mode)
+
+    if requested and requested ~= "auto" then
+        return requested
+    end
+
+    local width = tonumber(panel_width)
+
+    if width then
+        local marker_columns = tonumber(width_config.marker_columns) or 40
+        local condensed_columns = tonumber(width_config.condensed_columns) or 52
+
+        if width <= marker_columns then
+            return "marker"
+        end
+
+        if width <= condensed_columns then
+            return "condensed"
+        end
+    end
+
+    return "full"
+end
+
+
+local function auto_enabled(setting, default_auto_value)
+    if setting == true then
+        return true
+    end
+
+    if setting == false then
+        return false
+    end
+
+    if setting == "auto" or setting == nil then
+        return default_auto_value == true
+    end
+
+    return false
+end
+
+
+function M.resolve_annotation_mode(config, panel_width)
+    local visual_config = get_visual_config(config)
+    local tier_name = M.resolve_terminal_tier(config)
+    local tier = M.display_tiers[tier_name] or M.display_tiers.truecolor
+    local width_mode_name = M.resolve_width_mode(config, panel_width)
+    local width_mode = M.width_modes[width_mode_name] or M.width_modes.full
+    local tags_config = type(visual_config.tags) == "table"
+        and visual_config.tags
+        or {}
+    local markers_config = type(visual_config.markers) == "table"
+        and visual_config.markers
+        or {}
+
+    local tag_mode = tags_config.mode
+
+    if tag_mode == nil or tag_mode == "auto" then
+        tag_mode = width_mode.prefer_tags
+    end
+
+    if tag_mode == "marker" or tag_mode == "plain" then
+        tag_mode = false
+    end
+
+    local tier_prefers_tags = tier.use_tags == true
+    local tier_prefers_markers = tier.use_markers == true
+
+    local use_tags = auto_enabled(
+        tags_config.enabled,
+        tier_prefers_tags
+    )
+
+    local use_markers = auto_enabled(
+        markers_config.enabled,
+        tier_prefers_markers
+    )
+
+    if width_mode_name == "marker" then
+        use_tags = false
+
+        if markers_config.enabled ~= false then
+            use_markers = true
+        end
+    elseif width_mode_name == "plain" then
+        use_tags = false
+        use_markers = false
+    end
+
+    if not tag_mode then
+        use_tags = false
+    end
+
+    return {
+        terminal_tier = tier_name,
+        width_mode = width_mode_name,
+        use_colors = tier.use_colors == true,
+        use_tags = use_tags,
+        use_markers = use_markers,
+        tag_mode = tag_mode or "full",
+        ascii_safe = markers_config.ascii_safe ~= false,
+    }
+end
+
+
+function M.annotations_enabled(config, panel_width)
+    local mode = M.resolve_annotation_mode(config, panel_width)
+
+    return mode.use_tags == true or mode.use_markers == true
+end
+
+
+function M.annotation_for(style, config, panel_width)
+    local semantic_style = M.semantic_style_for(style)
+
+    if not semantic_style then
+        return nil
+    end
+
+    local mode = M.resolve_annotation_mode(config, panel_width)
+
+    if mode.use_tags ~= true and mode.use_markers ~= true then
+        return nil
+    end
+
+    local parts = {}
+    local marker = nil
+    local tag = nil
+
+    if mode.use_markers == true then
+        marker = M.marker_for(semantic_style, mode.ascii_safe)
+
+        if marker and marker ~= "" then
+            table.insert(parts, marker)
+        end
+    end
+
+    if mode.use_tags == true then
+        tag = M.tag_for(semantic_style, mode.tag_mode)
+
+        if tag and tag ~= "" then
+            table.insert(parts, tag)
+        end
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    return {
+        semantic_style = semantic_style,
+        marker = marker,
+        tag = tag,
+        text = table.concat(parts, " "),
+        mode = mode,
+    }
+end
+
+
+function M.highlight_priority_for(style, base_priority)
+    local base = tonumber(base_priority) or 200
+    local priority = M.priority_for(style)
+
+    if not priority then
+        return base
+    end
+
+    return base + (100 - priority)
 end
 
 

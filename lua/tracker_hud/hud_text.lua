@@ -11,6 +11,8 @@
 -- information can later gain bold/italic/underline/undercurl attributes
 -- without changing adapters or semantic models.
 
+local visual_language = require("tracker_hud.visual_language")
+
 local M = {}
 
 
@@ -59,7 +61,10 @@ function M.add_span(
         style = style,
         start_col = start_col,
         end_col = end_col,
-        priority = priority,
+        priority = visual_language.highlight_priority_for(
+            style,
+            priority
+        ),
     })
 
     return line
@@ -92,6 +97,82 @@ function M.append(line, value, style)
             style
         )
     end
+
+    return line
+end
+
+
+function M.annotations_enabled(config, panel_width)
+    return visual_language.annotations_enabled(
+        config,
+        panel_width
+    )
+end
+
+
+function M.annotation_for(style, config, panel_width)
+    return visual_language.annotation_for(
+        style,
+        config,
+        panel_width
+    )
+end
+
+
+function M.append_annotation_prefix(
+    line,
+    style,
+    config,
+    panel_width
+)
+    if type(line) ~= "table" then
+        return false
+    end
+
+    local annotation = visual_language.annotation_for(
+        style,
+        config,
+        panel_width
+    )
+
+    if type(annotation) ~= "table"
+        or type(annotation.text) ~= "string"
+        or annotation.text == ""
+    then
+        return false
+    end
+
+    M.append(
+        line,
+        annotation.text,
+        annotation.semantic_style or style
+    )
+
+    M.append(line, " ", nil)
+
+    return true
+end
+
+
+function M.append_semantic_value(
+    line,
+    value,
+    style,
+    config,
+    panel_width
+)
+    M.append_annotation_prefix(
+        line,
+        style,
+        config,
+        panel_width
+    )
+
+    M.append(
+        line,
+        value,
+        style
+    )
 
     return line
 end

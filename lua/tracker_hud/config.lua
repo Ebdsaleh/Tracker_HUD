@@ -33,12 +33,12 @@ M.defaults = {
         terminal_tier = "auto", -- "auto", "truecolor", "256", "16", "monochrome"
 
         tags = {
-            enabled = false,
+            enabled = "auto", -- true, false, or "auto" for low-color terminals
             mode = "auto", -- "auto", "full", "condensed", "marker", "plain"
         },
 
         markers = {
-            enabled = false,
+            enabled = "auto", -- true, false, or "auto" for low-color terminals
             ascii_safe = true,
         },
 
@@ -52,6 +52,10 @@ M.defaults = {
             enforce_collision_fallbacks = true,
             underline_rule_checks = true,
             distinguish_operand_green_from_resolved_green = true,
+        },
+
+        flow = {
+            enabled = true,
         },
     },
 

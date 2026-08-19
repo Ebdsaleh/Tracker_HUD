@@ -895,7 +895,7 @@ local function append_section_lines(
 end
 
 
-local function format_panel_lines(context)
+local function format_panel_lines(context, config)
     local line_styles = {}
     local line_spans = {}
 
@@ -1068,6 +1068,7 @@ local function format_panel_lines(context)
     local sections =
         hud_sections.build(context, {
             panel_width = panel_width,
+            config = config,
             inspect_mode = inspect_mode.get_mode(),
         })
 
@@ -1086,7 +1087,7 @@ end
 
 local function render_panel(context, config, source_winid)
     local lines, line_styles, line_spans =
-        format_panel_lines(context)
+        format_panel_lines(context, config)
 
     create_panel(config, source_winid, lines)
     set_panel_statusline(config)
@@ -1303,7 +1304,7 @@ function M.resize_panel(size, config, context)
     local panel_position = get_panel_position(config)
 
     if size == "auto" then
-        local lines = format_panel_lines(context)
+        local lines = format_panel_lines(context, config)
         resolved_panel_size = calculate_auto_panel_size(config, panel_position, lines)
         apply_panel_size(panel_position, resolved_panel_size)
         return
@@ -1355,7 +1356,7 @@ function M.update_panel()
     )
 
     local lines, line_styles, line_spans =
-        format_panel_lines(last_context)
+        format_panel_lines(last_context, last_config or {})
 
     vim.bo[panel_bufnr].modifiable = true
     vim.api.nvim_buf_set_lines(panel_bufnr, 0, -1, false, lines)

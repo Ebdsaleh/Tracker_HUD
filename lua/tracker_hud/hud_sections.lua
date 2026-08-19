@@ -448,27 +448,8 @@ local function style_common_punctuation(
 end
 
 
-local function style_detail_label(
-    line,
-    label_offset,
-    label,
-    node,
-    semantic_override
-)
-    local key, value_start =
-        label:match("^([^:]+):%s*()")
-
-    if type(key) ~= "string"
-        or not value_start
-    then
-        return false
-    end
-
-    local key_start = 1
-    local key_end = #key
-    local value = label:sub(value_start)
-
-    local normalized_key = key:lower()
+local function detail_styles_for_key(key, semantic_override)
+    local normalized_key = tostring(key or ""):lower()
     local key_style = "metadata_key"
     local value_style = "metadata_value"
 
@@ -500,6 +481,26 @@ local function style_detail_label(
     elseif normalized_key == "source operand" then
         key_style = "origin"
         value_style = "value"
+    elseif normalized_key == "writes to"
+        or normalized_key == "flows into"
+        or normalized_key == "value flow"
+    then
+        key_style = "origin"
+        value_style = "source"
+    elseif normalized_key == "operand kind" then
+        key_style = "kind"
+        value_style = "kind"
+    elseif normalized_key == "focused token" then
+        key_style = "metadata_key"
+        value_style = semantic_override or "metadata_value"
+    elseif normalized_key == "focused token kind" then
+        key_style = "kind"
+        value_style = "kind"
+    elseif normalized_key == "address role"
+        or normalized_key == "containing operand"
+    then
+        key_style = "memory"
+        value_style = "memory"
     elseif normalized_key == "written alias" then
         key_style = "register_alias"
         value_style = "register_alias"
@@ -515,6 +516,35 @@ local function style_detail_label(
     then
         value_style = "value"
     end
+
+    return key_style, value_style
+end
+
+
+local function style_detail_label(
+    line,
+    label_offset,
+    label,
+    node,
+    semantic_override
+)
+    local key, value_start =
+        label:match("^([^:]+):%s*()")
+
+    if type(key) ~= "string"
+        or not value_start
+    then
+        return false
+    end
+
+    local key_start = 1
+    local key_end = #key
+    local value = label:sub(value_start)
+
+    local key_style, value_style = detail_styles_for_key(
+        key,
+        semantic_override
+    )
 
     hud_text.add_span(
         line,
@@ -991,6 +1021,123 @@ local function style_known_node_fields(
 end
 
 
+local function parse_detail_parts(node, label)
+    if type(node) == "table"
+        and node.kind == "warning_detail"
+        and node.detail_key ~= nil
+        and node.detail_value ~= nil
+    then
+        return tostring(node.detail_key), tostring(node.detail_value)
+    end
+
+    if type(label) ~= "string" then
+        return nil, nil
+    end
+
+    local key, value = label:match("^([^:]+):%s?(.*)$")
+
+    if type(key) ~= "string" then
+        return nil, nil
+    end
+
+    return key, value or ""
+end
+
+
+local function build_annotated_detail_line(
+    node,
+    marker,
+    label,
+    indent,
+    opts,
+    semantic_override
+)
+    opts = opts or {}
+
+    if not hud_text.annotations_enabled(
+        opts.config,
+        opts.panel_width
+    ) then
+        return nil
+    end
+
+    if type(node) ~= "table"
+        or (node.kind ~= "detail" and node.kind ~= "warning_detail")
+    then
+        return nil
+    end
+
+    local key, value = parse_detail_parts(node, label)
+
+    if type(key) ~= "string" then
+        return nil
+    end
+
+    local key_style = "metadata_key"
+    local value_style = "metadata_value"
+
+    if node.kind == "warning_detail" then
+        key_style = "warning_detail_key"
+        value_style = warning_detail_value_style(node)
+    else
+        key_style, value_style = detail_styles_for_key(
+            key,
+            semantic_override
+        )
+    end
+
+    local line = hud_text.new()
+
+    hud_text.append(
+        line,
+        indent or "",
+        nil
+    )
+
+    hud_text.append(
+        line,
+        marker or "",
+        "tree_marker"
+    )
+
+    hud_text.append(line, " ", nil)
+
+    hud_text.append_annotation_prefix(
+        line,
+        "metadata_key",
+        opts.config,
+        opts.panel_width
+    )
+
+    hud_text.append(
+        line,
+        key,
+        key_style
+    )
+
+    hud_text.append(
+        line,
+        ": ",
+        "punctuation"
+    )
+
+    hud_text.append_annotation_prefix(
+        line,
+        value_style,
+        opts.config,
+        opts.panel_width
+    )
+
+    hud_text.append(
+        line,
+        value,
+        value_style
+    )
+
+    return line
+end
+
+
 local function build_node_line(
     node,
     marker,
@@ -1002,6 +1149,19 @@ local function build_node_line(
     local line = hud_text.new()
     local semantic_override =
         get_node_style(node, opts)
+
+    local annotated_detail = build_annotated_detail_line(
+        node,
+        marker,
+        label,
+        indent,
+        opts,
+        semantic_override
+    )
+
+    if annotated_detail then
+        return annotated_detail
+    end
 
     hud_text.append(
         line,
@@ -1033,6 +1193,13 @@ local function build_node_line(
     end
 
     hud_text.append(line, " ", nil)
+
+    hud_text.append_annotation_prefix(
+        line,
+        semantic_override or node_base_style(node, opts),
+        opts.config,
+        opts.panel_width
+    )
 
     local label_offset = #line.text
 
@@ -3318,6 +3485,7 @@ function M.build(context, opts)
     )
     local scope_member_render = build_scope_member_tree_lines(scope_member_nodes, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         section_id = "scope_members",
@@ -3325,7 +3493,11 @@ function M.build(context, opts)
         section_relevance = scope_member_relevance,
     })
 
-    local register_nodes = register_tree.build(context.registers or {}, context)
+    local register_nodes = register_tree.build(
+        context.registers or {},
+        context,
+        { config = opts.config }
+    )
     local register_inspection = type(context.register_inspection) == "table"
         and context.register_inspection.active == true
         and context.register_inspection
@@ -3418,6 +3590,7 @@ function M.build(context, opts)
 
     local register_render = build_hud_tree_lines(register_nodes, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = register_active_ids,
@@ -3448,6 +3621,7 @@ function M.build(context, opts)
     )
     local event_render = build_hud_tree_lines(event_nodes, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         section_id = "events",
@@ -3475,6 +3649,7 @@ function M.build(context, opts)
     )
     local stack_render = build_hud_tree_lines(stack_nodes, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         section_id = "stack",
@@ -3501,6 +3676,7 @@ function M.build(context, opts)
     )
     local heap_render = build_hud_tree_lines(heap_root.children or {}, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         section_id = "heap",
@@ -3527,6 +3703,7 @@ function M.build(context, opts)
     )
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
+        config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         section_id = "warnings",

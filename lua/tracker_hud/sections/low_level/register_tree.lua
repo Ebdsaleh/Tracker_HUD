@@ -8,6 +8,25 @@ local lookup_tree = require("tracker_hud.sections.templates.lookup_tree")
 local M = {}
 
 
+local function flow_details_enabled(opts)
+    local config = type(opts) == "table"
+        and opts.config
+        or nil
+    local visual_language = type(config) == "table"
+        and config.visual_language
+        or nil
+    local flow = type(visual_language) == "table"
+        and visual_language.flow
+        or nil
+
+    if type(flow) == "table" and flow.enabled == false then
+        return false
+    end
+
+    return true
+end
+
+
 local function build_register_detail_node(register, detail_id, label)
     return lookup_tree.new_detail_node(
         register,
@@ -31,6 +50,40 @@ local function append_metadata_detail(children, register, detail_id, label, valu
         detail_id,
         label .. ": " .. tostring(value)
     ))
+end
+
+
+local function build_value_flow_label(metadata, register)
+    if not core.is_table(metadata)
+        or not core.is_table(register)
+    then
+        return nil
+    end
+
+    local source_text = metadata.value_source_text
+        or metadata.source_operand_text
+        or metadata.source_operand
+
+    local target_text = register.name
+
+    if not core.is_non_empty_string(source_text)
+        or not core.is_non_empty_string(target_text)
+    then
+        return nil
+    end
+
+    return tostring(source_text) .. " -> " .. tostring(target_text)
+end
+
+
+local function append_value_flow_detail(children, register, detail_id, metadata)
+    append_metadata_detail(
+        children,
+        register,
+        detail_id,
+        "value flow",
+        build_value_flow_label(metadata, register)
+    )
 end
 
 
@@ -90,7 +143,7 @@ local function get_selected_source_metadata(context, register_id)
 end
 
 
-local function append_source_details(children, register, context)
+local function append_source_details(children, register, context, opts)
     local metadata = register.metadata or {}
     local selected_metadata = get_selected_source_metadata(
         context,
@@ -114,6 +167,15 @@ local function append_source_details(children, register, context)
             selected_metadata.source_role
         )
 
+        if flow_details_enabled(opts) then
+            append_value_flow_detail(
+                children,
+                register,
+                "selected-value-flow",
+                selected_metadata
+            )
+        end
+
         return
     end
 
@@ -127,6 +189,15 @@ local function append_source_details(children, register, context)
         "value source",
         metadata.value_source
     )
+
+    if flow_details_enabled(opts) then
+        append_value_flow_detail(
+            children,
+            register,
+            "value-flow",
+            metadata
+        )
+    end
 end
 
 
@@ -230,7 +301,7 @@ local function get_inspection_role(context, register_id)
 end
 
 
-local function build_register_node(register, context)
+local function build_register_node(register, context, opts)
     if not core.is_table(register) then
         return nil
     end
@@ -266,7 +337,7 @@ local function build_register_node(register, context)
         "source: " .. tostring(register.source or "<unknown>")
     ))
 
-    append_source_details(children, register, context)
+    append_source_details(children, register, context, opts)
 
     local metadata = register.metadata or {}
 
@@ -320,14 +391,14 @@ local function build_group_node(group)
 end
 
 
-function M.build(registers, context)
+function M.build(registers, context, opts)
     local nodes = {}
 
     local active_group_id = nil
     local active_group_node = nil
 
     for _, register in ipairs(registers or {}) do
-        local node = build_register_node(register, context)
+        local node = build_register_node(register, context, opts)
 
         if node then
             local group = get_register_group(register)
