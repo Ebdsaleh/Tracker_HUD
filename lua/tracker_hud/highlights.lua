@@ -2,232 +2,51 @@
 --
 -- Semantic HUD highlight groups.
 --
--- Internal rendering code uses stable semantic style keys. Public Neovim
+-- Rendering code uses stable semantic style keys. Public Neovim
 -- highlight-group names are resolved through tracker_hud.namespace so the
 -- final project name is not hard-coded into presentation logic.
 --
--- This module gives semantic information a consistent visual vocabulary:
--- semantic identity chooses the hue/family, while relevance chooses the
--- intensity/emphasis. Users/colorschemes can still override any generated
--- group, including font-style attributes such as bold, italic, underline,
--- undercurl, strikethrough, and reverse.
+-- The semantic vocabulary itself lives in tracker_hud.visual_language. This
+-- keeps the visual/color language data-first so text, ASCII, and future
+-- graphical renderers can stay congruent.
 
 local namespace = require("tracker_hud.namespace")
+local visual_language = require("tracker_hud.visual_language")
 
 local M = {}
 
 
-local STYLE_SUFFIXES = {
-    -- HUD shell / navigation.
-    title = "Title",
-    tip = "Tip",
-    tip_label = "TipLabel",
-    key_hint = "KeyHint",
-    section = "Section",
-    section_marker = "SectionMarker",
-    control = "Control",
-    control_marker = "ControlMarker",
-    active = "Active",
-    tree_marker = "TreeMarker",
-    status_title = "StatusTitle",
-    status_marker = "StatusMarker",
-    inspect_mode = "InspectMode",
+local STYLE_SUFFIXES = visual_language.style_suffixes
+local DEFAULT_LINKS = visual_language.default_links
+local DEFAULT_STYLE_DEFINITIONS = visual_language.default_style_definitions
+local DEFAULT_RELEVANCE_DEFINITIONS = visual_language.relevance_definitions
+local DEFAULT_RELEVANCE_COLOR_MIXES = visual_language.relevance_color_mixes
+local RELEVANCE_MUTE_TARGET = visual_language.relevance_mute_target
 
-    -- Generic structural text.
-    punctuation = "Punctuation",
-    separator = "Separator",
-    operator = "Operator",
-    qualifier = "Qualifier",
-    line_number = "LineNumber",
-    scope = "Scope",
-    scope_range = "ScopeRange",
-    member = "Member",
-    category = "Category",
-    kind = "Kind",
-    name = "Name",
-    type = "Type",
-    value = "Value",
-    role = "Role",
-    origin = "Origin",
 
-    -- Status / target metadata.
-    status_label = "StatusLabel",
-    status_value = "StatusValue",
-    target_label = "TargetLabel",
-    target_key = "TargetKey",
-    target_value = "TargetValue",
-    diagnostic = "Diagnostic",
-    metadata = "Metadata",
-    metadata_key = "MetadataKey",
-    metadata_value = "MetadataValue",
+function M.visual_language()
+    return visual_language
+end
 
-    -- Low-level / event identities.
-    register = "Register",
-    register_alias = "RegisterAlias",
-    stack = "Stack",
-    heap = "Heap",
-    event = "Event",
-    boundary = "Boundary",
 
-    -- Occurrence/effect semantics.
-    destination = "Destination",
-    source = "Source",
-    implicit = "Implicit",
+function M.semantic_category(style)
+    return visual_language.category_for(style)
+end
 
-    -- Warning structure.
-    warning = "Warning",
-    warning_severity = "WarningSeverity",
-    warning_category = "WarningCategory",
-    warning_message = "WarningMessage",
-    warning_detail_key = "WarningDetailKey",
-    warning_detail_value = "WarningDetailValue",
-    warning_subject = "WarningSubject",
-    warning_rule = "WarningRule",
-    warning_rule_source = "WarningRuleSource",
-    warning_rule_check = "WarningRuleCheck",
-    resolved = "Resolved",
-    unresolved = "Unresolved",
 
-    -- Relevance state. These are presentation modifiers stacked on top of
-    -- semantic groups when a relevance-specific semantic group is not known.
-    -- They are not semantic identities themselves.
-    focused = "Focused",
-    current = "Current",
-    contextual = "Contextual",
-    historical = "Historical",
+function M.semantic_priority(style)
+    return visual_language.priority_for(style)
+end
 
-    -- Fallbacks.
-    muted = "Muted",
-    empty = "Empty",
-}
 
--- Fallback links for styles that do not need a dedicated default color.
-local DEFAULT_LINKS = {
-    title = "Title",
-    tip = "Comment",
-    tip_label = "Special",
-    key_hint = "Special",
-    section = "Function",
-    section_marker = "Special",
-    control = "Special",
-    control_marker = "Special",
-    active = "IncSearch",
-    tree_marker = "Delimiter",
-    status_title = "StatusLine",
-    status_marker = "Special",
-    inspect_mode = "ModeMsg",
+function M.semantic_tag(style, mode)
+    return visual_language.tag_for(style, mode)
+end
 
-    punctuation = "Delimiter",
-    separator = "Delimiter",
-    operator = "Operator",
-    qualifier = "Type",
-    scope = "Function",
-    scope_range = "Comment",
-    member = "Identifier",
-    category = "Type",
-    kind = "Type",
-    name = "Identifier",
-    type = "Type",
-    role = "Keyword",
 
-    status_label = "Comment",
-    status_value = "Identifier",
-    target_label = "Keyword",
-    target_key = "Comment",
-    target_value = "Identifier",
-    diagnostic = "DiagnosticWarn",
-    metadata = "Comment",
-
-    stack = "Identifier",
-    heap = "Identifier",
-    event = "Special",
-
-    muted = "Comment",
-    empty = "Comment",
-}
-
--- Default semantic colors. These are deliberately meaning-based rather than
--- section-based:
---
---   cyan       -> keys / register-ish metadata
---   blue       -> line numbers / ordinary numeric anchors
---   teal       -> origin/source information
---   purple     -> boundary/system entities
---   violet     -> rule systems and checks
---   amber      -> warning text / implicated subjects
---   red        -> unresolved/failure state
---   green      -> resolved/success state
---
--- The palette is TokyoNight-friendly but intentionally plain hex so it works
--- with any colorscheme that does not override the generated Hud* groups.
-local DEFAULT_STYLE_DEFINITIONS = {
-    line_number = { fg = "#7AA2F7" },
-    value = { fg = "#C0CAF5" },
-    metadata_key = { fg = "#7DCFFF" },
-    metadata_value = { fg = "#C0CAF5" },
-    origin = { fg = "#73DACA" },
-
-    register = { fg = "#7DCFFF" },
-    register_alias = { fg = "#89DDFF" },
-    destination = { fg = "#9ECE6A" },
-    source = { fg = "#9ECE6A" },
-
-    -- Implicit architectural effects deliberately share the warning color
-    -- family by default without sharing warning semantics. This makes hidden
-    -- register side-effects such as syscall clobbers visually obvious.
-    implicit = { fg = "#E0AF68" },
-
-    boundary = { fg = "#BB9AF7" },
-
-    warning = { fg = "#E0AF68" },
-    warning_severity = { fg = "#E0AF68" },
-    warning_category = { fg = "#BB9AF7" },
-    warning_message = { fg = "#FFC777" },
-    warning_detail_key = { fg = "#7DCFFF" },
-    warning_detail_value = { fg = "#C0CAF5" },
-
-    -- Important: this is not the same as HudUnresolved.
-    -- A warning subject is the implicated thing, such as rax, buffer, syscall,
-    -- or another concrete target named by a warning.
-    warning_subject = { fg = "#FF9E64" },
-
-    warning_rule = { fg = "#C678DD" },
-    warning_rule_source = { fg = "#9D7CD8" },
-    warning_rule_check = { fg = "#FF75A0" },
-
-    resolved = { fg = "#9ECE6A" },
-    unresolved = { fg = "#F7768E" },
-}
-
--- Relevance is an intensity/emphasis layer, not a replacement for the
--- semantic hue. Styles with DEFAULT_STYLE_DEFINITIONS get combined groups such
--- as HudWarningSubjectFocused and HudWarningSubjectHistorical so historical
--- values can become dull amber/purple/red instead of collapsing to identical
--- gray.
-local DEFAULT_RELEVANCE_DEFINITIONS = {
-    focused = {
-        bold = true,
-    },
-
-    current = {},
-
-    contextual = {
-        italic = true,
-    },
-
-    historical = {
-        italic = true,
-    },
-}
-
-local DEFAULT_RELEVANCE_COLOR_MIXES = {
-    focused = 0.00,
-    current = 0.00,
-    contextual = 0.34,
-    historical = 0.58,
-}
-
-local RELEVANCE_MUTE_TARGET = "#565F89"
+function M.semantic_marker(style, ascii_safe)
+    return visual_language.marker_for(style, ascii_safe)
+end
 
 
 local render_namespace =

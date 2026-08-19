@@ -23,6 +23,38 @@ M.defaults = {
         enabled = true,
     },
 
+    -- Renderer-agnostic visual language controls.
+    --
+    -- These options are intentionally data/config first. The current text HUD
+    -- still uses semantic highlight spans, while future low-color, tagged,
+    -- compact, ASCII, or graphical renderers can consume the same visual
+    -- language tables from tracker_hud.visual_language.
+    visual_language = {
+        terminal_tier = "auto", -- "auto", "truecolor", "256", "16", "monochrome"
+
+        tags = {
+            enabled = false,
+            mode = "auto", -- "auto", "full", "condensed", "marker", "plain"
+        },
+
+        markers = {
+            enabled = false,
+            ascii_safe = true,
+        },
+
+        width = {
+            mode = "auto", -- "auto", "full", "condensed", "marker", "plain"
+            condensed_columns = 52,
+            marker_columns = 40,
+        },
+
+        low_color = {
+            enforce_collision_fallbacks = true,
+            underline_rule_checks = true,
+            distinguish_operand_green_from_resolved_green = true,
+        },
+    },
+
     -- Source-position line summaries.
     --
     -- The HUD is cursor-state-first: exact syntax tokens/operands own the
