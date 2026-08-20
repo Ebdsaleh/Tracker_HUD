@@ -51,7 +51,8 @@ M.defaults = {
             -- quiet and readable in monochrome or unreliable terminal-color
             -- environments.
             --
-            -- Current plain-mode rule:
+            -- Current plain-mode rules:
+            --   all HUD text is forced to bright white;
             --   only the active root-section title is underlined.
             --
             -- Inner rows/details are intentionally not underlined, dimmed, or

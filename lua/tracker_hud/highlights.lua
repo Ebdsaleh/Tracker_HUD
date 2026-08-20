@@ -55,6 +55,11 @@ local render_namespace =
     )
 
 
+local function plain_mode_enabled(config)
+    return visual_language.resolve_visual_mode(config) == "plain"
+end
+
+
 local function highlights_enabled(config)
     if type(config) == "table"
         and type(config.highlights) == "table"
@@ -63,7 +68,8 @@ local function highlights_enabled(config)
         return false
     end
 
-    return visual_language.colors_enabled(config)
+    return plain_mode_enabled(config)
+        or visual_language.colors_enabled(config)
         or visual_language.plain_emphasis_enabled(config)
 end
 
@@ -423,6 +429,38 @@ local function normalize_style_spec(spec)
 end
 
 
+local function apply_plain_base_style(bufnr, config)
+    if not plain_mode_enabled(config) then
+        return
+    end
+
+    local group = M.group_name(config, "plain_text")
+
+    if not group then
+        return
+    end
+
+    local line_count = vim.api.nvim_buf_line_count(bufnr)
+
+    for row = 0, line_count - 1 do
+        pcall(
+            vim.api.nvim_buf_set_extmark,
+            bufnr,
+            render_namespace,
+            row,
+            0,
+            {
+                end_row = row,
+                end_col = -1,
+                strict = false,
+                hl_group = group,
+                priority = 80,
+            }
+        )
+    end
+end
+
+
 local function apply_line_style(
     bufnr,
     config,
@@ -534,6 +572,11 @@ function M.apply_styles(
     if not highlights_enabled(config) then
         return true
     end
+
+    -- Plain mode forces the whole HUD to bright white first. Specific neutral
+    -- emphasis such as the active section underline is applied afterwards at a
+    -- higher priority.
+    apply_plain_base_style(bufnr, config)
 
     -- Whole-line styles remain a useful fallback for unstructured/custom
     -- output. Structured semantic spans are applied afterwards at higher

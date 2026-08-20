@@ -525,6 +525,7 @@ M.style_suffixes = {
     active = "Active",
     section_title = "SectionTitle",
     warning_section_title = "WarningSectionTitle",
+    plain_text = "PlainText",
     plain_section_title = "PlainSectionTitle",
     plain_active_section_title = "PlainActiveSectionTitle",
     plain_active_marker = "PlainActiveMarker",
@@ -704,11 +705,12 @@ M.default_style_definitions = {
     resolved = { fg = "#9ECE6A" },
     unresolved = { fg = "#F7768E" },
 
-    -- Plain-mode neutral emphasis. These groups deliberately avoid semantic
-    -- colors: they only describe visibility/relevance. The current plain-mode
-    -- baseline uses underline only for the active root-section title. Shadow
-    -- groups remain defined for a future optional active-path pass, but they
-    -- are disabled by default through visual_language.plain.shadow_active_path.
+    -- Plain-mode neutral text/emphasis. These groups deliberately avoid
+    -- semantic color families: they describe colorless/plain visibility only.
+    -- PlainText gives every HUD line a bright white foreground so plain mode
+    -- does not depend on dimming, semantic colors, or colorscheme defaults.
+    -- The active root-section title remains the only underlined element.
+    plain_text = { fg = "#FFFFFF" },
     plain_section_title = { fg = "#FFFFFF", bold = true },
     plain_active_section_title = { fg = "#FFFFFF", bold = true, underline = true },
     plain_active_marker = { fg = "#FFFFFF", bold = true },
