@@ -203,4 +203,77 @@ function M.get_fact_value(facts_or_index, name, key_field)
 end
 
 
+function M.new_state(opts)
+    opts = opts or {}
+
+    return {
+        registers = core.is_table(opts.registers) and opts.registers or {},
+        stack = core.is_table(opts.stack) and opts.stack or {},
+        heap = core.is_table(opts.heap) and opts.heap or {},
+        events = core.is_table(opts.events) and opts.events or {},
+        warnings = core.is_table(opts.warnings) and opts.warnings or {},
+        metadata = core.is_table(opts.metadata) and opts.metadata or {},
+    }
+end
+
+
+function M.new_value_fact(opts)
+    opts = opts or {}
+
+    return {
+        value = opts.value,
+        resolved = opts.resolved ~= false,
+        source = opts.source,
+        source_kind = opts.source_kind,
+        source_name = opts.source_name,
+        source_text = opts.source_text,
+        source_line = opts.source_line,
+        source_column = opts.source_column,
+        source_start_line = opts.source_start_line,
+        source_start_column = opts.source_start_column,
+        source_end_line = opts.source_end_line,
+        source_end_column = opts.source_end_column,
+        metadata = core.is_table(opts.metadata) and opts.metadata or {},
+    }
+end
+
+
+function M.push_stack(state, value_fact)
+    if not core.is_table(state) then
+        return nil
+    end
+
+    state.stack = core.is_table(state.stack) and state.stack or {}
+
+    local fact = core.is_table(value_fact)
+        and value_fact
+        or M.new_value_fact({
+            value = value_fact,
+            resolved = value_fact ~= nil,
+        })
+
+    table.insert(state.stack, fact)
+
+    return fact
+end
+
+
+function M.peek_stack(state)
+    if not core.is_table(state) or not core.is_table(state.stack) then
+        return nil
+    end
+
+    return state.stack[#state.stack]
+end
+
+
+function M.pop_stack(state)
+    if not core.is_table(state) or not core.is_table(state.stack) then
+        return nil
+    end
+
+    return table.remove(state.stack)
+end
+
+
 return M

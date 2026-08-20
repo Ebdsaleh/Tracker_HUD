@@ -1721,7 +1721,7 @@ local function build_value_source_label(operand)
 end
 
 
-local function build_source_operand_metadata(effect_spec, instruction, effect)
+local function build_source_operand_metadata(effect_spec, instruction, effect, instruction_state)
     if not core.is_table(instruction)
         or not core.is_table(effect)
     then
@@ -1729,6 +1729,43 @@ local function build_source_operand_metadata(effect_spec, instruction, effect)
     end
 
     local metadata = {}
+
+    if effect.value_from_stack_top == true
+        or effect.value_from_stack == "top"
+    then
+        local stack_value = core.is_table(instruction_state)
+            and instruction_state.stack_pop
+            or nil
+
+        local source_text = "stack"
+
+        if core.is_table(stack_value) then
+            source_text = stack_value.source_text
+                or stack_value.source_name
+                or stack_value.source
+                or source_text
+        end
+
+        metadata.source_operand_kind = "stack"
+        metadata.source_kind = "stack"
+        metadata.source_operand_role = "stack_top"
+        metadata.source_role = "stack top"
+        metadata.source_operand = source_text
+        metadata.source_operand_text = source_text
+        metadata.value_source = "stack " .. tostring(source_text)
+        metadata.value_source_kind = "stack"
+        metadata.value_source_text = source_text
+
+        if core.is_table(stack_value) then
+            metadata.stack_value_source_kind = stack_value.source_kind
+            metadata.stack_value_source_name = stack_value.source_name
+            metadata.stack_value_source_text = stack_value.source_text
+            metadata.stack_value_resolved = stack_value.resolved ~= false
+        end
+
+        return metadata
+    end
+
     local source_index = get_source_operand_index(effect)
     local source_operand = source_index
         and instruction.operands
@@ -1768,6 +1805,20 @@ local function build_source_operand_metadata(effect_spec, instruction, effect)
         return metadata
     end
 
+    if effect.value_from_stack_top == true
+        or effect.value_from_stack == "top"
+    then
+        local stack_value = core.is_table(instruction_state)
+            and instruction_state.stack_pop
+            or nil
+
+        if core.is_table(stack_value) then
+            return stack_value.value, stack_value.resolved ~= false
+        end
+
+        return nil, false
+    end
+
     if core.is_non_empty_string(effect.value_from_register) then
         metadata.source_operand_kind = "register"
         metadata.source_kind = "register"
@@ -1799,7 +1850,101 @@ local function merge_source_metadata(target, source)
 end
 
 
-local function resolve_register_effect_value(facts_by_register, instruction, effect)
+local function make_stack_saved_value(facts_by_register, instruction, operand)
+    if not core.is_table(operand) then
+        return low_level_inference.new_value_fact({
+            value = nil,
+            resolved = false,
+            source = "stack",
+            source_kind = "unknown",
+            source_text = "<unknown>",
+        })
+    end
+
+    local value = operand.text
+    local resolved = value ~= nil
+    local source_kind = operand.kind or "unknown"
+    local source_name = operand.text
+    local source_text = operand.text
+
+    if operand.kind == "register" then
+        local source_fact = get_register_fact_from_map(
+            facts_by_register,
+            operand.text
+        )
+
+        resolved = register_fact_is_resolved(source_fact)
+
+        if resolved then
+            value = source_fact.value
+        end
+    elseif operand.kind == "integer" then
+        local numeric_value = parse_numeric_value(operand.text)
+
+        if numeric_value ~= nil then
+            value = tostring(numeric_value)
+            resolved = true
+        else
+            resolved = false
+        end
+    else
+        resolved = value ~= nil
+    end
+
+    return low_level_inference.new_value_fact({
+        value = value,
+        resolved = resolved,
+        source = "instruction",
+        source_kind = source_kind,
+        source_name = source_name,
+        source_text = source_text,
+        source_line = operand.source_line or instruction.source_line,
+        source_column = operand.source_column or 0,
+        source_start_line = operand.source_start_line,
+        source_start_column = operand.source_start_column or 0,
+        source_end_line = operand.source_end_line,
+        source_end_column = operand.source_end_column or operand.source_column or 0,
+        metadata = {
+            mnemonic = instruction.mnemonic,
+        },
+    })
+end
+
+
+local function prepare_register_instruction_inference_state(
+    low_level_state,
+    facts_by_register,
+    instruction
+)
+    local instruction_state = {}
+
+    if not core.is_table(instruction) then
+        return instruction_state
+    end
+
+    local mnemonic = normalize_mnemonic(instruction.mnemonic)
+
+    if mnemonic == "push" then
+        local operand = instruction.operands and instruction.operands[1]
+        instruction_state.stack_push = low_level_inference.push_stack(
+            low_level_state,
+            make_stack_saved_value(
+                facts_by_register,
+                instruction,
+                operand
+            )
+        )
+    elseif mnemonic == "pop" then
+        instruction_state.stack_pop = low_level_inference.pop_stack(
+            low_level_state
+        )
+    end
+
+    return instruction_state
+end
+
+
+local function resolve_register_effect_value(facts_by_register, instruction, effect, instruction_state)
     local value = effect.value
     local resolved = value ~= nil
 
@@ -1916,7 +2061,7 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
 end
 
 
-local function make_register_fact(facts_by_register, adapter, instruction, effect_spec)
+local function make_register_fact(facts_by_register, adapter, instruction, effect_spec, instruction_state)
 
     if not core.is_table(facts_by_register)
         or not core.is_table(adapter)
@@ -1951,7 +2096,8 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
     local value, resolved = resolve_register_effect_value(
         facts_by_register,
         instruction,
-        effect
+        effect,
+        instruction_state
     )
 
     local static_spec = get_static_register_spec(adapter, target_register) or {}
@@ -1976,7 +2122,8 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         build_source_operand_metadata(
             effect_spec,
             instruction,
-            effect
+            effect,
+            instruction_state
         )
     )
 
@@ -2025,7 +2172,7 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
 end
 
 
-local function apply_register_effect(facts_by_register, adapter, instruction, effect_spec)
+local function apply_register_effect(facts_by_register, adapter, instruction, effect_spec, instruction_state)
     if not core.is_table(facts_by_register)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -2059,7 +2206,8 @@ local function apply_register_effect(facts_by_register, adapter, instruction, ef
         facts_by_register,
         adapter,
         instruction,
-        effect_spec
+        effect_spec,
+        instruction_state
     )
 
     if fact then
@@ -2171,6 +2319,7 @@ function M.collect_register_effects(context, adapter, opts)
     end)
 
     local facts_by_register = {}
+    local low_level_state = low_level_inference.new_state()
 
     for _, entry in ipairs(nodes) do
         local node_type = entry.node:type()
@@ -2191,12 +2340,19 @@ function M.collect_register_effects(context, adapter, opts)
 
             local effect_specs = mnemonic and node_bucket[mnemonic] or nil
 
+            local instruction_state = prepare_register_instruction_inference_state(
+                low_level_state,
+                facts_by_register,
+                instruction
+            )
+
             for _, effect_spec in ipairs(effect_specs or {}) do
                 apply_register_effect(
                     facts_by_register,
                     adapter,
                     instruction,
-                    effect_spec
+                    effect_spec,
+                    instruction_state
                 )
             end
         end

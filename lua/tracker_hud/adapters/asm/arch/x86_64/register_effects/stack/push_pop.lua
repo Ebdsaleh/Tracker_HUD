@@ -655,8 +655,9 @@ return {
 
             effect = {
                 kind = "register_write",
-                name = "pop_register_unknown",
+                name = "pop_register_from_stack",
                 target_operand = 1,
+                value_from_stack_top = true,
                 role = "loaded from stack by pop",
             },
         },
