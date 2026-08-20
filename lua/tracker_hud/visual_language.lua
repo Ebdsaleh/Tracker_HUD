@@ -122,7 +122,7 @@ M.visual_modes = {
 
     plain = {
         label = "plain",
-        description = "Stable text only; no semantic color assumptions or annotation prefixes.",
+        description = "Stable text with neutral active-path emphasis; no semantic color assumptions or annotation prefixes.",
         force_colors = false,
         force_tags = false,
         force_markers = false,
@@ -523,6 +523,11 @@ M.style_suffixes = {
     control = "Control",
     control_marker = "ControlMarker",
     active = "Active",
+    plain_active = "PlainActive",
+    plain_focused = "PlainFocused",
+    plain_current = "PlainCurrent",
+    plain_contextual = "PlainContextual",
+    plain_historical = "PlainHistorical",
     tree_marker = "TreeMarker",
     status_title = "StatusTitle",
     status_marker = "StatusMarker",
@@ -694,6 +699,17 @@ M.default_style_definitions = {
 
     resolved = { fg = "#9ECE6A" },
     unresolved = { fg = "#F7768E" },
+
+    -- Plain-mode neutral emphasis. These groups deliberately avoid semantic
+    -- colors: they only describe visibility/relevance. On true monochrome
+    -- terminals the bold/underline/reverse attributes are the useful part; on
+    -- normal terminals the neutral fg values create bright-active / dim-inactive
+    -- contrast without reintroducing meaning-by-color.
+    plain_active = { fg = "#FFFFFF", bold = true, reverse = true },
+    plain_focused = { fg = "#FFFFFF", bold = true, underline = true },
+    plain_current = { fg = "#E6EDF3", bold = true },
+    plain_contextual = { fg = "#AAB2BF" },
+    plain_historical = { fg = "#6B7280" },
 }
 
 
@@ -1094,6 +1110,66 @@ function M.set_visual_mode(config, mode)
     config.visual_language.mode = normalized
 
     return normalized
+end
+
+
+local function get_plain_config(config)
+    local visual_config = get_visual_config(config)
+
+    if type(visual_config.plain) == "table" then
+        return visual_config.plain
+    end
+
+    return {}
+end
+
+
+function M.plain_emphasis_enabled(config)
+    if M.resolve_visual_mode(config) ~= "plain" then
+        return false
+    end
+
+    local plain = get_plain_config(config)
+
+    return plain.emphasize_active_path ~= false
+        or plain.dim_inactive == true
+end
+
+
+function M.plain_style_for(config, style, relevance)
+    if not M.plain_emphasis_enabled(config) then
+        return nil
+    end
+
+    local plain = get_plain_config(config)
+    local emphasize_active_path = plain.emphasize_active_path ~= false
+    local dim_inactive = plain.dim_inactive == true
+
+    if style == "active" and emphasize_active_path then
+        return "plain_active"
+    end
+
+    if relevance == "focused" and emphasize_active_path then
+        return "plain_focused"
+    end
+
+    if relevance == "current" and emphasize_active_path then
+        return "plain_current"
+    end
+
+    if relevance == "contextual" and dim_inactive then
+        return "plain_contextual"
+    end
+
+    if relevance == "historical" and dim_inactive then
+        return "plain_historical"
+    end
+
+    if (style == "muted" or style == "empty") and dim_inactive then
+        return "plain_historical"
+    end
+
+    return nil
 end
 
 

@@ -64,6 +64,7 @@ local function highlights_enabled(config)
     end
 
     return visual_language.colors_enabled(config)
+        or visual_language.plain_emphasis_enabled(config)
 end
 
 
@@ -351,6 +352,20 @@ local function build_group_stack(
     style,
     relevance
 )
+    local plain_style = visual_language.plain_style_for(
+        config,
+        style,
+        relevance
+    )
+
+    if plain_style then
+        return M.group_name(config, plain_style)
+    end
+
+    if not visual_language.colors_enabled(config) then
+        return nil
+    end
+
     local composite_group = composite_group_name(
         config,
         style,

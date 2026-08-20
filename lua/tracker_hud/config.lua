@@ -43,7 +43,16 @@ M.defaults = {
         terminal_tier = "auto", -- "auto", "truecolor", "256", "16", "monochrome"
 
         colors = {
-            enabled = "auto", -- true, false, or "auto"; plain mode disables color
+            enabled = "auto", -- true, false, or "auto"; plain mode disables semantic color
+        },
+
+        plain = {
+            -- Plain mode does not depend on semantic colors, but it can still
+            -- use neutral emphasis so the active path stays visible on dull or
+            -- low-color terminals. If attributes/colors do not render, the
+            -- existing text markers still carry the state.
+            emphasize_active_path = true,
+            dim_inactive = true,
         },
 
         tags = {
