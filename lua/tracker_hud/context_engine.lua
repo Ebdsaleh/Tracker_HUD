@@ -7,6 +7,7 @@
 
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
+local low_level_inference = require("tracker_hud.low_level.inference")
 
 local M = {}
 
@@ -2085,6 +2086,12 @@ function M.collect_register_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
+    local limit_position = low_level_inference.normalize_position(
+        opts.limit_position
+            or opts.stop_before
+            or opts.before_position
+    )
+
     local effect_index = get_register_effect_index(adapter)
 
     local nodes = {}
@@ -2097,7 +2104,15 @@ function M.collect_register_effects(context, adapter, opts)
 
             local should_collect = false
 
-            if not cursor_line or node_line < cursor_line then
+            if limit_position then
+                should_collect = low_level_inference.position_is_before(
+                    {
+                        line = node_line,
+                        column = start_column,
+                    },
+                    limit_position
+                )
+            elseif not cursor_line or node_line < cursor_line then
                 should_collect = true
             elseif node_line == cursor_line then
                 local cursor_column = context
@@ -3137,7 +3152,13 @@ local function boundary_instruction_matches(instruction, effect_spec)
 end
 
 
-local function make_boundary_effect_fact(context, adapter, instruction, effect_spec)
+local function make_boundary_effect_fact(
+    context,
+    adapter,
+    instruction,
+    effect_spec,
+    phase_contexts
+)
     if not core.is_table(context)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -3146,8 +3167,18 @@ local function make_boundary_effect_fact(context, adapter, instruction, effect_s
         return nil
     end
 
+    phase_contexts = phase_contexts or {}
+
+    local read_context = core.is_table(phase_contexts.read_context)
+        and phase_contexts.read_context
+        or context
+
+    local write_context = core.is_table(phase_contexts.write_context)
+        and phase_contexts.write_context
+        or context
+
     local known_effect, effect_key = resolve_known_boundary_effect(
-        context,
+        read_context,
         effect_spec
     )
 
@@ -3166,8 +3197,8 @@ local function make_boundary_effect_fact(context, adapter, instruction, effect_s
         effect_key = effect_key,
         known_effect = known_effect,
 
-        reads = build_boundary_reads(context, effect_spec),
-        writes = build_boundary_writes(context, effect_spec),
+        reads = build_boundary_reads(read_context, effect_spec),
+        writes = build_boundary_writes(write_context, effect_spec),
 
         source = "instruction",
         source_line = instruction.source_line,
@@ -3183,12 +3214,65 @@ local function make_boundary_effect_fact(context, adapter, instruction, effect_s
             architecture = adapter.architecture,
             variant = adapter.active_variant_name,
             mnemonic = instruction.mnemonic,
+            boundary_reads_state = "before_instruction",
+            boundary_writes_state = "after_instruction",
         },
     }
 end
 
 
-local function apply_boundary_effect(facts, context, adapter, instruction, effect_spec)
+local function collect_registers_before_instruction(
+    context,
+    adapter,
+    opts,
+    instruction
+)
+    if not core.is_table(context)
+        or not core.is_table(adapter)
+        or not core.is_table(opts)
+        or not core.is_table(instruction)
+    then
+        return context
+    end
+
+    local limit_position = low_level_inference.normalize_position({
+        line = instruction.source_start_line
+            or instruction.source_line,
+        column = instruction.source_start_column
+            or instruction.source_column
+            or 0,
+    })
+
+    if not limit_position then
+        return context
+    end
+
+    local registers_before = M.collect_register_effects(
+        context,
+        adapter,
+        {
+            bufnr = opts.bufnr,
+            root_node = opts.root_node,
+            limit_position = limit_position,
+        }
+    )
+
+    return low_level_inference.with_section_facts(
+        context,
+        "registers",
+        registers_before
+    )
+end
+
+
+local function apply_boundary_effect(
+    facts,
+    context,
+    adapter,
+    instruction,
+    effect_spec,
+    phase_contexts
+)
     if not core.is_table(facts)
         or not core.is_table(context)
         or not core.is_table(adapter)
@@ -3206,7 +3290,8 @@ local function apply_boundary_effect(facts, context, adapter, instruction, effec
         context,
         adapter,
         instruction,
-        effect_spec
+        effect_spec,
+        phase_contexts
     )
 
     if fact then
@@ -3320,6 +3405,13 @@ function M.collect_boundary_effects(context, adapter, opts)
                 and node_bucket[mnemonic]
                 or nil
 
+            local read_context = collect_registers_before_instruction(
+                context,
+                adapter,
+                opts,
+                instruction
+            )
+
             for _, effect_spec in ipairs(
                 effect_specs or {}
             ) do
@@ -3328,7 +3420,11 @@ function M.collect_boundary_effects(context, adapter, opts)
                     context,
                     adapter,
                     instruction,
-                    effect_spec
+                    effect_spec,
+                    {
+                        read_context = read_context,
+                        write_context = context,
+                    }
                 )
             end
         end
