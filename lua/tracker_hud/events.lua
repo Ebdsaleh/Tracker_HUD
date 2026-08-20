@@ -90,6 +90,7 @@ local function add_boundary_event(events, seen, boundary_effect, index)
             effect_key = boundary_effect.effect_key,
             reads = boundary_effect.reads or {},
             writes = boundary_effect.writes or {},
+            not_preserved = boundary_effect.not_preserved or {},
         },
     })
 end
@@ -192,3 +193,4 @@ function M.collect(context)
 end
 
 return M
+

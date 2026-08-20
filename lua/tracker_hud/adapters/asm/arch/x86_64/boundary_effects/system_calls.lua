@@ -40,6 +40,13 @@ return {
                 return_register = "rax",
             },
 
+            not_preserved = {
+                registers = {
+                    "rcx",
+                    "r11",
+                },
+            },
+
             known_effects = {
                 ["0"] = {
                     name = "read",
@@ -118,3 +125,4 @@ return {
         },
     },
 }
+

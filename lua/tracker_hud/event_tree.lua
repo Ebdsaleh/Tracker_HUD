@@ -182,10 +182,27 @@ local function format_write_label(write)
 end
 
 
+local function format_not_preserved_label(entry)
+    if type(entry) ~= "table" then
+        return nil
+    end
+
+    local register = entry.register or entry.location or "<unknown>"
+    local label = "not preserved after: " .. tostring(register)
+
+    if entry.previous_value ~= nil and entry.previous_resolved ~= false then
+        label = label .. " (previous = " .. tostring(entry.previous_value) .. ")"
+    end
+
+    return label
+end
+
+
 local function append_boundary_io_details(node, event)
     local metadata = as_table(event and event.metadata)
     local reads = as_table(metadata.reads)
     local writes = as_table(metadata.writes)
+    local not_preserved = as_table(metadata.not_preserved)
 
     for index, read in ipairs(reads) do
         if read_is_relevant_for_known_boundary(event, read) then
@@ -202,6 +219,14 @@ local function append_boundary_io_details(node, event)
 
         if label then
             append_detail(node, "write:" .. tostring(index), label)
+        end
+    end
+
+    for index, entry in ipairs(not_preserved) do
+        local label = format_not_preserved_label(entry)
+
+        if label then
+            append_detail(node, "not_preserved:" .. tostring(index), label)
         end
     end
 end
