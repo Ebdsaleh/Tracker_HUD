@@ -2041,7 +2041,7 @@ local function source_active_root_from_path(node_path)
 end
 
 
-local function collect_source_active_node_ids(
+local function collect_source_active_root_ids(
     nodes,
     source_line,
     source_column
@@ -2076,6 +2076,41 @@ local function collect_source_active_node_ids(
     end
 
     if next(root_ids) == nil then
+        return nil
+    end
+
+    return root_ids
+end
+
+local function collect_source_active_node_ids(
+    nodes,
+    source_line,
+    source_column
+)
+    local root_ids = collect_source_active_root_ids(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    if not root_ids then
+        return nil
+    end
+
+    return mark_descendants(nodes, root_ids)
+end
+
+local function collect_section_focused_node_ids(
+    nodes,
+    root_ids,
+    section_id,
+    active_inspect_mode
+)
+    if active_inspect_mode ~= section_id then
+        return nil
+    end
+
+    if type(root_ids) ~= "table" then
         return nil
     end
 
@@ -3775,10 +3810,16 @@ function M.build(context, opts)
         event_affected,
         event_exact
     )
-    local event_active_ids = collect_source_active_node_ids(
+    local event_active_ids = collect_source_active_root_ids(
         event_nodes,
         active_source_line,
         active_source_column
+    )
+    local event_focused_ids = collect_section_focused_node_ids(
+        event_nodes,
+        event_active_ids,
+        "events",
+        active_inspect_mode
     )
     local event_render = build_hud_tree_lines(event_nodes, {
         panel_width = opts.panel_width,
@@ -3786,6 +3827,8 @@ function M.build(context, opts)
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = event_active_ids,
+        focused_node_ids = event_focused_ids,
+        focused_node_ids_strict = true,
         section_id = "events",
         inspect_mode = active_inspect_mode,
         section_relevance = event_relevance,
@@ -3809,10 +3852,16 @@ function M.build(context, opts)
         stack_affected,
         stack_exact
     )
-    local stack_active_ids = collect_source_active_node_ids(
+    local stack_active_ids = collect_source_active_root_ids(
         stack_nodes,
         active_source_line,
         active_source_column
+    )
+    local stack_focused_ids = collect_section_focused_node_ids(
+        stack_nodes,
+        stack_active_ids,
+        "stack",
+        active_inspect_mode
     )
     local stack_render = build_hud_tree_lines(stack_nodes, {
         panel_width = opts.panel_width,
@@ -3820,6 +3869,8 @@ function M.build(context, opts)
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = stack_active_ids,
+        focused_node_ids = stack_focused_ids,
+        focused_node_ids_strict = true,
         section_id = "stack",
         inspect_mode = active_inspect_mode,
         section_relevance = stack_relevance,
@@ -3842,10 +3893,16 @@ function M.build(context, opts)
         heap_affected,
         heap_exact
     )
-    local heap_active_ids = collect_source_active_node_ids(
+    local heap_active_ids = collect_source_active_root_ids(
         heap_root.children or {},
         active_source_line,
         active_source_column
+    )
+    local heap_focused_ids = collect_section_focused_node_ids(
+        heap_root.children or {},
+        heap_active_ids,
+        "heap",
+        active_inspect_mode
     )
     local heap_render = build_hud_tree_lines(heap_root.children or {}, {
         panel_width = opts.panel_width,
@@ -3853,6 +3910,8 @@ function M.build(context, opts)
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = heap_active_ids,
+        focused_node_ids = heap_focused_ids,
+        focused_node_ids_strict = true,
         section_id = "heap",
         inspect_mode = active_inspect_mode,
         section_relevance = heap_relevance,
@@ -3875,10 +3934,16 @@ function M.build(context, opts)
         warning_affected,
         warning_exact
     )
-    local warning_active_ids = collect_source_active_node_ids(
+    local warning_active_ids = collect_source_active_root_ids(
         warning_nodes,
         active_source_line,
         active_source_column
+    )
+    local warning_focused_ids = collect_section_focused_node_ids(
+        warning_nodes,
+        warning_active_ids,
+        "warnings",
+        active_inspect_mode
     )
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
@@ -3886,6 +3951,8 @@ function M.build(context, opts)
         active_source_line = active_source_line,
         active_source_column = active_source_column,
         explicit_active_node_ids = warning_active_ids,
+        focused_node_ids = warning_focused_ids,
+        focused_node_ids_strict = true,
         section_id = "warnings",
         inspect_mode = active_inspect_mode,
         section_relevance = warning_relevance,
