@@ -1909,6 +1909,180 @@ local function mark_descendants(
 end
 
 
+local function node_can_be_source_active_root(node)
+    if type(node) ~= "table"
+        or not node.id
+    then
+        return false
+    end
+
+    -- Detail rows often inherit the same source range as their owning fact.
+    -- They should be highlighted when their owner is active, but they should
+    -- not become the root that decides the active path. Otherwise a warning
+    -- or event with several details would highlight only whichever detail
+    -- happened to be visited last.
+    return node.kind ~= "detail"
+        and node.kind ~= "warning_detail"
+end
+
+
+local function collect_exact_source_active_roots(
+    nodes,
+    source_line,
+    source_column,
+    result
+)
+    result = result or {}
+    source_line = tonumber(source_line)
+    source_column = tonumber(source_column) or 0
+
+    if not source_line then
+        return result
+    end
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            local range = get_node_source_range(node)
+
+            if range
+                and position_is_in_range(
+                    source_line,
+                    source_column,
+                    range
+                )
+            then
+                if node_can_be_source_active_root(node) then
+                    result[node.id] = true
+                end
+
+                if node_has_children(node) then
+                    collect_exact_source_active_roots(
+                        node.children,
+                        source_line,
+                        source_column,
+                        result
+                    )
+                end
+
+            elseif not range and node_has_children(node) then
+                -- Presentation/category containers such as General, Pointers,
+                -- Flags, Vector, etc. are transparent for source targeting.
+                -- Search through them, but never highlight them only because a
+                -- descendant is active.
+                collect_exact_source_active_roots(
+                    node.children,
+                    source_line,
+                    source_column,
+                    result
+                )
+            end
+        end
+    end
+
+    return result
+end
+
+
+local function collect_line_source_active_roots(
+    nodes,
+    source_line,
+    result
+)
+    result = result or {}
+    source_line = tonumber(source_line)
+
+    if not source_line then
+        return result
+    end
+
+    for _, node in ipairs(nodes or {}) do
+        if type(node) == "table" then
+            local range = get_node_source_range(node)
+
+            if range and range_contains_line(range, source_line) then
+                if node_can_be_source_active_root(node) then
+                    result[node.id] = true
+                end
+
+                if node_has_children(node) then
+                    collect_line_source_active_roots(
+                        node.children,
+                        source_line,
+                        result
+                    )
+                end
+
+            elseif not range and node_has_children(node) then
+                collect_line_source_active_roots(
+                    node.children,
+                    source_line,
+                    result
+                )
+            end
+        end
+    end
+
+    return result
+end
+
+
+local function source_active_root_from_path(node_path)
+    local chosen = nil
+
+    for _, node in ipairs(node_path or {}) do
+        if node_can_be_source_active_root(node)
+            and get_node_source_range(node)
+        then
+            chosen = node
+        end
+    end
+
+    return chosen and chosen.id or nil
+end
+
+
+local function collect_source_active_node_ids(
+    nodes,
+    source_line,
+    source_column
+)
+    local root_ids = collect_exact_source_active_roots(
+        nodes,
+        source_line,
+        source_column
+    )
+
+    if next(root_ids) == nil then
+        root_ids = collect_line_source_active_roots(
+            nodes,
+            source_line
+        )
+    end
+
+    if next(root_ids) == nil then
+        local fallback = find_closest_node_path_for_line(
+            nodes,
+            source_line,
+            source_column
+        )
+
+        local fallback_root_id = fallback
+            and source_active_root_from_path(fallback.path)
+            or nil
+
+        if fallback_root_id then
+            root_ids[fallback_root_id] = true
+        end
+    end
+
+    if next(root_ids) == nil then
+        return nil
+    end
+
+    return mark_descendants(nodes, root_ids)
+end
+
+
 local function build_scope_member_nodes_for_context(context, use_all_members)
     if type(context) ~= "table" then
         return {}
@@ -3601,11 +3775,17 @@ function M.build(context, opts)
         event_affected,
         event_exact
     )
+    local event_active_ids = collect_source_active_node_ids(
+        event_nodes,
+        active_source_line,
+        active_source_column
+    )
     local event_render = build_hud_tree_lines(event_nodes, {
         panel_width = opts.panel_width,
         config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        explicit_active_node_ids = event_active_ids,
         section_id = "events",
         inspect_mode = active_inspect_mode,
         section_relevance = event_relevance,
@@ -3629,11 +3809,17 @@ function M.build(context, opts)
         stack_affected,
         stack_exact
     )
+    local stack_active_ids = collect_source_active_node_ids(
+        stack_nodes,
+        active_source_line,
+        active_source_column
+    )
     local stack_render = build_hud_tree_lines(stack_nodes, {
         panel_width = opts.panel_width,
         config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        explicit_active_node_ids = stack_active_ids,
         section_id = "stack",
         inspect_mode = active_inspect_mode,
         section_relevance = stack_relevance,
@@ -3656,11 +3842,17 @@ function M.build(context, opts)
         heap_affected,
         heap_exact
     )
+    local heap_active_ids = collect_source_active_node_ids(
+        heap_root.children or {},
+        active_source_line,
+        active_source_column
+    )
     local heap_render = build_hud_tree_lines(heap_root.children or {}, {
         panel_width = opts.panel_width,
         config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        explicit_active_node_ids = heap_active_ids,
         section_id = "heap",
         inspect_mode = active_inspect_mode,
         section_relevance = heap_relevance,
@@ -3683,11 +3875,17 @@ function M.build(context, opts)
         warning_affected,
         warning_exact
     )
+    local warning_active_ids = collect_source_active_node_ids(
+        warning_nodes,
+        active_source_line,
+        active_source_column
+    )
     local warning_render = build_hud_tree_lines(warning_nodes, {
         panel_width = opts.panel_width,
         config = opts.config,
         active_source_line = active_source_line,
         active_source_column = active_source_column,
+        explicit_active_node_ids = warning_active_ids,
         section_id = "warnings",
         inspect_mode = active_inspect_mode,
         section_relevance = warning_relevance,
@@ -3870,5 +4068,3 @@ function M.build(context, opts)
 end
 
 return M
-
-
