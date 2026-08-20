@@ -1251,6 +1251,35 @@ local function append_rendered_line(
 end
 
 
+local function node_is_explicit_active_path(node, marker, opts)
+    if type(node) ~= "table" then
+        return false
+    end
+
+    opts = opts or {}
+
+    if node.id ~= nil
+        and type(opts.focused_node_ids) == "table"
+        and opts.focused_node_ids[node.id] == true
+    then
+        return true
+    end
+
+    if node.id ~= nil
+        and type(opts.explicit_active_node_ids) == "table"
+        and opts.explicit_active_node_ids[node.id] == true
+    then
+        return true
+    end
+
+    -- The visual active path should match the explicit `*` marker. This keeps
+    -- plain-mode background shadows restricted to concrete affected rows
+    -- instead of every presentation/category row inside an active section.
+    return type(marker) == "string"
+        and marker:find("*", 1, true) ~= nil
+end
+
+
 local function append_scope_member_tree_lines(
     result,
     nodes,
@@ -1289,12 +1318,18 @@ local function append_scope_member_tree_lines(
             local range_label =
                 build_scope_range_label(node)
 
+            local target_style = get_node_style(node, opts)
+
+            if node_is_explicit_active_path(node, marker, opts) then
+                target_style = "active_path"
+            end
+
             local target = {
                 kind = "node",
                 id = node.id,
                 source_line = node.source_line,
                 source_column = node.source_column,
-                style = get_node_style(node, opts),
+                style = target_style,
                 relevance = relevance,
             }
 

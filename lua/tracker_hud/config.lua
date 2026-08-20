@@ -52,12 +52,13 @@ M.defaults = {
             --
             -- Current plain-mode rules:
             --   all HUD text is forced to bright white;
-            --   the active root-section title is underlined;
-            --   active/affected rows receive a neutral background shadow.
+            --   only the active root-section title is underlined;
+            --   only explicitly active/affected rows receive a neutral
+            --   background shadow.
             --
-            -- Inner rows/details are intentionally not underlined or dimmed.
-            -- The shadow cue highlights affected structure without depending
-            -- on red/green/blue semantic color meaning.
+            -- Important: this must not shadow every row inside an active root
+            -- section. The shadow follows the same active path represented by
+            -- the `*` marker and by exact focused descendants.
             emphasize_active_path = false,
             shadow_active_path = true,
             underline_active_section_title = true,

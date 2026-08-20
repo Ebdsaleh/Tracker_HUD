@@ -709,8 +709,10 @@ M.default_style_definitions = {
     -- semantic color families: they describe colorless/plain visibility only.
     -- PlainText gives every HUD line a bright white foreground so plain mode
     -- does not depend on dimming, semantic colors, or colorscheme defaults.
-    -- Active/affected rows may receive a neutral background shadow, while the
-    -- active root-section title remains the only underlined element.
+    -- PlainActiveShadow is a neutral background used only for explicitly
+    -- active/affected rows; it must not be applied to every row in an
+    -- affected root section. The active root-section title remains the only
+    -- underlined element.
     plain_text = { fg = "#FFFFFF" },
     plain_section_title = { fg = "#FFFFFF", bold = true },
     plain_active_section_title = { fg = "#FFFFFF", bold = true, underline = true },
@@ -1155,17 +1157,21 @@ function M.plain_style_for(config, style, relevance, usage)
 
     usage = usage or "span"
 
-    -- Plain mode can use a neutral background shadow for active/affected
-    -- lines. This is deliberately not semantic color: the foreground remains
-    -- bright white, and the shadow is only a contrast/focus cue.
+    -- Plain-mode line shadows are deliberately opt-in by semantic row state.
+    -- Do not shadow a row merely because its parent section is focused/current:
+    -- that would highlight every category under Registers, Stack, etc.
+    --
+    -- `active` is used for the active root-section header.
+    -- `active_path` is assigned only to explicitly affected tree rows and
+    -- exact focused descendants, matching the meaning of the `*` marker.
     if usage == "line" then
-        if plain.shadow_active_path == true then
-            if style == "active"
-                or relevance == "focused"
-                or relevance == "current"
-            then
-                return "plain_active_shadow"
-            end
+        if plain.shadow_active_path == true
+            and (
+                style == "active"
+                or style == "active_path"
+            )
+        then
+            return "plain_active_shadow"
         end
 
         return nil
