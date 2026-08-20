@@ -709,7 +709,8 @@ M.default_style_definitions = {
     -- semantic color families: they describe colorless/plain visibility only.
     -- PlainText gives every HUD line a bright white foreground so plain mode
     -- does not depend on dimming, semantic colors, or colorscheme defaults.
-    -- The active root-section title remains the only underlined element.
+    -- Active/affected rows may receive a neutral background shadow, while the
+    -- active root-section title remains the only underlined element.
     plain_text = { fg = "#FFFFFF" },
     plain_section_title = { fg = "#FFFFFF", bold = true },
     plain_active_section_title = { fg = "#FFFFFF", bold = true, underline = true },
@@ -1154,17 +1155,16 @@ function M.plain_style_for(config, style, relevance, usage)
 
     usage = usage or "span"
 
-    -- Plain mode should not dim or shadow whole lines by default. Those cues
-    -- can be reintroduced later, but the current safe baseline is simple:
-    -- only the active root-section title gets underlined.
+    -- Plain mode can use a neutral background shadow for active/affected
+    -- lines. This is deliberately not semantic color: the foreground remains
+    -- bright white, and the shadow is only a contrast/focus cue.
     if usage == "line" then
         if plain.shadow_active_path == true then
-            if style == "active" or relevance == "focused" then
+            if style == "active"
+                or relevance == "focused"
+                or relevance == "current"
+            then
                 return "plain_active_shadow"
-            end
-
-            if relevance == "current" then
-                return "plain_current_shadow"
             end
         end
 

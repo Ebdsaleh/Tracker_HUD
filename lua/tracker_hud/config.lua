@@ -48,18 +48,18 @@ M.defaults = {
 
         plain = {
             -- Plain mode does not depend on semantic colors. It should remain
-            -- quiet and readable in monochrome or unreliable terminal-color
-            -- environments.
+            -- readable in monochrome or unreliable terminal-color environments.
             --
             -- Current plain-mode rules:
             --   all HUD text is forced to bright white;
-            --   only the active root-section title is underlined.
+            --   the active root-section title is underlined;
+            --   active/affected rows receive a neutral background shadow.
             --
-            -- Inner rows/details are intentionally not underlined, dimmed, or
-            -- shadow-highlighted by default. More active-path cues can be added
-            -- later without making plain mode noisy again.
+            -- Inner rows/details are intentionally not underlined or dimmed.
+            -- The shadow cue highlights affected structure without depending
+            -- on red/green/blue semantic color meaning.
             emphasize_active_path = false,
-            shadow_active_path = false,
+            shadow_active_path = true,
             underline_active_section_title = true,
             dim_inactive = false,
         },
