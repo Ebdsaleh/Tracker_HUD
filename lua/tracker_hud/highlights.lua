@@ -350,12 +350,14 @@ end
 local function build_group_stack(
     config,
     style,
-    relevance
+    relevance,
+    usage
 )
     local plain_style = visual_language.plain_style_for(
         config,
         style,
-        relevance
+        relevance,
+        usage
     )
 
     if plain_style then
@@ -433,7 +435,8 @@ local function apply_line_style(
     local group = build_group_stack(
         config,
         style,
-        relevance
+        relevance,
+        "line"
     )
 
     local numeric_line = tonumber(line_number)
@@ -471,7 +474,8 @@ local function apply_span(
     local group = build_group_stack(
         config,
         span.style,
-        span.relevance
+        span.relevance,
+        "span"
     )
 
     local start_col =

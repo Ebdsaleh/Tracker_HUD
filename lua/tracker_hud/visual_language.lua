@@ -523,11 +523,13 @@ M.style_suffixes = {
     control = "Control",
     control_marker = "ControlMarker",
     active = "Active",
-    plain_active = "PlainActive",
-    plain_focused = "PlainFocused",
-    plain_current = "PlainCurrent",
-    plain_contextual = "PlainContextual",
-    plain_historical = "PlainHistorical",
+    section_title = "SectionTitle",
+    warning_section_title = "WarningSectionTitle",
+    plain_section_title = "PlainSectionTitle",
+    plain_active_section_title = "PlainActiveSectionTitle",
+    plain_active_marker = "PlainActiveMarker",
+    plain_active_shadow = "PlainActiveShadow",
+    plain_current_shadow = "PlainCurrentShadow",
     tree_marker = "TreeMarker",
     status_title = "StatusTitle",
     status_marker = "StatusMarker",
@@ -613,6 +615,8 @@ M.default_links = {
     tip_label = "Special",
     key_hint = "Special",
     section = "Function",
+    section_title = "Function",
+    warning_section_title = "DiagnosticWarn",
     section_marker = "Special",
     control = "Special",
     control_marker = "Special",
@@ -701,15 +705,15 @@ M.default_style_definitions = {
     unresolved = { fg = "#F7768E" },
 
     -- Plain-mode neutral emphasis. These groups deliberately avoid semantic
-    -- colors: they only describe visibility/relevance. On true monochrome
-    -- terminals the bold/underline/reverse attributes are the useful part; on
-    -- normal terminals the neutral fg values create bright-active / dim-inactive
-    -- contrast without reintroducing meaning-by-color.
-    plain_active = { fg = "#FFFFFF", bold = true, reverse = true },
-    plain_focused = { fg = "#FFFFFF", bold = true, underline = true },
-    plain_current = { fg = "#E6EDF3", bold = true },
-    plain_contextual = { fg = "#AAB2BF" },
-    plain_historical = { fg = "#6B7280" },
+    -- colors: they only describe visibility/relevance. In a true monochrome
+    -- terminal, underline/bold/reverse are the durable fallback. In a normal
+    -- terminal, the dark background creates a quiet shadow/highlight without
+    -- turning plain mode back into meaning-by-color.
+    plain_section_title = { fg = "#FFFFFF", bold = true, underline = true },
+    plain_active_section_title = { fg = "#FFFFFF", bg = "#2A2A2A", bold = true, underline = true, blend = 12 },
+    plain_active_marker = { fg = "#FFFFFF", bold = true },
+    plain_active_shadow = { fg = "#FFFFFF", bg = "#2A2A2A", bold = true, blend = 12 },
+    plain_current_shadow = { fg = "#FFFFFF", bg = "#242424", blend = 18 },
 }
 
 
@@ -1132,43 +1136,66 @@ function M.plain_emphasis_enabled(config)
     local plain = get_plain_config(config)
 
     return plain.emphasize_active_path ~= false
-        or plain.dim_inactive == true
+        or plain.shadow_active_path ~= false
+        or plain.underline_section_titles ~= false
 end
 
 
-function M.plain_style_for(config, style, relevance)
+function M.plain_style_for(config, style, relevance, usage)
     if not M.plain_emphasis_enabled(config) then
         return nil
     end
 
     local plain = get_plain_config(config)
     local emphasize_active_path = plain.emphasize_active_path ~= false
-    local dim_inactive = plain.dim_inactive == true
+    local shadow_active_path = plain.shadow_active_path ~= false
+    local underline_section_titles = plain.underline_section_titles ~= false
+
+    usage = usage or "span"
+
+    if usage == "line" then
+        if not shadow_active_path then
+            return nil
+        end
+
+        if style == "active" then
+            return "plain_active_shadow"
+        end
+
+        if relevance == "focused" then
+            return "plain_active_shadow"
+        end
+
+        if relevance == "current" then
+            return "plain_current_shadow"
+        end
+
+        return nil
+    end
+
+    if style == "section_title"
+        or style == "warning_section_title"
+    then
+        if not underline_section_titles then
+            return nil
+        end
+
+        if relevance == "focused"
+            or relevance == "current"
+        then
+            return "plain_active_section_title"
+        end
+
+        return "plain_section_title"
+    end
 
     if style == "active" and emphasize_active_path then
-        return "plain_active"
+        return "plain_active_marker"
     end
 
-    if relevance == "focused" and emphasize_active_path then
-        return "plain_focused"
-    end
-
-    if relevance == "current" and emphasize_active_path then
-        return "plain_current"
-    end
-
-    if relevance == "contextual" and dim_inactive then
-        return "plain_contextual"
-    end
-
-    if relevance == "historical" and dim_inactive then
-        return "plain_historical"
-    end
-
-    if (style == "muted" or style == "empty") and dim_inactive then
-        return "plain_historical"
-    end
-
+    -- In plain mode, semantic spans inside a section intentionally do not
+    -- receive per-token color or underline. The active path is carried by
+    -- whole-line shadow highlights plus stable text labels/markers.
     return nil
 end
 

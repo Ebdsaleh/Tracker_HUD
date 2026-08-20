@@ -751,11 +751,15 @@ local function build_section_header_line(section)
     local line = hud_text.new()
     local marker =
         section.expanded and "[-]" or "[+]"
+    local title_style =
+        section.title_style == "warning"
+        and "warning_section_title"
+        or "section_title"
 
     hud_text.append(
         line,
         section.title or "<section>",
-        section.title_style or "section"
+        title_style
     )
 
     hud_text.append(line, " ", nil)
@@ -787,6 +791,31 @@ local function build_section_header_line(section)
 end
 
 
+local function section_header_line_style(section)
+    if type(section) ~= "table" then
+        return nil
+    end
+
+    if section.active == true then
+        return {
+            style = "active",
+            relevance = section.relevance or "current",
+        }
+    end
+
+    if section.relevance == "focused"
+        or section.relevance == "current"
+    then
+        return {
+            style = "active",
+            relevance = section.relevance,
+        }
+    end
+
+    return nil
+end
+
+
 local function append_section_lines(
     lines,
     line_styles,
@@ -815,7 +844,7 @@ local function append_section_lines(
         line_styles,
         line_spans,
         build_section_header_line(section),
-        nil
+        section_header_line_style(section)
     )
 
     panel_line_targets[#lines] = {

@@ -47,12 +47,20 @@ M.defaults = {
         },
 
         plain = {
-            -- Plain mode does not depend on semantic colors, but it can still
-            -- use neutral emphasis so the active path stays visible on dull or
-            -- low-color terminals. If attributes/colors do not render, the
-            -- existing text markers still carry the state.
+            -- Plain mode does not depend on semantic colors. It keeps the text
+            -- stable and uses neutral active-path cues instead:
+            --
+            --   root section titles stay underlined;
+            --   active/current HUD rows get a quiet full-line shadow;
+            --   inner details do not get underline spam.
+            --
+            -- Normal buffers cannot do true alpha transparency in a portable
+            -- terminal way, so the shadow is represented by a dark neutral
+            -- background highlight where the terminal supports it.
             emphasize_active_path = true,
-            dim_inactive = true,
+            shadow_active_path = true,
+            underline_section_titles = true,
+            dim_inactive = false,
         },
 
         tags = {
