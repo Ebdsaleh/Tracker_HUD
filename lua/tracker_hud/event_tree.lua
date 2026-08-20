@@ -60,6 +60,65 @@ local function get_boundary_effect(event)
 end
 
 
+local function get_known_boundary_effect(event)
+    local boundary_effect = get_boundary_effect(event)
+
+    if type(boundary_effect) == "table"
+        and type(boundary_effect.known_effect) == "table"
+    then
+        return boundary_effect.known_effect
+    end
+
+    return nil
+end
+
+
+local function index_required_arguments(known_effect)
+    local result = {}
+
+    if type(known_effect) ~= "table"
+        or type(known_effect.required_arguments) ~= "table"
+    then
+        return nil
+    end
+
+    for _, argument_index in ipairs(known_effect.required_arguments) do
+        local numeric_index = tonumber(argument_index)
+
+        if numeric_index then
+            result[numeric_index] = true
+        end
+    end
+
+    return result
+end
+
+
+local function read_is_relevant_for_known_boundary(event, read)
+    if type(read) ~= "table" then
+        return false
+    end
+
+    if read.role ~= "argument" then
+        return true
+    end
+
+    local known_effect = get_known_boundary_effect(event)
+
+    if type(known_effect) ~= "table" then
+        return true
+    end
+
+    local required_arguments = index_required_arguments(known_effect)
+
+    if type(required_arguments) ~= "table" then
+        return true
+    end
+
+    return required_arguments[tonumber(read.index)] == true
+end
+
+
 local function get_read_argument_name(event, read)
     if type(read) ~= "table" or read.index == nil then
         return nil
@@ -129,10 +188,12 @@ local function append_boundary_io_details(node, event)
     local writes = as_table(metadata.writes)
 
     for index, read in ipairs(reads) do
-        local label = format_read_label(event, read)
+        if read_is_relevant_for_known_boundary(event, read) then
+            local label = format_read_label(event, read)
 
-        if label then
-            append_detail(node, "read:" .. tostring(index), label)
+            if label then
+                append_detail(node, "read:" .. tostring(index), label)
+            end
         end
     end
 
