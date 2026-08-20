@@ -120,9 +120,21 @@ return {
                     argument_names = {
                         [1] = "status",
                     },
+                    returns = false,
+                    terminal_effect = "process exits",
+                },
+
+                ["231"] = {
+                    name = "exit_group",
+                    category = "process",
+                    required_arguments = { 1 },
+                    argument_names = {
+                        [1] = "status",
+                    },
+                    returns = false,
+                    terminal_effect = "process exits all threads",
                 },
             },
         },
     },
 }
-

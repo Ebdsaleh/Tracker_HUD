@@ -73,6 +73,50 @@ local function get_known_boundary_effect(event)
 end
 
 
+local function boundary_does_not_return(event)
+    local known_effect = get_known_boundary_effect(event)
+
+    if type(known_effect) ~= "table" then
+        return false
+    end
+
+    return known_effect.returns == false
+        or known_effect.no_return == true
+        or known_effect.does_not_return == true
+        or known_effect.terminates == true
+        or type(known_effect.terminates) == "string"
+end
+
+
+local function get_no_return_label(event)
+    local known_effect = get_known_boundary_effect(event)
+
+    if type(known_effect) ~= "table" then
+        return "does not return normally"
+    end
+
+    if type(known_effect.no_return_label) == "string"
+        and known_effect.no_return_label ~= ""
+    then
+        return known_effect.no_return_label
+    end
+
+    if type(known_effect.terminal_effect) == "string"
+        and known_effect.terminal_effect ~= ""
+    then
+        return known_effect.terminal_effect
+    end
+
+    if type(known_effect.terminates) == "string"
+        and known_effect.terminates ~= ""
+    then
+        return known_effect.terminates
+    end
+
+    return "does not return normally"
+end
+
+
 local function index_required_arguments(known_effect)
     local result = {}
 
@@ -212,6 +256,15 @@ local function append_boundary_io_details(node, event)
                 append_detail(node, "read:" .. tostring(index), label)
             end
         end
+    end
+
+    if boundary_does_not_return(event) then
+        append_detail(
+            node,
+            "no_return",
+            "boundary result: " .. get_no_return_label(event)
+        )
+        return
     end
 
     for index, write in ipairs(writes) do
