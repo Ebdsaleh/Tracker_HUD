@@ -96,10 +96,13 @@ The project deliberately favors:
 ### Visual language
 
 - Central `visual_language.lua` semantic tables
+- Runtime visual modes: `auto`, `rich`, `tagged`, `markers`, and `plain`
+- Mutable command-prefix support through `namespace.prefix`, so the default `:HudVisualMode` can become `:<prefix>VisualMode`
 - Semantic categories for roles, registers, memory, immediates, symbols, warnings, boundaries, rules, resolved/unresolved values, metadata, and origins
 - Deterministic semantic precedence support
 - Role-value styling distinguishes `role: source` from provenance such as `source: instruction`
-- Low-color and monochrome fallback design through tags and compact markers
+- Low-color and monochrome fallback design through tags, compact markers, stable labels, and plain-mode structural emphasis
+- Plain mode for colorless/unreliable terminals: bright text, no semantic colors, no inactive dimming, active root-section underline, and targeted neutral shadows on explicit active/affected rows
 - Width-aware formatting concepts: full, condensed, marker, and plain modes
 - Text equivalents for future arrows, such as `value flow: 60 -> rax`
 - Highlight colors defined as data, consumed by `highlights.lua`
@@ -531,13 +534,19 @@ semantic fact
                 -> ASCII/graphical renderers later
 ```
 
-The visual language is data-first and renderer-agnostic. The text HUD, future ASCII HUD, and any future graphical HUD should consume the same semantic vocabulary.
+The visual language is data-first and renderer-agnostic. The text HUD, future ASCII HUD, and any future graphical HUD should consume the same semantic vocabulary instead of inventing unrelated visual meanings in each renderer.
+
+See the fuller project document in:
+
+```text
+docs/visual_language.md
+```
 
 ### Main principles
 
 ```text
-Semantic identity determines meaning/color family.
-Relevance determines intensity/emphasis.
+Semantic identity determines meaning/color family/tag/marker.
+Relevance determines intensity/emphasis/focus treatment.
 Color is enhancement, not meaning.
 ```
 
@@ -549,6 +558,73 @@ Meaning should survive without color through:
 - indentation
 - ordering
 - explicit flow text such as `value flow: 60 -> rax`
+- neutral focus cues such as underlines, markers, and background shadows
+
+### Runtime visual modes
+
+The current public visual modes are:
+
+| Mode | Meaning |
+|---|---|
+| `auto` | Choose annotation behavior from terminal capability and panel width |
+| `rich` | Color-first HUD with no semantic tags or markers |
+| `tagged` | Explicit semantic tags such as `[SRC]`, `[DST]`, `[REG]`, and `[FAIL]` |
+| `markers` | Compact semantic markers such as `<`, `>`, `R`, `x`, `?`, and `@` |
+| `plain` | Colorless/plain-text mode with neutral active-path emphasis |
+
+The command uses the configured namespace prefix. With the default prefix, use:
+
+```vim
+:HudVisualMode auto
+:HudVisualMode rich
+:HudVisualMode tagged
+:HudVisualMode markers
+:HudVisualMode plain
+```
+
+If configured with:
+
+```lua
+namespace = {
+    prefix = "MyHud",
+}
+```
+
+then the same command becomes:
+
+```vim
+:MyHudVisualMode plain
+```
+
+### Plain mode
+
+Plain mode is for monochrome terminals, colorless terminal emulators, unreliable `$TERM`/terminfo environments, or users who want the HUD to communicate without semantic color.
+
+Current plain-mode rules:
+
+```text
+all HUD text                     -> bright white
+semantic colors                  -> disabled
+tags / markers                   -> disabled by visual mode
+inactive dimming                 -> disabled
+active root-section title        -> underlined
+affected low-level rows          -> neutral background shadow
+container/category rows          -> not shadowed merely because they contain an affected child
+```
+
+The neutral shadow is intentionally targeted. For example, when the cursor state affects `rax`, `rcx`, and `r11`, those register rows can receive the shadow, but container rows such as `General`, `Pointers`, `Flags`, and `Vector` should not become shadowed just because `Registers` is the active root section.
+
+The targeted shadow behavior is currently intended for low-level state sections such as:
+
+```text
+Registers
+Events
+Stack
+Heap
+Warnings
+```
+
+`Scope` and `Scope Members` are left quieter for now because shadowing every structurally related scope/member row can become noisy.
 
 ### Important distinction: role vs source provenance
 
@@ -603,12 +679,18 @@ For low-color or explicit accessibility modes, categories can be represented wit
 | Rule/check | `[RULE]` | `[RUL]` |
 | Source operand | `[SRC]` | `[S]` |
 | Destination operand | `[DST]` | `[D]` |
+| Affected state | `[AFFECTED]` | `[A]` |
 | Register | `[REG]` | `[R]` |
 | Memory | `[MEM]` | `[M]` |
 | Immediate | `[IMM]` | `[I]` |
+| Symbol | `[SYM]` | `[$]` |
 | Instruction | `[INSN]` | `[IN]` |
 | Metadata key | `[KEY]` | `[K]` |
 | Origin | `[ORIGIN]` | `[O]` |
+| Historical | `[PAST]` | `[P]` |
+| Focused | `[FOCUS]` | `[F]` |
+| Current | `[CURRENT]` | `[C]` |
+| Contextual | `[CTX]` | `[CXT]` |
 
 ### Compact markers
 
@@ -619,12 +701,12 @@ Compact markers are available for narrow or monochrome output:
 | Warning | `!` |
 | Warning subject | `*` |
 | Unresolved/failure | `x` |
-| Resolved/safe | `✓` or `ok` |
+| Resolved/safe | `✓` or ASCII `ok` |
 | Boundary | `@` |
 | Rule/check | `?` |
 | Source operand | `<` |
 | Destination operand | `>` |
-| Affected | `~` |
+| Affected state | `~` |
 | Register | `R` |
 | Memory | `M` |
 | Immediate | `#` |
@@ -632,6 +714,10 @@ Compact markers are available for narrow or monochrome output:
 | Instruction | `I` |
 | Metadata key | `:` |
 | Origin | `^` |
+| Historical | `.` |
+| Focused | `|` |
+| Current | `+` |
+| Contextual | `-` |
 
 ### Display capability tiers
 
@@ -644,7 +730,7 @@ truecolor
 monochrome
 ```
 
-Low-color environments can enable tags and markers automatically. This is intended to keep the HUD useful over plain SSH sessions, tmux, OpenBSD/ksh-style terminals, poor ANSI displays, or color-limited setups.
+Low-color environments can enable tags and markers automatically. This is intended to keep the HUD useful over plain SSH sessions, tmux, OpenBSD/ksh-style terminals, poor ANSI displays, PuTTY configurations, or color-limited setups.
 
 ### Width modes
 
@@ -1212,6 +1298,8 @@ require("tracker_hud").setup({
     show_branch_context = true,
     separator = " -> ",
 
+    -- User commands are derived from this prefix.
+    -- Default examples: :HudSize, :HudPos, :HudVisualMode
     namespace = {
         prefix = "Hud",
     },
@@ -1221,7 +1309,24 @@ require("tracker_hud").setup({
     },
 
     visual_language = {
+        -- Runtime mode, also controlled by:
+        --   :<namespace-prefix>VisualMode auto|rich|tagged|markers|plain
+        mode = "auto",
+
         terminal_tier = "auto", -- "auto", "truecolor", "256", "16", "monochrome"
+
+        colors = {
+            enabled = "auto", -- true, false, or "auto"; plain mode disables semantic color
+        },
+
+        plain = {
+            -- Plain mode is for monochrome/colorless/unreliable terminals.
+            -- It keeps text bright and avoids depending on semantic color.
+            emphasize_active_path = false,
+            shadow_active_path = true,
+            underline_active_section_title = true,
+            dim_inactive = false,
+        },
 
         tags = {
             enabled = "auto", -- true, false, or "auto"
@@ -1351,30 +1456,80 @@ require("tracker_hud").setup({
 
 ## Commands
 
-### `:TrackerHudSize`
+Tracker_HUD user commands are generated from the configured namespace prefix.
+
+The default prefix is:
+
+```lua
+namespace = {
+    prefix = "Hud",
+}
+```
+
+So the default command names are:
+
+```vim
+:HudSize
+:HudPos
+:HudVisualMode
+```
+
+If the user changes the namespace prefix, the command names change with it. For example:
+
+```lua
+namespace = {
+    prefix = "MyHud",
+}
+```
+
+creates commands such as:
+
+```vim
+:MyHudSize
+:MyHudPos
+:MyHudVisualMode
+```
+
+The prefix must start with an uppercase letter and contain only letters or digits.
+
+### `:<prefix>Size`
 
 Set the current panel size:
 
 ```vim
-:TrackerHudSize 52
+:HudSize 52
 ```
 
 Reset to automatic sizing:
 
 ```vim
-:TrackerHudSize auto
+:HudSize auto
 ```
 
-### `:TrackerHudPos`
+### `:<prefix>Pos`
 
 Move the current panel:
 
 ```vim
-:TrackerHudPos left
-:TrackerHudPos right
-:TrackerHudPos top
-:TrackerHudPos bottom
+:HudPos left
+:HudPos right
+:HudPos top
+:HudPos bottom
 ```
+
+### `:<prefix>VisualMode`
+
+Switch the current visual-language mode:
+
+```vim
+:HudVisualMode auto
+:HudVisualMode rich
+:HudVisualMode tagged
+:HudVisualMode markers
+:HudVisualMode plain
+```
+
+Calling the command with no argument reports the current visual mode and shows the accepted values.
 
 These commands affect the current session; they do not rewrite your Neovim configuration.
 
@@ -1438,6 +1593,9 @@ require("lazy").setup({
 
     {
         "Ebdsaleh/Tracker_HUD",
+        dependencies = {
+            "nvim-treesitter/nvim-treesitter",
+        },
         config = function()
             require("tracker_hud").setup({
                 panel_position = "left",
@@ -1447,6 +1605,10 @@ require("lazy").setup({
                 show_branch_context = true,
                 separator = " -> ",
 
+                namespace = {
+                    prefix = "Hud",
+                },
+
                 line_summary = {
                     enabled = true,
                     show_before_instruction = false,
@@ -1454,11 +1616,25 @@ require("lazy").setup({
                 },
 
                 visual_language = {
+                    mode = "auto",
                     terminal_tier = "auto",
+
+                    colors = {
+                        enabled = "auto",
+                    },
+
+                    plain = {
+                        emphasize_active_path = false,
+                        shadow_active_path = true,
+                        underline_active_section_title = true,
+                        dim_inactive = false,
+                    },
+
                     tags = {
                         enabled = "auto",
                         mode = "auto",
                     },
+
                     markers = {
                         enabled = "auto",
                         ascii_safe = true,
@@ -1510,8 +1686,9 @@ Current limitations include:
 - Only the bundled Lua and ASM adapters currently provide substantial language-aware behavior
 - Windows/Darwin x86-64 target declarations exist, but the deepest current syscall boundary implementation is Linux-oriented
 - Full memory ownership, lifetime, pointer alias, and control-flow analysis are future work
-- Visual-language rendering is now wired into the text HUD, but ASCII boxes and graphical views are future work
-- Color choices are still subject to refinement
+- Visual-language rendering is wired into the text HUD, but ASCII boxes and graphical views are future work
+- Plain mode has its current intended behavior, but terminal-specific rendering should still be tested on OpenBSD, PuTTY, tmux, and other low-color environments
+- Rich/tagged/marker color palette choices are still subject to refinement
 
 ---
 
@@ -1520,14 +1697,15 @@ Current limitations include:
 Planned/future work includes:
 
 - Continue completing the ASM/x86-64 adapter and low-level state model
+- Add richer pre-state/post-state handling so boundary reads such as `syscall` can use pre-instruction register state while post-instruction register display can show clobbers/return values
 - Restore/richly extend arithmetic/logical carrying after the large architecture refactor
 - Broader Stack and Heap transition semantics
 - Static data / memory-location tracking for ASM labels and memory operands
 - More complete warning generation from Register/Stack/Heap facts
 - More instruction/event coverage where architectural facts are still missing
 - More source-index consumers where occurrence-aware inspection provides a real benefit
-- Better visual highlighting/color tuning for section headers, active targets, warnings, and muted details
-- Monochrome/tag/marker rendering tests on low-color terminals
+- Further color-palette tuning for `rich`, `tagged`, and `markers` modes
+- Terminal rendering tests on OpenBSD, PuTTY, tmux, and low-color/monochrome environments
 - Optional ASCII visualizations such as register boxes and value-flow arrows
 - Better Scope Members shadowing/lifetime handling
 - Loop-variable discovery and richer high-level member semantics
@@ -1736,6 +1914,22 @@ The old flat x86-64 `register_effects` and `instruction_events` compatibility mo
 
 ---
 
+## Documentation
+
+Current project documentation includes:
+
+```text
+README.md
+    -> project overview, installation, setup, commands, and current status
+
+docs/visual_language.md
+    -> visual grammar, semantic categories, visual modes, tags, markers, and plain-mode rules
+```
+
+The visual-language document is ready to live under `/docs/` as the current finalized v0.4 baseline. It should still be treated as a living specification: color palettes and future renderer behavior can evolve without changing the core principle that color is enhancement, not meaning.
+
+---
+
 ## Development notes
 
 ### Adapter declarations are spec-only
@@ -1760,7 +1954,7 @@ facts/data model
         -> renderer choice
 ```
 
-This means semantic meaning should not be duplicated separately in Registers, Stack, Heap, Warnings, and future sections. Shared section-tree helpers should own common detail-row behavior where possible.
+This means semantic meaning should not be duplicated separately in Registers, Stack, Heap, Warnings, and future sections. Shared section-tree helpers should own common detail-row behavior where possible. Plain-mode active shadows should remain row-targeted: concrete affected rows and exact focused descendants can be emphasized, while ordinary category/container rows should not gain emphasis merely because they contain affected children.
 
 ---
 
@@ -1770,10 +1964,14 @@ This means semantic meaning should not be duplicated separately in Registers, St
 
 - Added the renderer-agnostic `visual_language.lua` semantic table module
 - Added semantic tags, condensed tags, compact markers, display tiers, and width-mode data
+- Added runtime visual modes: `auto`, `rich`, `tagged`, `markers`, and `plain`
+- Added mutable-prefix `:<prefix>VisualMode` command support; the default command is `:HudVisualMode`
 - Added deterministic semantic precedence support for future renderers
 - Moved highlight defaults into visual-language data consumed by `highlights.lua`
 - Added `hud_text.lua` semantic text composition with spans and annotation support
-- Added visual-language rendering support for low-color/tag/marker modes
+- Added visual-language rendering support for color, tagged, marker, and plain modes
+- Added plain mode as a colorless/monochrome-friendly mode with bright text, no semantic colors, no inactive dimming, active root-section underline, and targeted neutral active/affected row shadows
+- Unified plain-mode active/affected row shadow behavior across low-level sections such as Registers, Events, Stack, Heap, and Warnings while avoiding broad category/container-row highlighting
 - Added value-flow details such as `value flow: 60 -> rax`
 - Added `line_summary` config and cursor-state-first behavior for leading/trailing instruction whitespace
 - Normalized operand-role feedback so `mov rax, |60|` reports `role: source`
