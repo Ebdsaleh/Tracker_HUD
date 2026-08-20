@@ -705,12 +705,12 @@ M.default_style_definitions = {
     unresolved = { fg = "#F7768E" },
 
     -- Plain-mode neutral emphasis. These groups deliberately avoid semantic
-    -- colors: they only describe visibility/relevance. In a true monochrome
-    -- terminal, underline/bold/reverse are the durable fallback. In a normal
-    -- terminal, the dark background creates a quiet shadow/highlight without
-    -- turning plain mode back into meaning-by-color.
-    plain_section_title = { fg = "#FFFFFF", bold = true, underline = true },
-    plain_active_section_title = { fg = "#FFFFFF", bg = "#2A2A2A", bold = true, underline = true, blend = 12 },
+    -- colors: they only describe visibility/relevance. The current plain-mode
+    -- baseline uses underline only for the active root-section title. Shadow
+    -- groups remain defined for a future optional active-path pass, but they
+    -- are disabled by default through visual_language.plain.shadow_active_path.
+    plain_section_title = { fg = "#FFFFFF", bold = true },
+    plain_active_section_title = { fg = "#FFFFFF", bold = true, underline = true },
     plain_active_marker = { fg = "#FFFFFF", bold = true },
     plain_active_shadow = { fg = "#FFFFFF", bg = "#2A2A2A", bold = true, blend = 12 },
     plain_current_shadow = { fg = "#FFFFFF", bg = "#242424", blend = 18 },
@@ -1135,9 +1135,9 @@ function M.plain_emphasis_enabled(config)
 
     local plain = get_plain_config(config)
 
-    return plain.emphasize_active_path ~= false
-        or plain.shadow_active_path ~= false
-        or plain.underline_section_titles ~= false
+    return plain.underline_active_section_title ~= false
+        or plain.emphasize_active_path == true
+        or plain.shadow_active_path == true
 end
 
 
@@ -1147,27 +1147,23 @@ function M.plain_style_for(config, style, relevance, usage)
     end
 
     local plain = get_plain_config(config)
-    local emphasize_active_path = plain.emphasize_active_path ~= false
-    local shadow_active_path = plain.shadow_active_path ~= false
-    local underline_section_titles = plain.underline_section_titles ~= false
+    local underline_active_section_title =
+        plain.underline_active_section_title ~= false
 
     usage = usage or "span"
 
+    -- Plain mode should not dim or shadow whole lines by default. Those cues
+    -- can be reintroduced later, but the current safe baseline is simple:
+    -- only the active root-section title gets underlined.
     if usage == "line" then
-        if not shadow_active_path then
-            return nil
-        end
+        if plain.shadow_active_path == true then
+            if style == "active" or relevance == "focused" then
+                return "plain_active_shadow"
+            end
 
-        if style == "active" then
-            return "plain_active_shadow"
-        end
-
-        if relevance == "focused" then
-            return "plain_active_shadow"
-        end
-
-        if relevance == "current" then
-            return "plain_current_shadow"
+            if relevance == "current" then
+                return "plain_current_shadow"
+            end
         end
 
         return nil
@@ -1176,7 +1172,7 @@ function M.plain_style_for(config, style, relevance, usage)
     if style == "section_title"
         or style == "warning_section_title"
     then
-        if not underline_section_titles then
+        if not underline_active_section_title then
             return nil
         end
 
@@ -1186,16 +1182,18 @@ function M.plain_style_for(config, style, relevance, usage)
             return "plain_active_section_title"
         end
 
-        return "plain_section_title"
+        return nil
     end
 
-    if style == "active" and emphasize_active_path then
+    if style == "active"
+        and plain.emphasize_active_path == true
+    then
         return "plain_active_marker"
     end
 
     -- In plain mode, semantic spans inside a section intentionally do not
-    -- receive per-token color or underline. The active path is carried by
-    -- whole-line shadow highlights plus stable text labels/markers.
+    -- receive per-token color or underline. Text labels carry meaning; the
+    -- active root-section title carries the first neutral focus cue.
     return nil
 end
 
