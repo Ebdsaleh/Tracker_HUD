@@ -2,8 +2,8 @@
 
 By [@Ebdsaleh](https://github.com/Ebdsaleh)
 
-**Current release:** `v0.7.7`  
-**Current documented snapshot:** `post-v0.7.7` development snapshot
+**Current release:** `v0.8.0`  
+**Visual-language baseline:** `v0.8.0` / `docs/visual_language.md` v0.4
 
 Tracker_HUD is an experimental Neovim plugin that provides a live, cursor-aware code-analysis HUD.
 
@@ -22,9 +22,9 @@ Tracker_HUD core
 
 Tracker_HUD is not intended to be a normal LSP replacement. Its main goal is to act as an **accessibility-first state tracker**: it shows what the program or machine state means at the current cursor position so the user does not need to hold the whole mental model in working memory.
 
-The current implementation is still experimental, but the architecture has become substantially more structured. The built-in Lua adapter is the reference high-level-language adapter. The ASM adapter currently has the deepest low-level support through its x86-64 variant.
+The current implementation is still experimental, but `v0.8.0` marks a substantial accessibility and visual-language milestone. The built-in Lua adapter is the reference high-level-language adapter. The ASM adapter currently has the deepest low-level support through its x86-64 variant.
 
-> **Current status:** experimental but usable. The supported display path is the docked panel. Lua supports structural scope/member inspection. ASM/x86-64 uses Adapter Contract v1, target directives, categorized mnemonic-indexed datasets, occurrence-aware register inspection, instruction Events, Stack effects, syscall boundary effects, Heap routing, conservative Warnings, and semantic visual-language rendering.
+> **Current status (`v0.8.0`):** experimental but usable. The supported display path is the docked panel. Lua supports structural scope/member inspection. ASM/x86-64 uses Adapter Contract v1, target directives, categorized mnemonic-indexed datasets, occurrence-aware register inspection, instruction Events, Stack effects, syscall boundary effects, Heap routing, conservative Warnings, and the finalized v0.8.0 visual-language baseline.
 
 The long-term direction is a systems-programming analysis HUD: complete the low-level ASM model first, then extend the same adapter-driven state-tracking architecture toward C/C++ pointer/allocation/lifetime state and Rust ownership/lifetime information.
 
@@ -56,7 +56,116 @@ The project deliberately favors:
 
 ---
 
+## v0.8.0 feature summary
+
+`v0.8.0` is the visual-language and accessibility-mode release. It keeps the existing panel, adapter, Inspect Mode, Lua, and ASM/x86-64 work from `v0.7.7`, then adds the first complete visual-language baseline for semantic rendering and low-color/plain terminals.
+
+### User-facing HUD and controls
+
+- Docked panel display as the supported display path
+- Left, right, top, and bottom panel positions
+- Launch-time automatic panel sizing
+- Runtime panel resizing with `:<prefix>Size`
+- Runtime panel repositioning with `:<prefix>Pos`
+- Mutable command namespace through `namespace.prefix`
+- Default `Hud` command family: `:HudSize`, `:HudPos`, and `:HudVisualMode`
+- Interactive expandable/collapsible HUD trees
+- `<CR>` and double-click panel-row toggling
+- HUD statusline showing the active Inspect Mode
+- Source focus restoration so the HUD panel does not steal editing focus
+- HUD panel cleanup when the tracked source window closes
+
+### Inspect Mode and source-side workflow
+
+- Configurable Inspect Mode cycling with `<leader><leader>`
+- Configurable source-side Inspect action with `<leader>t`
+- Symmetric Inspect toggling: the same action can reveal/expand or collapse a target
+- Tree-aware expand-all and collapse-all for supported Inspect modes
+- Scope Members source inspection that is column-aware
+- Registers inspection that is occurrence-aware
+- Register occurrence state updates proactively as the source cursor moves
+- Operand separator/gap behavior that preserves the last reached semantic occurrence until the next operand begins
+- Lazy per-line source-index caching for occurrence-aware low-level inspection
+
+### Visual-language and accessibility system
+
+- Central `visual_language.lua` semantic table module
+- Runtime visual modes: `auto`, `rich`, `tagged`, `markers`, and `plain`
+- Public visual-mode command: `:<prefix>VisualMode auto|rich|tagged|markers|plain`
+- Semantic categories for metadata keys, ordinary values, origins, operand roles, registers, memory, immediates, symbols, instructions, warnings, warning subjects, rules, boundaries, resolved states, and unresolved states
+- Semantic tags such as `[REG]`, `[SRC]`, `[DST]`, `[WARN]`, `[BOUNDARY]`, `[RULE]`, and `[FAIL]`
+- Compact marker vocabulary for narrow or low-color displays
+- Deterministic semantic precedence rules for highlight/span resolution
+- Role-value styling separation so `role: source` and `source: instruction` are not treated as the same meaning
+- Shared semantic detail rendering through `section_tree.lua` and `lookup_tree.lua`
+- Highlight colors defined as data and consumed by `highlights.lua`
+- Renderer-agnostic visual-language design for future text, ASCII, and graphical HUDs
+
+### Plain mode / monochrome-friendly behavior
+
+- Plain mode for colorless terminals, unreliable ANSI environments, monochrome displays, PuTTY/OpenBSD-style setups, and users who want non-color semantic output
+- Bright white HUD text in plain mode
+- No semantic colors in plain mode
+- No inactive text dimming in plain mode
+- No tags or markers in plain mode by default
+- Active root-section title underline in plain mode
+- Targeted neutral shadow/background emphasis for explicit active/affected low-level rows
+- Container/category rows are not shadowed merely because they contain an affected child
+- Registers, Events, Stack, Heap, and Warnings share the same targeted active/affected shadow behavior
+- Scope and Scope Members are intentionally left quieter for now to avoid noisy structural highlighting
+
+### Lua adapter features
+
+- Tree-sitter-first Lua adapter declarations
+- Function and anonymous-function recognition
+- Lexical and structural scopes
+- Branch alternatives for `if`, `elseif`, and `else`
+- Local declarations
+- Function parameters
+- Assignments
+- Table fields
+- Return values
+- Scalar values including strings, numbers, booleans, and nil
+- Function/call values
+- Structural table values
+- Identifier return-value resolution through visible Scope Members where possible
+
+### ASM / x86-64 features
+
+- Strict source target directives such as `; arch=x86-64;`
+- NASM/GAS/MASM-aware directive comment prefixes
+- x86-64 target metadata for architecture, platform, ABI, syntax, and mode
+- ASM label range scopes and ASM scope members
+- Canonical x86-64 register families and aliases
+- Register presentation groups for General, Pointers, Flags, and Vector registers
+- Categorized mnemonic-indexed register effects
+- Categorized mnemonic-indexed instruction Events
+- Categorized mnemonic-indexed Stack effects
+- Categorized mnemonic-indexed syscall boundary effects
+- Heap facts derived from heap-category boundary effects
+- Conservative state/syntax Warnings
+- Occurrence-aware Register Inspect behavior
+- Operation-effect inspection from mnemonics
+- Operand role inspection for source and destination operands
+- Immediate/source value inspection, including `selected source`, `source role`, and `value flow`
+- Static state tracking up to the cursor without pretending to emulate the CPU
+
+### Architecture and documentation
+
+- Tree-sitter-first Adapter Contract v1 for bundled adapters
+- Adapter-driven section descriptors and presentation/Inspect order
+- Shared Section / Model / Tree infrastructure
+- Reusable lookup-style section templates for low-level state sections
+- Generic per-buffer source-index infrastructure
+- `line_summary` configuration for cursor-state-first leading/trailing whitespace behavior
+- Root README updated for `v0.8.0`
+- Visual-language documentation finalized as the current v0.4 baseline under `docs/visual_language.md`
+
+---
+
 ## Features
+
+This section lists the current `v0.8.0` feature set by area.
 
 ### Core HUD
 
@@ -1719,7 +1828,7 @@ Planned/future work includes:
 
 ## Current source structure
 
-The current `lua/tracker_hud/` source tree in this snapshot is:
+The current `lua/tracker_hud/` source tree for `v0.8.0` is:
 
 ```text
 lua/tracker_hud/
@@ -1926,7 +2035,7 @@ docs/visual_language.md
     -> visual grammar, semantic categories, visual modes, tags, markers, and plain-mode rules
 ```
 
-The visual-language document is ready to live under `/docs/` as the current finalized v0.4 baseline. It should still be treated as a living specification: color palettes and future renderer behavior can evolve without changing the core principle that color is enhancement, not meaning.
+The visual-language document now lives under `/docs/` as the current finalized v0.4 baseline for `v0.8.0`. It should still be treated as a living specification: color palettes and future renderer behavior can evolve without changing the core principle that color is enhancement, not meaning.
 
 ---
 
@@ -1960,7 +2069,9 @@ This means semantic meaning should not be duplicated separately in Registers, St
 
 ## Version notes
 
-### Post-`v0.7.7` development snapshot
+### `v0.8.0`
+
+`v0.8.0` finalizes the current visual-language baseline and makes the HUD much more usable in low-color, colorless, and accessibility-first workflows.
 
 - Added the renderer-agnostic `visual_language.lua` semantic table module
 - Added semantic tags, condensed tags, compact markers, display tiers, and width-mode data
