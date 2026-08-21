@@ -47,6 +47,10 @@ local function collect_engine_stack_effects(entries, seen, context, adapter, opt
                 offset = entry_spec.offset,
                 offset_delta = entry_spec.offset_delta,
                 size = entry_spec.size,
+                stack_depth_before = entry_spec.stack_depth_before,
+                stack_depth_after = entry_spec.stack_depth_after,
+                stack_depth_delta = entry_spec.stack_depth_delta,
+                stack_depth_label = entry_spec.stack_depth_label,
                 role = entry_spec.role,
                 source = entry_spec.source or "analysis",
 

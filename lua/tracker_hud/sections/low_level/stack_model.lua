@@ -73,7 +73,12 @@ function M.new(opts)
     entry.destination = opts.destination
     entry.destination_register = opts.destination_register
     entry.offset = opts.offset
+    entry.offset_delta = opts.offset_delta
     entry.size = opts.size
+    entry.stack_depth_before = opts.stack_depth_before
+    entry.stack_depth_after = opts.stack_depth_after
+    entry.stack_depth_delta = opts.stack_depth_delta
+    entry.stack_depth_label = opts.stack_depth_label
 
     entry.label = M.build_label(entry)
 

@@ -132,4 +132,64 @@ return {
             },
         },
     },
+
+    ["pushfq"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "pushfq",
+                    },
+                },
+            },
+
+            operands = {},
+
+            effect = {
+                kind = "stack_push",
+                name = "push_flags",
+                stack_push_value = "rflags",
+                stack_push_source_kind = "register",
+                stack_push_source_text = "rflags",
+                size = 8,
+                offset_delta = -8,
+                role = "pushed flags register onto stack",
+            },
+        },
+    },
+
+    ["popfq"] = {
+        {
+            syntax = {
+                node_type = "instruction",
+
+                fields = {
+                    kind = {
+                        field = "kind",
+                        node_type = "word",
+                        text = "popfq",
+                    },
+                },
+            },
+
+            operands = {},
+
+            effect = {
+                kind = "stack_pop",
+                name = "pop_flags",
+                value_from_stack_top = true,
+                value_from_stack = "top",
+                stack_reads_top = true,
+                destination_register = "rflags",
+                size = 8,
+                offset_delta = 8,
+                role = "popped stack value into flags register",
+            },
+        },
+    },
+
 }

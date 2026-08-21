@@ -1864,6 +1864,7 @@ local function prepare_register_instruction_inference_state(
         instruction,
         effect_specs,
         {
+            parse_numeric_value = parse_numeric_value,
             resolve_operand_value = function(operand)
                 return register_infer.resolve_operand_value(
                     facts_by_register,
@@ -4137,6 +4138,7 @@ function M.collect_stack_effects(context, adapter, opts)
                     instruction,
                     stack_effect_specs,
                     {
+                        parse_numeric_value = parse_numeric_value,
                         resolve_operand_value = function(operand)
                             return register_infer.resolve_operand_value(
                                 facts_by_register,
@@ -4179,5 +4181,4 @@ function M.collect_stack_effects(context, adapter, opts)
 end
 
 return M
-
 

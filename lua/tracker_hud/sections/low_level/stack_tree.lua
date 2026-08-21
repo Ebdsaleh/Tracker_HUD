@@ -35,6 +35,52 @@ local function build_stack_node(entry)
 
     lookup_tree.add_detail(children, entry, "offset", "offset", entry.offset or "<unknown>")
     lookup_tree.add_detail(children, entry, "size", "size", entry.size or "<unknown>")
+
+    if entry.stack_depth_before ~= nil or entry.stack_depth_after ~= nil then
+        local before = entry.stack_depth_before ~= nil
+            and tostring(entry.stack_depth_before)
+            or "<unknown>"
+        local after = entry.stack_depth_after ~= nil
+            and tostring(entry.stack_depth_after)
+            or "<unknown>"
+
+        lookup_tree.add_detail(
+            children,
+            entry,
+            "stack_depth",
+            "stack depth",
+            before .. " -> " .. after
+        )
+    end
+
+    if entry.stack_depth_delta ~= nil then
+        lookup_tree.add_detail(
+            children,
+            entry,
+            "stack_delta",
+            "stack delta",
+            entry.stack_depth_delta
+        )
+    end
+
+    local metadata = core.is_table(entry.metadata) and entry.metadata or {}
+
+    if metadata.value_source_kind ~= nil or metadata.value_source_text ~= nil then
+        local value_source = tostring(metadata.value_source_kind or "value")
+
+        if metadata.value_source_text ~= nil then
+            value_source = value_source .. " " .. tostring(metadata.value_source_text)
+        end
+
+        lookup_tree.add_detail(
+            children,
+            entry,
+            "value_source",
+            "value source",
+            value_source
+        )
+    end
+
     lookup_tree.add_detail(children, entry, "role", "role", entry.role or "<unknown>")
 
     if entry.resolved == false then
