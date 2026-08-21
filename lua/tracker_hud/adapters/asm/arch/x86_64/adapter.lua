@@ -741,6 +741,19 @@ M.warning_rules = {
         category = "stack",
         message = "pop into {destination_register} reads an unknown stack value",
     },
+
+    {
+        source = "stack",
+        check = "unresolved_stack_read",
+        severity = "state",
+
+        match = {
+            kind = "stack_return",
+        },
+
+        category = "stack",
+        message = "return reads an unknown return address from the stack",
+    },
 }
 
 
