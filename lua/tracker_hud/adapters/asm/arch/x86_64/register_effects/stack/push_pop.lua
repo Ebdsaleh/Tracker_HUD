@@ -717,6 +717,7 @@ return {
                 name = "push_updates_rsp",
                 target_register = "rsp",
                 value_delta = -8,
+                stack_push_operand = 1,
                 role = "decreased by push",
             },
         },
@@ -823,3 +824,4 @@ return {
     },
 
 }
+

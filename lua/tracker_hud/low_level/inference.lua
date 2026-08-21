@@ -1,18 +1,23 @@
 -- lua/tracker_hud/low_level/inference.lua
 --
--- Generic low-level inference helpers.
+-- Generic low-level inference coordinator/helpers.
 --
--- This module is intentionally not ASM-specific. It provides tiny shared
--- primitives for low-level state reducers:
+-- This module is intentionally not ASM-specific. It owns only shared low-level
+-- primitives that are useful to all inferencers:
 --
---   - compare source positions
---   - make cheap context overlays for pre/post state reads
---   - index section facts by stable keys
---   - read known values from a section fact list
+--   - compare source positions;
+--   - make cheap context overlays for pre/post state reads;
+--   - index section facts by stable keys;
+--   - read known values from a section fact list;
+--   - allocate the tiny shared inference state container.
 --
--- Adapters still only declare facts. Concrete reducers decide how to apply
--- those facts for Registers, Stack, Heap, Events, Warnings, or future
--- low-level language adapters.
+-- Section-specific state behavior belongs in sibling modules such as:
+--
+--   - tracker_hud.low_level.register_infer
+--   - tracker_hud.low_level.stack_infer
+--   - tracker_hud.low_level.boundary_infer
+--
+-- Adapters still only declare facts. Inferencers reduce/apply those facts.
 
 local core = require("tracker_hud.core")
 
@@ -235,44 +240,6 @@ function M.new_value_fact(opts)
         source_end_column = opts.source_end_column,
         metadata = core.is_table(opts.metadata) and opts.metadata or {},
     }
-end
-
-
-function M.push_stack(state, value_fact)
-    if not core.is_table(state) then
-        return nil
-    end
-
-    state.stack = core.is_table(state.stack) and state.stack or {}
-
-    local fact = core.is_table(value_fact)
-        and value_fact
-        or M.new_value_fact({
-            value = value_fact,
-            resolved = value_fact ~= nil,
-        })
-
-    table.insert(state.stack, fact)
-
-    return fact
-end
-
-
-function M.peek_stack(state)
-    if not core.is_table(state) or not core.is_table(state.stack) then
-        return nil
-    end
-
-    return state.stack[#state.stack]
-end
-
-
-function M.pop_stack(state)
-    if not core.is_table(state) or not core.is_table(state.stack) then
-        return nil
-    end
-
-    return table.remove(state.stack)
 end
 
 

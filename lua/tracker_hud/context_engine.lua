@@ -8,6 +8,9 @@
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
+local register_infer = require("tracker_hud.low_level.register_infer")
+local stack_infer = require("tracker_hud.low_level.stack_infer")
+local boundary_infer = require("tracker_hud.low_level.boundary_infer")
 
 local M = {}
 
@@ -1850,97 +1853,29 @@ local function merge_source_metadata(target, source)
 end
 
 
-local function make_stack_saved_value(facts_by_register, instruction, operand)
-    if not core.is_table(operand) then
-        return low_level_inference.new_value_fact({
-            value = nil,
-            resolved = false,
-            source = "stack",
-            source_kind = "unknown",
-            source_text = "<unknown>",
-        })
-    end
-
-    local value = operand.text
-    local resolved = value ~= nil
-    local source_kind = operand.kind or "unknown"
-    local source_name = operand.text
-    local source_text = operand.text
-
-    if operand.kind == "register" then
-        local source_fact = get_register_fact_from_map(
-            facts_by_register,
-            operand.text
-        )
-
-        resolved = register_fact_is_resolved(source_fact)
-
-        if resolved then
-            value = source_fact.value
-        end
-    elseif operand.kind == "integer" then
-        local numeric_value = parse_numeric_value(operand.text)
-
-        if numeric_value ~= nil then
-            value = tostring(numeric_value)
-            resolved = true
-        else
-            resolved = false
-        end
-    else
-        resolved = value ~= nil
-    end
-
-    return low_level_inference.new_value_fact({
-        value = value,
-        resolved = resolved,
-        source = "instruction",
-        source_kind = source_kind,
-        source_name = source_name,
-        source_text = source_text,
-        source_line = operand.source_line or instruction.source_line,
-        source_column = operand.source_column or 0,
-        source_start_line = operand.source_start_line,
-        source_start_column = operand.source_start_column or 0,
-        source_end_line = operand.source_end_line,
-        source_end_column = operand.source_end_column or operand.source_column or 0,
-        metadata = {
-            mnemonic = instruction.mnemonic,
-        },
-    })
-end
-
-
 local function prepare_register_instruction_inference_state(
     low_level_state,
     facts_by_register,
-    instruction
+    instruction,
+    effect_specs
 )
-    local instruction_state = {}
-
-    if not core.is_table(instruction) then
-        return instruction_state
-    end
-
-    local mnemonic = normalize_mnemonic(instruction.mnemonic)
-
-    if mnemonic == "push" then
-        local operand = instruction.operands and instruction.operands[1]
-        instruction_state.stack_push = low_level_inference.push_stack(
-            low_level_state,
-            make_stack_saved_value(
-                facts_by_register,
-                instruction,
-                operand
-            )
-        )
-    elseif mnemonic == "pop" then
-        instruction_state.stack_pop = low_level_inference.pop_stack(
-            low_level_state
-        )
-    end
-
-    return instruction_state
+    return stack_infer.prepare_instruction_state(
+        low_level_state,
+        instruction,
+        effect_specs,
+        {
+            resolve_operand_value = function(operand)
+                return register_infer.resolve_operand_value(
+                    facts_by_register,
+                    instruction,
+                    operand,
+                    {
+                        parse_numeric_value = parse_numeric_value,
+                    }
+                )
+            end,
+        }
+    )
 end
 
 
@@ -2343,7 +2278,8 @@ function M.collect_register_effects(context, adapter, opts)
             local instruction_state = prepare_register_instruction_inference_state(
                 low_level_state,
                 facts_by_register,
-                instruction
+                instruction,
+                effect_specs
             )
 
             for _, effect_spec in ipairs(effect_specs or {}) do
@@ -2358,13 +2294,7 @@ function M.collect_register_effects(context, adapter, opts)
         end
     end
 
-    local facts = {}
-
-    for _, fact in pairs(facts_by_register) do
-        table.insert(facts, fact)
-    end
-
-    return facts
+    return register_infer.to_fact_list(facts_by_register)
 end
 
 
@@ -3157,131 +3087,9 @@ local function get_boundary_effect_index(adapter)
 end
 
 
-local function get_register_fact_from_context(context, register_name)
-    if not core.is_table(context)
-        or not core.is_non_empty_string(register_name)
-    then
-        return nil
-    end
-
-    local wanted = register_name:lower()
-
-    for _, register in ipairs(context.registers or {}) do
-        if core.is_table(register)
-            and core.is_non_empty_string(register.name)
-            and register.name:lower() == wanted
-        then
-            return register
-        end
-    end
-
-    return nil
-end
-
-
-local function get_register_value_from_context(context, register_name)
-    local fact = get_register_fact_from_context(context, register_name)
-
-    if fact then
-        return fact.value
-    end
-
-    return nil
-end
-
-
-local function get_register_resolved_from_context(context, register_name)
-    local fact = get_register_fact_from_context(context, register_name)
-
-    if not fact then
-        return false
-    end
-
-    return fact.value ~= nil and fact.resolved ~= false
-end
-
-
-local function build_boundary_reads(context, effect_spec)
-    local reads = {}
-    local read_spec = effect_spec.reads or {}
-
-    if core.is_non_empty_string(read_spec.number_register) then
-        table.insert(reads, {
-            role = "number",
-            register = read_spec.number_register,
-            value = get_register_value_from_context(
-                context,
-                read_spec.number_register
-            ),
-            resolved = get_register_resolved_from_context(
-                context,
-                read_spec.number_register
-            ),
-        })
-    end
-
-    for index, register_name in ipairs(read_spec.argument_registers or {}) do
-        table.insert(reads, {
-            role = "argument",
-            index = index,
-            register = register_name,
-            value = get_register_value_from_context(context, register_name),
-            resolved = get_register_resolved_from_context(context, register_name),
-        })
-    end
-
-    return reads
-end
-
-
-local function build_boundary_writes(context, effect_spec)
-    local writes = {}
-    local write_spec = effect_spec.writes or {}
-
-    if core.is_non_empty_string(write_spec.return_register) then
-        table.insert(writes, {
-            role = "return",
-            register = write_spec.return_register,
-            value = get_register_value_from_context(
-                context,
-                write_spec.return_register
-            ),
-        })
-    end
-
-    return writes
-end
-
-
-local function get_boundary_effect_key(context, effect_spec)
-    local read_spec = effect_spec.reads or {}
-    local number_register = read_spec.number_register
-
-    if not core.is_non_empty_string(number_register) then
-        return nil
-    end
-
-    local value = get_register_value_from_context(context, number_register)
-
-    if value == nil then
-        return nil
-    end
-
-    return tostring(value)
-end
-
-
-local function resolve_known_boundary_effect(context, effect_spec)
-    local key = get_boundary_effect_key(context, effect_spec)
-
-    if not key then
-        return nil, nil
-    end
-
-    local known_effects = effect_spec.known_effects or {}
-
-    return known_effects[key], key
-end
+-- Boundary read/write/not-preserved inference lives in
+-- tracker_hud.low_level.boundary_infer. Context engine keeps only syntax/node
+-- selection and adapter matching concerns here.
 
 
 local function boundary_instruction_matches(instruction, effect_spec)
@@ -3315,65 +3123,13 @@ local function make_boundary_effect_fact(
     effect_spec,
     phase_contexts
 )
-    if not core.is_table(context)
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return nil
-    end
-
-    phase_contexts = phase_contexts or {}
-
-    local read_context = core.is_table(phase_contexts.read_context)
-        and phase_contexts.read_context
-        or context
-
-    local write_context = core.is_table(phase_contexts.write_context)
-        and phase_contexts.write_context
-        or context
-
-    local known_effect, effect_key = resolve_known_boundary_effect(
-        read_context,
-        effect_spec
+    return boundary_infer.make_effect_fact(
+        context,
+        adapter,
+        instruction,
+        effect_spec,
+        phase_contexts
     )
-
-    local name = effect_spec.kind or "boundary_effect"
-    local category = effect_spec.category or "unknown"
-
-    if core.is_table(known_effect) then
-        name = known_effect.name or name
-        category = known_effect.category or category
-    end
-
-    return {
-        kind = effect_spec.kind or "boundary_effect",
-        category = category,
-        name = name,
-        effect_key = effect_key,
-        known_effect = known_effect,
-
-        reads = build_boundary_reads(read_context, effect_spec),
-        writes = build_boundary_writes(write_context, effect_spec),
-
-        source = "instruction",
-        source_line = instruction.source_line,
-        source_column = 0,
-
-        source_start_line = instruction.source_line,
-        source_start_column = 0,
-        source_end_line = instruction.source_line,
-        source_end_column = 0,
-
-        metadata = {
-            adapter = adapter.name,
-            architecture = adapter.architecture,
-            variant = adapter.active_variant_name,
-            mnemonic = instruction.mnemonic,
-            boundary_reads_state = "before_instruction",
-            boundary_writes_state = "after_instruction",
-        },
-    }
 end
 
 
@@ -4433,3 +4189,4 @@ end
 
 
 return M
+
