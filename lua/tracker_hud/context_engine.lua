@@ -3288,6 +3288,7 @@ function M.collect_boundary_effects(context, adapter, opts)
     end)
 
     local facts = {}
+    local low_level_state = low_level_inference.new_state()
 
     for _, entry in ipairs(nodes) do
         local node_type = entry.node:type()
@@ -3943,93 +3944,17 @@ local function stack_operands_match_effect(adapter, instruction, effect_spec)
 end
 
 
-local function make_stack_fact(adapter, instruction, effect_spec)
-    if not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-        or not core.is_table(effect_spec.effect)
-    then
-        return nil
-    end
-
-    local effect = effect_spec.effect
-    local value = nil
-    local size = effect.size
-    local source_operand = nil
-
-    if tonumber(effect.value_operand) then
-        source_operand = instruction.operands[tonumber(effect.value_operand)]
-
-        if source_operand then
-            value = source_operand.text
-        end
-    end
-
-    if tonumber(effect.size_operand) then
-        local size_operand = instruction.operands[tonumber(effect.size_operand)]
-
-        if size_operand then
-            size = tonumber(size_operand.text) or size_operand.text
-            source_operand = size_operand
-        end
-    end
-
-    source_operand = source_operand or instruction.operands[1]
-
-    local source_line = instruction.source_line
-    local source_column = 0
-    local source_start_line = instruction.source_line
-    local source_start_column = 0
-    local source_end_line = instruction.source_line
-    local source_end_column = 0
-
-    if source_operand then
-        source_line = source_operand.source_line
-        source_column = source_operand.source_column or 0
-        source_start_line = source_operand.source_start_line
-        source_start_column = source_operand.source_start_column or 0
-        source_end_line = source_operand.source_end_line
-        source_end_column = source_operand.source_end_column or source_column
-    end
-
-    local name = effect.name or effect.kind or instruction.mnemonic or "stack_effect"
-
-    if value ~= nil then
-        name = tostring(name) .. " " .. tostring(value)
-    elseif size ~= nil then
-        name = tostring(name) .. " " .. tostring(size)
-    end
-
-    return {
-        name = name,
-        kind = effect.kind or "stack_effect",
-        value = value,
-        offset = effect.offset,
-        offset_delta = effect.offset_delta,
-        size = size,
-        role = effect.role,
-        source = "instruction",
-
-        source_line = source_line,
-        source_column = source_column,
-
-        source_start_line = source_start_line,
-        source_start_column = source_start_column,
-        source_end_line = source_end_line,
-        source_end_column = source_end_column,
-
-        metadata = {
-            adapter = adapter.name,
-            architecture = adapter.architecture,
-            variant = adapter.active_variant_name,
-            mnemonic = instruction.mnemonic,
-            effect = effect.name,
-        },
-    }
+local function make_stack_fact(adapter, instruction, effect_spec, instruction_state)
+    return stack_infer.make_effect_fact(
+        adapter,
+        instruction,
+        effect_spec,
+        instruction_state
+    )
 end
 
 
-local function apply_stack_effect(facts, adapter, instruction, effect_spec)
+local function apply_stack_effect(facts, adapter, instruction, effect_spec, instruction_state)
     if not core.is_table(facts)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -4059,7 +3984,7 @@ local function apply_stack_effect(facts, adapter, instruction, effect_spec)
         return
     end
 
-    local fact = make_stack_fact(adapter, instruction, effect_spec)
+    local fact = make_stack_fact(adapter, instruction, effect_spec, instruction_state)
 
     if fact then
         table.insert(facts, fact)
@@ -4142,6 +4067,7 @@ function M.collect_stack_effects(context, adapter, opts)
     end)
 
     local facts = {}
+    local low_level_state = low_level_inference.new_state()
 
     for _, entry in ipairs(nodes) do
         local node_type = entry.node:type()
@@ -4171,6 +4097,24 @@ function M.collect_stack_effects(context, adapter, opts)
                 and node_bucket[mnemonic]
                 or nil
 
+            local instruction_state = stack_infer.prepare_instruction_state(
+                low_level_state,
+                instruction,
+                effect_specs,
+                {
+                    resolve_operand_value = function(operand)
+                        return register_infer.resolve_operand_value(
+                            {},
+                            instruction,
+                            operand,
+                            {
+                                parse_numeric_value = parse_numeric_value,
+                            }
+                        )
+                    end,
+                }
+            )
+
             for _, effect_spec in ipairs(
                 effect_specs or {}
             ) do
@@ -4178,7 +4122,8 @@ function M.collect_stack_effects(context, adapter, opts)
                     facts,
                     adapter,
                     instruction,
-                    effect_spec
+                    effect_spec,
+                    instruction_state
                 )
             end
         end
@@ -4189,4 +4134,3 @@ end
 
 
 return M
-

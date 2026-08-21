@@ -30,6 +30,15 @@ local function get_stack_push_operand_index(effect)
         return nil
     end
 
+    if effect.kind == "stack_push" then
+        return tonumber(
+            effect.stack_push_operand
+                or effect.push_operand
+                or effect.value_to_stack_operand
+                or effect.value_operand
+        )
+    end
+
     return tonumber(
         effect.stack_push_operand
             or effect.push_operand
@@ -41,7 +50,8 @@ end
 local function effect_reads_stack_top(effect)
     return core.is_table(effect)
         and (
-            effect.value_from_stack_top == true
+            effect.kind == "stack_pop"
+            or effect.value_from_stack_top == true
             or effect.value_from_stack == "top"
         )
 end
@@ -132,6 +142,133 @@ function M.prepare_instruction_state(state, instruction, effect_specs, opts)
     end
 
     return instruction_state
+end
+
+
+local function get_source_operand(instruction, effect)
+    if not core.is_table(instruction) or not core.is_table(effect) then
+        return nil
+    end
+
+    local index = tonumber(effect.value_operand)
+        or tonumber(effect.source_operand)
+        or tonumber(effect.target_operand)
+        or 1
+
+    return instruction.operands and instruction.operands[index] or nil
+end
+
+
+local function get_stack_value_from_instruction_state(instruction_state)
+    if not core.is_table(instruction_state) then
+        return nil
+    end
+
+    return instruction_state.stack_pop or instruction_state.stack_push
+end
+
+
+function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state)
+    if not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(effect_spec)
+    then
+        return nil
+    end
+
+    local effect = get_effect(effect_spec)
+
+    if not core.is_table(effect) then
+        return nil
+    end
+
+    local source_operand = get_source_operand(instruction, effect)
+    local stack_value = get_stack_value_from_instruction_state(instruction_state)
+    local value = nil
+    local resolved = false
+    local size = effect.size
+
+    if core.is_table(stack_value) and stack_value.value ~= nil then
+        value = stack_value.value
+        resolved = stack_value.resolved ~= false
+    elseif tonumber(effect.value_operand) then
+        source_operand = instruction.operands[tonumber(effect.value_operand)]
+
+        if source_operand then
+            value = source_operand.text
+            resolved = value ~= nil
+        end
+    end
+
+    if tonumber(effect.size_operand) then
+        local size_operand = instruction.operands[tonumber(effect.size_operand)]
+
+        if size_operand then
+            size = tonumber(size_operand.text) or size_operand.text
+            source_operand = size_operand
+        end
+    end
+
+    source_operand = source_operand or instruction.operands[1]
+
+    local source_line = instruction.source_line
+    local source_column = 0
+    local source_start_line = instruction.source_line
+    local source_start_column = 0
+    local source_end_line = instruction.source_line
+    local source_end_column = 0
+
+    if source_operand then
+        source_line = source_operand.source_line
+        source_column = source_operand.source_column or 0
+        source_start_line = source_operand.source_start_line
+        source_start_column = source_operand.source_start_column or 0
+        source_end_line = source_operand.source_end_line
+        source_end_column = source_operand.source_end_column or source_column
+    end
+
+    local name = effect.name or effect.kind or instruction.mnemonic or "stack_effect"
+
+    if value ~= nil then
+        name = tostring(name) .. " " .. tostring(value)
+    elseif size ~= nil then
+        name = tostring(name) .. " " .. tostring(size)
+    end
+
+    return {
+        name = name,
+        kind = effect.kind or "stack_effect",
+        value = value,
+        resolved = resolved,
+        offset = effect.offset,
+        offset_delta = effect.offset_delta,
+        size = size,
+        role = effect.role,
+        source = "instruction",
+
+        source_line = source_line,
+        source_column = source_column,
+
+        source_start_line = source_start_line,
+        source_start_column = source_start_column,
+        source_end_line = source_end_line,
+        source_end_column = source_end_column,
+
+        metadata = {
+            adapter = adapter.name,
+            architecture = adapter.architecture,
+            variant = adapter.active_variant_name,
+            mnemonic = instruction.mnemonic,
+            effect = effect.name,
+            value_resolved = resolved,
+            value_source_kind = core.is_table(stack_value)
+                and stack_value.source_kind
+                or (source_operand and source_operand.kind),
+            value_source_text = core.is_table(stack_value)
+                and stack_value.source_text
+                or (source_operand and source_operand.text),
+        },
+    }
 end
 
 
