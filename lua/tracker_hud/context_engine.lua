@@ -1883,6 +1883,19 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
     local value = effect.value
     local resolved = value ~= nil
 
+    if effect.value_from_stack_top == true
+        or effect.value_from_stack == "top"
+    then
+        local stack_value = core.is_table(instruction_state)
+            and instruction_state.stack_pop
+            or nil
+
+        if core.is_table(stack_value) then
+            return stack_value.value, stack_value.resolved ~= false
+        end
+
+        return nil, false
+    end
 
     if core.is_non_empty_string(effect.value_from_register) then
         local source_fact = get_register_fact_from_map(
@@ -4166,3 +4179,5 @@ function M.collect_stack_effects(context, adapter, opts)
 end
 
 return M
+
+
