@@ -4001,9 +4001,7 @@ function M.collect_stack_effects(context, adapter, opts)
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
-        or not core.is_table(
-            adapter.stack_effects
-        )
+        or not core.is_table(adapter.stack_effects)
     then
         return {}
     end
@@ -4012,51 +4010,61 @@ function M.collect_stack_effects(context, adapter, opts)
         and context.cursor
         and context.cursor.line
 
-    local effect_index =
-        get_stack_effect_index(adapter)
+    local stack_effect_index = get_stack_effect_index(adapter)
+    local register_effect_index = get_register_effect_index(adapter)
 
     local nodes = {}
     local seen_nodes = {}
 
-    for node_type, _ in pairs(
-        effect_index.node_types
-    ) do
-        for _, node in ipairs(
-            collect_nodes_by_type(
-                root_node,
-                node_type
-            )
-        ) do
-            local start_row,
-                start_column,
-                end_row,
-                end_column = node:range()
+    local function add_nodes_from_index(effect_index)
+        if not core.is_table(effect_index)
+            or not core.is_table(effect_index.node_types)
+        then
+            return
+        end
 
-            local node_line = start_row + 1
+        for node_type, _ in pairs(effect_index.node_types) do
+            for _, node in ipairs(
+                collect_nodes_by_type(root_node, node_type)
+            ) do
+                local start_row,
+                    start_column,
+                    end_row,
+                    end_column = node:range()
 
-            if not cursor_line
-                or node_line <= cursor_line
-            then
-                local key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
+                local node_line = start_row + 1
 
-                if not seen_nodes[key] then
-                    seen_nodes[key] = true
+                if not cursor_line
+                    or node_line <= cursor_line
+                then
+                    local key = table.concat({
+                        node:type(),
+                        tostring(start_row),
+                        tostring(start_column),
+                        tostring(end_row),
+                        tostring(end_column),
+                    }, ":")
 
-                    table.insert(nodes, {
-                        node = node,
-                        line = node_line,
-                        column = start_column,
-                    })
+                    if not seen_nodes[key] then
+                        seen_nodes[key] = true
+
+                        table.insert(nodes, {
+                            node = node,
+                            line = node_line,
+                            column = start_column,
+                        })
+                    end
                 end
             end
         end
     end
+
+    -- Stack display needs stack facts, but stack values may come from earlier
+    -- register facts. Walk stack-effect and register-effect instructions in a
+    -- single ordered pass so push/pop facts can reuse the same lightweight
+    -- carried register state without rescanning the buffer for every stack row.
+    add_nodes_from_index(stack_effect_index)
+    add_nodes_from_index(register_effect_index)
 
     table.sort(nodes, function(left, right)
         if left.line == right.line then
@@ -4068,69 +4076,93 @@ function M.collect_stack_effects(context, adapter, opts)
 
     local facts = {}
     local low_level_state = low_level_inference.new_state()
+    local facts_by_register = {}
 
     for _, entry in ipairs(nodes) do
         local node_type = entry.node:type()
-        local node_bucket =
-            effect_index.by_node_type[
-                node_type
-            ]
 
-        if node_bucket then
-            local representative_effect_spec =
-                node_bucket.__first
+        local stack_bucket = stack_effect_index.by_node_type
+            and stack_effect_index.by_node_type[node_type]
+            or nil
 
-            local instruction =
-                collect_instruction_operands(
-                    adapter,
-                    entry.node,
-                    bufnr,
-                    representative_effect_spec
-                )
+        local register_bucket = register_effect_index.by_node_type
+            and register_effect_index.by_node_type[node_type]
+            or nil
 
-            local mnemonic = instruction
-                and normalize_mnemonic(
-                    instruction.mnemonic
-                )
+        local representative_effect_spec = stack_bucket
+            and stack_bucket.__first
+            or register_bucket
+            and register_bucket.__first
+            or nil
 
-            local effect_specs = mnemonic
-                and node_bucket[mnemonic]
-                or nil
-
-            local instruction_state = stack_infer.prepare_instruction_state(
-                low_level_state,
-                instruction,
-                effect_specs,
-                {
-                    resolve_operand_value = function(operand)
-                        return register_infer.resolve_operand_value(
-                            {},
-                            instruction,
-                            operand,
-                            {
-                                parse_numeric_value = parse_numeric_value,
-                            }
-                        )
-                    end,
-                }
+        if representative_effect_spec then
+            local instruction = collect_instruction_operands(
+                adapter,
+                entry.node,
+                bufnr,
+                representative_effect_spec
             )
 
-            for _, effect_spec in ipairs(
-                effect_specs or {}
-            ) do
-                apply_stack_effect(
-                    facts,
-                    adapter,
+            local mnemonic = instruction
+                and normalize_mnemonic(instruction.mnemonic)
+
+            local stack_effect_specs = mnemonic
+                and stack_bucket
+                and stack_bucket[mnemonic]
+                or nil
+
+            local register_effect_specs = mnemonic
+                and register_bucket
+                and register_bucket[mnemonic]
+                or nil
+
+            local instruction_state = {}
+
+            if core.is_table(stack_effect_specs) then
+                instruction_state = stack_infer.prepare_instruction_state(
+                    low_level_state,
                     instruction,
-                    effect_spec,
-                    instruction_state
+                    stack_effect_specs,
+                    {
+                        resolve_operand_value = function(operand)
+                            return register_infer.resolve_operand_value(
+                                facts_by_register,
+                                instruction,
+                                operand,
+                                {
+                                    parse_numeric_value = parse_numeric_value,
+                                }
+                            )
+                        end,
+                    }
                 )
+
+                for _, effect_spec in ipairs(stack_effect_specs) do
+                    apply_stack_effect(
+                        facts,
+                        adapter,
+                        instruction,
+                        effect_spec,
+                        instruction_state
+                    )
+                end
+            end
+
+            if core.is_table(register_effect_specs) then
+                for _, effect_spec in ipairs(register_effect_specs) do
+                    apply_register_effect(
+                        facts_by_register,
+                        adapter,
+                        instruction,
+                        effect_spec,
+                        instruction_state
+                    )
+                end
             end
         end
     end
 
     return facts
 end
-
 
 return M
