@@ -87,9 +87,11 @@ end
 
 
 function M.pop(state)
-    if not core.is_table(state) or not core.is_table(state.stack) then
+    if not core.is_table(state) then
         return nil
     end
+
+    state.stack = core.is_table(state.stack) and state.stack or {}
 
     return table.remove(state.stack)
 end
@@ -135,9 +137,11 @@ function M.prepare_instruction_state(state, instruction, effect_specs, opts)
         end
 
         if effect_reads_stack_top(effect)
-            and not instruction_state.stack_pop
+            and not instruction_state.stack_pop_checked
         then
+            instruction_state.stack_pop_checked = true
             instruction_state.stack_pop = M.pop(state)
+            instruction_state.stack_pop_missing = instruction_state.stack_pop == nil
         end
     end
 
@@ -156,6 +160,34 @@ local function get_source_operand(instruction, effect)
         or 1
 
     return instruction.operands and instruction.operands[index] or nil
+end
+
+
+local function get_destination_operand(instruction, effect)
+    if not core.is_table(instruction) or not core.is_table(effect) then
+        return nil
+    end
+
+    local index = tonumber(effect.destination_operand)
+        or tonumber(effect.target_operand)
+
+    if not index and effect.kind == "stack_pop" then
+        index = tonumber(effect.value_operand) or 1
+    end
+
+    return index and instruction.operands and instruction.operands[index] or nil
+end
+
+
+local function operand_register_name(operand)
+    if not core.is_table(operand)
+        or operand.kind ~= "register"
+        or not core.is_non_empty_string(operand.text)
+    then
+        return nil
+    end
+
+    return operand.text
 end
 
 
@@ -183,7 +215,9 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
     end
 
     local source_operand = get_source_operand(instruction, effect)
+    local destination_operand = get_destination_operand(instruction, effect)
     local stack_value = get_stack_value_from_instruction_state(instruction_state)
+    local reads_stack_top = effect_reads_stack_top(effect)
     local value = nil
     local resolved = false
     local size = effect.size
@@ -191,6 +225,11 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
     if core.is_table(stack_value) and stack_value.value ~= nil then
         value = stack_value.value
         resolved = stack_value.resolved ~= false
+    elseif reads_stack_top then
+        -- A pop/read-from-stack-top without a known tracked stack value should
+        -- remain unresolved. Do not treat the destination operand as the value.
+        value = nil
+        resolved = false
     elseif tonumber(effect.value_operand) then
         source_operand = instruction.operands[tonumber(effect.value_operand)]
 
@@ -228,9 +267,16 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
     end
 
     local name = effect.name or effect.kind or instruction.mnemonic or "stack_effect"
+    local destination_register = operand_register_name(destination_operand)
+
+    if destination_register then
+        name = tostring(name) .. " " .. tostring(destination_register)
+    end
 
     if value ~= nil then
-        name = tostring(name) .. " " .. tostring(value)
+        name = tostring(name) .. " = " .. tostring(value)
+    elseif reads_stack_top then
+        name = tostring(name) .. " = <unknown>"
     elseif size ~= nil then
         name = tostring(name) .. " " .. tostring(size)
     end
@@ -240,6 +286,8 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
         kind = effect.kind or "stack_effect",
         value = value,
         resolved = resolved,
+        destination_register = destination_register,
+        destination = destination_operand and destination_operand.text or nil,
         offset = effect.offset,
         offset_delta = effect.offset_delta,
         size = size,
@@ -267,6 +315,12 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
             value_source_text = core.is_table(stack_value)
                 and stack_value.source_text
                 or (source_operand and source_operand.text),
+            destination_register = destination_register,
+            destination_text = destination_operand and destination_operand.text or nil,
+            destination_kind = destination_operand and destination_operand.kind or nil,
+            reads_stack_top = reads_stack_top,
+            stack_read_resolved = (not reads_stack_top) or resolved,
+            stack_read_missing = reads_stack_top and not core.is_table(stack_value),
         },
     }
 end

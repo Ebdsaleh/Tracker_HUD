@@ -69,6 +69,9 @@ function M.new(opts)
         return nil
     end
 
+    entry.resolved = opts.resolved
+    entry.destination = opts.destination
+    entry.destination_register = opts.destination_register
     entry.offset = opts.offset
     entry.size = opts.size
 

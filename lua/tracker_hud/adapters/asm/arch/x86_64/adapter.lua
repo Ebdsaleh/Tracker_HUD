@@ -728,6 +728,19 @@ M.warning_rules = {
         category = "boundary",
         message = "{name} argument {index} ({argument_name}) register {register} has no known value",
     },
+
+    {
+        source = "stack",
+        check = "unresolved_stack_read",
+        severity = "state",
+
+        match = {
+            kind = "stack_pop",
+        },
+
+        category = "stack",
+        message = "pop into {destination_register} reads an unknown stack value",
+    },
 }
 
 
@@ -1552,4 +1565,3 @@ M.stack = {
 
 
 return M
-

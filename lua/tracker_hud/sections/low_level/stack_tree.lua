@@ -16,9 +16,31 @@ local function build_stack_node(entry)
     local children = {}
 
     lookup_tree.add_detail(children, entry, "kind", "kind", entry.kind or "<unknown>")
+
+    if entry.value ~= nil then
+        lookup_tree.add_detail(children, entry, "value", "value", entry.value)
+    elseif entry.resolved == false then
+        lookup_tree.add_detail(children, entry, "value", "value", "<unknown>")
+    end
+
+    if core.is_non_empty_string(entry.destination_register) then
+        lookup_tree.add_detail(
+            children,
+            entry,
+            "destination",
+            "destination",
+            entry.destination_register
+        )
+    end
+
     lookup_tree.add_detail(children, entry, "offset", "offset", entry.offset or "<unknown>")
     lookup_tree.add_detail(children, entry, "size", "size", entry.size or "<unknown>")
     lookup_tree.add_detail(children, entry, "role", "role", entry.role or "<unknown>")
+
+    if entry.resolved == false then
+        lookup_tree.add_detail(children, entry, "resolved", "resolved", "false")
+    end
+
     lookup_tree.add_detail(children, entry, "source", "source", entry.source or "<unknown>")
 
     local node = lookup_tree.new_node(entry, {

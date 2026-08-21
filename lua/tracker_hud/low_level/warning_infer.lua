@@ -228,6 +228,9 @@ local function make_warning_from_rule(rule, fact, read)
 
             boundary_kind = fact.kind,
             boundary_name = fact.name,
+            fact_kind = fact.kind,
+            fact_name = fact.name,
+            destination_register = fact.destination_register,
 
             argument_index = read and read.index,
             argument_name = get_read_argument_name(fact, read),
@@ -306,6 +309,25 @@ local function apply_missing_known_effect_rule(warnings, rule, fact)
 end
 
 
+local function apply_unresolved_stack_read_rule(warnings, rule, fact)
+    if not core.is_table(fact) then
+        return
+    end
+
+    if fact.resolved ~= false then
+        return
+    end
+
+    local metadata = core.is_table(fact.metadata) and fact.metadata or {}
+
+    if metadata.reads_stack_top ~= true and fact.kind ~= "stack_pop" then
+        return
+    end
+
+    table.insert(warnings, make_warning_from_rule(rule, fact, nil))
+end
+
+
 local function apply_warning_rule(warnings, context, rule)
     if not core.is_table(rule) or not core.is_non_empty_string(rule.source) then
         return
@@ -323,6 +345,8 @@ local function apply_warning_rule(warnings, context, rule)
                 apply_missing_required_reads_rule(warnings, rule, fact)
             elseif rule.check == "missing_known_effect" then
                 apply_missing_known_effect_rule(warnings, rule, fact)
+            elseif rule.check == "unresolved_stack_read" then
+                apply_unresolved_stack_read_rule(warnings, rule, fact)
             end
         end
     end
