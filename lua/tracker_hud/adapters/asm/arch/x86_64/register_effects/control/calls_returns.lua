@@ -85,6 +85,8 @@ return {
                 kind = "register_write",
                 name = "ret_updates_rip",
                 target_register = "rip",
+                value_from_stack_top = true,
+                value_from_stack = "top",
                 role = "restored from return address by ret",
             },
         },
@@ -677,4 +679,3 @@ return {
     },
 
 }
-

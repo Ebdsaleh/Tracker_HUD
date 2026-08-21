@@ -28,8 +28,11 @@ return {
 
             effect = {
                 kind = "stack_call",
-                name = "call_symbol",
+                name = "call_return_address",
                 value_operand = 1,
+                stack_push_value = "return address",
+                stack_push_source_kind = "control_flow",
+                stack_push_source_text = "return address after call",
                 size = 8,
                 offset_delta = -8,
                 role = "pushed return address and transferred control",
@@ -55,7 +58,10 @@ return {
 
             effect = {
                 kind = "stack_return",
-                name = "ret",
+                name = "ret_return_address",
+                value_from_stack_top = true,
+                stack_reads_top = true,
+                destination_register = "rip",
                 size = 8,
                 offset_delta = 8,
                 role = "popped return address and returned to caller",

@@ -47,10 +47,36 @@ local function get_stack_push_operand_index(effect)
 end
 
 
+local function get_stack_push_literal(effect)
+    if not core.is_table(effect) then
+        return nil
+    end
+
+    return effect.stack_push_value
+        or effect.push_value
+        or effect.synthetic_stack_value
+end
+
+
+local function get_stack_push_source_text(effect, literal_value)
+    if not core.is_table(effect) then
+        return literal_value
+    end
+
+    return effect.stack_push_source_text
+        or effect.stack_value_source_text
+        or effect.push_source_text
+        or literal_value
+end
+
+
 local function effect_reads_stack_top(effect)
     return core.is_table(effect)
         and (
             effect.kind == "stack_pop"
+            or effect.kind == "stack_return"
+            or effect.stack_reads_top == true
+            or effect.reads_stack_top == true
             or effect.value_from_stack_top == true
             or effect.value_from_stack == "top"
         )
@@ -113,23 +139,41 @@ function M.prepare_instruction_state(state, instruction, effect_specs, opts)
         local effect = get_effect(effect_spec)
 
         local push_operand_index = get_stack_push_operand_index(effect)
+        local push_literal = get_stack_push_literal(effect)
 
-        if push_operand_index and not instruction_state.stack_push then
+        if (push_operand_index or push_literal ~= nil)
+            and not instruction_state.stack_push
+        then
             local operand = instruction.operands
+                and push_operand_index
                 and instruction.operands[push_operand_index]
                 or nil
 
             local value_fact = nil
 
-            if type(opts.resolve_operand_value) == "function" then
+            if operand and type(opts.resolve_operand_value) == "function" then
                 value_fact = opts.resolve_operand_value(operand)
+            elseif operand then
+                value_fact = inference.new_value_fact({
+                    value = operand.text,
+                    resolved = operand.text ~= nil,
+                    source = "instruction",
+                    source_kind = operand.kind or "unknown",
+                    source_text = operand.text or "<unknown>",
+                })
             else
                 value_fact = inference.new_value_fact({
-                    value = operand and operand.text,
-                    resolved = operand and operand.text ~= nil,
+                    value = push_literal,
+                    resolved = push_literal ~= nil,
                     source = "instruction",
-                    source_kind = operand and operand.kind or "unknown",
-                    source_text = operand and operand.text or "<unknown>",
+                    source_kind = effect.stack_push_source_kind
+                        or effect.stack_value_source_kind
+                        or effect.push_source_kind
+                        or "control_flow",
+                    source_text = get_stack_push_source_text(effect, push_literal),
+                    source_name = effect.stack_push_source_name
+                        or effect.stack_value_source_name
+                        or effect.push_source_name,
                 })
             end
 
@@ -267,7 +311,8 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
     end
 
     local name = effect.name or effect.kind or instruction.mnemonic or "stack_effect"
-    local destination_register = operand_register_name(destination_operand)
+    local destination_register = effect.destination_register
+        or operand_register_name(destination_operand)
 
     if destination_register then
         name = tostring(name) .. " " .. tostring(destination_register)
