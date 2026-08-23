@@ -50,6 +50,7 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.instruction_events.processor.segment_state",
 
     -- Control transfer / exceptions / transactional state.
+    "tracker_hud.adapters.asm.arch.x86_64.instruction_events.control.calls_returns",
     "tracker_hud.adapters.asm.arch.x86_64.instruction_events.control.interrupts",
     "tracker_hud.adapters.asm.arch.x86_64.instruction_events.control.exceptions",
     "tracker_hud.adapters.asm.arch.x86_64.instruction_events.control.system_calls",
@@ -78,4 +79,3 @@ end
 
 
 return M
-

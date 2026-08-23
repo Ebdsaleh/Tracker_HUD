@@ -242,6 +242,43 @@ local function format_not_preserved_label(entry)
 end
 
 
+local function get_operand_label(operand_spec, index)
+    if type(operand_spec) == "table"
+        and type(operand_spec.role) == "string"
+        and operand_spec.role ~= ""
+    then
+        return operand_spec.role:gsub("_", " ")
+    end
+
+    return "operand " .. tostring(index)
+end
+
+
+local function append_operand_details(node, event)
+    local metadata = as_table(event and event.metadata)
+    local operands = as_table(metadata.operands)
+    local operand_specs = as_table(metadata.operand_specs)
+
+    for _, operand_spec in ipairs(operand_specs) do
+        if type(operand_spec) == "table" then
+            local index = tonumber(operand_spec.index)
+            local operand = index and operands[index] or nil
+
+            if type(operand) == "table"
+                and type(operand.text) == "string"
+                and operand.text ~= ""
+            then
+                append_detail(
+                    node,
+                    "operand:" .. tostring(index),
+                    get_operand_label(operand_spec, index) .. ": " .. operand.text
+                )
+            end
+        end
+    end
+end
+
+
 local function append_boundary_io_details(node, event)
     local metadata = as_table(event and event.metadata)
     local reads = as_table(metadata.reads)
@@ -321,6 +358,7 @@ function M.build(events)
             }
 
             append_base_details(node, event)
+            append_operand_details(node, event)
             append_boundary_io_details(node, event)
 
             table.insert(nodes, node)

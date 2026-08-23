@@ -1953,25 +1953,44 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
             return nil, false
         end
 
-        local delta = effect.value_delta
+        local total_delta = 0
+        local has_delta = false
 
-        if delta == nil and tonumber(effect.value_delta_operand) then
+        if effect.value_delta ~= nil then
+            local fixed_delta = parse_numeric_value(effect.value_delta)
+
+            if not fixed_delta then
+                return nil, false
+            end
+
+            total_delta = total_delta + fixed_delta
+            has_delta = true
+        end
+
+        if tonumber(effect.value_delta_operand) then
             local delta_operand = instruction.operands[tonumber(effect.value_delta_operand)]
 
-            if delta_operand then
-                delta = delta_operand.text
+            if delta_operand and delta_operand.text ~= nil then
+                local operand_delta = parse_numeric_value(delta_operand.text)
+
+                if not operand_delta then
+                    return nil, false
+                end
+
+                total_delta = total_delta + operand_delta
+                has_delta = true
+            elseif effect.value_delta == nil then
+                return nil, false
             end
         end
 
-        local delta_number = parse_numeric_value(delta)
-
-        if not delta_number then
+        if not has_delta then
             return nil, false
         end
 
         local sign = tonumber(effect.value_delta_sign) or 1
 
-        return tostring(current_number + (delta_number * sign)), true
+        return tostring(current_number + (total_delta * sign)), true
     end
 
     if value == nil and tonumber(effect.value_operand) then
@@ -3571,6 +3590,8 @@ local function make_instruction_event_fact(adapter, instruction, event_spec)
             mnemonic = instruction.mnemonic,
             event = event_spec.name
                 or get_instruction_event_mnemonic(event_spec),
+            operands = instruction.operands or {},
+            operand_specs = event_spec.operands or {},
         },
     }
 end
@@ -4181,4 +4202,3 @@ function M.collect_stack_effects(context, adapter, opts)
 end
 
 return M
-
