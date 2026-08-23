@@ -181,6 +181,15 @@ local function get_read_argument_name(event, read)
 end
 
 
+local function format_role_label(role)
+    if type(role) ~= "string" or role == "" then
+        return "input"
+    end
+
+    return role:gsub("_", " ")
+end
+
+
 local function format_read_label(event, read)
     if type(read) ~= "table" then
         return nil
@@ -204,7 +213,7 @@ local function format_read_label(event, read)
         return "read " .. argument_label .. ": " .. tostring(register) .. " = " .. value
     end
 
-    local role = read.role or "input"
+    local role = format_role_label(read.role)
 
     return "read " .. tostring(role) .. ": " .. tostring(register) .. " = " .. value
 end
@@ -275,6 +284,16 @@ local function append_operand_details(node, event)
                 )
             end
         end
+    end
+end
+
+
+local function append_condition_detail(node, event)
+    local metadata = as_table(event and event.metadata)
+    local condition = metadata.condition_description or metadata.condition
+
+    if type(condition) == "string" and condition ~= "" then
+        append_detail(node, "condition", "condition: " .. condition)
     end
 end
 
@@ -359,6 +378,7 @@ function M.build(events)
 
             append_base_details(node, event)
             append_operand_details(node, event)
+            append_condition_detail(node, event)
             append_boundary_io_details(node, event)
 
             table.insert(nodes, node)

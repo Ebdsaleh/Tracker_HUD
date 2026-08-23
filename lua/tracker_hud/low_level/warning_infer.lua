@@ -88,6 +88,25 @@ local function read_matches(read, read_spec)
 end
 
 
+local function get_fact_reads(fact)
+    if not core.is_table(fact) then
+        return {}
+    end
+
+    if core.is_table(fact.reads) then
+        return fact.reads
+    end
+
+    if core.is_table(fact.metadata)
+        and core.is_table(fact.metadata.reads)
+    then
+        return fact.metadata.reads
+    end
+
+    return {}
+end
+
+
 local function find_first_read(reads, read_spec)
     if not core.is_table(reads) then
         return nil
@@ -244,7 +263,7 @@ end
 
 
 local function apply_missing_read_value_rule(warnings, rule, fact)
-    local read = find_first_read(fact.reads, rule.read)
+    local read = find_first_read(get_fact_reads(fact), rule.read)
 
     if not core.is_table(read) then
         return
@@ -259,7 +278,7 @@ end
 
 
 local function apply_missing_read_values_rule(warnings, rule, fact)
-    local reads = collect_matching_reads(fact.reads, rule.read)
+    local reads = collect_matching_reads(get_fact_reads(fact), rule.read)
 
     for _, read in ipairs(reads) do
         if read_is_unresolved(read) then
@@ -274,7 +293,7 @@ local function apply_missing_required_reads_rule(warnings, rule, fact)
         return
     end
 
-    local reads = collect_matching_reads(fact.reads, rule.read)
+    local reads = collect_matching_reads(get_fact_reads(fact), rule.read)
 
     for _, read in ipairs(reads) do
         local required = read.required == true
@@ -295,7 +314,7 @@ local function apply_missing_known_effect_rule(warnings, rule, fact)
         return
     end
 
-    local read = find_first_read(fact.reads, rule.value_read)
+    local read = find_first_read(get_fact_reads(fact), rule.value_read)
 
     if not core.is_table(read) then
         return

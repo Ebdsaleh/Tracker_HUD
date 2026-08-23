@@ -137,9 +137,13 @@ local function add_instruction_event(events, seen, instruction_event, index)
         source_end_line = instruction_event.source_end_line,
         source_end_column = instruction_event.source_end_column,
 
-        metadata = {
-            instruction_event = instruction_event,
-        },
+        metadata = vim.tbl_extend(
+            "force",
+            instruction_event.metadata or {},
+            {
+                instruction_event = instruction_event,
+            }
+        ),
     })
 end
 
@@ -193,4 +197,3 @@ function M.collect(context)
 end
 
 return M
-

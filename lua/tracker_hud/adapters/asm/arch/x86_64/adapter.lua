@@ -729,6 +729,41 @@ M.warning_rules = {
         message = "{name} argument {index} ({argument_name}) register {register} has no known value",
     },
 
+
+    {
+        source = "events",
+        check = "missing_read_value",
+        severity = "state",
+
+        match = {
+            kind = "conditional_branch_event",
+        },
+
+        read = {
+            role = "condition_flags",
+        },
+
+        category = "control_flow",
+        message = "conditional branch {name} reads unknown condition flags",
+    },
+
+    {
+        source = "events",
+        check = "missing_read_value",
+        severity = "state",
+
+        match = {
+            kind = "counter_branch_event",
+        },
+
+        read = {
+            role = "counter",
+        },
+
+        category = "control_flow",
+        message = "{name} reads unknown counter register {register}",
+    },
+
     {
         source = "stack",
         check = "unresolved_stack_read",

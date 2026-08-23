@@ -11,6 +11,7 @@ local low_level_inference = require("tracker_hud.low_level.inference")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
+local control_infer = require("tracker_hud.low_level.control_infer")
 
 local M = {}
 
@@ -3558,7 +3559,7 @@ local function instruction_event_matches(
 end
 
 
-local function make_instruction_event_fact(adapter, instruction, event_spec)
+local function make_instruction_event_fact(context, adapter, instruction, event_spec)
     if not core.is_table(adapter)
         or not core.is_table(instruction)
         or not core.is_table(event_spec)
@@ -3583,21 +3584,28 @@ local function make_instruction_event_fact(adapter, instruction, event_spec)
         source_end_line = instruction.source_line,
         source_end_column = instruction.source_end_column or instruction.source_column or 0,
 
-        metadata = {
-            adapter = adapter.name,
-            architecture = adapter.architecture,
-            variant = adapter.active_variant_name,
-            mnemonic = instruction.mnemonic,
-            event = event_spec.name
-                or get_instruction_event_mnemonic(event_spec),
-            operands = instruction.operands or {},
-            operand_specs = event_spec.operands or {},
-        },
+        metadata = vim.tbl_extend(
+            "force",
+            {
+                adapter = adapter.name,
+                architecture = adapter.architecture,
+                variant = adapter.active_variant_name,
+                mnemonic = instruction.mnemonic,
+                event = event_spec.name
+                    or get_instruction_event_mnemonic(event_spec),
+                operands = instruction.operands or {},
+                operand_specs = event_spec.operands or {},
+            },
+            control_infer.make_event_metadata(
+                context,
+                event_spec
+            )
+        ),
     }
 end
 
 
-local function apply_instruction_event(facts, adapter, instruction, event_spec)
+local function apply_instruction_event(facts, context, adapter, instruction, event_spec)
     if not core.is_table(facts)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -3610,7 +3618,7 @@ local function apply_instruction_event(facts, adapter, instruction, event_spec)
         return
     end
 
-    local fact = make_instruction_event_fact(adapter, instruction, event_spec)
+    local fact = make_instruction_event_fact(context, adapter, instruction, event_spec)
 
     if fact then
         table.insert(facts, fact)
@@ -3725,6 +3733,7 @@ function M.collect_instruction_events(context, adapter, opts)
             ) do
                 apply_instruction_event(
                     facts,
+                    context,
                     adapter,
                     instruction,
                     event_spec
