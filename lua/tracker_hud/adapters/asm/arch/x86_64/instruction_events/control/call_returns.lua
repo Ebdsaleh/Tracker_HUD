@@ -1,4 +1,4 @@
--- lua/tracker_hud/adapters/asm/arch/x86_64/instruction_events/control/calls_returns.lua
+-- lua/tracker_hud/adapters/asm/arch/x86_64/instruction_events/control/call_returns.lua
 --
 -- x86-64 instruction events: control / calls and returns.
 --
@@ -328,4 +328,3 @@ return {
         },
     },
 }
-
