@@ -122,7 +122,8 @@ local function add_hex_literal_digit_spans(
     line,
     literal_start_col,
     literal,
-    priority
+    priority,
+    config
 )
     local digit_positions = collect_hex_digit_positions(literal)
     local total_digits = #digit_positions
@@ -138,7 +139,8 @@ local function add_hex_literal_digit_spans(
     for digit_number, character_index in ipairs(digit_positions) do
         local digit_from_right = total_digits - digit_number + 1
         local style = visual_language.hex_width_style_for_digit_from_right(
-            digit_from_right
+            digit_from_right,
+            config
         )
 
         if style ~= run_style or (run_end and character_index ~= run_end + 1) then
@@ -217,7 +219,8 @@ function M.add_hex_width_spans(
             line,
             literal_col + digit_start - 1,
             digit_literal,
-            priority
+            priority,
+            config
         )
 
         search_from = end_index + 1

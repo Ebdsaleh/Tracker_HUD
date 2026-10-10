@@ -583,3 +583,39 @@ Future visual-language work may include:
 - screen-reader-adjacent plain output profiles
 - more precise active-path behavior for Scope and Scope Members if it can be done without noise
 
+
+### Hex width overflow policy
+
+Hex-width coloring is anchored from the right edge of a `0x...` literal:
+
+```text
+0x7FFF00000000000F
+0xMMMMMMMMOOOOGGBB
+```
+
+By default, Tracker HUD colors only the low 64-bit bands:
+
+- `BB`: low 8-bit byte, blue
+- `GG`: bits 8-15, green
+- `OOOO`: bits 16-31, orange
+- `MMMMMMMM`: bits 32-63, magenta
+
+Digits above the configured width keep their original source/HUD text color,
+so oversized values read as:
+
+```text
+0x[normal overflow][MMMMMMMM][OOOO][GG][BB]
+```
+
+This avoids falsely labeling overflow digits as part of the 64-bit range. Users
+can opt into a 128-bit upper band with:
+
+```lua
+visual_language = {
+  hex_width = {
+    max_bits = 128,
+  },
+}
+```
+
+Values wider than the configured maximum still keep their original text color.

@@ -575,6 +575,7 @@ M.style_suffixes = {
     hex_16bit = "Hex16Bit",
     hex_32bit = "Hex32Bit",
     hex_64bit = "Hex64Bit",
+    hex_128bit = "Hex128Bit",
     symbol = "Symbol",
     instruction = "Instruction",
     event = "Event",
@@ -660,6 +661,7 @@ M.default_links = {
     hex_16bit = "Number",
     hex_32bit = "Number",
     hex_64bit = "Number",
+    hex_128bit = "Number",
 
     muted = "Comment",
     empty = "Comment",
@@ -694,6 +696,7 @@ M.default_style_definitions = {
     hex_16bit = { fg = "#9ECE6A" },  -- bits 8-15: green
     hex_32bit = { fg = "#FF9E64" },  -- bits 16-31: orange
     hex_64bit = { fg = "#BB9AF7" },  -- bits 32-63: magenta
+    hex_128bit = { fg = "#F7768E" }, -- bits 64-127: opt-in 128-bit overflow band
 
     memory = { fg = "#7E9CD8" },
     symbol = { fg = "#DCD7BA" },
@@ -815,6 +818,7 @@ M.semantic_aliases = {
     hex_16bit = "immediate",
     hex_32bit = "immediate",
     hex_64bit = "immediate",
+    hex_128bit = "immediate",
 
     register_alias = "register",
     stack = "memory",
@@ -1023,7 +1027,27 @@ M.hex_width_bands = {
     },
 }
 
-function M.hex_width_style_for_digit_from_right(index_from_right)
+M.hex_width_128bit_band = {
+    max_digit_from_right = 32,
+    style = "hex_128bit",
+    label = "128-bit upper quad-word",
+}
+
+local function get_hex_width_max_bits(config)
+    local visual_config = get_visual_config(config)
+    local hex_config = type(visual_config.hex_width) == "table"
+        and visual_config.hex_width
+        or {}
+    local max_bits = tonumber(hex_config.max_bits)
+
+    if max_bits == 128 then
+        return 128
+    end
+
+    return 64
+end
+
+function M.hex_width_style_for_digit_from_right(index_from_right, config)
     local index = tonumber(index_from_right)
 
     if not index or index < 1 then
@@ -1036,9 +1060,19 @@ function M.hex_width_style_for_digit_from_right(index_from_right)
         end
     end
 
-    -- Wider-than-64-bit values still keep the same high-width warning color so
-    -- the reader can immediately see that the value lives above the low words.
-    return "hex_64bit"
+    -- Default policy: values wider than the configured width keep their normal
+    -- source/HUD text color. This preserves the fixed 64-bit visual anchor:
+    --   [normal overflow][mmmmmmmm][oooo][gg][bb]
+    -- Users who explicitly want a 128-bit upper band can set
+    -- visual_language.hex_width.max_bits = 128. Anything above that still keeps
+    -- the original text color instead of being mislabeled as part of 64-bit.
+    if get_hex_width_max_bits(config) == 128
+        and index <= M.hex_width_128bit_band.max_digit_from_right
+    then
+        return M.hex_width_128bit_band.style
+    end
+
+    return nil
 end
 
 local function get_hex_width_config(config)

@@ -105,7 +105,8 @@ local function apply_hex_literal_digit_spans(
     for digit_number, character_index in ipairs(digit_positions) do
         local digit_from_right = total_digits - digit_number + 1
         local style = visual_language.hex_width_style_for_digit_from_right(
-            digit_from_right
+            digit_from_right,
+            config
         )
 
         if style ~= run_style

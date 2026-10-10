@@ -110,6 +110,13 @@ M.defaults = {
         -- same low-level reading aid.
         hex_width = {
             enabled = true,
+
+            -- Default: show 8/16/32/64-bit bands only. Digits above 64-bit
+            -- keep their original source/HUD text color so a too-wide literal
+            -- does not masquerade as a 64-bit value. Set to 128 to opt into
+            -- an extra 128-bit upper band.
+            max_bits = 64,
+
             hud = {
                 enabled = true,
             },
