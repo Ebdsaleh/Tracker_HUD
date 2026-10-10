@@ -71,6 +71,162 @@ function M.add_span(
 end
 
 
+local function is_hex_digit(character)
+    return type(character) == "string"
+        and character:match("^[%da-fA-F]$") ~= nil
+end
+
+
+local function collect_hex_digit_positions(literal)
+    local positions = {}
+
+    if type(literal) ~= "string" then
+        return positions
+    end
+
+    for index = 1, #literal do
+        local character = literal:sub(index, index)
+
+        if is_hex_digit(character) then
+            table.insert(positions, index)
+        end
+    end
+
+    return positions
+end
+
+
+local function add_style_run(
+    line,
+    literal_start_col,
+    run_start,
+    run_end,
+    style,
+    priority
+)
+    if not run_start or not run_end or not style then
+        return
+    end
+
+    M.add_span(
+        line,
+        literal_start_col + run_start - 1,
+        literal_start_col + run_end,
+        style,
+        priority
+    )
+end
+
+
+local function add_hex_literal_digit_spans(
+    line,
+    literal_start_col,
+    literal,
+    priority
+)
+    local digit_positions = collect_hex_digit_positions(literal)
+    local total_digits = #digit_positions
+
+    if total_digits == 0 then
+        return
+    end
+
+    local run_start = nil
+    local run_end = nil
+    local run_style = nil
+
+    for digit_number, character_index in ipairs(digit_positions) do
+        local digit_from_right = total_digits - digit_number + 1
+        local style = visual_language.hex_width_style_for_digit_from_right(
+            digit_from_right
+        )
+
+        if style ~= run_style or (run_end and character_index ~= run_end + 1) then
+            add_style_run(
+                line,
+                literal_start_col,
+                run_start,
+                run_end,
+                run_style,
+                priority
+            )
+
+            run_start = character_index
+            run_end = character_index
+            run_style = style
+        else
+            run_end = character_index
+        end
+    end
+
+    add_style_run(
+        line,
+        literal_start_col,
+        run_start,
+        run_end,
+        run_style,
+        priority
+    )
+end
+
+
+function M.add_hex_width_spans(
+    line,
+    text_start_col,
+    text,
+    config,
+    priority
+)
+    if type(line) ~= "table"
+        or type(text) ~= "string"
+        or text == ""
+        or not visual_language.hex_width_coloring_enabled(config)
+    then
+        return line
+    end
+
+    text_start_col = tonumber(text_start_col) or 0
+    priority = tonumber(priority) or 275
+
+    local search_from = 1
+
+    while search_from <= #text do
+        local start_index, end_index = text:find(
+            "0[xX][%da-fA-F_]+",
+            search_from
+        )
+
+        if not start_index then
+            break
+        end
+
+        local literal = text:sub(start_index, end_index)
+        local digit_start = 3
+        local digit_literal = literal:sub(digit_start)
+        local literal_col = text_start_col + start_index - 1
+
+        M.add_span(
+            line,
+            literal_col,
+            literal_col + 2,
+            "punctuation",
+            priority - 5
+        )
+
+        add_hex_literal_digit_spans(
+            line,
+            literal_col + digit_start - 1,
+            digit_literal,
+            priority
+        )
+
+        search_from = end_index + 1
+    end
+
+    return line
+end
+
+
 function M.append(line, value, style)
     if type(line) ~= "table" then
         return line

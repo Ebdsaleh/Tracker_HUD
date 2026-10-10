@@ -90,6 +90,22 @@ M.defaults = {
         flow = {
             enabled = true,
         },
+
+        -- Hex-width color guides for numeric literals displayed in HUD text.
+        --
+        -- When enabled, hexadecimal digits are colored from right to left by
+        -- hardware-width bands so the low byte remains visually anchored:
+        --   8-bit  low byte          -> blue
+        --   16-bit high byte         -> green
+        --   32-bit high word         -> orange
+        --   64-bit upper double-word -> magenta
+        --
+        -- Example:
+        --   0x7FFF00000000000F
+        --   0xMMMMMMMMOOOOGGBB
+        hex_width = {
+            enabled = true,
+        },
     },
 
     -- Source-position line summaries.

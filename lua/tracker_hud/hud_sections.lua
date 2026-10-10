@@ -1075,10 +1075,20 @@ local function build_annotated_detail_line(
         opts.panel_width
     )
 
+    local value_offset = #line.text
+
     hud_text.append(
         line,
         value,
         value_style
+    )
+
+    hud_text.add_hex_width_spans(
+        line,
+        value_offset,
+        value,
+        opts.config,
+        285
     )
 
     return line
@@ -1162,6 +1172,14 @@ local function build_node_line(
         label,
         node,
         semantic_override
+    )
+
+    hud_text.add_hex_width_spans(
+        line,
+        label_offset,
+        label,
+        opts.config,
+        285
     )
 
     if range_label then

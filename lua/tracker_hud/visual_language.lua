@@ -571,6 +571,10 @@ M.style_suffixes = {
     heap = "Heap",
     memory = "Memory",
     immediate = "Immediate",
+    hex_8bit = "Hex8Bit",
+    hex_16bit = "Hex16Bit",
+    hex_32bit = "Hex32Bit",
+    hex_64bit = "Hex64Bit",
     symbol = "Symbol",
     instruction = "Instruction",
     event = "Event",
@@ -652,6 +656,11 @@ M.default_links = {
     heap = "Identifier",
     event = "Special",
 
+    hex_8bit = "Number",
+    hex_16bit = "Number",
+    hex_32bit = "Number",
+    hex_64bit = "Number",
+
     muted = "Comment",
     empty = "Comment",
 }
@@ -676,6 +685,16 @@ M.default_style_definitions = {
 
     instruction = { fg = "#C0CAF5" },
     immediate = { fg = "#C0CAF5" },
+
+    -- Hex-width digit bands. These are intentionally physical/positional
+    -- guides rather than semantic categories: they make bit magnitude visible
+    -- without forcing the reader to count nibbles. They are applied from the
+    -- right edge of a 0x... literal so the low byte stays anchored.
+    hex_8bit = { fg = "#7AA2F7" },   -- low 8-bit byte: blue
+    hex_16bit = { fg = "#9ECE6A" },  -- bits 8-15: green
+    hex_32bit = { fg = "#FF9E64" },  -- bits 16-31: orange
+    hex_64bit = { fg = "#BB9AF7" },  -- bits 32-63: magenta
+
     memory = { fg = "#7E9CD8" },
     symbol = { fg = "#DCD7BA" },
 
@@ -789,6 +808,13 @@ M.semantic_aliases = {
     category = "value",
     type = "value",
     line_number = "value",
+
+    -- Hex-width bands should behave like immediate/numeric values when a
+    -- renderer asks for semantic tags, markers, or fallback category data.
+    hex_8bit = "immediate",
+    hex_16bit = "immediate",
+    hex_32bit = "immediate",
+    hex_64bit = "immediate",
 
     register_alias = "register",
     stack = "memory",
@@ -972,6 +998,63 @@ function M.detail_styles_for_key(key, value, semantic_override)
 end
 
 
+local get_visual_config
+
+M.hex_width_bands = {
+    {
+        max_digit_from_right = 2,
+        style = "hex_8bit",
+        label = "8-bit low byte",
+    },
+    {
+        max_digit_from_right = 4,
+        style = "hex_16bit",
+        label = "16-bit high byte",
+    },
+    {
+        max_digit_from_right = 8,
+        style = "hex_32bit",
+        label = "32-bit high word",
+    },
+    {
+        max_digit_from_right = 16,
+        style = "hex_64bit",
+        label = "64-bit upper double-word",
+    },
+}
+
+function M.hex_width_style_for_digit_from_right(index_from_right)
+    local index = tonumber(index_from_right)
+
+    if not index or index < 1 then
+        return nil
+    end
+
+    for _, band in ipairs(M.hex_width_bands) do
+        if index <= band.max_digit_from_right then
+            return band.style
+        end
+    end
+
+    -- Wider-than-64-bit values still keep the same high-width warning color so
+    -- the reader can immediately see that the value lives above the low words.
+    return "hex_64bit"
+end
+
+function M.hex_width_coloring_enabled(config)
+    local visual_config = get_visual_config(config)
+    local hex_config = type(visual_config.hex_width) == "table"
+        and visual_config.hex_width
+        or {}
+
+    if hex_config.enabled == false then
+        return false
+    end
+
+    return M.colors_enabled(config)
+end
+
+
 M.terminal_tier_aliases = {
     ["truecolor"] = "truecolor",
     ["24bit"] = "truecolor",
@@ -1054,7 +1137,7 @@ function M.marker_for(style, ascii_safe)
 end
 
 
-local function get_visual_config(config)
+function get_visual_config(config)
     if type(config) ~= "table" then
         return {}
     end
