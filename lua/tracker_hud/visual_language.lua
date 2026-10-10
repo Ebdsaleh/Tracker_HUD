@@ -1041,17 +1041,79 @@ function M.hex_width_style_for_digit_from_right(index_from_right)
     return "hex_64bit"
 end
 
-function M.hex_width_coloring_enabled(config)
+local function get_hex_width_config(config)
     local visual_config = get_visual_config(config)
-    local hex_config = type(visual_config.hex_width) == "table"
-        and visual_config.hex_width
-        or {}
+
+    if type(visual_config.hex_width) == "table" then
+        return visual_config.hex_width
+    end
+
+    return {}
+end
+
+local function nested_enabled(config_table, default)
+    if type(config_table) ~= "table" then
+        return default
+    end
+
+    if config_table.enabled == false then
+        return false
+    end
+
+    if config_table.enabled == true then
+        return true
+    end
+
+    return default
+end
+
+function M.hex_width_coloring_enabled(config)
+    local hex_config = get_hex_width_config(config)
 
     if hex_config.enabled == false then
         return false
     end
 
+    if nested_enabled(hex_config.hud, true) == false then
+        return false
+    end
+
     return M.colors_enabled(config)
+end
+
+function M.hex_width_source_coloring_enabled(config)
+    local hex_config = get_hex_width_config(config)
+
+    if type(config) == "table"
+        and type(config.highlights) == "table"
+        and config.highlights.enabled == false
+    then
+        return false
+    end
+
+    if hex_config.enabled == false then
+        return false
+    end
+
+    if nested_enabled(hex_config.source, true) == false then
+        return false
+    end
+
+    return M.colors_enabled(config)
+end
+
+function M.hex_width_source_max_lines(config)
+    local hex_config = get_hex_width_config(config)
+    local source_config = type(hex_config.source) == "table"
+        and hex_config.source
+        or {}
+    local max_lines = tonumber(source_config.max_lines)
+
+    if not max_lines or max_lines < 1 then
+        return 5000
+    end
+
+    return math.floor(max_lines)
 end
 
 

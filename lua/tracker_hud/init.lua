@@ -10,6 +10,7 @@ local adapter_loader = require("tracker_hud.adapters.loader")
 local namespace = require("tracker_hud.namespace")
 local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
+local hex_width = require("tracker_hud.hex_width")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -103,6 +104,7 @@ local function update_hud()
         end
 
         hud.render(current_context, config, state.source_winid)
+        hex_width.refresh_buffer(bufnr, config, winid)
 
         -- During plugin-created panel updates, source focus wins.
         restore_source_focus()
@@ -306,6 +308,13 @@ end
 local function refresh_after_visual_language_change()
     highlights.setup(config)
 
+    local current_bufnr = vim.api.nvim_get_current_buf()
+    local current_winid = vim.api.nvim_get_current_win()
+
+    if is_trackable_buffer(current_bufnr) then
+        hex_width.refresh_buffer(current_bufnr, config, current_winid)
+    end
+
     if state.source_context then
         hud.render(
             state.source_context,
@@ -373,7 +382,13 @@ function M.setup(opts)
         group = hud_group,
     })
 
-    vim.api.nvim_create_autocmd({ "CursorMoved", "CursorMovedI", "BufWinEnter" }, {
+    vim.api.nvim_create_autocmd({
+        "CursorMoved",
+        "CursorMovedI",
+        "BufWinEnter",
+        "TextChanged",
+        "TextChangedI",
+    }, {
         group = hud_group,
         callback = update_hud,
     })
@@ -396,6 +411,16 @@ function M.setup(opts)
         group = hud_group,
         callback = function()
             highlights.setup(config)
+
+            local bufnr = vim.api.nvim_get_current_buf()
+
+            if is_trackable_buffer(bufnr) then
+                hex_width.refresh_buffer(
+                    bufnr,
+                    config,
+                    vim.api.nvim_get_current_win()
+                )
+            end
         end,
     })
 

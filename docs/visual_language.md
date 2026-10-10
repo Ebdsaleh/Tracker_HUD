@@ -85,6 +85,36 @@ This is required for:
 
 ---
 
+## Hex-width color guides
+
+Tracker_HUD may color hexadecimal literal digits by hardware-width bands. This
+feature is a positional reading aid for low-level work, not a replacement for
+semantic labels.
+
+The bands are applied from the right edge of a `0x...` literal:
+
+| Band | Bits | Color family | Example marker |
+|---|---:|---|---|
+| Low byte | 0-7 | Blue | `BB` |
+| 16-bit extension byte | 8-15 | Green | `GG` |
+| 32-bit high word | 16-31 | Orange | `OOOO` |
+| 64-bit upper double-word | 32-63 | Magenta | `MMMMMMMM` |
+
+Example:
+
+```text
+0x7FFF00000000000F
+0xMMMMMMMMOOOOGGBB
+```
+
+This lets the eye identify magnitude without counting nibbles. The blue byte is
+the fixed low-end anchor, so values used as 8-bit data, 16-bit addresses,
+32-bit values, or 64-bit values remain visually separable even when the text is
+mostly leading zeroes. In plain visual mode the HUD remains colorless, so these
+bands are intentionally disabled along with other semantic colors.
+
+---
+
 ## Runtime visual modes
 
 Tracker_HUD currently supports these public visual modes:

@@ -91,7 +91,7 @@ M.defaults = {
             enabled = true,
         },
 
-        -- Hex-width color guides for numeric literals displayed in HUD text.
+        -- Hex-width color guides for hexadecimal literals.
         --
         -- When enabled, hexadecimal digits are colored from right to left by
         -- hardware-width bands so the low byte remains visually anchored:
@@ -103,8 +103,20 @@ M.defaults = {
         -- Example:
         --   0x7FFF00000000000F
         --   0xMMMMMMMMOOOOGGBB
+        --
+        -- `hud` colors hex values rendered inside the Tracker HUD panel.
+        -- `source` colors hex values directly in normal source buffers,
+        -- regardless of language, so ASM, Lua, C, Rust, etc. all get the
+        -- same low-level reading aid.
         hex_width = {
             enabled = true,
+            hud = {
+                enabled = true,
+            },
+            source = {
+                enabled = true,
+                max_lines = 5000,
+            },
         },
     },
 
