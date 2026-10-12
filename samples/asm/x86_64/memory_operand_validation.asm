@@ -4,6 +4,8 @@
 ; Expected HUD behavior:
 ; - On the whole memory operand, show it as a source/destination memory operand.
 ; - On rbp/rsp/rip inside brackets, show focused token kind = register.
+; - On rbp in [rbp + rax*4 - 8], show frame-pointer/base wording.
+; - On rsp in [rsp + 8], show stack-pointer/base wording.
 ; - On rax inside [rbp + rax*4 - 8], show address role = index register.
 ; - On 4, show address role = scale.
 ; - On -8/+8, show address role = displacement.

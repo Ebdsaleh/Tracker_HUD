@@ -7,6 +7,7 @@ They are intentionally small, readable, and stable. Their job is to make regress
 ## Files
 
 - `linux_syscall_validation.asm` — checks target directives, syscall boundary reads, stack value flow, call/ret handling, branch condition reads, warnings, and hex-width coloring.
+- `memory_operand_validation.asm` — checks spec-based memory operand modeling, focused-token inspection, base/index/scale/displacement roles, and memory addressing-mode wording.
 
 ## How to use
 
@@ -28,5 +29,15 @@ Recommended checks for `linux_syscall_validation.asm`:
 8. `cmp rax, 123` followed by `je matched_value` should show a conditional branch reading flags.
 9. The hex literal `0x7FFF00000000000F` should show the 64-bit width bands.
 10. The oversized hex literal should leave overflow digits in the normal text color.
+
+Recommended checks for `memory_operand_validation.asm`:
+
+1. On `[rbp + rax*4 - 8]`, the containing operand should be reported as a memory operand.
+2. On `rbp`, the focused token should be a register with frame-pointer/base wording.
+3. On the inner `rax`, the focused token should be a register with address role `index register`.
+4. On `4`, the address role should be `scale`.
+5. On `-8`, the address role should be `displacement`.
+6. On `[rsp + 8]`, the `rsp` token should show stack-pointer/base wording.
+7. On `[rel msg]`, `msg` should be identified as a symbol component inside the memory/address expression.
 
 These samples are not assembler build targets yet. They are HUD validation fixtures.
