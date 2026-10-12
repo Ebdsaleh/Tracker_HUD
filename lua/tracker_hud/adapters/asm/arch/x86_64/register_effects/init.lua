@@ -35,6 +35,7 @@ local categorized_modules = {
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.shifts_rotates",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.bit_manipulation",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.data_movement",
+    "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.address_generation",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.conditional",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.integer.atomic",
     "tracker_hud.adapters.asm.arch.x86_64.register_effects.string.movement",
