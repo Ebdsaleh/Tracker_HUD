@@ -2,8 +2,7 @@
 --
 -- Python adapter entry point.
 --
--- Load the contract-safe MVP adapter first. The broader adapter.lua remains in
--- the tree as the next expansion target after the core semantic vocabulary is
--- widened.
+-- Load the visibility-first adapter so the HUD shows Scope and Scope Members
+-- using the same working adapter pipeline as Lua.
 
-return require("tracker_hud.adapters.python.adapter_mvp")
+return require("tracker_hud.adapters.python.adapter_visible")
