@@ -7,7 +7,7 @@ They are intentionally small, readable, and stable. Their job is to make regress
 ## Files
 
 - `linux_syscall_validation.asm` — checks target directives, syscall boundary reads, stack value flow, call/ret handling, branch condition reads, warnings, and hex-width coloring.
-- `memory_operand_validation.asm` — checks spec-based memory operand modeling, focused-token inspection, base/index/scale/displacement roles, and memory addressing-mode wording.
+- `memory_operand_validation.asm` — checks spec-based memory operand modeling, focused-token inspection, base/index/scale/displacement roles, memory addressing-mode wording, and LEA address-value inference.
 
 ## How to use
 
@@ -39,5 +39,6 @@ Recommended checks for `memory_operand_validation.asm`:
 5. On `-8`, the address role should be `displacement`.
 6. On `[rsp + 8]`, the `rsp` token should show stack-pointer/base wording and address mode `stack-pointer-relative memory address`.
 7. On `[rel msg]`, `msg` should be identified as a symbol component inside the memory/address expression.
+8. After `lea rsi, [rel msg]`, the later `write` syscall should not warn that required argument 2 / `rsi` is unknown.
 
 These samples are not assembler build targets yet. They are HUD validation fixtures.
