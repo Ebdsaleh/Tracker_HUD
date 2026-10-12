@@ -31,7 +31,7 @@ This is intentional. Python `if`/`for`/`try` blocks matter for navigation and la
 ## Files
 
 - `python_adapter_validation.py` — checks module parsing, imports, classes, functions, methods, parameters, assignments, calls, branches, loops, returns, and raises.
-- `python_object_model_validation.py` — target fixture for the planned Data Models/Object State section.
+- `python_object_model_validation.py` — validates static Python data-model/object-state events.
 
 ## How to use: structure validation
 
@@ -68,16 +68,21 @@ Open the object-model sample:
 nvim samples/python/python_object_model_validation.py
 ```
 
-This sample is a target fixture for the next Python-specific section. The planned section should eventually show facts such as:
+The first visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
 
-- `ModelThing` is a class/data model.
-- `self.name` and `self.type` are fields visible from file-local assignments.
-- `__init__` initializes `self.name` from `name` and `self.type` to `None`.
-- `set_name` mutates `self.name`.
-- `set_type` mutates `self.type`.
-- `my_obj = ModelThing("Yo")` creates an object instance visible in this file.
-- `my_obj.set_type("phrase")` updates the known file-local object state to `type = "phrase"`.
+- `(data model) ModelThing - class model exposes ...`
+- `(object) my_obj - ModelThing state known from file`
 
-The future section must only claim what is visible from the current file and cursor position. It is a static Tracker_HUD view, not a live Python runtime debugger.
+The object event should expose details such as:
+
+- `class: ModelThing`
+- `created: ModelThing("Yo")`
+- `state: name = "Yo"`
+- `state: type = "phrase"` after the cursor has reached `my_obj.set_type("phrase")`
+- `change: set_type -> type = "phrase" at line ...`
+
+The event state is cursor-position aware: before the mutation call, the known `type` state should still be the constructor-visible value. After the mutation call, it should reflect the simple file-local mutator effect.
+
+This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
 These samples are not unit tests yet. They are stable manual HUD validation fixtures.
