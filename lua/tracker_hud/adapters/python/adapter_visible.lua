@@ -9,6 +9,10 @@
 -- It also declares class/function range scopes so Python still produces a useful
 -- Scope panel even when vim.treesitter.get_node() does not return a precise
 -- cursor node for this grammar/environment.
+--
+-- Python note: class/function/module introduce member scopes. Control-flow
+-- blocks such as if/for/try are visible constructs, but they do not create a
+-- new local/member scope in Python.
 
 local M = {}
 
@@ -248,9 +252,9 @@ M.construct_specs = {
             label = "If",
         },
         scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
+            kind = "structural",
+            affects_visibility = false,
+            owns_members = false,
         },
         markers = {
             required = {
@@ -281,9 +285,9 @@ M.construct_specs = {
             label = "For",
         },
         scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
+            kind = "structural",
+            affects_visibility = false,
+            owns_members = false,
         },
         markers = {
             required = {
@@ -312,9 +316,9 @@ M.construct_specs = {
             label = "Try",
         },
         scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
+            kind = "structural",
+            affects_visibility = false,
+            owns_members = false,
         },
         markers = {
             required = {
