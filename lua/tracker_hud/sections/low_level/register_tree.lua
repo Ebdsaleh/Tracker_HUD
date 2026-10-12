@@ -83,6 +83,84 @@ local function append_value_flow_detail(children, register, detail_id, metadata)
 end
 
 
+local function lower_metadata_text(...)
+    local parts = {}
+
+    for _, value in ipairs({ ... }) do
+        if core.is_non_empty_string(value) then
+            table.insert(parts, value:lower())
+        end
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    return table.concat(parts, " ")
+end
+
+
+local function text_contains(text, needle)
+    return type(text) == "string"
+        and type(needle) == "string"
+        and text:find(needle, 1, true) ~= nil
+end
+
+
+local function build_memory_address_mode_label(metadata)
+    if not core.is_table(metadata) then
+        return nil
+    end
+
+    local text = lower_metadata_text(
+        metadata.address_role,
+        metadata.memory_address_components,
+        metadata.memory_address
+    )
+
+    if not text then
+        return nil
+    end
+
+    if text_contains(text, "instruction pointer")
+        or text_contains(text, "rip")
+        or text_contains(text, "eip")
+    then
+        return "instruction-pointer-relative memory address"
+    end
+
+    if text_contains(text, "stack pointer")
+        or text_contains(text, "rsp")
+        or text_contains(text, "esp")
+    then
+        return "stack-pointer-relative memory address"
+    end
+
+    if text_contains(text, "frame pointer")
+        or text_contains(text, "rbp")
+        or text_contains(text, "ebp")
+    then
+        return "frame-pointer-relative memory address"
+    end
+
+    if text_contains(text, "index register") then
+        return "base/index memory address"
+    end
+
+    if text_contains(text, "symbol")
+        or text_contains(text, "rel ")
+    then
+        return "symbolic memory address"
+    end
+
+    if core.is_non_empty_string(metadata.memory_address) then
+        return "memory address expression"
+    end
+
+    return nil
+end
+
+
 local function append_selected_memory_details(children, register, metadata)
     if not core.is_table(metadata) then
         return
@@ -135,6 +213,14 @@ local function append_selected_memory_details(children, register, metadata)
         "memory-address",
         "memory address",
         metadata.memory_address
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "memory-address-mode",
+        "address mode",
+        build_memory_address_mode_label(metadata)
     )
 
     append_metadata_detail(
