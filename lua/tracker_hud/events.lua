@@ -159,6 +159,46 @@ local function collect_instruction_events(events, seen, context)
 end
 
 
+local function context_is_python(context)
+    return type(context) == "table"
+        and type(context.targets) == "table"
+        and context.targets.syntax == "python"
+end
+
+
+local function collect_python_object_model_events(events, seen, context)
+    if not context_is_python(context) then
+        return
+    end
+
+    local ok, object_models = pcall(
+        require,
+        "tracker_hud.adapters.python.object_models"
+    )
+
+    if not ok or type(object_models) ~= "table" then
+        return
+    end
+
+    if type(object_models.collect_events) ~= "function" then
+        return
+    end
+
+    local collected_ok, model_events = pcall(
+        object_models.collect_events,
+        context
+    )
+
+    if not collected_ok or type(model_events) ~= "table" then
+        return
+    end
+
+    for _, model_event in ipairs(model_events) do
+        add_event(events, seen, model_event)
+    end
+end
+
+
 function M.collect(context)
     local events = {}
     local seen = {}
@@ -169,6 +209,7 @@ function M.collect(context)
 
     collect_boundary_events(events, seen, context)
     collect_instruction_events(events, seen, context)
+    collect_python_object_model_events(events, seen, context)
 
     table.sort(events, function(left, right)
         local left_line = left.source_line
@@ -182,18 +223,10 @@ function M.collect(context)
             return left_line < right_line
         end
 
-        if left_line then
-            return true
-        end
-
-        if right_line then
-            return false
-        end
-
         return tostring(left.name or "") < tostring(right.name or "")
     end)
 
-    return event_model.normalize_events(events)
+    return events
 end
 
 return M
