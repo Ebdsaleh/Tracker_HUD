@@ -37,6 +37,22 @@ mark_structural_member_scope("if_statement")
 mark_structural_member_scope("for_statement")
 mark_structural_member_scope("try_statement")
 
+M.sections = M.sections or {}
+M.sections.events = {
+    id = "events",
+    label = "Events",
+    use_source_index = false,
+}
+
+M.presentation = M.presentation or {}
+M.presentation.sections = M.presentation.sections or {}
+M.presentation.sections.order = {
+    "scope",
+    "scope_members",
+    "events",
+    "warnings",
+}
+
 M.active_targets = {
     architecture = "python",
     platform = "python",
