@@ -33,11 +33,11 @@ Recommended checks for `linux_syscall_validation.asm`:
 Recommended checks for `memory_operand_validation.asm`:
 
 1. On `[rbp + rax*4 - 8]`, the containing operand should be reported as a memory operand.
-2. On `rbp`, the focused token should be a register with frame-pointer/base wording.
-3. On the inner `rax`, the focused token should be a register with address role `index register`.
+2. On `rbp`, the focused token should be a register with frame-pointer/base wording and address mode `frame-pointer-relative memory address`.
+3. On the inner `rax`, the focused token should be a register with address role `index register` and address mode `base/index memory address`.
 4. On `4`, the address role should be `scale`.
 5. On `-8`, the address role should be `displacement`.
-6. On `[rsp + 8]`, the `rsp` token should show stack-pointer/base wording.
+6. On `[rsp + 8]`, the `rsp` token should show stack-pointer/base wording and address mode `stack-pointer-relative memory address`.
 7. On `[rel msg]`, `msg` should be identified as a symbol component inside the memory/address expression.
 
 These samples are not assembler build targets yet. They are HUD validation fixtures.
