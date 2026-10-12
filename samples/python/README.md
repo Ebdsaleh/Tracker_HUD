@@ -31,10 +31,11 @@ This is intentional. Python `if`/`for`/`try` blocks matter for navigation and la
 ## Files
 
 - `python_adapter_validation.py` — checks module parsing, imports, classes, functions, methods, parameters, assignments, calls, branches, loops, returns, and raises.
+- `python_object_model_validation.py` — target fixture for the planned Data Models/Object State section.
 
-## How to use
+## How to use: structure validation
 
-Open the sample in Neovim with Tracker_HUD enabled:
+Open the first sample in Neovim with Tracker_HUD enabled:
 
 ```bash
 nvim samples/python/python_adapter_validation.py
@@ -59,4 +60,24 @@ Recommended checks:
 15. On `return label, total`, return value information should be visible.
 16. On calls such as `Path(path_text)`, `DemoTracker(path)`, `tracker.update(...)`, and `print(...)`, call constructs should be visible.
 
-This sample is not a unit test yet. It is a stable manual HUD validation fixture.
+## How to use: object model validation
+
+Open the object-model sample:
+
+```bash
+nvim samples/python/python_object_model_validation.py
+```
+
+This sample is a target fixture for the next Python-specific section. The planned section should eventually show facts such as:
+
+- `ModelThing` is a class/data model.
+- `self.name` and `self.type` are fields visible from file-local assignments.
+- `__init__` initializes `self.name` from `name` and `self.type` to `None`.
+- `set_name` mutates `self.name`.
+- `set_type` mutates `self.type`.
+- `my_obj = ModelThing("Yo")` creates an object instance visible in this file.
+- `my_obj.set_type("phrase")` updates the known file-local object state to `type = "phrase"`.
+
+The future section must only claim what is visible from the current file and cursor position. It is a static Tracker_HUD view, not a live Python runtime debugger.
+
+These samples are not unit tests yet. They are stable manual HUD validation fixtures.
