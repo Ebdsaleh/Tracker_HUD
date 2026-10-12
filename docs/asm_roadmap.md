@@ -5,6 +5,7 @@ This document records the current ASM-adapter direction and the remaining work a
 Baseline before this note:
 
 - `05b137c` — `feat: keep oversized hex digits uncolored`
+- `1668242` — `docs: add ASM roadmap`
 - Branch: `main`
 - Adapter focus: `asm` / `x86_64` / `linux_syscall` / `nasm`
 
@@ -20,12 +21,13 @@ The current ASM work has these major systems in place:
 - stack push/pop/call/ret value flow and relative stack-depth tracking
 - branch and loop event declarations for common x86-64 control-flow instructions
 - plugin-wide hex-width color guides for 8-bit, 16-bit, 32-bit, 64-bit, and optional 128-bit ranges
+- manual ASM validation samples under `samples/asm/x86_64/`
 
 ## Main remaining work
 
-### 1. Add a small validation suite
+### 1. Grow the validation suite
 
-The most important next step is repeatable validation. The plugin needs a small set of ASM snippets that exercise expected HUD behavior, so regressions are caught before they reach the user.
+The most important near-term work is repeatable validation. The plugin now has a small manual ASM sample, but more fixtures should be added as the adapter grows.
 
 Priority cases:
 
@@ -39,6 +41,8 @@ Priority cases:
 - `cmp` then `je` resolves condition flags
 - bare `je` warns about unknown condition flags
 - hex width colors preserve the low-byte anchor and leave overflow uncolored
+- memory operands explain base/index/scale/displacement roles
+- stack-frame patterns explain prologue/epilogue behavior
 
 ### 2. Split `context_engine.lua`
 
@@ -136,8 +140,8 @@ Remaining work:
 
 The safest next implementation tranche is:
 
-1. Add a lightweight validation harness or documented manual validation snippets.
-2. Add sample ASM files for directive, syscall, stack, branch, and hex-width behavior.
-3. Then split `context_engine.lua` once the validation snippets give us a safety net.
+1. Use the manual validation sample after each adapter change.
+2. Add more focused samples for memory operands and stack frames.
+3. Split `context_engine.lua` once the validation samples give us a safety net.
 
 This keeps the project moving without risking another hidden loader breakage.
