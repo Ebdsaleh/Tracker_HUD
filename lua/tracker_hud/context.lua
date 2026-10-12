@@ -37,15 +37,43 @@ local function try_parse_construct_with_adapter(bufnr, node)
 end
 
 
-local function find_nearest_member_scope(scopes)
-    for _, scope_entry in ipairs(scopes or {}) do
-        local scope = scope_entry.scope
+local function scope_entry_matches_member_policy(scope_entry, adapter)
+    if type(scope_entry) ~= "table" or type(adapter) ~= "table" then
+        return false
+    end
 
-        if type(scope) == "table"
-            and (
-                scope.affects_visibility == true
-                or scope.owns_members == true
-            )
+    local member_scope_construct_kinds = adapter.member_scope_construct_kinds
+
+    if type(member_scope_construct_kinds) == "table" then
+        return member_scope_construct_kinds[scope_entry.kind] == true
+    end
+
+    local scope = scope_entry.scope
+
+    return type(scope) == "table"
+        and (
+            scope.affects_visibility == true
+            or scope.owns_members == true
+        )
+end
+
+
+local function find_nearest_member_scope(scopes, adapter)
+    for _, scope_entry in ipairs(scopes or {}) do
+        if scope_entry_matches_member_policy(scope_entry, adapter) then
+            return scope_entry
+        end
+    end
+
+    return nil
+end
+
+
+local function find_current_scope(scopes)
+    for _, scope_entry in ipairs(scopes or {}) do
+        if type(scope_entry) == "table"
+            and scope_entry.start_line
+            and scope_entry.end_line
         then
             return scope_entry
         end
@@ -68,6 +96,118 @@ local function build_member_scope_context(scope_entry)
         start_line = scope_entry.start_line,
         end_line = scope_entry.end_line,
     }
+end
+
+
+local function scopes_match(left, right)
+    if type(left) ~= "table" or type(right) ~= "table" then
+        return false
+    end
+
+    return left.start_line == right.start_line
+        and left.end_line == right.end_line
+        and left.node_type == right.node_type
+        and left.kind == right.kind
+end
+
+
+local function format_scope_reference(scope_context)
+    if type(scope_context) ~= "table" then
+        return nil
+    end
+
+    local label = scope_context.label
+        or scope_context.raw_label
+        or scope_context.kind
+        or "Scope"
+
+    if scope_context.start_line and scope_context.end_line then
+        return tostring(label)
+            .. " [scope "
+            .. tostring(scope_context.start_line)
+            .. " - "
+            .. tostring(scope_context.end_line)
+            .. "]"
+    end
+
+    return tostring(label)
+end
+
+
+local function make_current_scope_member(context)
+    if type(context) ~= "table" then
+        return nil
+    end
+
+    local current_scope = context.current_scope
+    local member_scope = context.member_scope
+
+    if type(current_scope) ~= "table"
+        or type(member_scope) ~= "table"
+        or scopes_match(current_scope, member_scope)
+    then
+        return nil
+    end
+
+    local current_label = format_scope_reference(current_scope)
+
+    if type(current_label) ~= "string" or current_label == "" then
+        return nil
+    end
+
+    local line = current_scope.start_line
+    local name = "current scope: " .. current_label
+
+    local member = {
+        line = line,
+        kind = "entry",
+        name = name,
+        label = "[" .. tostring(line or "?") .. "] (entry) " .. name,
+
+        scope_depth = context.depth or 0,
+        scope_start_line = member_scope.start_line,
+        scope_start_column = 0,
+        scope_end_line = member_scope.end_line,
+        scope_end_column = 0,
+
+        source_start_line = current_scope.start_line,
+        source_start_column = 0,
+        source_end_line = current_scope.end_line,
+        source_end_column = 0,
+
+        value_text = current_label,
+        value_label = current_label,
+        value_kind = "reference",
+        type_label = "scope",
+        source_node_type = current_scope.node_type,
+    }
+
+    member.id = table.concat({
+        "member",
+        "current_scope",
+        tostring(member_scope.start_line or ""),
+        tostring(member_scope.end_line or ""),
+        tostring(current_scope.start_line or ""),
+        tostring(current_scope.end_line or ""),
+        tostring(current_scope.kind or ""),
+    }, ":")
+
+    return member
+end
+
+
+local function prepend_current_scope_member(context)
+    if type(context) ~= "table" or type(context.scope_members) ~= "table" then
+        return
+    end
+
+    local current_scope_member = make_current_scope_member(context)
+
+    if not current_scope_member then
+        return
+    end
+
+    table.insert(context.scope_members, 1, current_scope_member)
 end
 
 
@@ -411,6 +551,8 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         scope_member_opts
     )
 
+    prepend_current_scope_member(context)
+
     context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
 
     context.registers = registers.collect(context, adapter, {
@@ -460,6 +602,28 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
     })
 
     return context
+end
+
+local function attach_scope_context(context, adapter)
+    local current_scope = find_current_scope(context.scopes)
+    local nearest_member_scope = find_nearest_member_scope(context.scopes, adapter)
+
+    context.current_scope = build_member_scope_context(current_scope)
+
+    local scope_member_opts = {
+        cursor_line = context.cursor and context.cursor.line,
+    }
+
+    if nearest_member_scope then
+        scope_member_opts.start_line = nearest_member_scope.start_line
+        scope_member_opts.end_line = nearest_member_scope.end_line
+        context.member_scope = build_member_scope_context(nearest_member_scope)
+    else
+        scope_member_opts.scope_depth = 0
+        context.member_scope = nil
+    end
+
+    return scope_member_opts
 end
 
 function M.get_cursor_context(bufnr, config)
@@ -524,19 +688,7 @@ function M.get_cursor_context(bufnr, config)
             context = context_engine.build_context_from_scopes(context.scopes, config)
         end
 
-        local nearest_member_scope = find_nearest_member_scope(context.scopes)
-        local scope_member_opts = {
-            cursor_line = context.cursor and context.cursor.line,
-        }
-
-        if nearest_member_scope then
-            scope_member_opts.start_line = nearest_member_scope.start_line
-            scope_member_opts.end_line = nearest_member_scope.end_line
-            context.member_scope = build_member_scope_context(nearest_member_scope)
-        else
-            scope_member_opts.scope_depth = 0
-            context.member_scope = nil
-        end
+        local scope_member_opts = attach_scope_context(context, adapter)
 
         return attach_context_sections(
             context,
@@ -574,21 +726,7 @@ function M.get_cursor_context(bufnr, config)
     append_missing_range_scopes(scopes, range_scopes)
 
     local context = context_engine.build_context_from_scopes(scopes, config)
-
-    local scope_member_opts = {
-        cursor_line = context.cursor and context.cursor.line,
-    }
-
-    local nearest_member_scope = find_nearest_member_scope(context.scopes)
-
-    if nearest_member_scope then
-        scope_member_opts.start_line = nearest_member_scope.start_line
-        scope_member_opts.end_line = nearest_member_scope.end_line
-        context.member_scope = build_member_scope_context(nearest_member_scope)
-    else
-        scope_member_opts.scope_depth = 0
-        context.member_scope = nil
-    end
+    local scope_member_opts = attach_scope_context(context, adapter)
 
     return attach_context_sections(
         context,
