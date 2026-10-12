@@ -425,6 +425,66 @@ M.construct_specs = {
 
         operand = {
             kind = "memory",
+
+            memory = {
+                kind = "memory",
+                container_kind = "memory",
+                address_kind = "address_expression",
+
+                brackets = {
+                    open = "[",
+                    close = "]",
+                },
+
+                size_prefixes = {
+                    byte = { bits = 8, label = "byte" },
+                    word = { bits = 16, label = "word" },
+                    dword = { bits = 32, label = "doubleword" },
+                    qword = { bits = 64, label = "quadword" },
+                    tword = { bits = 80, label = "ten-byte" },
+                    oword = { bits = 128, label = "octword" },
+                    yword = { bits = 256, label = "YMM word" },
+                    zword = { bits = 512, label = "ZMM word" },
+                },
+
+                component_roles = {
+                    base_register = {
+                        label = "base register",
+                        kind = "register",
+                    },
+
+                    index_register = {
+                        label = "index register",
+                        kind = "register",
+                    },
+
+                    scale = {
+                        label = "scale",
+                        kind = "integer",
+                    },
+
+                    displacement = {
+                        label = "displacement",
+                        kind = "integer",
+                    },
+
+                    symbol = {
+                        label = "symbol",
+                        kind = "symbol",
+                    },
+                },
+
+                register_role_overrides = {
+                    rip = "instruction pointer relative base",
+                    eip = "instruction pointer relative base",
+                    rsp = "stack pointer base",
+                    esp = "stack pointer base",
+                    sp = "stack pointer base",
+                    rbp = "frame pointer base",
+                    ebp = "frame pointer base",
+                    bp = "frame pointer base",
+                },
+            },
         },
     },
 

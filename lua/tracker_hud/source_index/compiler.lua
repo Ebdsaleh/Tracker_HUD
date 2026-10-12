@@ -195,17 +195,29 @@ function M.find_occurrence(
         return nil
     end
 
+    local best = nil
+    local best_span = nil
+
     for _, occurrence in ipairs(
         compiled_line.occurrences or {}
     ) do
         if source_column >= occurrence.start_column
             and source_column < occurrence.end_column
         then
-            return occurrence
+            local span = occurrence.end_column - occurrence.start_column
+
+            if not best
+                or occurrence.start_column > best.start_column
+                or (occurrence.start_column == best.start_column
+                    and span < best_span)
+            then
+                best = occurrence
+                best_span = span
+            end
         end
     end
 
-    return nil
+    return best
 end
 
 

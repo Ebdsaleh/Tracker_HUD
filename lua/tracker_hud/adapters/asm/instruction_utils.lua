@@ -224,6 +224,519 @@ local function get_operand_kind_from_adapter(node, adapter)
 end
 
 
+local function get_operand_spec_from_adapter(node, adapter)
+    if not node then
+        return nil
+    end
+
+    local spec = get_construct_spec(
+        adapter,
+        node:type()
+    )
+
+    if type(spec) ~= "table"
+        or type(spec.operand) ~= "table"
+    then
+        return nil
+    end
+
+    return spec.operand
+end
+
+
+local function get_memory_operand_spec(node, adapter)
+    local operand_spec = get_operand_spec_from_adapter(
+        node,
+        adapter
+    )
+
+    if type(operand_spec) ~= "table"
+        or type(operand_spec.memory) ~= "table"
+    then
+        return nil
+    end
+
+    return operand_spec.memory
+end
+
+
+local function build_register_alias_index(adapter)
+    local index = {}
+
+    if type(adapter) ~= "table" then
+        return index
+    end
+
+    local families = adapter.register_families
+
+    if type(families) == "table" then
+        for _, family in pairs(families) do
+            if type(family) == "table" then
+                if type(family.canonical) == "string" then
+                    index[family.canonical:lower()] = true
+                end
+
+                if type(family.aliases) == "table" then
+                    for alias_name, alias_spec in pairs(family.aliases) do
+                        if type(alias_name) == "string" then
+                            index[alias_name:lower()] = true
+                        end
+
+                        if type(alias_spec) == "table"
+                            and type(alias_spec.name) == "string"
+                        then
+                            index[alias_spec.name:lower()] = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local static_registers = adapter.registers
+        and adapter.registers.static
+        or nil
+
+    if type(static_registers) == "table" then
+        for _, register in ipairs(static_registers) do
+            if type(register) == "table"
+                and type(register.name) == "string"
+            then
+                index[register.name:lower()] = true
+            end
+        end
+    end
+
+    return index
+end
+
+
+local function find_first_bracket_pair(text, memory_spec)
+    if type(text) ~= "string" then
+        return nil
+    end
+
+    local brackets = type(memory_spec) == "table"
+        and type(memory_spec.brackets) == "table"
+        and memory_spec.brackets
+        or {}
+
+    local open_token = type(brackets.open) == "string"
+        and brackets.open
+        or "["
+
+    local close_token = type(brackets.close) == "string"
+        and brackets.close
+        or "]"
+
+    local open_start, open_end = text:find(open_token, 1, true)
+
+    if not open_start then
+        return nil
+    end
+
+    local close_start, close_end = text:find(close_token, open_end + 1, true)
+
+    if not close_start then
+        return nil
+    end
+
+    return open_start,
+        open_end,
+        close_start,
+        close_end
+end
+
+
+local function trim_with_offsets(text, start_column)
+    if type(text) ~= "string" then
+        return nil, start_column
+    end
+
+    local leading = text:match("^%s*") or ""
+    local trailing = text:match("%s*$") or ""
+    local trimmed = text:sub(
+        #leading + 1,
+        #text - #trailing
+    )
+
+    return trimmed, start_column + #leading
+end
+
+
+local function parse_memory_prefix(text, memory_spec)
+    local open_start = find_first_bracket_pair(text, memory_spec)
+
+    if not open_start or open_start <= 1 then
+        return nil
+    end
+
+    local prefix_text = text:sub(1, open_start - 1)
+    local words = {}
+
+    for word in prefix_text:gmatch("[%a_][%w_]*") do
+        table.insert(words, word:lower())
+    end
+
+    local size_prefixes = type(memory_spec) == "table"
+        and memory_spec.size_prefixes
+        or nil
+
+    if type(size_prefixes) ~= "table" then
+        return nil
+    end
+
+    for _, word in ipairs(words) do
+        local size_spec = size_prefixes[word]
+
+        if type(size_spec) == "table" then
+            return {
+                prefix = word,
+                bits = size_spec.bits,
+                label = size_spec.label or word,
+            }
+        end
+    end
+
+    return nil
+end
+
+
+local function token_kind(token, register_index)
+    if type(token) ~= "string" or token == "" then
+        return nil
+    end
+
+    local lowered = token:lower()
+
+    if register_index[lowered] then
+        return "register"
+    end
+
+    if token:match("^[+-]?0[xX][0-9a-fA-F]+$")
+        or token:match("^[+-]?%d+$")
+    then
+        return "integer"
+    end
+
+    return "symbol"
+end
+
+
+local function role_label(role, memory_spec)
+    local role_spec = nil
+
+    if type(role) == "string"
+        and type(memory_spec) == "table"
+        and type(memory_spec.component_roles) == "table"
+    then
+        role_spec = memory_spec.component_roles[role]
+    end
+
+    if type(role_spec) == "table"
+        and type(role_spec.label) == "string"
+    then
+        return role_spec.label
+    end
+
+    return tostring(role or "component"):gsub("_", " ")
+end
+
+
+local function register_role_override(token, fallback_role, memory_spec)
+    if type(token) ~= "string" then
+        return fallback_role
+    end
+
+    local overrides = type(memory_spec) == "table"
+        and memory_spec.register_role_overrides
+        or nil
+
+    if type(overrides) ~= "table" then
+        return fallback_role
+    end
+
+    return overrides[token:lower()] or fallback_role
+end
+
+
+local function add_memory_component(components, opts)
+    if type(components) ~= "table"
+        or type(opts) ~= "table"
+        or type(opts.text) ~= "string"
+        or opts.text == ""
+    then
+        return
+    end
+
+    table.insert(components, {
+        text = opts.text,
+        kind = opts.kind,
+        role = opts.role,
+        role_label = opts.role_label,
+        source_line = opts.source_line,
+        source_column = opts.source_column,
+        source_start_line = opts.source_start_line,
+        source_start_column = opts.source_start_column,
+        source_end_line = opts.source_end_line,
+        source_end_column = opts.source_end_column,
+    })
+end
+
+
+local function add_token_component(
+    components,
+    token,
+    role,
+    address_start_column,
+    address_source_line,
+    memory_spec,
+    register_index,
+    token_offset
+)
+    local clean_token, clean_offset = trim_with_offsets(
+        token,
+        token_offset or 0
+    )
+
+    if type(clean_token) ~= "string" or clean_token == "" then
+        return
+    end
+
+    local kind = token_kind(clean_token, register_index)
+    local final_role = role
+
+    if kind == "register" then
+        final_role = register_role_override(
+            clean_token,
+            role,
+            memory_spec
+        )
+    end
+
+    add_memory_component(components, {
+        text = clean_token,
+        kind = kind,
+        role = final_role,
+        role_label = role_label(final_role, memory_spec),
+        source_line = address_source_line,
+        source_column = address_start_column + clean_offset,
+        source_start_line = address_source_line,
+        source_start_column = address_start_column + clean_offset,
+        source_end_line = address_source_line,
+        source_end_column = address_start_column + clean_offset + #clean_token,
+    })
+end
+
+
+local function split_address_terms(address_text)
+    local terms = {}
+    local term_start = 1
+    local sign = 1
+    local i = 1
+
+    while i <= #address_text do
+        local ch = address_text:sub(i, i)
+
+        if ch == "+" or ch == "-" then
+            local text = address_text:sub(term_start, i - 1)
+            table.insert(terms, {
+                text = text,
+                sign = sign,
+                offset = term_start - 1,
+            })
+
+            sign = ch == "-" and -1 or 1
+            term_start = i + 1
+        end
+
+        i = i + 1
+    end
+
+    table.insert(terms, {
+        text = address_text:sub(term_start),
+        sign = sign,
+        offset = term_start - 1,
+    })
+
+    return terms
+end
+
+
+local function classify_plain_term_role(kind, sign, saw_base_register)
+    if kind == "register" then
+        return saw_base_register
+            and "index_register"
+            or "base_register"
+    end
+
+    if kind == "integer" then
+        return "displacement"
+    end
+
+    if sign == -1 then
+        return "displacement"
+    end
+
+    return "symbol"
+end
+
+
+local function parse_memory_components(
+    address_text,
+    address_start_column,
+    address_source_line,
+    memory_spec,
+    register_index
+)
+    local components = {}
+    local saw_base_register = false
+
+    for _, term in ipairs(split_address_terms(address_text)) do
+        local term_text, term_offset = trim_with_offsets(
+            term.text,
+            term.offset
+        )
+
+        if type(term_text) == "string" and term_text ~= "" then
+            local star_start, star_end = term_text:find("*", 1, true)
+
+            if star_start then
+                local left = term_text:sub(1, star_start - 1)
+                local right = term_text:sub(star_end + 1)
+
+                add_token_component(
+                    components,
+                    left,
+                    "index_register",
+                    address_start_column,
+                    address_source_line,
+                    memory_spec,
+                    register_index,
+                    term_offset
+                )
+
+                add_token_component(
+                    components,
+                    right,
+                    "scale",
+                    address_start_column,
+                    address_source_line,
+                    memory_spec,
+                    register_index,
+                    term_offset + star_end
+                )
+            else
+                local clean = term_text
+                local kind = token_kind(clean, register_index)
+                local role = classify_plain_term_role(
+                    kind,
+                    term.sign,
+                    saw_base_register
+                )
+
+                if kind == "register" then
+                    saw_base_register = true
+                end
+
+                local component_offset = term_offset
+
+                if term.sign == -1
+                    and kind == "integer"
+                    and not clean:match("^-")
+                then
+                    clean = "-" .. clean
+                    component_offset = math.max(0, component_offset - 1)
+                end
+
+                add_token_component(
+                    components,
+                    clean,
+                    role,
+                    address_start_column,
+                    address_source_line,
+                    memory_spec,
+                    register_index,
+                    component_offset
+                )
+            end
+        end
+    end
+
+    return components
+end
+
+
+local function analyze_memory_operand(
+    bufnr,
+    node,
+    adapter,
+    operand_text,
+    source_start_line,
+    source_start_column
+)
+    local memory_spec = get_memory_operand_spec(
+        node,
+        adapter
+    )
+
+    if type(memory_spec) ~= "table"
+        or type(operand_text) ~= "string"
+    then
+        return nil
+    end
+
+    local open_start,
+        open_end,
+        close_start,
+        close_end = find_first_bracket_pair(
+            operand_text,
+            memory_spec
+        )
+
+    if not open_start or not close_start then
+        return nil
+    end
+
+    local address_text = operand_text:sub(
+        open_end + 1,
+        close_start - 1
+    )
+
+    local trimmed_address,
+        trimmed_address_column = trim_with_offsets(
+            address_text,
+            source_start_column + open_end
+        )
+
+    local register_index = build_register_alias_index(adapter)
+    local components = parse_memory_components(
+        trimmed_address or "",
+        trimmed_address_column,
+        source_start_line,
+        memory_spec,
+        register_index
+    )
+
+    local size = parse_memory_prefix(
+        operand_text,
+        memory_spec
+    )
+
+    return {
+        kind = memory_spec.kind or "memory",
+        container_kind = memory_spec.container_kind or "memory",
+        address_kind = memory_spec.address_kind or "address_expression",
+        address_text = trimmed_address,
+        address_start_column = trimmed_address_column,
+        address_end_column = trimmed_address_column
+            + #(trimmed_address or ""),
+        size = size,
+        components = components,
+    }
+end
+
+
 local function classify_operand(bufnr, node, adapter)
     local text = node_text(bufnr, node)
 
@@ -258,7 +771,7 @@ local function classify_operand(bufnr, node, adapter)
     local start_row, start_column, end_row, end_column =
         node:range()
 
-    return {
+    local operand = {
         text = text,
         kind = kind,
         node_type = node_type,
@@ -271,6 +784,19 @@ local function classify_operand(bufnr, node, adapter)
         source_end_line = end_row + 1,
         source_end_column = end_column,
     }
+
+    if kind == "memory" then
+        operand.memory = analyze_memory_operand(
+            bufnr,
+            node,
+            adapter,
+            text,
+            operand.source_start_line,
+            operand.source_start_column
+        )
+    end
+
+    return operand
 end
 
 

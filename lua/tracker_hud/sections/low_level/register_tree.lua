@@ -83,6 +83,78 @@ local function append_value_flow_detail(children, register, detail_id, metadata)
 end
 
 
+local function append_selected_memory_details(children, register, metadata)
+    if not core.is_table(metadata) then
+        return
+    end
+
+    append_metadata_detail(
+        children,
+        register,
+        "focused-token",
+        "focused token",
+        metadata.focused_token
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "focused-token-kind",
+        "focused token kind",
+        metadata.focused_token_kind
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "containing-operand",
+        "containing operand",
+        metadata.containing_operand
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "containing-operand-kind",
+        "containing operand kind",
+        metadata.containing_operand_kind_label
+            or metadata.containing_operand_kind
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "address-role",
+        "address role",
+        metadata.address_role
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "memory-address",
+        "memory address",
+        metadata.memory_address
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "memory-size",
+        "memory size",
+        metadata.memory_size
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "memory-components",
+        "address components",
+        metadata.memory_address_components
+    )
+end
+
+
 local function occurrence_targets_register(occurrence, register_id)
     if not core.is_table(occurrence)
         or not core.is_non_empty_string(register_id)
@@ -163,6 +235,12 @@ local function append_source_details(children, register, context, opts)
             selected_metadata.source_role
         )
 
+        append_selected_memory_details(
+            children,
+            register,
+            selected_metadata
+        )
+
         if flow_details_enabled(opts) then
             append_value_flow_detail(
                 children,
@@ -184,6 +262,12 @@ local function append_source_details(children, register, context, opts)
         "value-source",
         "value source",
         metadata.value_source
+    )
+
+    append_selected_memory_details(
+        children,
+        register,
+        metadata
     )
 
     if flow_details_enabled(opts) then

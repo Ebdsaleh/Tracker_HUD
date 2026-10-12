@@ -1725,6 +1725,93 @@ local function build_value_source_label(operand)
 end
 
 
+local function build_memory_size_label(size)
+    if not core.is_table(size) then
+        return nil
+    end
+
+    local label = size.label or size.prefix
+
+    if size.bits then
+        return tostring(label or "memory")
+            .. " ("
+            .. tostring(size.bits)
+            .. "-bit)"
+    end
+
+    return label
+end
+
+
+local function append_memory_operand_metadata(metadata, operand)
+    if not core.is_table(metadata)
+        or not core.is_table(operand)
+        or not core.is_table(operand.memory)
+    then
+        return
+    end
+
+    local memory = operand.memory
+
+    metadata.containing_operand = operand.text
+    metadata.containing_operand_kind = "memory"
+    metadata.containing_operand_kind_label = "memory operand"
+    metadata.memory_address = memory.address_text
+    metadata.memory_address_kind = memory.address_kind
+    metadata.memory_size = build_memory_size_label(memory.size)
+
+    if core.is_table(memory.size) then
+        metadata.memory_size_bits = memory.size.bits
+        metadata.memory_size_prefix = memory.size.prefix
+    end
+
+    local component_labels = {}
+
+    for _, component in ipairs(memory.components or {}) do
+        if core.is_table(component)
+            and core.is_non_empty_string(component.text)
+        then
+            table.insert(
+                component_labels,
+                tostring(component.role_label or component.role or "component")
+                    .. ": "
+                    .. component.text
+            )
+        end
+    end
+
+    if #component_labels > 0 then
+        metadata.memory_address_components = table.concat(
+            component_labels,
+            ", "
+        )
+    end
+end
+
+
+local function append_memory_component_metadata(metadata, operand, component)
+    if not core.is_table(metadata)
+        or not core.is_table(component)
+    then
+        return
+    end
+
+    append_memory_operand_metadata(metadata, operand)
+
+    metadata.focused_token = component.text
+    metadata.focused_token_kind = get_operand_kind_label(component.kind)
+    metadata.address_role = component.role_label
+        or format_operand_role_label(component.role)
+    metadata.address_role_id = component.role
+
+    if core.is_non_empty_string(operand and operand.text) then
+        metadata.value_source = build_value_source_label(operand)
+        metadata.value_source_text = operand.text
+        metadata.value_source_kind = get_operand_kind_label(operand.kind)
+    end
+end
+
+
 local function build_source_operand_metadata(effect_spec, instruction, effect, instruction_state)
     if not core.is_table(instruction)
         or not core.is_table(effect)
@@ -1805,6 +1892,8 @@ local function build_source_operand_metadata(effect_spec, instruction, effect, i
         metadata.source_operand_start_column = source_operand.source_start_column
         metadata.source_operand_end_line = source_operand.source_end_line
         metadata.source_operand_end_column = source_operand.source_end_column
+
+        append_memory_operand_metadata(metadata, source_operand)
 
         return metadata
     end
@@ -2745,6 +2834,8 @@ local function build_operand_occurrence_metadata(
         metadata.value_source = build_value_source_label(operand)
         metadata.value_source_kind = get_operand_kind_label(operand.kind)
         metadata.value_source_text = operand.text
+
+        append_memory_operand_metadata(metadata, operand)
     end
 
     if core.is_table(operand)
@@ -2880,6 +2971,154 @@ local function build_register_operand_occurrence(
 end
 
 
+local function build_memory_component_occurrence(
+    adapter,
+    instruction,
+    operand,
+    operand_index,
+    component,
+    effect_specs
+)
+    if not core.is_table(operand)
+        or not core.is_table(component)
+        or not core.is_non_empty_string(component.text)
+    then
+        return nil
+    end
+
+    local target_ids = {}
+    local seen_target_ids = {}
+    local target_roles = {}
+    local component_register_id = nil
+    local occurrence_role = nil
+    local operand_role = nil
+
+    if component.kind == "register" then
+        component_register_id = register_occurrence_target_id(
+            adapter,
+            component.text
+        )
+
+        add_unique_string(
+            target_ids,
+            seen_target_ids,
+            component_register_id
+        )
+
+        if component_register_id then
+            target_roles[component_register_id] = component.role_label
+                or format_operand_role_label(component.role)
+                or "address component"
+        end
+    end
+
+    for _, effect_spec in ipairs(effect_specs or {}) do
+        local operand_spec = get_effect_operand_spec(
+            effect_spec,
+            operand_index
+        )
+
+        local raw_role = core.is_table(operand_spec)
+            and operand_spec.role
+            or nil
+
+        local normalized_role = normalize_register_occurrence_role(
+            raw_role
+        )
+
+        if normalized_role then
+            operand_role = operand_role or raw_role or normalized_role
+            occurrence_role = occurrence_role or normalized_role
+        end
+
+        if operand_role_is_source(raw_role or normalized_role) then
+            for _, target_id in ipairs(
+                get_effect_target_register_ids(
+                    adapter,
+                    instruction,
+                    effect_spec
+                )
+            ) do
+                add_unique_string(
+                    target_ids,
+                    seen_target_ids,
+                    target_id
+                )
+
+                target_roles[target_id] = "source"
+            end
+        end
+    end
+
+    if #target_ids == 0 then
+        return nil
+    end
+
+    local metadata = build_operand_occurrence_metadata(
+        adapter,
+        instruction,
+        operand,
+        operand_index,
+        operand_role,
+        target_roles
+    )
+
+    append_memory_component_metadata(
+        metadata,
+        operand,
+        component
+    )
+
+    return {
+        kind = "memory_component",
+        text = component.text,
+        start_column = component.source_start_column,
+        end_column = component.source_end_column,
+        operand_index = operand_index,
+        role = occurrence_role,
+        targets = {
+            state = target_ids,
+        },
+        metadata = metadata,
+    }
+end
+
+
+local function build_memory_component_occurrences(
+    adapter,
+    instruction,
+    operand,
+    operand_index,
+    effect_specs
+)
+    local occurrences = {}
+
+    if not core.is_table(operand)
+        or not core.is_table(operand.memory)
+        or not core.is_table(operand.memory.components)
+    then
+        return occurrences
+    end
+
+    for _, component in ipairs(operand.memory.components) do
+        local occurrence = build_memory_component_occurrence(
+            adapter,
+            instruction,
+            operand,
+            operand_index,
+            component,
+            effect_specs
+        )
+
+        if occurrence then
+            table.insert(occurrences, occurrence)
+        end
+    end
+
+    return occurrences
+end
+
+
 function M.discover_register_source_occurrences(
     bufnr,
     root_node,
@@ -2959,6 +3198,21 @@ function M.discover_register_source_occurrences(
                                 table.insert(
                                     occurrences,
                                     operand_occurrence
+                                )
+                            end
+
+                            for _, component_occurrence in ipairs(
+                                build_memory_component_occurrences(
+                                    adapter,
+                                    instruction,
+                                    operand,
+                                    operand_index,
+                                    matching_specs
+                                )
+                            ) do
+                                table.insert(
+                                    occurrences,
+                                    component_occurrence
                                 )
                             end
                         end
