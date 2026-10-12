@@ -38,10 +38,13 @@ Recommended checks:
 8. On `def __init__`, Scope should show a function/method construct.
 9. On `self`, `root`, and `values` in function signatures, parameters should be visible as scope members.
 10. On assignments such as `total = 0`, `label = self.root.name`, and `tracker = DemoTracker(path)`, assignment members should be visible.
-11. On `if`, `elif`, and `else`, Scope should identify the branch structure without treating the branch as a new Python local scope.
-12. On `for value in values`, Scope should identify the loop, show the loop variable, and keep function locals visible because Python `for` does not create a new local scope.
-13. On `raise ValueError(...)`, the raise statement should be visible.
-14. On `return label, total`, return value information should be visible.
-15. On calls such as `Path(path_text)`, `DemoTracker(path)`, `tracker.update(...)`, and `print(...)`, call constructs should be visible.
+11. On `if`, `elif`, and `else`, Scope should identify the nested branch structure.
+12. On `for value in values`, Scope should identify the nested loop structure and show the loop variable.
+13. On `try` and `except`, Scope should identify the nested exception-handling structure.
+14. On `raise ValueError(...)`, the raise statement should be visible.
+15. On `return label, total`, return value information should be visible.
+16. On calls such as `Path(path_text)`, `DemoTracker(path)`, `tracker.update(...)`, and `print(...)`, call constructs should be visible.
+
+Tracker_HUD intentionally treats Python control-flow blocks such as `if`, `for`, and `try` as structural HUD scopes. This is for navigation and layout awareness. It does not mean Python has C-style block-local variable binding.
 
 This sample is not a unit test yet. It is a stable manual HUD validation fixture.
