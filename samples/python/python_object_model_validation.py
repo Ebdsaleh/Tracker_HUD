@@ -10,6 +10,7 @@ Expected HUD behaviour:
 - set_type should be recognised as mutating self.type.
 - Direct writes such as my_obj.name = ... should update known object state.
 - Simple top-level factories returning model instances should be visible.
+- @property and @name.setter models should be visible.
 - @dataclass models should expose annotated fields and constructor state.
 - my_obj should be recognised as an instance of ModelThing.
 - After my_obj.set_type("phrase"), my_obj.type should be known as "phrase".
@@ -33,6 +34,19 @@ class ModelThing:
         self.type = _type
 
 
+class PropertyThing:
+    def __init__(self, display_name="Visible"):
+        self._display_name = display_name
+
+    @property
+    def display_name(self):
+        return self._display_name
+
+    @display_name.setter
+    def display_name(self, value):
+        self._display_name = value
+
+
 @dataclass
 class DataThing:
     CATEGORY = "dataclass-sample"
@@ -51,6 +65,9 @@ my_obj.set_type(_type="phrase")
 my_obj.name = "Updated Yo"
 
 factory_obj = build_model("Factory Yo")
+
+prop_obj = PropertyThing("Property Yo")
+prop_obj.display_name = "Renamed Property"
 
 data_obj = DataThing("Sample")
 data_obj.kind = "custom"
