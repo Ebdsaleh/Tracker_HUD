@@ -59,6 +59,7 @@ Recommended checks:
 14. On `raise ValueError(...)`, the raise statement should be visible.
 15. On `return label, total`, return value information should be visible.
 16. On calls such as `Path(path_text)`, `DemoTracker(path)`, `tracker.update(...)`, and `print(...)`, call constructs should be visible.
+17. The object-model extras collector should not report method-local assignments such as `total = 0` or `label = ...` as class attributes.
 
 ## How to use: object model validation
 
@@ -86,6 +87,8 @@ The data-model events should expose details such as:
 - `method effect: __init__ initializes name = name, type = None`
 - `method effect: set_name mutates name = name`
 - `method effect: set_type mutates type = _type`
+
+Class attribute events are intentionally strict: only direct class-body assignments count. Assignments inside methods, branches, loops, or exception blocks must not be reported as class attributes.
 
 Factory/object events should expose details such as:
 
