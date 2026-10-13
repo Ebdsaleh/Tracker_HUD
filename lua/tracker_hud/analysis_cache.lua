@@ -191,4 +191,77 @@ function M.get_visible_lines(bufnr, context)
 end
 
 
+function M.make_visible_prefix_get_lines(context, original_get_lines, target_bufnr)
+    if type(original_get_lines) ~= "function" then
+        return nil
+    end
+
+    local cursor_line = M.cursor_line(context, nil)
+
+    if not cursor_line then
+        return nil
+    end
+
+    local current_buf = target_bufnr
+
+    if not current_buf then
+        local ok_current, bufnr = pcall(vim.api.nvim_get_current_buf)
+
+        if ok_current and bufnr then
+            current_buf = bufnr
+        end
+    end
+
+    if not current_buf then
+        return nil
+    end
+
+    return function(bufnr, start_index, end_index, strict_indexing)
+        if bufnr == current_buf
+            and start_index == 0
+            and end_index == -1
+        then
+            local ok_count, total = pcall(vim.api.nvim_buf_line_count, bufnr)
+
+            if ok_count and total and total > 0 then
+                return original_get_lines(
+                    bufnr,
+                    0,
+                    math.min(cursor_line, total),
+                    false
+                )
+            end
+        end
+
+        return original_get_lines(bufnr, start_index, end_index, strict_indexing)
+    end
+end
+
+
+function M.with_visible_prefix_get_lines(context, callback, target_bufnr)
+    if type(callback) ~= "function" then
+        return false, nil
+    end
+
+    local original_get_lines = vim.api.nvim_buf_get_lines
+    local prefix_get_lines = M.make_visible_prefix_get_lines(
+        context,
+        original_get_lines,
+        target_bufnr
+    )
+
+    if not prefix_get_lines then
+        return pcall(callback)
+    end
+
+    vim.api.nvim_buf_get_lines = prefix_get_lines
+
+    local ok, result = pcall(callback)
+
+    vim.api.nvim_buf_get_lines = original_get_lines
+
+    return ok, result
+end
+
+
 return M
