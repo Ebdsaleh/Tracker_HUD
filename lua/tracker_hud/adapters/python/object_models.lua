@@ -269,6 +269,11 @@ local function apply_method_effects(object, class, method, args, source_line)
     end
 
     local bound = bind_arguments(method.params, args)
+    local change_kind = "method write"
+
+    if method.name == "__init__" then
+        change_kind = "constructor write"
+    end
 
     for _, effect in ipairs(method.effects or {}) do
         local value = resolve_expr(effect.expr, bound)
@@ -281,6 +286,7 @@ local function apply_method_effects(object, class, method, args, source_line)
             method = method.name,
             field = effect.field,
             value = value,
+            kind = change_kind,
         })
     end
 end
@@ -355,24 +361,61 @@ local function add_operand(operands, operand_specs, role, text)
 end
 
 
+local function field_label(field)
+    local label = field.name
+
+    if field.initial_expr then
+        label = label .. " initial " .. field.initial_expr
+    end
+
+    local writers = sorted_keys(field.writers)
+
+    if #writers > 0 then
+        label = label .. " changed by " .. table.concat(writers, ", ")
+    end
+
+    return label
+end
+
+
+local function method_effect_label(method)
+    local parts = {}
+
+    for _, effect in ipairs(method.effects or {}) do
+        table.insert(parts, tostring(effect.field) .. " = " .. tostring(effect.expr))
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    if method.name == "__init__" then
+        return "__init__ initializes " .. table.concat(parts, ", ")
+    end
+
+    return method.name .. " mutates " .. table.concat(parts, ", ")
+end
+
+
 local function class_event(class)
     local operands = {}
     local operand_specs = {}
 
     for _, field_name in ipairs(sorted_keys(class.fields)) do
-        local field = class.fields[field_name]
-        local writers = sorted_keys(field.writers)
-        local label = field_name
+        add_operand(
+            operands,
+            operand_specs,
+            "field",
+            field_label(class.fields[field_name])
+        )
+    end
 
-        if field.initial_expr then
-            label = label .. " initial " .. field.initial_expr
+    for _, method_name in ipairs(sorted_keys(class.methods)) do
+        local label = method_effect_label(class.methods[method_name])
+
+        if label then
+            add_operand(operands, operand_specs, "method effect", label)
         end
-
-        if #writers > 0 then
-            label = label .. " changed by " .. table.concat(writers, ", ")
-        end
-
-        add_operand(operands, operand_specs, "field", label)
     end
 
     return {
@@ -392,18 +435,24 @@ local function class_event(class)
 end
 
 
-local function object_event(object)
+local function object_event(object, cursor_line)
     local operands = {}
     local operand_specs = {}
 
     add_operand(operands, operand_specs, "class", object.class_name)
     add_operand(operands, operand_specs, "created", object.construction)
+    add_operand(
+        operands,
+        operand_specs,
+        "known through",
+        "cursor line " .. tostring(cursor_line or object.last_line)
+    )
 
     for _, field_name in ipairs(sorted_keys(object.state)) do
         add_operand(
             operands,
             operand_specs,
-            "state",
+            "current state",
             field_name .. " = " .. tostring(object.state[field_name])
         )
     end
@@ -412,7 +461,7 @@ local function object_event(object)
         add_operand(
             operands,
             operand_specs,
-            "change",
+            change.kind or "change",
             tostring(change.method)
                 .. " -> "
                 .. tostring(change.field)
@@ -428,7 +477,7 @@ local function object_event(object)
         kind = "python_object_state",
         category = "object",
         name = object.name,
-        role = object.class_name .. " state known from file",
+        role = object.class_name .. " state known from file up to cursor",
         source = "python_object_models",
         source_line = object.start_line,
         source_column = 0,
@@ -472,7 +521,7 @@ function M.collect_events(context)
     end
 
     for _, object_name in ipairs(sorted_keys(objects)) do
-        table.insert(events, object_event(objects[object_name]))
+        table.insert(events, object_event(objects[object_name], cursor_line))
     end
 
     return events
