@@ -71,16 +71,25 @@ nvim samples/python/python_object_model_validation.py
 The first visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
 
 - `(data model) ModelThing - class model exposes ...`
+- `(data model) DataThing - class model exposes ...`
 - `(object) default_obj - ModelThing state known from file up to cursor`
 - `(object) my_obj - ModelThing state known from file up to cursor`
+- `(object) data_obj - DataThing state known from file up to cursor`
 
-The data-model event should expose details such as:
+The normal class data-model event should expose details such as:
 
 - `field: name initial name changed by __init__, set_name`
 - `field: type initial None changed by __init__, set_type`
 - `method effect: __init__ initializes name = name, type = None`
 - `method effect: set_name mutates name = name`
 - `method effect: set_type mutates type = _type`
+
+The dataclass data-model event should expose details such as:
+
+- `model kind: dataclass`
+- `field: name : str changed by __init__`
+- `field: kind : str initial "generic" changed by __init__`
+- `method effect: dataclass __init__ initializes name = name, kind = kind`
 
 The object events should expose details such as:
 
@@ -96,6 +105,17 @@ The object events should expose details such as:
 - `constructor write: __init__ -> type = None at line ...`
 - `method write: set_type -> type = "phrase" at line ...`
 - `direct write: <direct> -> name = "Updated Yo" at line ...`
+
+The dataclass object event should expose details such as:
+
+- `class: DataThing`
+- `created: DataThing("Sample")`
+- `current state: name = "Sample"`
+- `current state: kind = "generic"` before the direct write
+- `current state: kind = "custom"` after `data_obj.kind = "custom"`
+- `constructor write: __init__ -> name = "Sample" at line ...`
+- `constructor write: __init__ -> kind = "generic" at line ...`
+- `direct write: <direct> -> kind = "custom" at line ...`
 
 The event state is cursor-position aware: before a mutation call or direct write, known state should still reflect the earlier visible value. After the mutation or direct write, it should reflect the simple file-local effect.
 
