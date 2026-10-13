@@ -16,21 +16,6 @@ local event_model = require("tracker_hud.event_model")
 local M = {}
 
 
-local function trim(value)
-    if type(value) ~= "string" then
-        return ""
-    end
-
-    return (value:gsub("^%s+", ""):gsub("%s+$", ""))
-end
-
-
-local function leading_indent(line)
-    local spaces = tostring(line or ""):match("^(%s*)") or ""
-    return #spaces
-end
-
-
 local function add_event(events, seen, opts)
     if type(events) ~= "table" or type(opts) ~= "table" then
         return
@@ -53,6 +38,7 @@ local function add_event(events, seen, opts)
     })))
 end
 
+
 local function build_boundary_event_id(boundary_effect, index)
     local source_line = boundary_effect.source_line
         or boundary_effect.source_start_line
@@ -65,6 +51,7 @@ local function build_boundary_event_id(boundary_effect, index)
     return "event:boundary:" .. tostring(source_line) .. ":" .. tostring(index) .. ":" .. tostring(name)
 end
 
+
 local function make_boundary_event_role(boundary_effect)
     local kind = boundary_effect.kind or "boundary"
     local name = boundary_effect.name or kind
@@ -76,6 +63,7 @@ local function make_boundary_event_role(boundary_effect)
 
     return "boundary effect: " .. tostring(name) .. " (" .. tostring(category) .. ")"
 end
+
 
 local function add_boundary_event(events, seen, boundary_effect, index)
     if type(boundary_effect) ~= "table" then
@@ -110,6 +98,7 @@ local function add_boundary_event(events, seen, boundary_effect, index)
         },
     })
 end
+
 
 local function collect_boundary_events(events, seen, context)
     if type(context) ~= "table" or type(context.boundary_effects) ~= "table" then
@@ -266,117 +255,7 @@ local function event_source_line(event)
 end
 
 
-local function event_source_end_line(event)
-    return tonumber(
-        type(event) == "table"
-            and (
-                event.source_end_line
-                or event.source_end_line
-            )
-            or nil
-    )
-end
-
-
-local function is_python_model_definition_event(event)
-    if type(event) ~= "table" then
-        return false
-    end
-
-    if event.category ~= "data model"
-        and event.category ~= "factory"
-    then
-        return false
-    end
-
-    local source = tostring(event.source or "")
-
-    return source == "python_object_models"
-        or source == "python_object_model_extras"
-        or source == "python_object_model_properties"
-        or source == "python_object_model_collections"
-end
-
-
-local function current_buffer()
-    local ok, bufnr = pcall(vim.api.nvim_get_current_buf)
-
-    if ok and bufnr and vim.api.nvim_buf_is_valid(bufnr) then
-        return bufnr
-    end
-
-    return nil
-end
-
-
-local function python_block_end_line(bufnr, start_line)
-    if not bufnr
-        or not vim.api.nvim_buf_is_valid(bufnr)
-        or not start_line
-        or start_line < 1
-    then
-        return nil
-    end
-
-    local total = vim.api.nvim_buf_line_count(bufnr)
-
-    if start_line >= total then
-        return total
-    end
-
-    local start_text = vim.api.nvim_buf_get_lines(
-        bufnr,
-        start_line - 1,
-        start_line,
-        false
-    )[1] or ""
-    local start_indent = leading_indent(start_text)
-
-    for line_number = start_line + 1, total do
-        local line = vim.api.nvim_buf_get_lines(
-            bufnr,
-            line_number - 1,
-            line_number,
-            false
-        )[1] or ""
-        local stripped = trim(line)
-
-        if stripped ~= ""
-            and stripped:sub(1, 1) ~= "#"
-            and leading_indent(line) <= start_indent
-        then
-            return line_number - 1
-        end
-    end
-
-    return total
-end
-
-
-local function python_model_definition_visible(event, cursor_line, bufnr)
-    local explicit_end = event_source_end_line(event)
-
-    if explicit_end then
-        return explicit_end <= cursor_line
-    end
-
-    local source_line = event_source_line(event)
-
-    if not source_line then
-        return true
-    end
-
-    local block_end = python_block_end_line(bufnr, source_line)
-
-    if not block_end then
-        return source_line <= cursor_line
-    end
-
-    return block_end <= cursor_line
-end
-
-
-local function event_is_visible_at_cursor(event, cursor_line, bufnr)
+local function event_is_visible_at_cursor(event, cursor_line)
     if not cursor_line then
         return true
     end
@@ -391,15 +270,9 @@ local function event_is_visible_at_cursor(event, cursor_line, bufnr)
         return true
     end
 
-    if source_line > cursor_line then
-        return false
-    end
-
-    if is_python_model_definition_event(event) then
-        return python_model_definition_visible(event, cursor_line, bufnr)
-    end
-
-    return true
+    -- Discovery rule, matching the ASM-facing HUD behavior:
+    -- if the cursor is on a fact's source line or past it, the fact is visible.
+    return source_line <= cursor_line
 end
 
 
@@ -411,10 +284,9 @@ local function filter_events_visible_at_cursor(events, context)
     end
 
     local visible = {}
-    local bufnr = current_buffer()
 
     for _, event in ipairs(events or {}) do
-        if event_is_visible_at_cursor(event, cursor_line, bufnr) then
+        if event_is_visible_at_cursor(event, cursor_line) then
             table.insert(visible, event)
         end
     end
