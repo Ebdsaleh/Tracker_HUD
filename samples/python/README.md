@@ -71,6 +71,7 @@ nvim samples/python/python_object_model_validation.py
 The first visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
 
 - `(data model) ModelThing - class model exposes ...`
+- `(object) default_obj - ModelThing state known from file up to cursor`
 - `(object) my_obj - ModelThing state known from file up to cursor`
 
 The data-model event should expose details such as:
@@ -81,18 +82,22 @@ The data-model event should expose details such as:
 - `method effect: set_name mutates name = name`
 - `method effect: set_type mutates type = _type`
 
-The object event should expose details such as:
+The object events should expose details such as:
 
 - `class: ModelThing`
-- `created: ModelThing("Yo")`
+- `created: ModelThing()` for `default_obj`
+- `current state: name = "New Object"` for `default_obj`, using the constructor default argument
+- `created: ModelThing("Yo")` for `my_obj`
 - `known through: cursor line ...`
-- `current state: name = "Yo"`
+- `current state: name = "Yo"` before the direct write
+- `current state: name = "Updated Yo"` after `my_obj.name = "Updated Yo"`
 - `current state: type = "phrase"` after the cursor has reached `my_obj.set_type("phrase")`
-- `constructor write: __init__ -> name = "Yo" at line ...`
+- `constructor write: __init__ -> name = ... at line ...`
 - `constructor write: __init__ -> type = None at line ...`
 - `method write: set_type -> type = "phrase" at line ...`
+- `direct write: <direct> -> name = "Updated Yo" at line ...`
 
-The event state is cursor-position aware: before the mutation call, the known `type` state should still be the constructor-visible value. After the mutation call, it should reflect the simple file-local mutator effect.
+The event state is cursor-position aware: before a mutation call or direct write, known state should still reflect the earlier visible value. After the mutation or direct write, it should reflect the simple file-local effect.
 
 This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
