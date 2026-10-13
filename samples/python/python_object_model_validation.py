@@ -8,10 +8,13 @@ Expected HUD behaviour:
 - set_name should be recognised as mutating self.name.
 - set_type should be recognised as mutating self.type.
 - Direct writes such as my_obj.name = ... should update known object state.
+- @dataclass models should expose annotated fields and constructor state.
 - my_obj should be recognised as an instance of ModelThing.
 - After my_obj.set_type("phrase"), my_obj.type should be known as "phrase".
 - The section should only claim what is visible from this file.
 """
+
+from dataclasses import dataclass
 
 
 class ModelThing:
@@ -26,7 +29,16 @@ class ModelThing:
         self.type = _type
 
 
+@dataclass
+class DataThing:
+    name: str
+    kind: str = "generic"
+
+
 default_obj = ModelThing()
 my_obj = ModelThing("Yo")
 my_obj.set_type("phrase")
 my_obj.name = "Updated Yo"
+
+data_obj = DataThing("Sample")
+data_obj.kind = "custom"
