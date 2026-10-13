@@ -11,6 +11,7 @@
 --   - memory fence / serialization instruction
 --   - future runtime/API calls such as malloc/free/Instantiate/SpawnActor
 
+local analysis_cache = require("tracker_hud.analysis_cache")
 local event_model = require("tracker_hud.event_model")
 
 local M = {}
@@ -188,45 +189,6 @@ local function get_context_cursor_line(context)
 end
 
 
-local function make_python_prefix_get_lines(context, original_get_lines)
-    if type(original_get_lines) ~= "function" then
-        return nil
-    end
-
-    local cursor_line = get_context_cursor_line(context)
-
-    if not cursor_line then
-        return nil
-    end
-
-    local ok_current, current_buf = pcall(vim.api.nvim_get_current_buf)
-
-    if not ok_current or not current_buf then
-        return nil
-    end
-
-    return function(bufnr, start_index, end_index, strict_indexing)
-        if bufnr == current_buf
-            and start_index == 0
-            and end_index == -1
-        then
-            local ok_count, total = pcall(vim.api.nvim_buf_line_count, bufnr)
-
-            if ok_count and total and total > 0 then
-                return original_get_lines(
-                    bufnr,
-                    0,
-                    math.min(cursor_line, total),
-                    false
-                )
-            end
-        end
-
-        return original_get_lines(bufnr, start_index, end_index, strict_indexing)
-    end
-end
-
-
 local function collect_python_event_module(events, seen, context, module_name)
     if not context_is_python(context) then
         return
@@ -245,21 +207,12 @@ local function collect_python_event_module(events, seen, context, module_name)
     -- Python model collectors are intentionally given only the visible prefix
     -- of the current file. This mirrors the ASM discovery rule: a fact can be
     -- inferred only when the cursor is on or past the source that introduces it.
-    local original_get_lines = vim.api.nvim_buf_get_lines
-    local prefix_get_lines = make_python_prefix_get_lines(context, original_get_lines)
-
-    if prefix_get_lines then
-        vim.api.nvim_buf_get_lines = prefix_get_lines
-    end
-
-    local collected_ok, model_events = pcall(
-        module.collect_events,
-        context
+    local collected_ok, model_events = analysis_cache.with_visible_prefix_get_lines(
+        context,
+        function()
+            return module.collect_events(context)
+        end
     )
-
-    if prefix_get_lines then
-        vim.api.nvim_buf_get_lines = original_get_lines
-    end
 
     if not collected_ok or type(model_events) ~= "table" then
         return
