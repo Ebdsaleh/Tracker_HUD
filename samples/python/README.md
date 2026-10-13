@@ -71,15 +71,26 @@ nvim samples/python/python_object_model_validation.py
 The first visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
 
 - `(data model) ModelThing - class model exposes ...`
-- `(object) my_obj - ModelThing state known from file`
+- `(object) my_obj - ModelThing state known from file up to cursor`
+
+The data-model event should expose details such as:
+
+- `field: name initial name changed by __init__, set_name`
+- `field: type initial None changed by __init__, set_type`
+- `method effect: __init__ initializes name = name, type = None`
+- `method effect: set_name mutates name = name`
+- `method effect: set_type mutates type = _type`
 
 The object event should expose details such as:
 
 - `class: ModelThing`
 - `created: ModelThing("Yo")`
-- `state: name = "Yo"`
-- `state: type = "phrase"` after the cursor has reached `my_obj.set_type("phrase")`
-- `change: set_type -> type = "phrase" at line ...`
+- `known through: cursor line ...`
+- `current state: name = "Yo"`
+- `current state: type = "phrase"` after the cursor has reached `my_obj.set_type("phrase")`
+- `constructor write: __init__ -> name = "Yo" at line ...`
+- `constructor write: __init__ -> type = None at line ...`
+- `method write: set_type -> type = "phrase" at line ...`
 
 The event state is cursor-position aware: before the mutation call, the known `type` state should still be the constructor-visible value. After the mutation call, it should reflect the simple file-local mutator effect.
 
