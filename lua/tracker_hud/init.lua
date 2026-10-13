@@ -11,6 +11,7 @@ local namespace = require("tracker_hud.namespace")
 local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
 local hex_width = require("tracker_hud.hex_width")
+local analysis_cache = require("tracker_hud.analysis_cache")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -367,6 +368,48 @@ local function set_visual_mode_command(command_opts)
 end
 
 
+local function cache_limit_usage()
+    return analysis_cache.usage(command_name("CacheLimit"))
+end
+
+
+local function set_cache_limit_command(command_opts)
+    local requested_value = command_opts.args
+
+    if requested_value == nil or requested_value == "" then
+        vim.notify(
+            "tracker_hud: cache limit is "
+                .. analysis_cache.describe(config)
+                .. ". "
+                .. cache_limit_usage(),
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    local _limit, err = analysis_cache.set_limit(config, requested_value)
+
+    if err then
+        vim.notify(
+            "tracker_hud: "
+                .. tostring(err)
+                .. ". "
+                .. cache_limit_usage(),
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    update_hud()
+
+    vim.notify(
+        "tracker_hud: cache limit set to "
+            .. analysis_cache.describe(config),
+        vim.log.levels.INFO
+    )
+end
+
+
 function M.setup(opts)
     config = config_module.resolve(opts)
 
@@ -444,6 +487,14 @@ function M.setup(opts)
         nargs = "?",
         complete = function()
             return visual_language.visual_mode_names()
+        end,
+        force = true,
+    })
+
+    register_user_command("CacheLimit", set_cache_limit_command, {
+        nargs = "?",
+        complete = function()
+            return { "on", "off", "200", "500", "1000" }
         end,
         force = true,
     })
