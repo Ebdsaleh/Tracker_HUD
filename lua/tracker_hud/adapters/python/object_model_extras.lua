@@ -252,19 +252,18 @@ local function scan_classes(lines)
             current_class = nil
             class_body_indent = nil
         elseif current_class and not is_blank_or_comment(line) and indent > current_class.indent then
-            if not class_body_indent
-                and stripped:sub(1, 1) ~= "@"
-                and not stripped:match("^def%s+")
-                and not stripped:match("^class%s+")
-            then
+            -- The first non-blank, non-comment line inside a class determines
+            -- the direct class-body indentation. It may be a decorator, method,
+            -- nested class, or attribute. Once locked, deeper method bodies can
+            -- never be mistaken for class-body assignments.
+            if not class_body_indent then
                 class_body_indent = indent
             end
 
             -- Class attributes are only direct class-body assignments.
             -- Do not report assignments inside methods, branches, loops, or
             -- nested blocks as class attributes.
-            if class_body_indent
-                and indent == class_body_indent
+            if indent == class_body_indent
                 and is_direct_class_body_assignment(stripped)
             then
                 local attr_name, attr_expr = stripped:match("^([%w_]+)%s*=%s*(.+)$")
