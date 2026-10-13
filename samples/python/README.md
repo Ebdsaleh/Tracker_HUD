@@ -163,4 +163,24 @@ The event state is cursor-position aware: before a mutation call, factory assign
 
 This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
+## Cursor discovery rule
+
+Python model events should follow the same discovery contract as the ASM adapter:
+
+```text
+before a declaration/effect line -> hidden
+on the declaration/effect line   -> visible
+past the declaration/effect line -> visible
+```
+
+This means the cursor being **on it or past it** is enough for visibility. The collector may cache source internally, but the HUD must not display facts introduced by future lines.
+
+For `python_object_model_validation.py`, validate this progressively:
+
+1. At the top of the file, future `Data Models` entries must not be visible.
+2. On `class ModelThing:`, `ModelThing` may become visible.
+3. Inside `ModelThing`, only fields and method effects whose own source lines have been reached should appear.
+4. After the `ModelThing` block, the full known `ModelThing` model may appear.
+5. `PropertyThing`, `CollectionThing`, `DataThing`, factories, and object instances must stay hidden until the cursor reaches their own declaration or assignment lines.
+
 These samples are not unit tests yet. They are stable manual HUD validation fixtures.
