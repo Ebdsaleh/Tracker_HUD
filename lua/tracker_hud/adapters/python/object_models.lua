@@ -7,6 +7,8 @@
 -- to the current cursor line:
 --
 --   class fields assigned as self.field = ...
+--   annotated model fields: name: Type = default
+--   dataclass construction from annotated fields
 --   object construction: name = ClassName(...)
 --   simple mutator calls: name.method(...)
 --   direct instance writes: name.field = ...
@@ -152,7 +154,9 @@ local function ensure_class(classes, name, line_number, indent)
             start_line = line_number,
             indent = indent,
             fields = {},
+            field_order = {},
             methods = {},
+            dataclass = false,
         }
         classes[name] = class
     end
@@ -171,6 +175,7 @@ local function ensure_method(class, name, params, line_number, indent)
             start_line = line_number,
             indent = indent,
             effects = {},
+            synthesized = false,
         }
         class.methods[name] = method
     end
@@ -179,7 +184,7 @@ local function ensure_method(class, name, params, line_number, indent)
 end
 
 
-local function add_field_effect(class, method, field_name, expr, line_number)
+local function ensure_field(class, field_name, line_number)
     local field = class.fields[field_name]
 
     if not field then
@@ -187,10 +192,20 @@ local function add_field_effect(class, method, field_name, expr, line_number)
             name = field_name,
             first_line = line_number,
             initial_expr = nil,
+            annotation = nil,
+            declared_default = nil,
             writers = {},
         }
         class.fields[field_name] = field
+        table.insert(class.field_order, field_name)
     end
+
+    return field
+end
+
+
+local function add_field_effect(class, method, field_name, expr, line_number)
+    local field = ensure_field(class, field_name, line_number)
 
     if method.name == "__init__" and field.initial_expr == nil then
         field.initial_expr = expr
@@ -206,10 +221,106 @@ local function add_field_effect(class, method, field_name, expr, line_number)
 end
 
 
+local function add_declared_field(class, field_name, annotation, default, line_number)
+    local field = ensure_field(class, field_name, line_number)
+
+    if type(annotation) == "string" and annotation ~= "" then
+        field.annotation = trim(annotation)
+    end
+
+    if type(default) == "string" and default ~= "" then
+        field.declared_default = trim(default)
+
+        if field.initial_expr == nil then
+            field.initial_expr = field.declared_default
+        end
+    end
+
+    if class.dataclass then
+        field.writers.__init__ = true
+    end
+end
+
+
+local function stripped_is_dataclass_decorator(stripped)
+    return stripped == "@dataclass"
+        or stripped:match("^@dataclass%s*%(") ~= nil
+        or stripped == "@dataclasses.dataclass"
+        or stripped:match("^@dataclasses%.dataclass%s*%(") ~= nil
+end
+
+
+local function maybe_parse_annotated_field(stripped)
+    local field_name, annotation, default =
+        stripped:match("^([%w_]+)%s*:%s*(.-)%s*=%s*(.+)$")
+
+    if field_name and annotation and default then
+        return field_name, trim(annotation), trim(default)
+    end
+
+    field_name, annotation = stripped:match("^([%w_]+)%s*:%s*(.+)$")
+
+    if field_name and annotation then
+        return field_name, trim(annotation), nil
+    end
+
+    return nil, nil, nil
+end
+
+
+local function synthesize_dataclass_init(class)
+    if not class.dataclass or class.methods.__init__ then
+        return
+    end
+
+    local params = {
+        { name = "self" },
+    }
+
+    local method = {
+        name = "__init__",
+        params = params,
+        start_line = class.start_line,
+        indent = class.indent + 4,
+        effects = {},
+        synthesized = true,
+    }
+
+    for _, field_name in ipairs(class.field_order or {}) do
+        local field = class.fields[field_name]
+
+        if field then
+            table.insert(params, {
+                name = field.name,
+                default = field.declared_default,
+            })
+
+            table.insert(method.effects, {
+                field = field.name,
+                expr = field.name,
+                line = field.first_line,
+            })
+
+            field.writers.__init__ = true
+        end
+    end
+
+    class.methods.__init__ = method
+end
+
+
+local function synthesize_dataclass_methods(classes)
+    for _, class_name in ipairs(sorted_keys(classes)) do
+        synthesize_dataclass_init(classes[class_name])
+    end
+end
+
+
 local function scan_classes(lines)
     local classes = {}
     local current_class = nil
     local current_method = nil
+    local pending_dataclass = false
 
     for line_number, line in ipairs(lines or {}) do
         local indent = leading_indent(line)
@@ -217,12 +328,21 @@ local function scan_classes(lines)
         local class_name = stripped:match("^class%s+([%w_]+)")
         local method_name, method_params = stripped:match("^def%s+([%w_]+)%s*%((.-)%)%s*:")
 
-        if class_name then
+        if stripped:sub(1, 1) == "@" then
+            if stripped_is_dataclass_decorator(stripped) then
+                pending_dataclass = true
+            end
+        elseif class_name then
             current_class = ensure_class(classes, class_name, line_number, indent)
+            current_class.dataclass = pending_dataclass == true
+            pending_dataclass = false
             current_method = nil
         elseif current_class and not is_blank_or_comment(line) and indent <= current_class.indent then
             current_class = nil
             current_method = nil
+            pending_dataclass = false
+        elseif not is_blank_or_comment(line) then
+            pending_dataclass = false
         end
 
         if current_class and method_name and indent > current_class.indent then
@@ -243,8 +363,16 @@ local function scan_classes(lines)
             if field_name and expr then
                 add_field_effect(current_class, current_method, field_name, trim(expr), line_number)
             end
+        elseif current_class and not current_method and indent > current_class.indent then
+            local field_name, annotation, default = maybe_parse_annotated_field(stripped)
+
+            if field_name then
+                add_declared_field(current_class, field_name, annotation, default, line_number)
+            end
         end
     end
+
+    synthesize_dataclass_methods(classes)
 
     return classes
 end
@@ -447,6 +575,10 @@ end
 local function field_label(field)
     local label = field.name
 
+    if field.annotation then
+        label = label .. " : " .. field.annotation
+    end
+
     if field.initial_expr then
         label = label .. " initial " .. field.initial_expr
     end
@@ -472,6 +604,10 @@ local function method_effect_label(method)
         return nil
     end
 
+    if method.name == "__init__" and method.synthesized then
+        return "dataclass __init__ initializes " .. table.concat(parts, ", ")
+    end
+
     if method.name == "__init__" then
         return "__init__ initializes " .. table.concat(parts, ", ")
     end
@@ -483,6 +619,10 @@ end
 local function class_event(class)
     local operands = {}
     local operand_specs = {}
+
+    if class.dataclass then
+        add_operand(operands, operand_specs, "model kind", "dataclass")
+    end
 
     for _, field_name in ipairs(sorted_keys(class.fields)) do
         add_operand(
