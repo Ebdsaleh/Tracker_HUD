@@ -68,28 +68,31 @@ Open the object-model sample:
 nvim samples/python/python_object_model_validation.py
 ```
 
-The first visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
+The visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
 
 - `(data model) ModelThing - class model exposes ...`
-- `(data model) DataThing - class model exposes ...`
+- `(data model) ModelThing - class attributes visible from file`
+- `(factory) build_model - factory returns ModelThing`
 - `(object) default_obj - ModelThing state known from file up to cursor`
 - `(object) my_obj - ModelThing state known from file up to cursor`
+- `(object) factory_obj - ModelThing object created through factory`
 - `(object) data_obj - DataThing state known from file up to cursor`
 
-The normal class data-model event should expose details such as:
+The data-model events should expose details such as:
 
+- `class attribute: KIND = "tracker-hud-sample"`
 - `field: name initial name changed by __init__, set_name`
 - `field: type initial None changed by __init__, set_type`
 - `method effect: __init__ initializes name = name, type = None`
 - `method effect: set_name mutates name = name`
 - `method effect: set_type mutates type = _type`
 
-The dataclass data-model event should expose details such as:
+Factory/object events should expose details such as:
 
-- `model kind: dataclass`
-- `field: name : str changed by __init__`
-- `field: kind : str initial "generic" changed by __init__`
-- `method effect: dataclass __init__ initializes name = name, kind = kind`
+- `factory: build_model`
+- `factory call: build_model("Factory Yo")`
+- `created: ModelThing(name="Factory Yo")`
+- `known through: cursor line ...`
 
 The object events should expose details such as:
 
@@ -97,27 +100,25 @@ The object events should expose details such as:
 - `created: ModelThing()` for `default_obj`
 - `current state: name = "New Object"` for `default_obj`, using the constructor default argument
 - `created: ModelThing("Yo")` for `my_obj`
-- `known through: cursor line ...`
-- `current state: name = "Yo"` before the direct write
+- `current state: name = "Keyword Yo"` after `my_obj.set_name(name="Keyword Yo")`
 - `current state: name = "Updated Yo"` after `my_obj.name = "Updated Yo"`
-- `current state: type = "phrase"` after the cursor has reached `my_obj.set_type("phrase")`
+- `current state: type = "phrase"` after the cursor has reached `my_obj.set_type(_type="phrase")`
 - `constructor write: __init__ -> name = ... at line ...`
 - `constructor write: __init__ -> type = None at line ...`
+- `method write: set_name -> name = "Keyword Yo" at line ...`
 - `method write: set_type -> type = "phrase" at line ...`
 - `direct write: <direct> -> name = "Updated Yo" at line ...`
 
-The dataclass object event should expose details such as:
+The dataclass model should expose details such as:
 
-- `class: DataThing`
-- `created: DataThing("Sample")`
-- `current state: name = "Sample"`
-- `current state: kind = "generic"` before the direct write
+- `model kind: dataclass`
+- `class attribute: CATEGORY = "dataclass-sample"`
+- `field: name : str changed by __init__`
+- `field: kind : str initial "generic" changed by __init__`
+- `method effect: dataclass __init__ initializes name = name, kind = kind`
 - `current state: kind = "custom"` after `data_obj.kind = "custom"`
-- `constructor write: __init__ -> name = "Sample" at line ...`
-- `constructor write: __init__ -> kind = "generic" at line ...`
-- `direct write: <direct> -> kind = "custom" at line ...`
 
-The event state is cursor-position aware: before a mutation call or direct write, known state should still reflect the earlier visible value. After the mutation or direct write, it should reflect the simple file-local effect.
+The event state is cursor-position aware: before a mutation call, factory assignment, or direct write, known state should still reflect the earlier visible value. After the mutation, factory assignment, or direct write, it should reflect the simple file-local effect.
 
 This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
