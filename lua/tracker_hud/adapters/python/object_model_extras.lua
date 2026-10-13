@@ -204,9 +204,35 @@ local function add_operand(operands, operand_specs, role, text)
 end
 
 
+local function is_direct_class_body_assignment(stripped)
+    if stripped:sub(1, 1) == "@" then
+        return false
+    end
+
+    if stripped:match("^def%s+") or stripped:match("^class%s+") then
+        return false
+    end
+
+    if stripped:match("^if%s+")
+        or stripped:match("^elif%s+")
+        or stripped:match("^else%s*:")
+        or stripped:match("^for%s+")
+        or stripped:match("^while%s+")
+        or stripped:match("^try%s*:")
+        or stripped:match("^except%s*")
+        or stripped:match("^with%s+")
+    then
+        return false
+    end
+
+    return stripped:match("^([%w_]+)%s*=%s*(.+)$") ~= nil
+end
+
+
 local function scan_classes(lines)
     local classes = {}
     local current_class = nil
+    local class_body_indent = nil
 
     for line_number, line in ipairs(lines or {}) do
         local indent = leading_indent(line)
@@ -221,17 +247,35 @@ local function scan_classes(lines)
                 attributes = {},
             }
             classes[class_name] = current_class
+            class_body_indent = nil
         elseif current_class and not is_blank_or_comment(line) and indent <= current_class.indent then
             current_class = nil
-        elseif current_class and indent > current_class.indent then
-            local attr_name, attr_expr = stripped:match("^([%w_]+)%s*=%s*(.+)$")
+            class_body_indent = nil
+        elseif current_class and not is_blank_or_comment(line) and indent > current_class.indent then
+            if not class_body_indent
+                and stripped:sub(1, 1) ~= "@"
+                and not stripped:match("^def%s+")
+                and not stripped:match("^class%s+")
+            then
+                class_body_indent = indent
+            end
 
-            if attr_name and attr_expr then
-                table.insert(current_class.attributes, {
-                    name = attr_name,
-                    expr = trim(attr_expr),
-                    line = line_number,
-                })
+            -- Class attributes are only direct class-body assignments.
+            -- Do not report assignments inside methods, branches, loops, or
+            -- nested blocks as class attributes.
+            if class_body_indent
+                and indent == class_body_indent
+                and is_direct_class_body_assignment(stripped)
+            then
+                local attr_name, attr_expr = stripped:match("^([%w_]+)%s*=%s*(.+)$")
+
+                if attr_name and attr_expr then
+                    table.insert(current_class.attributes, {
+                        name = attr_name,
+                        expr = trim(attr_expr),
+                        line = line_number,
+                    })
+                end
             end
         end
     end
