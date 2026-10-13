@@ -15,7 +15,21 @@ local event_model = require("tracker_hud.event_model")
 
 local M = {}
 
-local PYTHON_INITIAL_SCAN_LIMIT = 200
+
+local function trim(value)
+    if type(value) ~= "string" then
+        return ""
+    end
+
+    return (value:gsub("^%s+", ""):gsub("%s+$", ""))
+end
+
+
+local function leading_indent(line)
+    local spaces = tostring(line or ""):match("^(%s*)") or ""
+    return #spaces
+end
+
 
 local function add_event(events, seen, opts)
     if type(events) ~= "table" or type(opts) ~= "table" then
@@ -168,95 +182,6 @@ local function context_is_python(context)
 end
 
 
-local function get_context_cursor_line(context)
-    if type(context) ~= "table"
-        or type(context.cursor) ~= "table"
-    then
-        return nil
-    end
-
-    return tonumber(context.cursor.line)
-end
-
-
-local function get_python_scan_line_limit(context)
-    local cursor_line = get_context_cursor_line(context)
-
-    if cursor_line and cursor_line > 0 then
-        return cursor_line
-    end
-
-    return PYTHON_INITIAL_SCAN_LIMIT
-end
-
-
-local function trim_lines_to_visible_prefix(lines, start_index, line_limit)
-    if type(lines) ~= "table" then
-        return lines
-    end
-
-    start_index = tonumber(start_index) or 0
-    line_limit = tonumber(line_limit) or PYTHON_INITIAL_SCAN_LIMIT
-
-    local max_count = line_limit - start_index
-
-    if max_count <= 0 then
-        return {}
-    end
-
-    if #lines <= max_count then
-        return lines
-    end
-
-    local result = {}
-
-    for index = 1, max_count do
-        result[index] = lines[index]
-    end
-
-    return result
-end
-
-
-local function collect_python_module_with_visible_prefix(module, context)
-    local ok_buf, current_buf = pcall(vim.api.nvim_get_current_buf)
-
-    if not ok_buf or not current_buf then
-        return pcall(module.collect_events, context)
-    end
-
-    local original_get_lines = vim.api.nvim_buf_get_lines
-    local line_limit = get_python_scan_line_limit(context)
-    local patched = false
-
-    local patch_ok = pcall(function()
-        vim.api.nvim_buf_get_lines = function(bufnr, start_index, end_index, strict_indexing)
-            local lines = original_get_lines(bufnr, start_index, end_index, strict_indexing)
-
-            if bufnr == current_buf then
-                return trim_lines_to_visible_prefix(lines, start_index, line_limit)
-            end
-
-            return lines
-        end
-
-        patched = true
-    end)
-
-    if not patch_ok or not patched then
-        return pcall(module.collect_events, context)
-    end
-
-    local collected_ok, model_events = pcall(module.collect_events, context)
-
-    pcall(function()
-        vim.api.nvim_buf_get_lines = original_get_lines
-    end)
-
-    return collected_ok, model_events
-end
-
-
 local function collect_python_event_module(events, seen, context, module_name)
     if not context_is_python(context) then
         return
@@ -272,8 +197,8 @@ local function collect_python_event_module(events, seen, context, module_name)
         return
     end
 
-    local collected_ok, model_events = collect_python_module_with_visible_prefix(
-        module,
+    local collected_ok, model_events = pcall(
+        module.collect_events,
         context
     )
 
@@ -318,7 +243,140 @@ local function collect_python_object_model_events(events, seen, context)
 end
 
 
-local function event_is_visible_at_cursor(event, cursor_line)
+local function get_context_cursor_line(context)
+    if type(context) ~= "table"
+        or type(context.cursor) ~= "table"
+    then
+        return nil
+    end
+
+    return tonumber(context.cursor.line)
+end
+
+
+local function event_source_line(event)
+    return tonumber(
+        type(event) == "table"
+            and (
+                event.source_line
+                or event.source_start_line
+            )
+            or nil
+    )
+end
+
+
+local function event_source_end_line(event)
+    return tonumber(
+        type(event) == "table"
+            and (
+                event.source_end_line
+                or event.source_end_line
+            )
+            or nil
+    )
+end
+
+
+local function is_python_model_definition_event(event)
+    if type(event) ~= "table" then
+        return false
+    end
+
+    if event.category ~= "data model"
+        and event.category ~= "factory"
+    then
+        return false
+    end
+
+    local source = tostring(event.source or "")
+
+    return source == "python_object_models"
+        or source == "python_object_model_extras"
+        or source == "python_object_model_properties"
+        or source == "python_object_model_collections"
+end
+
+
+local function current_buffer()
+    local ok, bufnr = pcall(vim.api.nvim_get_current_buf)
+
+    if ok and bufnr and vim.api.nvim_buf_is_valid(bufnr) then
+        return bufnr
+    end
+
+    return nil
+end
+
+
+local function python_block_end_line(bufnr, start_line)
+    if not bufnr
+        or not vim.api.nvim_buf_is_valid(bufnr)
+        or not start_line
+        or start_line < 1
+    then
+        return nil
+    end
+
+    local total = vim.api.nvim_buf_line_count(bufnr)
+
+    if start_line >= total then
+        return total
+    end
+
+    local start_text = vim.api.nvim_buf_get_lines(
+        bufnr,
+        start_line - 1,
+        start_line,
+        false
+    )[1] or ""
+    local start_indent = leading_indent(start_text)
+
+    for line_number = start_line + 1, total do
+        local line = vim.api.nvim_buf_get_lines(
+            bufnr,
+            line_number - 1,
+            line_number,
+            false
+        )[1] or ""
+        local stripped = trim(line)
+
+        if stripped ~= ""
+            and stripped:sub(1, 1) ~= "#"
+            and leading_indent(line) <= start_indent
+        then
+            return line_number - 1
+        end
+    end
+
+    return total
+end
+
+
+local function python_model_definition_visible(event, cursor_line, bufnr)
+    local explicit_end = event_source_end_line(event)
+
+    if explicit_end then
+        return explicit_end <= cursor_line
+    end
+
+    local source_line = event_source_line(event)
+
+    if not source_line then
+        return true
+    end
+
+    local block_end = python_block_end_line(bufnr, source_line)
+
+    if not block_end then
+        return source_line <= cursor_line
+    end
+
+    return block_end <= cursor_line
+end
+
+
+local function event_is_visible_at_cursor(event, cursor_line, bufnr)
     if not cursor_line then
         return true
     end
@@ -327,16 +385,21 @@ local function event_is_visible_at_cursor(event, cursor_line)
         return false
     end
 
-    local source_line = tonumber(
-        event.source_line
-        or event.source_start_line
-    )
+    local source_line = event_source_line(event)
 
     if not source_line then
         return true
     end
 
-    return source_line <= cursor_line
+    if source_line > cursor_line then
+        return false
+    end
+
+    if is_python_model_definition_event(event) then
+        return python_model_definition_visible(event, cursor_line, bufnr)
+    end
+
+    return true
 end
 
 
@@ -348,9 +411,10 @@ local function filter_events_visible_at_cursor(events, context)
     end
 
     local visible = {}
+    local bufnr = current_buffer()
 
     for _, event in ipairs(events or {}) do
-        if event_is_visible_at_cursor(event, cursor_line) then
+        if event_is_visible_at_cursor(event, cursor_line, bufnr) then
             table.insert(visible, event)
         end
     end
