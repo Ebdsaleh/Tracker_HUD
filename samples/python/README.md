@@ -74,11 +74,13 @@ The visible object-model pass uses the existing **Events** section to avoid dest
 - `(data model) ModelThing - class model exposes ...`
 - `(data model) ModelThing - class attributes visible from file`
 - `(data model) PropertyThing - properties visible from file`
+- `(data model) CollectionThing - collection fields visible from file`
 - `(factory) build_model - factory returns ModelThing`
 - `(object) default_obj - ModelThing state known from file up to cursor`
 - `(object) my_obj - ModelThing state known from file up to cursor`
 - `(object) factory_obj - ModelThing object created through factory`
 - `(object) prop_obj.display_name - property assignment resolved through setter`
+- `(object) collection_obj - CollectionThing collection state known from file up to cursor`
 - `(object) data_obj - DataThing state known from file up to cursor`
 
 The data-model events should expose details such as:
@@ -99,6 +101,30 @@ Property events should expose details such as:
 - `setter: display_name at line ...`
 - `assigned: "Renamed Property"` for `prop_obj.display_name = "Renamed Property"`
 - `setter effect: self._display_name = "Renamed Property"`
+
+Collection model events should expose details such as:
+
+- `collection field: items : list`
+- `collection field: lookup : dict`
+- `collection effect: __init__ -> items initialized as []`
+- `collection effect: __init__ -> lookup initialized as {}`
+- `collection effect: add_item -> items.append(item)`
+- `collection effect: add_many -> items.extend(values)`
+- `collection effect: set_lookup -> lookup[key] = value`
+
+Collection object events should expose cursor-aware details such as:
+
+- `collection state: items : list`
+- `collection state: lookup : dict`
+- `initial state: items = []`
+- `initial state: lookup = {}`
+- `appended: items += "apple"`
+- `extended: items extend ["banana", "pear"]`
+- `item state: lookup["kind"] = "fruit"`
+- `appended: items += "direct grape"`
+- `item state: lookup["color"] = "green"`
+- `collection write: add_item -> items.append("apple") at line ...`
+- `collection write: set_lookup -> lookup["kind"] = "fruit" at line ...`
 
 Factory/object events should expose details such as:
 
@@ -131,7 +157,7 @@ The dataclass model should expose details such as:
 - `method effect: dataclass __init__ initializes name = name, kind = kind`
 - `current state: kind = "custom"` after `data_obj.kind = "custom"`
 
-The event state is cursor-position aware: before a mutation call, factory assignment, property assignment, or direct write, known state should still reflect the earlier visible value. After the mutation, factory assignment, property assignment, or direct write, it should reflect the simple file-local effect.
+The event state is cursor-position aware: before a mutation call, factory assignment, property assignment, collection mutation, or direct write, known state should still reflect the earlier visible value. After the mutation, factory assignment, property assignment, collection mutation, or direct write, it should reflect the simple file-local effect.
 
 This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
