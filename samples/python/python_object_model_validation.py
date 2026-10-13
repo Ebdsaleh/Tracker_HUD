@@ -11,6 +11,8 @@ Expected HUD behaviour:
 - Direct writes such as my_obj.name = ... should update known object state.
 - Simple top-level factories returning model instances should be visible.
 - @property and @name.setter models should be visible.
+- Collection fields such as self.items = [] and self.lookup = {} should be visible.
+- Collection mutators such as append and item assignment should update known state.
 - @dataclass models should expose annotated fields and constructor state.
 - my_obj should be recognised as an instance of ModelThing.
 - After my_obj.set_type("phrase"), my_obj.type should be known as "phrase".
@@ -47,6 +49,21 @@ class PropertyThing:
         self._display_name = value
 
 
+class CollectionThing:
+    def __init__(self):
+        self.items = []
+        self.lookup = {}
+
+    def add_item(self, item):
+        self.items.append(item)
+
+    def add_many(self, values):
+        self.items.extend(values)
+
+    def set_lookup(self, key, value):
+        self.lookup[key] = value
+
+
 @dataclass
 class DataThing:
     CATEGORY = "dataclass-sample"
@@ -68,6 +85,13 @@ factory_obj = build_model("Factory Yo")
 
 prop_obj = PropertyThing("Property Yo")
 prop_obj.display_name = "Renamed Property"
+
+collection_obj = CollectionThing()
+collection_obj.add_item("apple")
+collection_obj.add_many(["banana", "pear"])
+collection_obj.set_lookup("kind", "fruit")
+collection_obj.items.append("direct grape")
+collection_obj.lookup["color"] = "green"
 
 data_obj = DataThing("Sample")
 data_obj.kind = "custom"
