@@ -217,6 +217,13 @@ local function collect_python_object_model_events(events, seen, context)
         context,
         "tracker_hud.adapters.python.object_model_properties"
     )
+
+    collect_python_event_module(
+        events,
+        seen,
+        context,
+        "tracker_hud.adapters.python.object_model_collections"
+    )
 end
 
 
