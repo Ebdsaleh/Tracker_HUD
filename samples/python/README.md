@@ -73,10 +73,12 @@ The visible object-model pass uses the existing **Events** section to avoid dest
 
 - `(data model) ModelThing - class model exposes ...`
 - `(data model) ModelThing - class attributes visible from file`
+- `(data model) PropertyThing - properties visible from file`
 - `(factory) build_model - factory returns ModelThing`
 - `(object) default_obj - ModelThing state known from file up to cursor`
 - `(object) my_obj - ModelThing state known from file up to cursor`
 - `(object) factory_obj - ModelThing object created through factory`
+- `(object) prop_obj.display_name - property assignment resolved through setter`
 - `(object) data_obj - DataThing state known from file up to cursor`
 
 The data-model events should expose details such as:
@@ -89,6 +91,14 @@ The data-model events should expose details such as:
 - `method effect: set_type mutates type = _type`
 
 Class attribute events are intentionally strict: only direct class-body assignments count. Assignments inside methods, branches, loops, or exception blocks must not be reported as class attributes.
+
+Property events should expose details such as:
+
+- `property: display_name | reads self._display_name | sets self._display_name`
+- `getter: display_name at line ...`
+- `setter: display_name at line ...`
+- `assigned: "Renamed Property"` for `prop_obj.display_name = "Renamed Property"`
+- `setter effect: self._display_name = "Renamed Property"`
 
 Factory/object events should expose details such as:
 
@@ -121,7 +131,7 @@ The dataclass model should expose details such as:
 - `method effect: dataclass __init__ initializes name = name, kind = kind`
 - `current state: kind = "custom"` after `data_obj.kind = "custom"`
 
-The event state is cursor-position aware: before a mutation call, factory assignment, or direct write, known state should still reflect the earlier visible value. After the mutation, factory assignment, or direct write, it should reflect the simple file-local effect.
+The event state is cursor-position aware: before a mutation call, factory assignment, property assignment, or direct write, known state should still reflect the earlier visible value. After the mutation, factory assignment, property assignment, or direct write, it should reflect the simple file-local effect.
 
 This is a static Tracker_HUD view, not a live Python runtime debugger. It only claims what is visible from the current file up to the cursor position.
 
