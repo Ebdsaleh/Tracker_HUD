@@ -352,8 +352,61 @@ local function append_base_details(node, event)
 end
 
 
+local function build_event_node(event)
+    local node = {
+        id = event.id,
+        label = make_event_label(event),
+        kind = event.kind or "event",
+        category = event.category,
+        source_line = event.source_line,
+        source_column = event.source_column,
+        source_end_line = event.source_end_line,
+        source_end_column = event.source_end_column,
+        children = {},
+        default_expanded = false,
+        metadata = event.metadata or {},
+        event = event,
+    }
+
+    append_base_details(node, event)
+    append_operand_details(node, event)
+    append_condition_detail(node, event)
+    append_boundary_io_details(node, event)
+
+    return node
+end
+
+
+local function is_python_model_event(event)
+    if type(event) ~= "table" then
+        return false
+    end
+
+    local source = tostring(event.source or "")
+
+    return source:match("^python_object_model") ~= nil
+end
+
+
+local function build_python_model_group(nodes)
+    if #nodes == 0 then
+        return nil
+    end
+
+    return {
+        id = "event:python:data_models:group",
+        label = "Data Models - Python file-local model/object facts",
+        kind = "event_group",
+        category = "data model",
+        children = nodes,
+        default_expanded = true,
+    }
+end
+
+
 function M.build(events)
     local nodes = {}
+    local python_model_nodes = {}
 
     if type(events) ~= "table" then
         return nodes
@@ -361,28 +414,20 @@ function M.build(events)
 
     for _, event in ipairs(events) do
         if type(event) == "table" then
-            local node = {
-                id = event.id,
-                label = make_event_label(event),
-                kind = event.kind or "event",
-                category = event.category,
-                source_line = event.source_line,
-                source_column = event.source_column,
-                source_end_line = event.source_end_line,
-                source_end_column = event.source_end_column,
-                children = {},
-                default_expanded = false,
-                metadata = event.metadata or {},
-                event = event,
-            }
+            local node = build_event_node(event)
 
-            append_base_details(node, event)
-            append_operand_details(node, event)
-            append_condition_detail(node, event)
-            append_boundary_io_details(node, event)
-
-            table.insert(nodes, node)
+            if is_python_model_event(event) then
+                table.insert(python_model_nodes, node)
+            else
+                table.insert(nodes, node)
+            end
         end
+    end
+
+    local python_model_group = build_python_model_group(python_model_nodes)
+
+    if python_model_group then
+        table.insert(nodes, python_model_group)
     end
 
     return nodes
