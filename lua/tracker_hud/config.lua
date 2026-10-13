@@ -143,6 +143,23 @@ M.defaults = {
         show_after_instruction = true,
     },
 
+    -- Analysis/cache controls shared by all adapters.
+    --
+    -- cache_line_limit controls the intended initial bounded analysis window
+    -- for large files. A numeric value means "pre-cache/analyze at most this
+    -- many lines up front". `false` means unlimited. HUD visibility remains
+    -- cursor-gated: facts from future source lines must not be displayed just
+    -- because they are cached.
+    --
+    -- Runtime command:
+    --   :<namespace-prefix>CacheLimit          show current setting
+    --   :<namespace-prefix>CacheLimit on       set default 200-line limit
+    --   :<namespace-prefix>CacheLimit off      disable the limit
+    --   :<namespace-prefix>CacheLimit <number> set a custom line limit
+    analysis = {
+        cache_line_limit = 200,
+    },
+
     -- "left", "right", "top", or "bottom"
     panel_position = "right",
 
