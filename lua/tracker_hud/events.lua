@@ -171,6 +171,62 @@ local function context_is_python(context)
 end
 
 
+local function get_context_cursor_line(context)
+    if type(context) ~= "table"
+        or type(context.cursor) ~= "table"
+    then
+        return nil
+    end
+
+    local line = tonumber(context.cursor.line)
+
+    if line and line > 0 then
+        return math.floor(line)
+    end
+
+    return nil
+end
+
+
+local function make_python_prefix_get_lines(context, original_get_lines)
+    if type(original_get_lines) ~= "function" then
+        return nil
+    end
+
+    local cursor_line = get_context_cursor_line(context)
+
+    if not cursor_line then
+        return nil
+    end
+
+    local ok_current, current_buf = pcall(vim.api.nvim_get_current_buf)
+
+    if not ok_current or not current_buf then
+        return nil
+    end
+
+    return function(bufnr, start_index, end_index, strict_indexing)
+        if bufnr == current_buf
+            and start_index == 0
+            and end_index == -1
+        then
+            local ok_count, total = pcall(vim.api.nvim_buf_line_count, bufnr)
+
+            if ok_count and total and total > 0 then
+                return original_get_lines(
+                    bufnr,
+                    0,
+                    math.min(cursor_line, total),
+                    false
+                )
+            end
+        end
+
+        return original_get_lines(bufnr, start_index, end_index, strict_indexing)
+    end
+end
+
+
 local function collect_python_event_module(events, seen, context, module_name)
     if not context_is_python(context) then
         return
@@ -186,10 +242,24 @@ local function collect_python_event_module(events, seen, context, module_name)
         return
     end
 
+    -- Python model collectors are intentionally given only the visible prefix
+    -- of the current file. This mirrors the ASM discovery rule: a fact can be
+    -- inferred only when the cursor is on or past the source that introduces it.
+    local original_get_lines = vim.api.nvim_buf_get_lines
+    local prefix_get_lines = make_python_prefix_get_lines(context, original_get_lines)
+
+    if prefix_get_lines then
+        vim.api.nvim_buf_get_lines = prefix_get_lines
+    end
+
     local collected_ok, model_events = pcall(
         module.collect_events,
         context
     )
+
+    if prefix_get_lines then
+        vim.api.nvim_buf_get_lines = original_get_lines
+    end
 
     if not collected_ok or type(model_events) ~= "table" then
         return
@@ -229,17 +299,6 @@ local function collect_python_object_model_events(events, seen, context)
         context,
         "tracker_hud.adapters.python.object_model_collections"
     )
-end
-
-
-local function get_context_cursor_line(context)
-    if type(context) ~= "table"
-        or type(context.cursor) ~= "table"
-    then
-        return nil
-    end
-
-    return tonumber(context.cursor.line)
 end
 
 
