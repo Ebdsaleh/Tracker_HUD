@@ -9,6 +9,7 @@
 --   class fields assigned as self.field = ...
 --   object construction: name = ClassName(...)
 --   simple mutator calls: name.method(...)
+--   direct instance writes: name.field = ...
 
 local M = {}
 
@@ -88,17 +89,29 @@ local function split_args(text)
 end
 
 
-local function parse_parameter_names(parameter_text)
+local function parse_parameter_entries(parameter_text)
     local params = {}
 
     for _, param in ipairs(split_args(parameter_text or "")) do
-        local name = trim(param:gsub("=.*$", ""))
+        local default = nil
+        local name_part = param
+        local equals_at = param:find("=", 1, true)
+
+        if equals_at then
+            name_part = param:sub(1, equals_at - 1)
+            default = trim(param:sub(equals_at + 1))
+        end
+
+        local name = trim(name_part)
         name = name:gsub("^%*+", "")
         name = name:gsub(":.*$", "")
         name = trim(name)
 
         if name ~= "" then
-            table.insert(params, name)
+            table.insert(params, {
+                name = name,
+                default = default,
+            })
         end
     end
 
@@ -216,7 +229,7 @@ local function scan_classes(lines)
             current_method = ensure_method(
                 current_class,
                 method_name,
-                parse_parameter_names(method_params),
+                parse_parameter_entries(method_params),
                 line_number,
                 indent
             )
@@ -237,14 +250,44 @@ local function scan_classes(lines)
 end
 
 
+local function parse_call_arguments(args)
+    local parsed = {
+        positional = {},
+        keyword = {},
+    }
+
+    for _, arg in ipairs(args or {}) do
+        local key, value = arg:match("^([%w_]+)%s*=%s*(.+)$")
+
+        if key and value then
+            parsed.keyword[key] = trim(value)
+        else
+            table.insert(parsed.positional, arg)
+        end
+    end
+
+    return parsed
+end
+
+
 local function bind_arguments(params, args)
     local bound = {}
+    local parsed = parse_call_arguments(args)
     local arg_index = 1
 
     for _, param in ipairs(params or {}) do
-        if param ~= "self" then
-            bound[param] = args[arg_index]
-            arg_index = arg_index + 1
+        local param_name = type(param) == "table" and param.name or tostring(param)
+        local default = type(param) == "table" and param.default or nil
+
+        if param_name ~= "self" then
+            if parsed.keyword[param_name] ~= nil then
+                bound[param_name] = parsed.keyword[param_name]
+            elseif parsed.positional[arg_index] ~= nil then
+                bound[param_name] = parsed.positional[arg_index]
+                arg_index = arg_index + 1
+            elseif default ~= nil and default ~= "" then
+                bound[param_name] = default
+            end
         end
     end
 
@@ -263,6 +306,24 @@ local function resolve_expr(expr, bound)
 end
 
 
+local function add_object_change(object, opts)
+    if type(object) ~= "table" or type(opts) ~= "table" then
+        return
+    end
+
+    object.state[opts.field] = opts.value
+    object.last_line = opts.line or object.last_line
+
+    table.insert(object.changes, {
+        line = opts.line,
+        method = opts.method,
+        field = opts.field,
+        value = opts.value,
+        kind = opts.kind,
+    })
+end
+
+
 local function apply_method_effects(object, class, method, args, source_line)
     if not object or not class or not method then
         return
@@ -276,19 +337,29 @@ local function apply_method_effects(object, class, method, args, source_line)
     end
 
     for _, effect in ipairs(method.effects or {}) do
-        local value = resolve_expr(effect.expr, bound)
-
-        object.state[effect.field] = value
-        object.last_line = source_line or object.last_line
-
-        table.insert(object.changes, {
+        add_object_change(object, {
             line = source_line,
             method = method.name,
             field = effect.field,
-            value = value,
+            value = resolve_expr(effect.expr, bound),
             kind = change_kind,
         })
     end
+end
+
+
+local function apply_direct_field_write(object, field_name, expr, line_number)
+    if not object or not field_name or not expr then
+        return
+    end
+
+    add_object_change(object, {
+        line = line_number,
+        method = "<direct>",
+        field = field_name,
+        value = trim(expr),
+        kind = "direct write",
+    })
 end
 
 
@@ -337,6 +408,18 @@ local function scan_objects(lines, classes, cursor_line)
                         split_args(call_args or ""),
                         line_number
                     )
+                else
+                    local write_object, field_name, expr = stripped:match("^([%w_]+)%.([%w_]+)%s*=%s*(.+)$")
+                    local write_target = write_object and objects[write_object] or nil
+
+                    if write_target then
+                        apply_direct_field_write(
+                            write_target,
+                            field_name,
+                            expr,
+                            line_number
+                        )
+                    end
                 end
             end
         end
