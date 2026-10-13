@@ -69,7 +69,9 @@ Open the object-model sample:
 nvim samples/python/python_object_model_validation.py
 ```
 
-The visible object-model pass uses the existing **Events** section to avoid destabilizing the HUD renderer. Expand Events and look for entries like:
+The visible object-model pass currently uses the existing **Events** section to avoid destabilizing the HUD renderer. Python model/object/factory/property/collection facts are grouped under a **Data Models** parent inside Events. Expand Events and then expand Data Models.
+
+Inside that group, look for entries like:
 
 - `(data model) ModelThing - class model exposes ...`
 - `(data model) ModelThing - class attributes visible from file`
