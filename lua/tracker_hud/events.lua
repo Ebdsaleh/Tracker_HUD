@@ -166,26 +166,23 @@ local function context_is_python(context)
 end
 
 
-local function collect_python_object_model_events(events, seen, context)
+local function collect_python_event_module(events, seen, context, module_name)
     if not context_is_python(context) then
         return
     end
 
-    local ok, object_models = pcall(
-        require,
-        "tracker_hud.adapters.python.object_models"
-    )
+    local ok, module = pcall(require, module_name)
 
-    if not ok or type(object_models) ~= "table" then
+    if not ok or type(module) ~= "table" then
         return
     end
 
-    if type(object_models.collect_events) ~= "function" then
+    if type(module.collect_events) ~= "function" then
         return
     end
 
     local collected_ok, model_events = pcall(
-        object_models.collect_events,
+        module.collect_events,
         context
     )
 
@@ -196,6 +193,23 @@ local function collect_python_object_model_events(events, seen, context)
     for _, model_event in ipairs(model_events) do
         add_event(events, seen, model_event)
     end
+end
+
+
+local function collect_python_object_model_events(events, seen, context)
+    collect_python_event_module(
+        events,
+        seen,
+        context,
+        "tracker_hud.adapters.python.object_models"
+    )
+
+    collect_python_event_module(
+        events,
+        seen,
+        context,
+        "tracker_hud.adapters.python.object_model_extras"
+    )
 end
 
 
