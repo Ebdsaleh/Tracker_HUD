@@ -227,6 +227,58 @@ local function collect_python_object_model_events(events, seen, context)
 end
 
 
+local function get_context_cursor_line(context)
+    if type(context) ~= "table"
+        or type(context.cursor) ~= "table"
+    then
+        return nil
+    end
+
+    return tonumber(context.cursor.line)
+end
+
+
+local function event_is_visible_at_cursor(event, cursor_line)
+    if not cursor_line then
+        return true
+    end
+
+    if type(event) ~= "table" then
+        return false
+    end
+
+    local source_line = tonumber(
+        event.source_line
+        or event.source_start_line
+    )
+
+    if not source_line then
+        return true
+    end
+
+    return source_line <= cursor_line
+end
+
+
+local function filter_events_visible_at_cursor(events, context)
+    local cursor_line = get_context_cursor_line(context)
+
+    if not cursor_line then
+        return events
+    end
+
+    local visible = {}
+
+    for _, event in ipairs(events or {}) do
+        if event_is_visible_at_cursor(event, cursor_line) then
+            table.insert(visible, event)
+        end
+    end
+
+    return visible
+end
+
+
 function M.collect(context)
     local events = {}
     local seen = {}
@@ -238,6 +290,8 @@ function M.collect(context)
     collect_boundary_events(events, seen, context)
     collect_instruction_events(events, seen, context)
     collect_python_object_model_events(events, seen, context)
+
+    events = filter_events_visible_at_cursor(events, context)
 
     table.sort(events, function(left, right)
         local left_line = left.source_line
