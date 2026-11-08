@@ -1,3 +1,9 @@
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=cpp;
+// mode=compiled;
+
 // C++ source-observed memory operations, not a leak/lifetime proof.
 // The strings "new int" and "delete ptr" are not heap events.
 void observe_cpp() {
