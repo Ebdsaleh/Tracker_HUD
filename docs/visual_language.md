@@ -57,50 +57,60 @@ Relevance must not erase semantic identity.
 
 ---
 
-## Core section and Inspect Mode colors
+## Core section and Inspect Mode presentation
 
-The three language-neutral sections retain consistent semantic colors in both
-their **HUD section headers** and the active **Inspect Mode statusline label**.
-These colors are drawn from the established Tracker_HUD palette:
+Tracker_HUD has three language-neutral sections with stable identities, but
+the actual hues should follow the user's **Neovim colorscheme**, not forced
+hex values:
 
-| Core section | RGB color | 16-color fallback | Meaning |
-|---|---|---|---|
-| `Scope` | Blue `#7AA2F7` | ANSI bright blue (12) | Scope navigation |
-| `Scope Members` | Green `#9ECE6A` | ANSI bright green (10) | Members within scope |
-| `Warnings` | Amber `#E0AF68` | ANSI bright yellow (11) | Diagnostics / warnings |
+| Section | Existing Neovim group | Use |
+|---|---|---|
+| `Scope` | `Function` | Scope section title and mode name |
+| `Scope Members` | `Identifier` | Scope Members title and mode name |
+| `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
-Section titles keep their own color when another Inspect Mode is active.
-The selected Inspect Mode **statusline label** changes color when cycling.
-Other, language-specific sections continue to use the existing generic
-section/Inspect Mode styling rather than inheriting any of these three colors.
+These are color-*scheme links*, not hardcoded blue/green/orange RGB values.
+The namespaced styles are `<prefix>ScopeSectionTitle`,
+`<prefix>ScopeMembersSectionTitle`, and
+`<prefix>WarningSectionTitle`. A user-customized colorscheme or highlight
+link therefore remains authoritative. Other adapter-specific sections keep
+their existing generic section and Inspect Mode presentation.
 
-Focus/relevance may still modify *intensity*, while preserving the underlying
-semantic color. Existing text labels, `*` focus marker, and expansion
-markers remain intact. **An empty Warnings section still has an amber title**;
-the header color identifies the section, not the presence/severity of a warning.
+In the panel statusline the literal **`Inspect:` prefix stays at the
+default statusline foreground**. Only the selected section's name uses its
+matching theme-linked highlight. Do not tint the prefix.
 
-Plain mode remains strictly colorless: these section titles are bright white,
-and the active title continues to receive the standard underline. The Inspect
-Mode statusline label is also white in plain mode. This change does not
-introduce background shadows or color-dependent meaning.
+The current Inspect Mode also produces a **visible focus cue in the HUD**:
+the selected root-section title is **bold and underlined**, even when the
+cursor currently has no matching source fact in that section. The section's
+own color identity remains; inactive titles retain their existing color or
+relevance treatment. Do **not** underline every descendant or shadow every
+row of the selected section. This focus cue is for navigation, not a claim
+that the section contains a warning or changed program state.
 
-The implementation uses `visual_language.core_section_title_styles` and
-`visual_language.section_title_style(section_id, fallback)`, so the mapping
-is shared between section headers and the statusline. The shared highlight
-definitions support namespaces such as `HudScopeSectionTitle` and
-`HudScopeMembersSectionTitle`; the existing warning title group is
-`HudWarningSectionTitle` (substitute the configured namespace prefix).
+Plain mode remains strictly colorless. The active root title is underlined
+as before; all other HUD text and the statusline label are neutral, and
+only individually targeted active-path rows may get a neutral shadow. No
+background highlight is added across the whole Scope/Scope Members tree.
 
-Test in a new Neovim session:
+This behavior separates the visual-language layers:
+
+- **Semantic identity**: section name and its theme-linked highlight group.
+- **Inspect focus**: bold/underline on the single selected root title.
+- **Source relevance**: separate, existing source-cursor fact highlighting.
+
+Validate with a fresh Neovim session:
 
 ```bat
 nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
 nvim samples/python/python_adapter_validation.py
 ```
 
-Then cycle Inspect Mode using the configured keymap. Try both
-`:HudVisualMode rich` and `:HudVisualMode plain` to check the color and
-colorless presentations.
+Cycle Inspect Mode (default `<leader><leader>`) and compare the
+selected root title with the statusline. Try `:HudVisualMode rich` and
+`:HudVisualMode plain`. Check `Scope`, `Scope Members`,
+`Events`, and `Warnings`. Non-core section modes retain their
+existing theme styling.
 
 ---
 
