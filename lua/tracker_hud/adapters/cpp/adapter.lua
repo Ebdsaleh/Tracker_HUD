@@ -51,6 +51,12 @@ add_construct("lambda_expression", "function", "lambda", "Lambda",
 add_construct("new_expression", "call", "new expression", "New",
     { type = "type" }, nil)
 add_construct("delete_expression", "call", "delete expression", "Delete", nil, nil)
+add_construct("optional_parameter_declaration", "parameter",
+    "defaulted parameter", "Defaulted Parameter",
+    { declarator = "declarator", default_value = "default_value" }, nil)
+add_construct("variadic_parameter_declaration", "parameter",
+    "variadic parameter", "Variadic Parameter",
+    { declarator = "declarator" }, nil)
 add_construct("reference_declarator", "declaration", "reference declarator", "Reference",
     nil, nil)
 add_construct("for_range_loop", "loop", "range-for", "Range For",
