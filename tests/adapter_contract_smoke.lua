@@ -43,6 +43,22 @@ local function run()
         "C++ namespace grammar rule missing")
     assert(cpp.construct_specs["for_range_loop"] ~= nil,
         "C++ range-for grammar rule missing")
+    -- Contract v1 allows arbitrary group keys, but the current member
+    -- collector renders only these groups. Fail early on silently dead groups.
+    local supported = {
+        declarations = true, assignments = true, parameters = true,
+        functions = true, loops = true, returns = true,
+        fields = true, symbols = true,
+    }
+    for _, adapter in ipairs({ c, cpp }) do
+        for group_name in pairs(adapter.scope_members or {}) do
+            assert(supported[group_name],
+                adapter.name .. " has unrendered member group: " .. group_name)
+        end
+        assert(adapter.scope_members.parameters[1].syntax.children.names.node_type == "parameter_list",
+            adapter.name .. " parameters must use the real parameter-list node")
+    end
+
 
     print("PASS C/C++ adapter isolation")
 end
