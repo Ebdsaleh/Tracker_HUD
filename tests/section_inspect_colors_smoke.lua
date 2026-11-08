@@ -15,7 +15,7 @@ local function run()
     local expected = {
         scope = { style = "scope_section_title", link = "Function" },
         scope_members = { style = "scope_members_section_title", link = "String" },
-        events = { style = "events_section_title", link = "Special" },
+        events = { style = "events_section_title", link = "Keyword" },
         warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
@@ -81,7 +81,36 @@ local function run()
     assert(visual.section_title_style("registers") == "section_title",
         "unmapped section must preserve generic title style")
     assert(visual.section_title_style("events") == "events_section_title",
-        "Events must use its established event colour family")
+        "Events must use its own section-title style")
+    -- The default Events heading/mode name must match the Target: label.
+    -- Compare default links, not hardcoded RGB values: actual purple hue
+    -- remains controlled by the user's Neovim colorscheme.
+    assert(visual.default_links.events_section_title == visual.default_links.target_label,
+        "Events and Target: must share the default theme colour")
+    assert(visual.default_links.target_label == "Keyword",
+        "Target: default accent should remain Keyword")
+
+    local events_group = highlights.group_name(config, "events_section_title")
+    local target_group = highlights.group_name(config, "target_label")
+    local events_hl = vim.api.nvim_get_hl(0, {
+        name = events_group, link = false,
+    })
+    local target_hl = vim.api.nvim_get_hl(0, {
+        name = target_group, link = false,
+    })
+    if target_hl.fg ~= nil then
+        assert(events_hl.fg == target_hl.fg,
+            "Events heading hue must match Target: text")
+        local status_events = highlights.statusline_segment_group(
+            config, "events_section_title"
+        )
+        local status_hl = vim.api.nvim_get_hl(0, {
+            name = status_events, link = false,
+        })
+        assert(status_hl.fg == target_hl.fg,
+            "Inspect: Events must have the same hue as Target:")
+    end
+    print("PASS Events heading and Inspect name match Target: default accent")
 
     -- Inspect Mode selection must not inherit a potentially bright IncSearch
     -- background or override theme-provided section title foreground hues.
