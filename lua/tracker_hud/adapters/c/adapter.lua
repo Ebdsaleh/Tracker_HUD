@@ -99,11 +99,15 @@ add_construct("string_literal", "literal", "string literal", "String", nil, nil,
 add_construct("char_literal", "literal", "character literal", "Character", nil, nil, false)
 add_construct("pointer_declarator", "declaration", "pointer declarator", "Pointer Declarator", { declarator = "declarator" }, nil, false)
 
-local function member(node_type, name_field, kind, language_term, owner_scope)
+-- Keep the named AST field as primary evidence. Parser versions can differ
+-- in direct field exposure: precise named-node-type fallbacks are permitted
+-- by each rule and used only when the field lookup doesn't produce a name.
+local function member(node_type, name_field, kind, language_term, owner_scope, fallback)
     return {
         syntax = {
             node_type = node_type,
             fields = name_field and { name = name_field } or nil,
+            children = fallback and { name = { node_type = fallback } } or nil,
         },
         member = {
             kind = kind,
@@ -117,7 +121,7 @@ end
 -- Do not claim inferred types, pointer values, or runtime state here.
 M.scope_members = {
     functions = {
-        member("function_definition", "declarator", "function", "function", "parent_lexical"),
+        member("function_definition", "declarator", "function", "function", "parent_lexical", "identifier"),
     },
     -- The generic parameters/list collector renders a whole declaration
     -- (e.g. "int amount") as a name, and can accidentally include the type.
@@ -127,21 +131,21 @@ M.scope_members = {
     -- The shared symbol collector consumes named Tree-sitter fields.
     -- C declarations include prototypes, so don't assume every one is a variable.
     symbols = {
-        member("parameter_declaration", "declarator", "parameter", "parameter", "lexical"),
-        member("declaration", "declarator", "symbol", "declaration", "lexical"),
-        member("init_declarator", "declarator", "variable", "initialized variable", "lexical"),
+        member("parameter_declaration", "declarator", "parameter", "parameter", "lexical", "identifier"),
+        member("declaration", "declarator", "symbol", "declaration", "lexical", "identifier"),
+        member("init_declarator", "declarator", "variable", "initialized variable", "lexical", "identifier"),
         member("type_definition", "declarator", "symbol", "typedef", "lexical"),
         -- The symbols collector currently collects inside the lexical scope.
         -- parent_lexical is only processed pre-scope for the functions group;
         -- on symbols it silently drops the entry. Keep struct/union names
         -- visible here without changing the shared collector.
-        member("struct_specifier", "name", "symbol", "struct", "lexical"),
-        member("union_specifier", "name", "symbol", "union", "lexical"),
-        member("enum_specifier", "name", "symbol", "enum", "lexical"),
-        member("preproc_def", "name", "symbol", "macro", "lexical"),
+        member("struct_specifier", "name", "symbol", "struct", "lexical", "type_identifier"),
+        member("union_specifier", "name", "symbol", "union", "lexical", "type_identifier"),
+        member("enum_specifier", "name", "symbol", "enum", "lexical", "type_identifier"),
+        member("preproc_def", "name", "symbol", "macro", "lexical", "identifier"),
     },
     fields = {
-        member("field_declaration", "declarator", "field", "field", "lexical"),
+        member("field_declaration", "declarator", "field", "field", "lexical", "field_identifier"),
         {
             syntax = {
                 node_type = "assignment_expression",
