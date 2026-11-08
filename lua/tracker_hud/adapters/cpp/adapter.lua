@@ -84,12 +84,15 @@ table.insert(M.scope_members.symbols,
     member("variadic_parameter_declaration", "declarator",
         "parameter", "variadic parameter", "lexical"))
 
+-- The generic symbols collector runs after entering lexical scopes and
+-- skips parent_lexical specs. Until the shared contract grows explicit
+-- ownership handling, keep these declarations discoverable locally instead.
 table.insert(M.scope_members.symbols,
-    member("class_specifier", "name", "symbol", "class", "parent_lexical"))
+    member("class_specifier", "name", "symbol", "class", "lexical"))
 table.insert(M.scope_members.symbols,
     member("alias_declaration", "name", "symbol", "type alias", "lexical"))
 table.insert(M.scope_members.symbols,
-    member("namespace_definition", "name", "symbol", "namespace", "parent_lexical"))
+    member("namespace_definition", "name", "symbol", "namespace", "lexical"))
 M.scope_members.loops = {
     member("for_range_loop", "declarator", "loop_variable", "range-for variable", "lexical"),
 }
