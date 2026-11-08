@@ -129,9 +129,15 @@ could be too bright for green title text. The dedicated
 other `active` rows or source-relevant tree entries.
 
 The heading focus follows Inspect Mode even when the cursor has no matching
-source fact in the selected section. The section's own colour identity
-remains; inactive headings lose the root-heading background but keep
-their normal title colours and source context markers.
+source fact in the selected section. **Every unselected root heading keeps
+its section colour**, softened only slightly for headings with explicit
+RGB defaults (12% blend toward the muted accent). Theme-linked headings
+keep their colourscheme hue without source-relevance dimming. The selected
+title retains its full accent plus bold/underline and the charcoal
+background. This is deliberately independent of historical/contextual
+source relevance: those relevance states still affect the facts inside
+a section, not the stable section identity. The source-context `*`
+markers remain independent.
 Do **not** underline every descendant or shadow every row of a section.
 
 The source-location `*` marker is **not** an Inspect Mode selection marker.
@@ -158,7 +164,7 @@ tree.
 
 This behavior separates the visual-language layers:
 
-- **Semantic identity**: section name and its theme-linked highlight group.
+- **Semantic identity**: section name and its theme-linked or explicit default accent, even while another section is selected.
 - **Inspect focus**: bold/underline and root-heading highlight on the selected section only.
 - **Source relevance**: separate source-cursor facts and their `*` markers, which can remain on another section.
 
