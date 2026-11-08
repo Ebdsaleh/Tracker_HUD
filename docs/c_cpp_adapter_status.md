@@ -205,3 +205,51 @@ cause with a regression test, and rerun both parser and contract tests.
 The schema/visual smoke tests need not be rerun unless affected source
 changes. Preserve the failing `Counter` assertion rather than removing
 or weakening it.
+
+
+## Correction — real Neovim TSNode field API (2026-11-08)
+
+At ERIDU commit `6ce6029`, the diagnostics failed in both languages with:
+
+```text
+PASS c parser constructs mapped from real syntax
+FAIL c ... attempt to call method 'child_by_field_name' (a nil value)
+PASS cpp parser constructs mapped from real syntax
+FAIL cpp ... attempt to call method 'child_by_field_name' (a nil value)
+```
+
+The diagnostic was incorrectly calling a non-existent Neovim TSNode method.
+Audit then found the **same defect** in the shared
+`treesitter_utils.get_child_by_field_name` function. Neovim provides
+`node:field(name)` returning a **list** of child nodes. The helper now
+returns its first child, while retaining a fallback for older mock-node
+fixtures implementing `child_by_field_name`. This is a targeted API
+compatibility correction, not a change to scope-discovery policy.
+
+The C/C++ parser smoke now:
+- Calls the corrected shared field-access helper in raw AST diagnostics;
+- Builds expensive failure descriptions only **after** detecting a failed
+  assertion, rather than as eagerly evaluated `assert` arguments;
+- Always prints `COLLECTED c (...): ...` and `COLLECTED cpp (...): ...`
+  with kind/name/line/depth, before the member checks;
+- Keeps the exact names and ON/PAST discovery assertions, runs both
+  language fixtures, and exits nonzero on any failure.
+
+A separate `tests/treesitter_field_access_smoke.lua` test covers both
+Neovim's list-returning field API and old mock compatibility without
+requiring installed parsers.
+
+**Current validation status:** the fix is on GitHub `main`, but ERIDU has
+not yet run the corrected smoke tests. Do not claim that the parser failure
+or other member issues are resolved until those results arrive.
+
+```bat
+git pull --ff-only
+nvim --headless -u NONE -c "luafile tests/treesitter_field_access_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+```
+
+The contract and visual tests were already green on ERIDU and should be
+rerun only if the updated shared field helper causes a regression. Keeping
+the upcoming C/C++ allocations/leaks work gated on parser acceptance remains
+the correct priority.
