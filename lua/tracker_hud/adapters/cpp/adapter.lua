@@ -67,11 +67,12 @@ add_construct("co_return_statement", "return", "co_return", "Co Return", nil, ni
 
 -- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
-local function member(node_type, name_field, kind, language_term, owner_scope)
+local function member(node_type, name_field, kind, language_term, owner_scope, fallback)
     return {
         syntax = {
             node_type = node_type,
             fields = { name = name_field },
+            children = fallback and { name = { node_type = fallback } } or nil,
         },
         member = {
             kind = kind,
@@ -85,22 +86,22 @@ end
 -- parameter_declaration. Extract just the declared binding from each one.
 table.insert(M.scope_members.symbols,
     member("optional_parameter_declaration", "declarator",
-        "parameter", "defaulted parameter", "lexical"))
+        "parameter", "defaulted parameter", "lexical", "identifier"))
 table.insert(M.scope_members.symbols,
     member("variadic_parameter_declaration", "declarator",
-        "parameter", "variadic parameter", "lexical"))
+        "parameter", "variadic parameter", "lexical", "identifier"))
 
 -- The generic symbols collector runs after entering lexical scopes and
 -- skips parent_lexical specs. Until the shared contract grows explicit
 -- ownership handling, keep these declarations discoverable locally instead.
 table.insert(M.scope_members.symbols,
-    member("class_specifier", "name", "symbol", "class", "lexical"))
+    member("class_specifier", "name", "symbol", "class", "lexical", "type_identifier"))
 table.insert(M.scope_members.symbols,
-    member("alias_declaration", "name", "symbol", "type alias", "lexical"))
+    member("alias_declaration", "name", "symbol", "type alias", "lexical", "type_identifier"))
 table.insert(M.scope_members.symbols,
-    member("namespace_definition", "name", "symbol", "namespace", "lexical"))
+    member("namespace_definition", "name", "symbol", "namespace", "lexical", "namespace_identifier"))
 M.scope_members.loops = {
-    member("for_range_loop", "declarator", "loop_variable", "range-for variable", "lexical"),
+    member("for_range_loop", "declarator", "loop_variable", "range-for variable", "lexical", "identifier"),
 }
 
 return M
