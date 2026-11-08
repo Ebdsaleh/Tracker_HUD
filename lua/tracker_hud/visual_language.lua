@@ -526,7 +526,9 @@ M.style_suffixes = {
     section_title = "SectionTitle",
     scope_section_title = "ScopeSectionTitle",
     scope_members_section_title = "ScopeMembersSectionTitle",
+    events_section_title = "EventsSectionTitle",
     warning_section_title = "WarningSectionTitle",
+    inspect_header = "InspectHeader",
     plain_text = "PlainText",
     plain_section_title = "PlainSectionTitle",
     plain_active_section_title = "PlainActiveSectionTitle",
@@ -630,6 +632,8 @@ M.default_links = {
     -- similarly. String is already distinct and green in the user's theme.
     -- This is a title-color link, not a semantic claim about member types.
     scope_members_section_title = "String",
+    -- Events already uses Special for event facts; reuse the same theme accent.
+    events_section_title = "Special",
     warning_section_title = "DiagnosticWarn",
     section_marker = "Special",
     control = "Special",
@@ -676,13 +680,14 @@ M.default_links = {
 }
 
 
--- Core section titles retain the theme-linked highlight groups established by
--- the visual-language baseline. No fixed RGB hues or forced ANSI overrides.
--- These styles are reused for the Inspect Mode name, not the "Inspect:" label.
--- Other adapter sections preserve their generic title/Inspect styles.
+-- The shared section headers are linked to existing theme colour groups,
+-- including Events (which is optional for some language adapters). The same
+-- styles colour only the Inspect Mode name, not the literal "Inspect:" prefix.
+-- Other language-specific sections retain their generic title style.
 M.core_section_title_styles = {
     scope = "scope_section_title",
     scope_members = "scope_members_section_title",
+    events = "events_section_title",
     warnings = "warning_section_title",
 }
 
@@ -691,9 +696,10 @@ function M.section_title_style(section_id, fallback)
 end
 
 -- Inspect selection is independent of source-cursor relevance. The source
--- cursor may overlap a broad owning scope (and show "*") without selecting
--- that HUD section. Apply the root-header background ONLY to the currently
--- inspected section; never to all source-relevant section headers.
+-- cursor may overlap an owning scope (and show "*") without selecting
+-- that HUD section. Do not reuse the "active"/IncSearch theme background for
+-- the heading: IncSearch can be much too bright for theme-linked title text.
+-- Use a distinct charcoal heading background only for the inspected section.
 function M.inspect_header_line_style(section_id, inspect_mode_id)
     if type(section_id) ~= "string"
         or type(inspect_mode_id) ~= "string"
@@ -704,13 +710,16 @@ function M.inspect_header_line_style(section_id, inspect_mode_id)
     end
 
     return {
-        style = "active",
+        style = "inspect_header",
         relevance = "current",
     }
 end
 
 -- These defaults intentionally separate operand-role sage from success green.
 M.default_style_definitions = {
+    -- Dark, neutral selection band. Do not set fg: per-section titles retain
+    -- their own theme-linked accents. No other "active" rows are affected.
+    inspect_header = { bg = "#2D3138", ctermbg = 236 },
     line_number = { fg = "#7AA2F7" },
     value = { fg = "#C0CAF5" },
     metadata_key = { fg = "#7DCFFF" },
@@ -1407,6 +1416,7 @@ function M.plain_style_for(config, style, relevance, usage)
     if style == "section_title"
         or style == "scope_section_title"
         or style == "scope_members_section_title"
+        or style == "events_section_title"
         or style == "warning_section_title"
     then
         if not underline_active_section_title then
