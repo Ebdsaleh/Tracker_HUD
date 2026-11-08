@@ -137,6 +137,11 @@ local function run()
                 or table.concat(entries, ", ")
         end
 
+        -- Make the actual discovery visible on every run; this is a
+        -- headless test output, not an additional HUD panel.
+        print("COLLECTED " .. fixture.ft .. " (" .. tostring(#all)
+            .. "): " .. describe_member_names())
+
         local function describe_ast_declarations(wanted)
             local found = {}
             local field_types = {
