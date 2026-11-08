@@ -3,6 +3,7 @@
 -- modifying the C adapter or the shared Tracker_HUD context/renderer.
 
 local M = vim.deepcopy(require("tracker_hud.adapters.c.adapter"))
+local target_directives = require("tracker_hud.adapters.c.target_directives")
 
 M.name = "cpp"
 M.filetypes = { "cpp" }
@@ -13,6 +14,12 @@ M.active_targets = {
     syntax = "cpp",
     mode = "compiled",
 }
+
+-- Do not inherit the C function closure: it captures the original C adapter
+-- table and would update C's targets rather than this C++ adapter.
+function M.configure_adapter_for_buffer(bufnr, config)
+    M.active_targets = target_directives.resolve(bufnr, config, "cpp")
+end
 
 local function add_construct(node_type, kind, language_term, label, fields, scope_kind)
     local spec = {
