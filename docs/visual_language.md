@@ -65,23 +65,25 @@ inspection surfaces. ASM, C, and C++ expose Registers, Events, Stack, and
 Heap even when no facts have been discovered at the cursor.
 
 The default palette uses existing Neovim highlight links for the original
-titles, and existing Tracker_HUD semantic RGB accents for the low-level
-headings. It is a shared HUD mapping by section ID, **not an ASM-only rule**.
+titles, with independent restrained accents for the low-level headings.
+It is a shared HUD mapping by section ID, **not an ASM-only rule**.
 
 | Section | Default title style / palette source | Purpose |
 |---|---|---|
 | `Scope` | `Function` | Scope title and mode name |
 | `Scope Members` | `String` | Members title and mode name |
-| `Registers` | Cyan `#7DCFFF` (existing register accent) | Registers title and mode name |
+| `Registers` | Garnet red `#D68187` | Registers title and mode name |
 | `Events` | `Keyword` | Events title and mode name, sharing the `Target:` label accent |
-| `Stack` | Teal `#73DACA` (existing provenance accent) | Stack title and mode name |
-| `Heap` | Orange `#FF9E64` (existing numeric/warning-subject accent) | Heap title and mode name |
+| `Stack` | Warm gold `#D7B45D` | Stack title and mode name |
+| `Heap` | Muted copper `#CE906A` | Heap title and mode name |
 | `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
 The original four styles are colorscheme links, not hardcoded RGB values.
 The three low-level heading accents are **default colour definitions**,
-reused from the established semantic palette, without changing the colours
-or meanings of register, stack, or heap *facts*.
+selected as distinct section identities. They do not change the colours
+or meanings of register, stack, or heap *facts*. Garnet is deliberately
+lighter than literal dark blood-red to stay legible on the selected
+charcoal heading/statusline surface (minimum 4.5:1 contrast).
 The **default** for both the `Target:` label and `Events` section title is
 the shared `Keyword` highlight link. In the current ERIDU colour scheme,
 `Keyword` is the preferred purple accent. The `Events` event *facts* keep
