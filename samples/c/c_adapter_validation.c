@@ -1,3 +1,9 @@
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=c;
+// mode=compiled;
+
 /* Tracker_HUD C adapter manual validation (C11).
  * Expected: translation unit, struct, function, parameters, declarations,
  * lexical compound blocks, branches, assignments, calls, returns.
