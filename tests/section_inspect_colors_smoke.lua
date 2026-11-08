@@ -100,13 +100,37 @@ local function run()
             "Inspect: " .. id .. " should match its heading color")
         assert(contrast(check.fg, "#2D3138") >= 4.5,
             id .. " section title contrast is too low on Inspect charcoal")
+        -- The inactive title should be only subtly dimmed, not treated
+        -- as historical source data (which would wash out its identity).
+        local idle_name = group .. visual.style_suffixes.section_idle
+        local idle = vim.api.nvim_get_hl(0, {
+            name = idle_name, link = false,
+        })
+        local original = tonumber(check.fg:sub(2), 16)
+        assert(idle.fg ~= nil and idle.fg ~= original,
+            id .. " inactive heading should be a softer version of its colour")
+        local function rgb(value, shift)
+            return math.floor(value / (256 ^ shift)) % 256
+        end
+        for shift = 0, 2 do
+            assert(math.abs(rgb(idle.fg, shift) - rgb(original, shift)) <= 20,
+                id .. " inactive heading colour should remain near its identity")
+        end
+        assert(not idle.bold and not idle.italic and not idle.underline,
+            id .. " inactive heading must not look selected or historical")
         assert(not seen_low_level_colors[check.fg],
             "low-level headings should have distinct accents")
         seen_low_level_colors[check.fg] = true
 
-        print("PASS " .. id .. " uses semantic accent " .. check.fg)
+        print("PASS " .. id .. " retains its hue when not selected: " .. check.fg)
     end
 
+    assert(visual.relevance_color_mixes.section_idle == 0.12,
+        "inactive section headings must keep a restrained colour mix")
+    assert(visual.relevance_definitions.section_idle
+        and visual.relevance_definitions.section_idle.italic == nil
+        and visual.relevance_definitions.section_idle.underline == nil,
+        "inactive headings may not be styled as historical or inspected")
     local sections_to_test = {}
     for id in pairs(expected) do
         sections_to_test[id] = true
@@ -119,6 +143,9 @@ local function run()
     -- independently free to mark an owning Scope Members node with "*".
     -- Never let that source "active" state pin the header background.
     for section_id in pairs(sections_to_test) do
+        assert(visual.section_heading_relevance(section_id, section_id)
+            == "inspecting",
+            section_id .. " selected title must receive Inspect emphasis")
         local selected = visual.inspect_header_line_style(section_id, section_id)
         assert(type(selected) == "table"
             and selected.style == "inspect_header"
@@ -126,6 +153,9 @@ local function run()
             section_id .. " selected header not highlighted")
         for other_id in pairs(sections_to_test) do
             if other_id ~= section_id then
+                assert(visual.section_heading_relevance(other_id, section_id)
+                    == "section_idle",
+                    other_id .. " unselected heading must retain its identity")
                 assert(visual.inspect_header_line_style(other_id, section_id) == nil,
                     other_id .. " remains highlighted while inspecting " .. section_id)
             end
@@ -135,7 +165,9 @@ local function run()
         "unselected Events must not acquire a root background")
     assert(visual.inspect_header_line_style("scope_members", "scope") == nil,
         "Scope Members must not retain background when inspecting Scope")
-    print("PASS root header focus follows Inspect Mode, not cursor-affected section")
+    assert(visual.section_heading_relevance(nil, "scope") == nil,
+        "invalid heading IDs should not select anything")
+    print("PASS root headings preserve section identity independent of source relevance")
 
     local focus = visual.relevance_definitions.inspecting
     assert(focus and focus.bold == true and focus.underline == true,
@@ -280,6 +312,8 @@ local function run()
             == "plain_active_section_title",
             check.style .. " should use plain focus underline")
         assert(visual.plain_style_for(plain, check.style, "contextual", "span") == nil,
+            check.style .. " should not tint inactive plain headings")
+        assert(visual.plain_style_for(plain, check.style, "section_idle", "span") == nil,
             check.style .. " should not tint inactive plain headings")
     end
     for _, check in pairs(expected) do
