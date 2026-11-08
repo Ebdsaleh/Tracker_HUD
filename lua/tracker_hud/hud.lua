@@ -847,15 +847,17 @@ local function build_section_header_line(section)
         )
     end
 
-    -- Inspect Mode selection is a UI focus signal, not a source-location
-    -- inference. Its heading must stay visible even if no matching source
-    -- member/warning exists at the cursor. Underline ONLY the root title:
-    -- marker and descendants keep their existing semantic presentation.
-    if section.id == inspect_mode.get_mode()
-        and type(line.spans) == "table"
+    -- A root heading's colour is its stable SECTION identity, not the
+    -- relevance of the source facts beneath it. Source relevance above still
+    -- controls the marker and any other spans, but must not heavily mute
+    -- unselected root titles. Selection adds its own focus underline/bar.
+    if type(line.spans) == "table"
         and type(line.spans[1]) == "table"
     then
-        line.spans[1].relevance = "inspecting"
+        line.spans[1].relevance = visual_language.section_heading_relevance(
+            section.id,
+            inspect_mode.get_mode()
+        )
     end
 
     return line
