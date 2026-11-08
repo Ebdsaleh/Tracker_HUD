@@ -1,3 +1,9 @@
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=cpp;
+// mode=compiled;
+
 // Tracker_HUD C++ adapter manual validation (C++17).
 // Expected: namespace, class, method definitions, functions, template,
 // lambda, range-based for, fields, parameters, and block scope.
