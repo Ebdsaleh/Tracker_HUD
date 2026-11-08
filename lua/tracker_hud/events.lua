@@ -165,6 +165,31 @@ local function collect_instruction_events(events, seen, context)
 end
 
 
+local function collect_c_cpp_memory_events(events, seen, context)
+    if type(context.source_memory_facts) ~= "table" then
+        return
+    end
+
+    for _, fact in ipairs(context.source_memory_facts) do
+        -- Source-observed call sites only; never present them as proven
+        -- successful allocations, releases or leak warnings.
+        add_event(events, seen, {
+            id = "event:" .. tostring(fact.id),
+            kind = "memory_source_observation",
+            category = "heap",
+            name = fact.name,
+            role = fact.role,
+            source = fact.source,
+            source_line = fact.source_line,
+            source_column = fact.source_column,
+            source_end_line = fact.source_end_line,
+            source_end_column = fact.source_end_column,
+            metadata = fact.metadata,
+        })
+    end
+end
+
+
 local function context_is_python(context)
     return type(context) == "table"
         and type(context.targets) == "table"
@@ -317,6 +342,7 @@ function M.collect(context)
 
     collect_boundary_events(events, seen, context)
     collect_instruction_events(events, seen, context)
+    collect_c_cpp_memory_events(events, seen, context)
     collect_python_object_model_events(events, seen, context)
 
     events = filter_events_visible_at_cursor(events, context)
