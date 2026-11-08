@@ -215,6 +215,22 @@ local function get_field_name(node, bufnr, member_spec)
         )
     end
 
+    -- Some C/C++ parser variants do not expose every declaration's
+    -- declarator/name field as a direct TSNode:field. Adapters may declare
+    -- precise fallback named-node types under syntax.children.name; never
+    -- guess an arbitrary child or introduce a source-text regex.
+    for _, name_node_type in ipairs(
+        get_syntax_child_node_types(member_spec, "name")
+    ) do
+        local fallback = ts_utils.find_first_descendant_by_type(node, name_node_type)
+        if fallback then
+            local value = ts_utils.get_node_text(fallback, bufnr)
+            if core.is_non_empty_string(value) then
+                return strip_quotes(value)
+            end
+        end
+    end
+
     local first_named_child = node:named_child(0)
 
     if not first_named_child then
@@ -432,41 +448,39 @@ local function collect_return_member_spec(node, bufnr, member_spec, members, see
 end
 
 
-local function get_function_name(
-    node,
-    bufnr,
-    member_spec
-)
+local function get_function_name(node, bufnr, member_spec)
     if not node then
         return nil
     end
 
-    local name_field =
-        get_syntax_field(
-            member_spec,
-            "name"
-        )
+    local name_field = get_syntax_field(member_spec, "name")
+    local name_node = name_field
+        and ts_utils.get_child_by_field_name(node, name_field)
+        or nil
 
-    if not name_field then
-        return nil
+    if name_node then
+        local name = ts_utils.get_node_text(name_node, bufnr)
+        if core.is_non_empty_string(name) then
+            return name
+        end
     end
 
-    local name_node =
-        ts_utils.get_child_by_field_name(
-            node,
-            name_field
-        )
-
-    if not name_node then
-        return nil
+    -- C/C++ function_definition.declarator may be a nested declarator.
+    -- Only use adapter-authorized AST node-type fallbacks.
+    for _, name_node_type in ipairs(
+        get_syntax_child_node_types(member_spec, "name")
+    ) do
+        local child = ts_utils.find_first_descendant_by_type(node, name_node_type)
+        if child then
+            local name = ts_utils.get_node_text(child, bufnr)
+            if core.is_non_empty_string(name) then
+                return name
+            end
+        end
     end
 
-    return ts_utils.get_node_text(
-        name_node,
-        bufnr
-    )
+    return nil
 end
-
 
 local function collect_function_member_spec(node, bufnr, member_spec, members, seen, state, adapter)
     if not core.is_table(member_spec) then
