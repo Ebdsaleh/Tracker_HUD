@@ -42,3 +42,43 @@ The ASM discovery contract remains the reference: **ON or PAST the source line â
 5. Add automated Tree-sitter-backed fixture assertions once a suitable Neovim test environment is available.
 
 Do not infer pointer targets, aliasing, heap validity, object construction/destruction effects, or template instantiations without evidence. Accuracy and graceful unknown state are preferred to guesses.
+
+## Second tranche â€” validated mappings (2026-11-08)
+
+The registration/schema test passed on ERIDU for Lua, Python, C and C++.
+This does **not** yet prove C/C++ HUD behavior; physical Neovim validation
+is still pending.
+
+Focused adapter-local repairs:
+
+- C and inherited C++ parameter names are now read from
+  `parameter_declaration.declarator` using the existing symbol collector
+  rather than emitting the whole parameter declaration text.
+- C++ also maps `optional_parameter_declaration.declarator` and
+  `variadic_parameter_declaration.declarator` to parameter members.
+- C `struct_specifier`/`union_specifier`, and C++ `class_specifier`/
+  `namespace_definition`, no longer disappear from Scope Members because
+  `parent_lexical` symbol rules are skipped by the shared collector.
+  The interim mapping is `lexical`, without claiming precise
+  parent-scope ownership. Scope itself still represents lexical ancestry.
+- Added a C++ default-argument case to the validation fixture.
+- Added `tests/c_cpp_parser_smoke.lua` to exercise real Tree-sitter AST
+  nodes, construct parsing, member collection, and ON/PAST discovery.
+
+Run from the repository root:
+
+```bat
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+nvim samples/c/c_adapter_validation.c
+nvim samples/cpp/cpp_adapter_validation.cpp
+```
+
+Use **normal Neovim startup** for parser-backed testing, since
+`-u NONE` may omit the parser installation runtimepath. Missing parsers
+are reported explicitly, not silently skipped.
+
+The C/C++ parser-backed test was added in GitHub but has not yet been run
+on the user's ERIDU Neovim. Report its actual output before claiming
+physical parser acceptance. Do not overwrite already-working ASM/Python
+behavior just to work around a C++ declarator edge case.
