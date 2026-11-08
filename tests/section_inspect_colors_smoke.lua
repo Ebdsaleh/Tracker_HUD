@@ -15,6 +15,7 @@ local function run()
     local expected = {
         scope = { style = "scope_section_title", link = "Function" },
         scope_members = { style = "scope_members_section_title", link = "String" },
+        events = { style = "events_section_title", link = "Special" },
         warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
@@ -47,7 +48,7 @@ local function run()
     for section_id in pairs(expected) do
         local selected = visual.inspect_header_line_style(section_id, section_id)
         assert(type(selected) == "table"
-            and selected.style == "active"
+            and selected.style == "inspect_header"
             and selected.relevance == "current",
             section_id .. " selected header not highlighted")
         for other_id in pairs(expected) do
@@ -75,10 +76,32 @@ local function run()
         "do not underline every current descendant")
     print("PASS Inspecting emphasis is separate from source relevance")
 
-    assert(visual.section_title_style("events", "inspect_mode") == "inspect_mode",
-        "non-core Inspect Mode must preserve existing style")
-    assert(visual.section_title_style("events") == "section_title",
-        "non-core section title must preserve generic style")
+    assert(visual.section_title_style("registers", "inspect_mode") == "inspect_mode",
+        "unmapped Inspect Mode must preserve existing style")
+    assert(visual.section_title_style("registers") == "section_title",
+        "unmapped section must preserve generic title style")
+    assert(visual.section_title_style("events") == "events_section_title",
+        "Events must use its established event colour family")
+
+    -- Inspect Mode selection must not inherit a potentially bright IncSearch
+    -- background or override theme-provided section title foreground hues.
+    local band = visual.default_style_definitions.inspect_header
+    assert(type(band) == "table" and band.bg == "#2D3138"
+        and band.ctermbg == 236 and band.fg == nil,
+        "Inspect header band must be muted charcoal with no foreground")
+    assert(visual.default_links.active == "IncSearch",
+        "existing IncSearch semantics must remain available outside headers")
+    local band_group = highlights.group_name(config, "inspect_header")
+    assert(band_group == "HudSmokeInspectHeader",
+        "Inspect header should have a dedicated namespaced group")
+    local installed_band = vim.api.nvim_get_hl(0, {
+        name = band_group, link = false,
+    })
+    assert(installed_band.bg == tonumber(band.bg:sub(2), 16),
+        "Inspect header group background does not match muted charcoal")
+    assert(installed_band.fg == nil,
+        "Inspect header background must not override semantic foreground")
+    print("PASS selected heading uses its own subdued background")
 
     local plain = config_module.resolve({ visual_language = { mode = "plain" } })
     assert(visual.resolve_visual_mode(plain) == "plain",
@@ -86,6 +109,8 @@ local function run()
     assert(visual.colors_enabled(plain) == false,
         "plain visual mode must disable semantic colors")
 
+    assert(visual.plain_style_for(plain, "inspect_header", "current", "line") == nil,
+        "plain mode must not gain a colored heading background")
     for _, check in pairs(expected) do
         assert(visual.plain_style_for(plain, check.style, "inspecting", "span")
             == "plain_active_section_title",
