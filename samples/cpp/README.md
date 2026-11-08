@@ -28,3 +28,24 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ```
 
 The test checks registered shapes but cannot prove actual HUD rendering; please validate in the real Neovim environment.
+
+## Parser-backed source and discovery test
+
+With both `c` and `cpp` Tree-sitter parsers installed in your normal
+Neovim configuration, run:
+
+```bat
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+```
+
+This checks real AST nodes (including namespace, class, template, lambda,
+range-for and a defaulted parameter), source/member collector output, and
+cursor-line discovery. The fixture now includes
+`with_default(int current, int fallback = 7)`; on that declaration line,
+`fallback` should be discoverable as a parameter without including its
+type or default-expression text.
+
+Scope names should appear on declaration, not after the entire class body.
+The shared collector currently records class/namespace symbols inside the
+lexical scope after entry; resolving true *parent-scope ownership* is
+deliberately deferred to avoid a global collector rewrite.
