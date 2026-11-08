@@ -620,6 +620,11 @@ M.style_suffixes = {
 }
 
 
+-- Default only. The named HUD highlight groups can later be customized by
+-- themes without requiring adapter logic to know about palette choices.
+-- Events should inherit exactly the same accent as the "Target:" label.
+local DEFAULT_TARGET_EVENTS_THEME_GROUP = "Keyword"
+
 M.default_links = {
     title = "Title",
     tip = "Comment",
@@ -632,8 +637,8 @@ M.default_links = {
     -- similarly. String is already distinct and green in the user's theme.
     -- This is a title-color link, not a semantic claim about member types.
     scope_members_section_title = "String",
-    -- Events already uses Special for event facts; reuse the same theme accent.
-    events_section_title = "Special",
+    -- Section identity uses the Target: accent, not the event fact colour.
+    events_section_title = DEFAULT_TARGET_EVENTS_THEME_GROUP,
     warning_section_title = "DiagnosticWarn",
     section_marker = "Special",
     control = "Special",
@@ -659,7 +664,7 @@ M.default_links = {
 
     status_label = "Comment",
     status_value = "Identifier",
-    target_label = "Keyword",
+    target_label = DEFAULT_TARGET_EVENTS_THEME_GROUP,
     target_key = "Comment",
     target_value = "Identifier",
     diagnostic = "DiagnosticWarn",
