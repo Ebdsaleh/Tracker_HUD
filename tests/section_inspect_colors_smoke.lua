@@ -2,20 +2,20 @@
 -- Run from the Tracker_HUD repository root:
 --   nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
 --
--- This tests the shared visual styles and highlight-group registration,
--- not a screenshot of the interactive HUD.
+-- Verify the visual-language contract without depending on a specific scheme.
+-- Interactive HUD/statusline selection still needs a real Neovim session.
 
 local function run()
     vim.opt.runtimepath:prepend(vim.fn.getcwd())
 
     local config_module = require("tracker_hud.config")
-    local palette = require("tracker_hud.visual_language")
+    local visual = require("tracker_hud.visual_language")
     local highlights = require("tracker_hud.highlights")
 
     local expected = {
-        scope = { style = "scope_section_title", fg = "#7AA2F7", ctermfg = 12 },
-        scope_members = { style = "scope_members_section_title", fg = "#9ECE6A", ctermfg = 10 },
-        warnings = { style = "warning_section_title", fg = "#E0AF68", ctermfg = 11 },
+        scope = { style = "scope_section_title", link = "Function" },
+        scope_members = { style = "scope_members_section_title", link = "Identifier" },
+        warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
     local config = config_module.resolve({
@@ -25,55 +25,60 @@ local function run()
     })
     assert(highlights.setup(config), "highlight setup failed")
 
-    for section_id, check in pairs(expected) do
-        local style = palette.section_title_style(section_id)
-        assert(style == check.style, section_id .. " style mismatch")
-
-        local definition = palette.default_style_definitions[style]
-        assert(definition, style .. " highlight definition missing")
-        assert(definition.fg == check.fg, style .. " expected color mismatch")
-        assert(definition.ctermfg == check.ctermfg,
-            style .. " cterm fallback mismatch")
-        assert(definition.bold == true, style .. " should use bold headings")
-
-        local group_name = highlights.group_name(config, style)
-        assert(group_name == "HudSmoke" .. palette.style_suffixes[style],
+    for id, check in pairs(expected) do
+        local style = visual.section_title_style(id)
+        assert(style == check.style, id .. " visual style mismatch")
+        assert(visual.default_links[style] == check.link,
+            style .. " must reuse the original colorscheme group")
+        assert(visual.default_style_definitions[style] == nil,
+            style .. " must not enforce a hard-coded hue")
+        local name = highlights.group_name(config, style)
+        assert(name == "HudSmoke" .. visual.style_suffixes[style],
             style .. " namespaced group mismatch")
-
-        local hl = vim.api.nvim_get_hl(0, { name = group_name, link = false })
-        assert(hl.fg == tonumber(check.fg:sub(2), 16),
-            style .. " installed RGB highlight mismatch")
-
-        print("PASS " .. section_id .. " = " .. check.fg .. " / ANSI " .. check.ctermfg)
+        local installed = vim.api.nvim_get_hl(0, { name = name, link = true })
+        assert(installed.link == check.link,
+            style .. " should link to " .. check.link)
+        print("PASS " .. id .. " inherits Neovim " .. check.link)
     end
 
-    assert(palette.section_title_style("registers", "inspect_mode") == "inspect_mode",
-        "non-core Inspect Mode should preserve existing style")
-    assert(palette.section_title_style("events") == "section_title",
-        "non-core section title should preserve generic style")
+    local focus = visual.relevance_definitions.inspecting
+    assert(focus and focus.bold == true and focus.underline == true,
+        "selected root title must use bold + underline")
+    local focus_name = highlights.group_name(config, "inspecting")
+    assert(focus_name ~= nil, "Inspecting relevance highlight must exist")
+    local installed_focus = vim.api.nvim_get_hl(0, { name = focus_name, link = false })
+    assert(installed_focus.bold == true and installed_focus.underline == true,
+        "Inspecting focus highlight missing")
+    assert(visual.relevance_definitions.current.underline == nil,
+        "do not underline every current descendant")
+    print("PASS Inspecting emphasis is separate from source relevance")
 
-    local plain = config_module.resolve({
-        visual_language = { mode = "plain" },
-    })
-    assert(palette.resolve_visual_mode(plain) == "plain",
-        "plain visual mode resolution failed")
-    assert(palette.colors_enabled(plain) == false,
-        "plain mode must disable semantic color")
+    assert(visual.section_title_style("events", "inspect_mode") == "inspect_mode",
+        "non-core Inspect Mode must preserve existing style")
+    assert(visual.section_title_style("events") == "section_title",
+        "non-core section title must preserve generic style")
+
+    local plain = config_module.resolve({ visual_language = { mode = "plain" } })
+    assert(visual.resolve_visual_mode(plain) == "plain",
+        "plain mode resolution failed")
+    assert(visual.colors_enabled(plain) == false,
+        "plain visual mode must disable semantic colors")
+
     for _, check in pairs(expected) do
-        assert(palette.plain_style_for(plain, check.style, "current", "span")
-                == "plain_active_section_title",
-            check.style .. " must retain plain active title underline")
-        assert(palette.plain_style_for(plain, check.style, "contextual", "span") == nil,
-            check.style .. " must not tint inactive plain titles")
+        assert(visual.plain_style_for(plain, check.style, "inspecting", "span")
+            == "plain_active_section_title",
+            check.style .. " must have a plain active underline")
+        assert(visual.plain_style_for(plain, check.style, "contextual", "span") == nil,
+            check.style .. " must not color inactive plain headings")
     end
-    print("PASS plain mode core titles remain colorless with active underline")
+    print("PASS plain selected headings stay neutral/underlined")
 end
 
 local ok, err = pcall(run)
 if ok then
-    print("PASS Tracker_HUD section/Inspect color smoke")
+    print("PASS Tracker_HUD theme-linked section/Inspect smoke")
     vim.cmd("qa!")
 else
-    vim.api.nvim_err_writeln("FAIL Tracker_HUD section/Inspect colors: " .. tostring(err))
+    vim.api.nvim_err_writeln("FAIL Tracker_HUD theme-linked section/Inspect smoke: " .. tostring(err))
     vim.cmd("cquit 1")
 end
