@@ -253,3 +253,60 @@ The contract and visual tests were already green on ERIDU and should be
 rerun only if the updated shared field helper causes a regression. Keeping
 the upcoming C/C++ allocations/leaks work gated on parser acceptance remains
 the correct priority.
+
+
+## Fourth tranche — grammar-specific member recovery (2026-11-08)
+
+Physical ERIDU testing of `def2680` exposed a deeper collector failure:
+
+```text
+PASS c parser constructs mapped from real syntax
+COLLECTED c (0): <empty collection>
+FAIL c ... declared member missing from collector: Counter
+  AST fields: <no matching named AST declarator>
+PASS cpp parser constructs mapped from real syntax
+COLLECTED cpp (1): assignment:value_@20(depth=6)
+FAIL cpp ... declared member missing from collector: tracker_hud_sample
+  AST fields: <no matching named AST declarator>
+```
+
+This means the syntax constructs were recognised, but source bindings were
+not. The previous direct `TSNode:field(name)` correction did **not** close
+member discovery on ERIDU and should not be reported as sufficient.
+
+This tranche retains named-field lookup as the preferred path and adds
+adapter-authorized **AST node-type fallbacks** when a name is absent. These
+are not source-text regular expressions or made-up values:
+
+- **C**: `type_identifier` for struct/union/enum names;
+  `identifier` for parameters, declarations, initializers and functions;
+  `field_identifier` for struct fields.
+- **C++**: `namespace_identifier` for namespace names;
+  `type_identifier` for classes and aliases;
+  `identifier` for C++ defaulted/variadic parameters and range-for variables.
+- **Shared collector**: field declarations and function-name extraction now
+  consult `syntax.children.name` if direct AST fields fail. The symbol
+  collector already supports this precise fallback. ASM/Python adapters
+  without new fallback declarations retain their prior behaviour.
+- **Tests**: contract smoke now asserts the exact configured fallback types.
+  C/C++ parser smoke retains every required name and ON/PAST assertion.
+  If a symbol remains missing, it reports a bounded AST `sexpr` and
+  observed child-field names as well as the collected member list.
+
+The `Counter` and `tracker_hud_sample` expectations have **not** been
+deleted, disabled or weakened. These changes have been source-reviewed on
+GitHub, but require ERIDU's actual Neovim parsers for confirmation.
+
+Next acceptance commands, from repository root:
+
+```bat
+git pull --ff-only
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+```
+
+Do not advance to heap allocation/ownership inference unless both pass.
+If either parser test fails, use the `AST layout:` evidence to distinguish
+grammar shape differences from collector omissions, then fix the
+minimal concrete cause. The visual and seven-section tests passed earlier
+and were not modified in this tranche.
