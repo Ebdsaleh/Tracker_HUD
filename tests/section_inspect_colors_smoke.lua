@@ -113,6 +113,57 @@ local function run()
         "current Inspect header composite must keep source title colours")
     print("PASS selected heading uses its own subdued background")
 
+    -- The panel's bottom StatusLine must use the exact same charcoal as the
+    -- highlighted Inspect heading, even when the panel window is inactive.
+    -- Segment highlights are explicit to prevent %#...# resets flashing grey.
+    -- The regular Neovim StatusLine highlight must remain unchanged.
+    local original_statusline = vim.api.nvim_get_hl(0, {
+        name = "StatusLine", link = false,
+    })
+    local surface_group = highlights.statusline_background_group(config)
+    assert(type(surface_group) == "string" and surface_group ~= "",
+        "HUD statusline surface group was not created")
+
+    local surface = vim.api.nvim_get_hl(0, {
+        name = surface_group, link = false,
+    })
+    assert(surface.bg == tonumber(band.bg:sub(2), 16),
+        "HUD statusline background must match Inspect heading")
+    assert(surface.ctermbg == band.ctermbg,
+        "HUD statusline terminal fallback must match Inspect heading")
+
+    for _, style in ipairs({
+        "status_title", "status_marker", "scope_section_title",
+        "scope_members_section_title", "events_section_title",
+        "warning_section_title",
+    }) do
+        local group = highlights.statusline_segment_group(config, style)
+        assert(type(group) == "string" and group ~= "",
+            style .. " statusline segment group missing")
+        local hl = vim.api.nvim_get_hl(0, {
+            name = group, link = false,
+        })
+        assert(hl.bg == surface.bg and hl.ctermbg == band.ctermbg,
+            style .. " segment must stay on charcoal background")
+        assert(hl.fg ~= nil, style .. " segment must have readable text")
+
+        if style ~= "status_title" then
+            local theme_group = highlights.group_name(config, style)
+            local theme_hl = vim.api.nvim_get_hl(0, {
+                name = theme_group, link = false,
+            })
+            if theme_hl.fg ~= nil then
+                assert(hl.fg == theme_hl.fg,
+                    style .. " must preserve its theme foreground")
+            end
+        end
+    end
+
+    assert(vim.deep_equal(original_statusline, vim.api.nvim_get_hl(0, {
+        name = "StatusLine", link = false,
+    })), "normal editor StatusLine highlight must remain unchanged")
+    print("PASS bottom HUD statusline surface matches selected heading")
+
     local plain = config_module.resolve({ visual_language = { mode = "plain" } })
     assert(visual.resolve_visual_mode(plain) == "plain",
         "plain mode resolution failed")
