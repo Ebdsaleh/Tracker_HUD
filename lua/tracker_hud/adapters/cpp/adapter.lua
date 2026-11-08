@@ -75,6 +75,15 @@ local function member(node_type, name_field, kind, language_term, owner_scope)
     }
 end
 
+-- C++ adds defaulted and variadic parameter syntax nodes beyond C's
+-- parameter_declaration. Extract just the declared binding from each one.
+table.insert(M.scope_members.symbols,
+    member("optional_parameter_declaration", "declarator",
+        "parameter", "defaulted parameter", "lexical"))
+table.insert(M.scope_members.symbols,
+    member("variadic_parameter_declaration", "declarator",
+        "parameter", "variadic parameter", "lexical"))
+
 table.insert(M.scope_members.symbols,
     member("class_specifier", "name", "symbol", "class", "parent_lexical"))
 table.insert(M.scope_members.symbols,
