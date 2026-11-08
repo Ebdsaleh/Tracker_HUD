@@ -613,6 +613,7 @@ M.style_suffixes = {
     -- They are not semantic identities themselves.
     focused = "Focused",
     inspecting = "Inspecting",
+    section_idle = "SectionIdle",
     current = "Current",
     contextual = "Contextual",
     historical = "Historical",
@@ -726,6 +727,22 @@ function M.inspect_header_line_style(section_id, inspect_mode_id)
     }
 end
 
+-- Heading colour identifies the HUD section; source relevance applies to
+-- facts below it, not to the title. Keep inactive headings recognisably
+-- coloured instead of allowing a "historical" source context to mute them.
+-- Only the selected root heading receives Inspect emphasis and the bar.
+function M.section_heading_relevance(section_id, inspect_mode_id)
+    if type(section_id) ~= "string" or section_id == "" then
+        return nil
+    end
+
+    if section_id == inspect_mode_id then
+        return "inspecting"
+    end
+
+    return "section_idle"
+end
+
 -- The shared low-level root headings have a distinct, restrained
 -- palette: garnet for registers, warm gold for stack, muted copper for
 -- heap. These are section IDENTITY accents, not semantic colours for
@@ -829,6 +846,10 @@ M.relevance_definitions = {
         underline = true,
     },
 
+    -- A subtle identity-preserving tint for unselected root headings only.
+    -- No underline, italic, or background: those convey other meanings.
+    section_idle = {},
+
     focused = {
         bold = true,
     },
@@ -845,6 +866,7 @@ M.relevance_definitions = {
 }
 
 M.relevance_color_mixes = {
+    section_idle = 0.12,
     focused = 0.00,
     current = 0.00,
     contextual = 0.34,
