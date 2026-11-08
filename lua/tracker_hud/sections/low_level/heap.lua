@@ -28,6 +28,19 @@ local function collect_inferred_heap_entries(entries, seen, context)
 end
 
 
+local function collect_source_memory_sites(entries, seen, context)
+    if type(context) ~= "table"
+        or type(context.source_memory_facts) ~= "table"
+    then
+        return
+    end
+
+    for _, fact in ipairs(context.source_memory_facts) do
+        heap_model.add(entries, seen, fact)
+    end
+end
+
+
 function M.collect(context, _adapter, opts)
     local entries, seen = M.new_collection()
 
@@ -38,6 +51,7 @@ function M.collect(context, _adapter, opts)
     end
 
     collect_inferred_heap_entries(entries, seen, context)
+    collect_source_memory_sites(entries, seen, context)
 
     table.sort(entries, function(left, right)
         local left_line = left.source_line
