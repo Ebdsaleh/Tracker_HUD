@@ -59,19 +59,21 @@ Relevance must not erase semantic identity.
 
 ## Core section and Inspect Mode presentation
 
-Tracker_HUD has three language-neutral sections with stable identities, but
-the actual hues should follow the user's **Neovim colorscheme**, not forced
-hex values:
+Tracker_HUD has three language-neutral core sections (Scope, Scope Members,
+Warnings) and an optional Events section in adapters that produce events.
+Their title hues follow the user's **Neovim colorscheme**, not fixed RGB
+values:
 
 | Section | Existing Neovim group | Use |
 |---|---|---|
 | `Scope` | `Function` | Scope section title and mode name |
 | `Scope Members` | `String` | Scope Members title and mode name (distinct from `Function` in the current theme) |
+| `Events` | `Special` | Events title and mode name (same family as event facts) |
 | `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
 These are color-*scheme links*, not hardcoded blue/green/orange RGB values.
 The namespaced styles are `<prefix>ScopeSectionTitle`,
-`<prefix>ScopeMembersSectionTitle`, and
+`<prefix>ScopeMembersSectionTitle`, `<prefix>EventsSectionTitle`, and
 `<prefix>WarningSectionTitle`. A user-customized colorscheme or highlight
 link therefore remains authoritative. Other adapter-specific sections keep
 their existing generic section and Inspect Mode presentation.
@@ -82,10 +84,18 @@ matching theme-linked highlight. Do not tint the prefix.
 
 The current Inspect Mode also produces a **visible focus cue in the HUD**:
 the selected root-section title is **bold and underlined** and receives
-a root-heading-only highlight. This follows Inspect Mode even when the cursor
-currently has no matching source fact in the selected section. The section's
-own color identity remains; inactive headings lose the root-heading
-background, but keep their usual title colours and source context markers.
+a root-heading-only charcoal background (`#2D3138`, 256-colour fallback
+`236`). This is a deliberate exception to theme-linked hues: it is a
+background contrast surface, *not* a semantic foreground colour. Previously
+the selected line inherited the theme's `IncSearch` background, which
+could be too bright for green title text. The dedicated
+`<prefix>InspectHeader` group sets no foreground and doesn't modify
+other `active` rows or source-relevant tree entries.
+
+The heading focus follows Inspect Mode even when the cursor has no matching
+source fact in the selected section. The section's own colour identity
+remains; inactive headings lose the root-heading background but keep
+their normal title colours and source context markers.
 Do **not** underline every descendant or shadow every row of a section.
 
 The source-location `*` marker is **not** an Inspect Mode selection marker.
@@ -103,8 +113,9 @@ A different user colorscheme may render groups differently.
 
 Plain mode remains strictly colorless. The active root title is underlined
 as before; all other HUD text and the statusline label are neutral, and
-only individually targeted active-path rows may get a neutral shadow. No
-background highlight is added across the whole Scope/Scope Members tree.
+only individually targeted active-path rows may get a neutral shadow.
+The new `InspectHeader` charcoal surface is **not** applied in plain mode.
+No background highlight is added across an entire Scope/Scope Members tree.
 
 This behavior separates the visual-language layers:
 
