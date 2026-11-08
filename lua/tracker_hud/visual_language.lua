@@ -607,6 +607,7 @@ M.style_suffixes = {
     -- semantic groups when a relevance-specific semantic group is not known.
     -- They are not semantic identities themselves.
     focused = "Focused",
+    inspecting = "Inspecting",
     current = "Current",
     contextual = "Contextual",
     historical = "Historical",
