@@ -183,6 +183,92 @@ function M.group_name(config, style)
     return namespace.name(config, suffix)
 end
 
+-- The HUD statusline and the inspected root heading use the same charcoal
+-- surface. Do not change Neovim's global StatusLine/IncSearch highlight: other
+-- windows and search matches must keep the user's theme.
+--
+-- Statusline segments require their own backgrounds because %#...# groups
+-- can replace the StatusLine highlight. Derive segment foregrounds from the
+-- existing semantic groups and force only their background. The neutral
+-- prefix/title uses Normal foreground for contrast on the dark surface
+-- (a theme's StatusLine foreground may be black for a light statusline).
+local function statusline_surface_definition()
+    return DEFAULT_STYLE_DEFINITIONS.inspect_header or {}
+end
+
+local function get_highlight_definition(group)
+    if type(group) ~= "string" or group == "" then
+        return {}
+    end
+
+    local ok, definition = pcall(vim.api.nvim_get_hl, 0, {
+        name = group,
+        link = false,
+    })
+
+    return ok and type(definition) == "table" and definition or {}
+end
+
+local function statusline_background_attributes()
+    local surface = statusline_surface_definition()
+    return {
+        bg = surface.bg,
+        ctermbg = surface.ctermbg,
+    }
+end
+
+-- This is a panel-window-only base highlight, used through 'winhighlight' so
+-- the entire bar (including empty space after the mode name) is charcoal.
+function M.statusline_background_group(config)
+    if not highlights_enabled(config) then
+        return nil
+    end
+
+    local group = namespace.name(config, "StatusLineSurface")
+    local normal = get_highlight_definition("Normal")
+    local definition = statusline_background_attributes()
+    definition.fg = normal.fg or 0xC0CAF5
+    definition.ctermfg = normal.ctermfg
+
+    vim.api.nvim_set_hl(0, group, definition)
+    return group
+end
+
+-- A coloured statusline segment retaining the semantic foreground of its
+-- existing heading style. 'status_title' and the neutral "Inspect:" prefix
+-- share the readable Normal foreground instead of StatusLine reverse video.
+function M.statusline_segment_group(config, style)
+    if not highlights_enabled(config) then
+        return nil
+    end
+
+    local suffix = STYLE_SUFFIXES[style]
+    if not suffix then
+        return nil
+    end
+
+    local group = namespace.name(config, "StatusLineSurface" .. suffix)
+    local semantic = style == "status_title"
+        and "Normal"
+        or M.group_name(config, style)
+    local source = get_highlight_definition(semantic)
+    local neutral = get_highlight_definition("Normal")
+    local definition = statusline_background_attributes()
+
+    definition.fg = source.fg or neutral.fg or 0xC0CAF5
+    definition.ctermfg = source.ctermfg or neutral.ctermfg
+    if source.bold then
+        definition.bold = true
+    end
+    if source.italic then
+        definition.italic = true
+    end
+
+    vim.api.nvim_set_hl(0, group, definition)
+    return group
+end
+
+
 
 local function composite_group_name(
     config,
