@@ -68,10 +68,22 @@ values:
 |---|---|---|
 | `Scope` | `Function` | Scope section title and mode name |
 | `Scope Members` | `String` | Scope Members title and mode name (distinct from `Function` in the current theme) |
-| `Events` | `Special` | Events title and mode name (same family as event facts) |
+| `Events` | `Keyword` | Events title and Inspect Mode name, sharing the `Target:` label accent |
 | `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
 These are color-*scheme links*, not hardcoded blue/green/orange RGB values.
+The **default** for both the `Target:` label and `Events` section title is
+the shared `Keyword` highlight link. In the current ERIDU colour scheme,
+`Keyword` is the preferred purple accent. The `Events` event *facts* keep
+their existing, independent `Special` semantic colour; only the section
+heading and its selected Inspect Mode name change.
+
+These values are the initial **Tracker_HUD defaults**, not a locked user theme.
+A later user-defined theme feature should override the named, namespaced
+styles (`EventsSectionTitle`, `TargetLabel`, etc.) without changing
+language-adapter logic or hardcoding one palette into source facts.
+The full end-user theme configuration system is not implemented yet.
+
 The namespaced styles are `<prefix>ScopeSectionTitle`,
 `<prefix>ScopeMembersSectionTitle`, `<prefix>EventsSectionTitle`, and
 `<prefix>WarningSectionTitle`. A user-customized colorscheme or highlight
