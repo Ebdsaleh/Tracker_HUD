@@ -626,7 +626,10 @@ M.default_links = {
     section = "Function",
     section_title = "Function",
     scope_section_title = "Function",
-    scope_members_section_title = "Identifier",
+    -- In the current Neovim theme Function and Identifier resolve too
+    -- similarly. String is already distinct and green in the user's theme.
+    -- This is a title-color link, not a semantic claim about member types.
+    scope_members_section_title = "String",
     warning_section_title = "DiagnosticWarn",
     section_marker = "Special",
     control = "Special",
@@ -685,6 +688,25 @@ M.core_section_title_styles = {
 
 function M.section_title_style(section_id, fallback)
     return M.core_section_title_styles[section_id] or fallback or "section_title"
+end
+
+-- Inspect selection is independent of source-cursor relevance. The source
+-- cursor may overlap a broad owning scope (and show "*") without selecting
+-- that HUD section. Apply the root-header background ONLY to the currently
+-- inspected section; never to all source-relevant section headers.
+function M.inspect_header_line_style(section_id, inspect_mode_id)
+    if type(section_id) ~= "string"
+        or type(inspect_mode_id) ~= "string"
+        or section_id == ""
+        or section_id ~= inspect_mode_id
+    then
+        return nil
+    end
+
+    return {
+        style = "active",
+        relevance = "current",
+    }
 end
 
 -- These defaults intentionally separate operand-role sage from success green.
