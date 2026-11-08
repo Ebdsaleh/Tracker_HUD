@@ -75,9 +75,9 @@ local function member(node_type, name_field, kind, language_term, owner_scope)
     }
 end
 
-table.insert(M.scope_members.types,
+table.insert(M.scope_members.symbols,
     member("class_specifier", "name", "symbol", "class", "parent_lexical"))
-table.insert(M.scope_members.types,
+table.insert(M.scope_members.symbols,
     member("alias_declaration", "name", "symbol", "type alias", "lexical"))
 table.insert(M.scope_members.symbols,
     member("namespace_definition", "name", "symbol", "namespace", "parent_lexical"))
