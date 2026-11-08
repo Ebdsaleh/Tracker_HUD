@@ -52,7 +52,11 @@ local function run()
         },
     }
 
+    local failures = {}
     for _, fixture in ipairs(fixtures) do
+        -- Run both language fixtures even if the first one fails. That lets
+        -- ERIDU report both C and C++ collector discrepancies in one pass.
+        local passed, failure = pcall(function()
         local adapter = require("tracker_hud.adapters." .. fixture.ft .. ".init")
         local registered, err = registry.register(adapter)
         assert(registered, fixture.ft .. " adapter registration: " .. tostring(err))
@@ -207,7 +211,16 @@ local function run()
         -- C++ defaulted parameter is on the function header line. C 'previous'
         -- is on its own declaration line. Both must appear ON the line.
         assert(has_name(at, fixture.visibility_name),
-            fixture.ft .. " declaration not visible ON its source line")
+            fixture.ft .. " declaration not visible ON its source line: "
+            .. fixture.visibility_name
+            .. "\n  members ON line: " .. (function()
+                local names = {}
+                for _, member in ipairs(at) do
+                    table.insert(names, tostring(member.name))
+                end
+                return #names > 0 and table.concat(names, ", ") or "<none>"
+            end)()
+            .. "\n  AST fields: " .. describe_ast_declarations(fixture.visibility_name))
 
         for _, member in ipairs(at) do
             assert(not member.line or member.line <= declaration_line,
@@ -216,7 +229,14 @@ local function run()
         print("PASS " .. fixture.ft .. " source members + ON/PAST cursor discovery")
 
         pcall(vim.api.nvim_buf_delete, buffer, { force = true })
+        end)
+        if not passed then
+            table.insert(failures, fixture.ft .. ": " .. tostring(failure))
+            print("FAIL " .. fixture.ft .. " parser-backed fixture: " .. tostring(failure))
+        end
     end
+    assert(#failures == 0,
+        "C/C++ parser-backed failures:\n  " .. table.concat(failures, "\n  "))
     print("PASS C/C++ parser-backed Tracker_HUD smoke")
 end
 
