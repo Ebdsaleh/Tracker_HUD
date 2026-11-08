@@ -87,6 +87,12 @@ local function statusline_group(config, style)
         return ""
     end
 
+    -- Plain mode retains its neutral text rather than leaking theme colors
+    -- into the title/marker while the mode label is already colorless.
+    if visual_language.resolve_visual_mode(config) == "plain" then
+        style = "plain_text"
+    end
+
     -- Each segment carries the charcoal surface as well as its own
     -- theme-provided foreground, so %#...# cannot flash the old grey bar.
     local group = highlights.statusline_segment_group(
