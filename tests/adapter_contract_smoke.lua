@@ -86,6 +86,47 @@ local function run()
         assert(found, "C++ missing parameter source binding: " .. node_type)
     end
 
+    -- Permanent panels are presentation sections, not claims about a
+    -- program's compiled architecture, live stack, or allocated objects.
+    -- Both adapters must keep the ASM section order, including empty panels.
+    local section_layout = require("tracker_hud.section_layout")
+    local inspect_mode = require("tracker_hud.inspect_mode")
+    local expected_order = {
+        "scope", "scope_members", "registers", "events",
+        "stack", "heap", "warnings",
+    }
+    local asm = require("tracker_hud.adapters.asm.adapter")
+    for _, adapter in ipairs({ c, cpp, asm }) do
+        local layout = section_layout.resolve(adapter)
+        local order = layout.order
+        assert(#order == #expected_order,
+            adapter.name .. " section count mismatch")
+        for index, id in ipairs(expected_order) do
+            assert(order[index] == id,
+                adapter.name .. " section order differs at " .. index)
+            assert(layout.by_id[id] and layout.by_id[id].id == id,
+                adapter.name .. " missing permanent section " .. id)
+        end
+
+        assert(inspect_mode.set_modes(layout.order),
+            adapter.name .. " Inspect Mode section cycle failed")
+        local seen = {}
+        for _ = 1, #expected_order do
+            local mode = inspect_mode.get_mode()
+            assert(not seen[mode], adapter.name .. " repeat in Inspect cycle")
+            seen[mode] = true
+            inspect_mode.cycle_mode()
+        end
+        for _, id in ipairs(expected_order) do
+            assert(seen[id], adapter.name .. " Inspect Mode cannot reach " .. id)
+        end
+        print("PASS " .. adapter.name .. " persistent section order / Inspect cycle")
+    end
+    assert(not c.capabilities.registers and not c.capabilities.heap,
+        "persistent C panels must not claim registers or heap inference")
+    assert(not cpp.capabilities.registers and not cpp.capabilities.heap,
+        "persistent C++ panels must not claim registers or heap inference")
+
     print("PASS C/C++ adapter isolation")
 end
 
