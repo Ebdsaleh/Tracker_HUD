@@ -33,6 +33,12 @@ struct Record {
     int id;
 };
 
+// Verify C++-specific defaulted parameter discovery independently of class
+// methods and the generic C parameter_declaration grammar.
+int with_default(int current, int fallback = 7) {
+    return current == 0 ? fallback : current;
+}
+
 int run() {
     Counter counter(2);
     std::vector<int> items{1, 2};
