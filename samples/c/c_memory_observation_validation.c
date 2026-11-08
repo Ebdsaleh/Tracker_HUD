@@ -1,3 +1,9 @@
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=c;
+// mode=compiled;
+
 /* C source-observed heap operation validation.
  * No execution, ownership or leak conclusions are expected.
  * Comments and strings containing malloc(8) must not create heap facts.
