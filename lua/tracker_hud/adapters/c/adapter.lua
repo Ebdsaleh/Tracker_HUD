@@ -21,8 +21,23 @@ local M = {
         values = true,
         source_jump = true,
     },
+    -- These are persistent HUD inspection surfaces, like the ASM adapter's
+    -- sections. Exposure does not assert machine-register, stack-frame, or
+    -- heap-allocation facts before the compiler/flow analysis proves them.
+    -- A source-level C file is not enough to identify physical registers.
+    sections = {
+        registers = { id = "registers", label = "Registers" },
+        events = { id = "events", label = "Events" },
+        stack = { id = "stack", label = "Stack" },
+        heap = { id = "heap", label = "Heap" },
+    },
     presentation = {
-        sections = { order = { "scope", "scope_members", "warnings" } },
+        sections = {
+            order = {
+                "scope", "scope_members", "registers",
+                "events", "stack", "heap", "warnings",
+            },
+        },
     },
     construct_specs = {},
     scope_members = {},
