@@ -3,10 +3,14 @@
 -- Only source/Tree-sitter facts. No compiler execution or invented runtime state.
 -- C and C++ share grammar constructs; the C++ adapter extends this base.
 
+local target_directives = require("tracker_hud.adapters.c.target_directives")
+
 local M = {
     contract_version = 1,
     name = "c",
     filetypes = { "c" },
+    target_directives = vim.deepcopy(target_directives.target_directives),
+    directive_comment_prefixes = { "//" },
     active_targets = {
         architecture = "unknown",
         platform = "unknown",
@@ -42,6 +46,12 @@ local M = {
     construct_specs = {},
     scope_members = {},
 }
+
+-- Keep this callback bound to the C adapter, not to a shared config module.
+-- C++ deep-copies this adapter and explicitly overrides this callback.
+function M.configure_adapter_for_buffer(bufnr, config)
+    M.active_targets = target_directives.resolve(bufnr, config, "c")
+end
 
 local function add_construct(node_type, kind, language_term, label, fields, scope_kind, signature)
     local spec = {
