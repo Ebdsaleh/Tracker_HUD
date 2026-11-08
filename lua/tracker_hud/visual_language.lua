@@ -726,15 +726,17 @@ function M.inspect_header_line_style(section_id, inspect_mode_id)
     }
 end
 
--- Default HUD headings for the low-level memory sections. These reuse hues
--- already present in the semantic palette: register cyan, provenance teal,
--- and 32-bit/memory-warning orange. They are identity accents ONLY, not
--- claims that a register was resolved or that an allocation leaked.
--- Named highlight groups can be overridden when user themes are supported.
+-- The shared low-level root headings have a distinct, restrained
+-- palette: garnet for registers, warm gold for stack, muted copper for
+-- heap. These are section IDENTITY accents, not semantic colours for
+-- register values, pointer facts, provenance, or memory warnings.
+-- The slightly lifted garnet remains readable on the charcoal Inspect
+-- band; a literal very dark blood-red would disappear against it.
+-- Keep the styles namespaced so later user themes can replace them.
 M.default_low_level_section_colors = {
-    registers = "#7DCFFF",
-    stack = "#73DACA",
-    heap = "#FF9E64",
+    registers = "#D68187",
+    stack = "#D7B45D",
+    heap = "#CE906A",
 }
 
 -- These defaults intentionally separate operand-role sage from success green.
