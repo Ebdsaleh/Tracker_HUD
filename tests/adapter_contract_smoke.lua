@@ -55,10 +55,36 @@ local function run()
             assert(supported[group_name],
                 adapter.name .. " has unrendered member group: " .. group_name)
         end
-        assert(adapter.scope_members.parameters[1].syntax.children.names.node_type == "parameter_list",
-            adapter.name .. " parameters must use the real parameter-list node")
+        local parameter_spec = nil
+        for _, spec in ipairs(adapter.scope_members.symbols or {}) do
+            if spec.syntax.node_type == "parameter_declaration" then
+                parameter_spec = spec
+                break
+            end
+        end
+        assert(parameter_spec
+            and parameter_spec.syntax.fields.name == "declarator"
+            and parameter_spec.member.kind == "parameter",
+            adapter.name .. " must expose declared parameter names")
     end
 
+
+    for _, node_type in ipairs({
+        "optional_parameter_declaration",
+        "variadic_parameter_declaration",
+    }) do
+        local found = false
+        for _, spec in ipairs(cpp.scope_members.symbols or {}) do
+            if spec.syntax.node_type == node_type
+                and spec.syntax.fields.name == "declarator"
+                and spec.member.kind == "parameter"
+            then
+                found = true
+                break
+            end
+        end
+        assert(found, "C++ missing parameter source binding: " .. node_type)
+    end
 
     print("PASS C/C++ adapter isolation")
 end
