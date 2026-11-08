@@ -57,6 +57,53 @@ Relevance must not erase semantic identity.
 
 ---
 
+## Core section and Inspect Mode colors
+
+The three language-neutral sections retain consistent semantic colors in both
+their **HUD section headers** and the active **Inspect Mode statusline label**.
+These colors are drawn from the established Tracker_HUD palette:
+
+| Core section | RGB color | 16-color fallback | Meaning |
+|---|---|---|---|
+| `Scope` | Blue `#7AA2F7` | ANSI bright blue (12) | Scope navigation |
+| `Scope Members` | Green `#9ECE6A` | ANSI bright green (10) | Members within scope |
+| `Warnings` | Amber `#E0AF68` | ANSI bright yellow (11) | Diagnostics / warnings |
+
+Section titles keep their own color when another Inspect Mode is active.
+The selected Inspect Mode **statusline label** changes color when cycling.
+Other, language-specific sections continue to use the existing generic
+section/Inspect Mode styling rather than inheriting any of these three colors.
+
+Focus/relevance may still modify *intensity*, while preserving the underlying
+semantic color. Existing text labels, `*` focus marker, and expansion
+markers remain intact. **An empty Warnings section still has an amber title**;
+the header color identifies the section, not the presence/severity of a warning.
+
+Plain mode remains strictly colorless: these section titles are bright white,
+and the active title continues to receive the standard underline. The Inspect
+Mode statusline label is also white in plain mode. This change does not
+introduce background shadows or color-dependent meaning.
+
+The implementation uses `visual_language.core_section_title_styles` and
+`visual_language.section_title_style(section_id, fallback)`, so the mapping
+is shared between section headers and the statusline. The shared highlight
+definitions support namespaces such as `HudScopeSectionTitle` and
+`HudScopeMembersSectionTitle`; the existing warning title group is
+`HudWarningSectionTitle` (substitute the configured namespace prefix).
+
+Test in a new Neovim session:
+
+```bat
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
+nvim samples/python/python_adapter_validation.py
+```
+
+Then cycle Inspect Mode using the configured keymap. Try both
+`:HudVisualMode rich` and `:HudVisualMode plain` to check the color and
+colorless presentations.
+
+---
+
 ## Color is enhancement, not meaning
 
 Tracker_HUD must never depend on color alone.
