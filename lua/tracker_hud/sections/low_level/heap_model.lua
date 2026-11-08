@@ -16,6 +16,9 @@ local heap_entry_kind_labels = {
     heap_allocation = "heap allocation",
     heap_deallocation = "heap deallocation",
     heap_boundary = "heap boundary",
+    heap_allocation_site = "allocation site",
+    heap_release_site = "release site",
+    heap_resize_site = "resize site",
     unknown = "unknown",
 }
 
