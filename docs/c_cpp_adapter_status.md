@@ -166,3 +166,42 @@ source edits that invalidate cached analyses.
 Only after these fixtures pass should the Heap or Warnings sections emit
 ownership/leak facts. The present tranche deliberately changes section
 availability and colours **only**, not semantic memory tracking.
+
+## ERIDU parser-backed test finding (2026-11-08)
+
+User's physical ERIDU results at commit `631e1bb`:
+
+- `tests/adapter_contract_smoke.lua` **PASS**, including C/C++ and configured ASM
+  seven-section order / Inspect Mode cycling.
+- `tests/section_inspect_colors_smoke.lua` **PASS**, including all seven default
+  header/statusline colours and plain mode.
+- `tests/c_cpp_parser_smoke.lua` **FAIL** after C real-syntax construct checks
+  passed: `c declared member missing from collector: Counter` at its
+  `expected_member_names` assertion.
+
+Do not mark the C/C++ member collector as accepted or begin leak inference.
+The C fixture uses `typedef struct Counter { int value; } Counter;`.
+The installed grammar defines both `struct_specifier.name` and
+`type_definition.declarator`, but we do **not yet know** whether this
+particular ERIDU parser AST omits the field, yields a different name,
+or the generic member walker fails to emit it. Avoid changing grammar
+fields speculatively.
+
+The parser-backed test now includes diagnostics listing **actual collected
+members and their source lines/depths**, alongside matching raw AST name/
+declarator fields. It also executes the C and C++ fixture checks
+independently in the same invocation, aggregating failures without
+suppressing a non-zero test result.
+
+Next validation step (ERIDU, normal Neovim startup with C/C++ parsers):
+
+```bat
+git pull --ff-only
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+```
+
+Read both actual C/C++ collector/AST diagnostics, fix the smallest supported
+cause with a regression test, and rerun both parser and contract tests.
+The schema/visual smoke tests need not be rerun unless affected source
+changes. Preserve the failing `Counter` assertion rather than removing
+or weakening it.
