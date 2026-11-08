@@ -9,6 +9,37 @@ nvim samples/cpp/cpp_adapter_validation.cpp
 
 The Neovim Tree-sitter `cpp` parser must be installed (for compatible nvim-treesitter setups, `:TSInstall cpp`). Filetype must be `cpp` (check `:set filetype?`). Reopen Neovim after pulling.
 
+## Source-file target directives (same mechanism as ASM)
+
+The validation files begin with **strict comment directives**. They are
+parsed by the existing Tracker_HUD directive scanner, not by the compiler:
+
+```cpp
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=cpp;
+// mode=compiled;
+```
+
+Each `//` must begin at **column zero**. The exact directive form is
+`// key=value;`, with **one space** after `//`, no spaces around `=`,
+and a mandatory final `;`. Directives must appear in the first **20 lines**.
+
+The source file's values override `config.targets`; configuration
+otherwise overrides the conservative defaults. An incompatible
+`syntax` value is diagnosed and **cannot** switch the Tree-sitter parser.
+`arch`, `platform`, `abi`, and `mode` are declared source metadata,
+not facts inferred from compiled output. Without explicit target data,
+architecture/platform/ABI stay `unknown`. No compiler flags or program
+behaviour are changed by these comments.
+
+Quick no-parser acceptance test:
+
+```bat
+nvim --headless -u NONE -c "luafile tests/c_cpp_source_directives_smoke.lua"
+```
+
 ## Verify in the HUD
 
 - On `namespace tracker_hud_sample`, **Scope** should show **Namespace**.
