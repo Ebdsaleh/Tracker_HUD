@@ -83,13 +83,13 @@ end
 
 
 local function statusline_group(config, style)
-    if not highlights.is_enabled(
-        config or {}
-    ) then
+    if not highlights.is_enabled(config or {}) then
         return ""
     end
 
-    local group = highlights.group_name(
+    -- Each segment carries the charcoal surface as well as its own
+    -- theme-provided foreground, so %#...# cannot flash the old grey bar.
+    local group = highlights.statusline_segment_group(
         config or {},
         style
     )
@@ -102,10 +102,40 @@ local function statusline_group(config, style)
 end
 
 
+local function set_panel_statusline_surface(config)
+    if not is_valid_window(panel_winid) then
+        return
+    end
+
+    local group = highlights.statusline_background_group(config or {})
+    if not group then
+        return
+    end
+
+    -- Restrict the replacement to Tracker_HUD's panel. Preserve all other
+    -- existing window-local highlight overrides if the split inherited any.
+    local existing = vim.wo[panel_winid].winhighlight or ""
+    local mappings = {}
+    for mapping in existing:gmatch("[^,]+") do
+        if not mapping:match("^%s*StatusLine:")
+            and not mapping:match("^%s*StatusLineNC:")
+        then
+            table.insert(mappings, mapping)
+        end
+    end
+
+    table.insert(mappings, "StatusLine:" .. group)
+    table.insert(mappings, "StatusLineNC:" .. group)
+    vim.wo[panel_winid].winhighlight = table.concat(mappings, ",")
+end
+
+
 local function set_panel_statusline(config)
     if not is_valid_window(panel_winid) then
         return
     end
+
+    set_panel_statusline_surface(config)
 
     local title_group =
         statusline_group(
