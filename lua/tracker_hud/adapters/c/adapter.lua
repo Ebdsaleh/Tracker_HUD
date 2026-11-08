@@ -104,24 +104,15 @@ M.scope_members = {
     functions = {
         member("function_definition", "declarator", "function", "function", "parent_lexical"),
     },
-    -- The shared parameters collector consumes a named child list.
-    parameters = {
-        {
-            syntax = {
-                node_type = "function_declarator",
-                fields = { parameters = "parameters" },
-                children = { names = { node_type = "parameter_list" } },
-            },
-            member = {
-                kind = "parameter",
-                language_term = "parameter",
-                owner_scope = "lexical",
-            },
-        },
-    },
+    -- The generic parameters/list collector renders a whole declaration
+    -- (e.g. "int amount") as a name, and can accidentally include the type.
+    -- Using the existing symbol collector with the real declarator field
+    -- reports the binding itself (e.g. "amount"). No shared-engine changes.
+    -- Unnamed parameters are correctly omitted.
     -- The shared symbol collector consumes named Tree-sitter fields.
     -- C declarations include prototypes, so don't assume every one is a variable.
     symbols = {
+        member("parameter_declaration", "declarator", "parameter", "parameter", "lexical"),
         member("declaration", "declarator", "symbol", "declaration", "lexical"),
         member("init_declarator", "declarator", "variable", "initialized variable", "lexical"),
         member("type_definition", "declarator", "symbol", "typedef", "lexical"),
