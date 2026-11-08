@@ -373,3 +373,68 @@ nvim samples/cpp/cpp_memory_observation_validation.cpp
 The new memory observation tests are **not yet verified** on the user's
 Neovim runtime. Keep the earlier green parser tests and avoid adding
 leak warnings until this tranche is accepted.
+
+
+## Sixth tranche — C/C++ source-file target directives (2026-11-08)
+
+Added the same strict **source-file target metadata** mechanism used by ASM,
+without introducing a separate loose C/C++ parser. C and C++ recognize
+the five ASM-compatible directive names on column-zero `//` lines:
+
+```c
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=c;
+// mode=compiled;
+```
+
+For C++, use `// syntax=cpp;`. Each directive must have **one space**
+after `//`, no spaces surrounding `=`, a final `;`, and appear within
+the **first 20 source lines**. The scanner and malformed-line diagnostics
+come directly from `tracker_hud.directive_utils` via
+`adapters.variant_utils`, as in ASM.
+
+Implementation:
+
+- `lua/tracker_hud/adapters/c/target_directives.lua` resolves
+  `architecture`, `platform`, `abi`, `syntax`, `mode` in
+  source > `config.targets` > defaults order. It supports the same common
+  `x64`, `amd64`, `x86_64` aliases to `x86-64`.
+- `adapters/c/adapter.lua` and `adapters/cpp/adapter.lua` each configure
+  their own active targets on each buffer. C++ **must not** inherit C's
+  Lua closure capturing the C adapter table.
+- `syntax` is tied to the buffer's actual C/C++ parser; a conflicting
+  source directive emits a diagnostic and is not permitted to silently
+  switch the parser. Unknown architecture/platform/ABI remain unknown
+  until declared or configured. Other target strings are metadata,
+  not compiler/ABI validation or runtime inference.
+- Both structural and memory-observation source samples now declare
+  target metadata at the top. Examples use the Windows x86-64 target
+  for ERIDU; callers can change values for a cross-compilation target.
+- `tests/c_cpp_source_directives_smoke.lua` verifies valid directives,
+  source-over-config precedence, defaults, architecture aliases,
+  malformed/missing terminator diagnostics, first-20-lines restriction,
+  cross-language isolation, and syntax mismatch warnings. No Tree-sitter
+  parser needed for that particular smoke test.
+
+**Acceptance pending on ERIDU:** although source edits have been
+verified on GitHub, the C/C++ target directive tests (and new Heap
+observation tests from tranche five) are **not** yet reported green.
+Preserve previous C/C++ member collector results (15 C, 28 C++).
+
+Next run:
+
+```bat
+git pull --ff-only
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+nvim --headless -u NONE -c "luafile tests/c_cpp_source_directives_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_memory_observation_smoke.lua"
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
+```
+
+Inspect `samples/c/c_adapter_validation.c` and
+`samples/cpp/cpp_adapter_validation.cpp` to confirm the HUD's
+`Target:` line shows the declared metadata. The memory-observation
+facts must remain source-only and must not trigger leak warnings.
