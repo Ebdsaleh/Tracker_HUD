@@ -112,9 +112,69 @@ local function run()
             by_name[item.name] = by_name[item.name] or {}
             table.insert(by_name[item.name], item)
         end
+        -- If a member is missing, preserve the failing assertion while
+        -- showing exactly what the live Tree-sitter grammar and member walker
+        -- produced. This distinguishes a missing AST field, a collector
+        -- ownership problem, and an unexpectedly formatted declarator.
+        local function describe_member_names()
+            local entries = {}
+            for _, member in ipairs(all) do
+                table.insert(entries, string.format(
+                    "%s:%s@%s(depth=%s)",
+                    tostring(member.kind or "?"),
+                    tostring(member.name or "?"),
+                    tostring(member.line or "?"),
+                    tostring(member.scope_depth or "?")
+                ))
+            end
+            return #entries == 0
+                and "<empty collection>"
+                or table.concat(entries, ", ")
+        end
+
+        local function describe_ast_declarations(wanted)
+            local found = {}
+            local field_types = {
+                struct_specifier = "name",
+                union_specifier = "name",
+                class_specifier = "name",
+                namespace_definition = "name",
+                type_definition = "declarator",
+                parameter_declaration = "declarator",
+                optional_parameter_declaration = "declarator",
+                field_declaration = "declarator",
+                init_declarator = "declarator",
+            }
+            local function inspect(node)
+                local field = field_types[node:type()]
+                if field then
+                    local child = node:child_by_field_name(field)
+                    local value = child
+                        and vim.treesitter.get_node_text(child, buffer) or "<absent>"
+                    if value == wanted or (type(value) == "string"
+                        and value:find(wanted, 1, true))
+                    then
+                        table.insert(found, string.format(
+                            "%s.%s=%s@%d",
+                            node:type(), field, value, node:start() + 1
+                        ))
+                    end
+                end
+                for child in node:iter_children() do
+                    inspect(child)
+                end
+            end
+            inspect(root)
+            return #found == 0
+                and "<no matching named AST declarator>"
+                or table.concat(found, ", ")
+        end
+
         for _, name in ipairs(fixture.expected_member_names) do
             assert(by_name[name],
-                fixture.ft .. " declared member missing from collector: " .. name)
+                fixture.ft .. " declared member missing from collector: " .. name
+                .. "\n  collected: " .. describe_member_names()
+                .. "\n  AST fields: " .. describe_ast_declarations(name))
         end
 
         local declaration_line = nil
