@@ -95,7 +95,11 @@ local function run()
         "scope", "scope_members", "registers", "events",
         "stack", "heap", "warnings",
     }
-    local asm = require("tracker_hud.adapters.asm.adapter")
+    -- The ASM master adapter applies base_presentation during variant
+    -- configuration. Mirror that normal configured state in this headless
+    -- section test without requiring a user buffer or mutating the master.
+    local asm = vim.deepcopy(require("tracker_hud.adapters.asm.adapter"))
+    asm.presentation = vim.deepcopy(asm.base_presentation)
     for _, adapter in ipairs({ c, cpp, asm }) do
         local layout = section_layout.resolve(adapter)
         local order = layout.order
