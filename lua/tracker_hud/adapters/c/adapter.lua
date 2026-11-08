@@ -116,8 +116,12 @@ M.scope_members = {
         member("declaration", "declarator", "symbol", "declaration", "lexical"),
         member("init_declarator", "declarator", "variable", "initialized variable", "lexical"),
         member("type_definition", "declarator", "symbol", "typedef", "lexical"),
-        member("struct_specifier", "name", "symbol", "struct", "parent_lexical"),
-        member("union_specifier", "name", "symbol", "union", "parent_lexical"),
+        -- The symbols collector currently collects inside the lexical scope.
+        -- parent_lexical is only processed pre-scope for the functions group;
+        -- on symbols it silently drops the entry. Keep struct/union names
+        -- visible here without changing the shared collector.
+        member("struct_specifier", "name", "symbol", "struct", "lexical"),
+        member("union_specifier", "name", "symbol", "union", "lexical"),
         member("enum_specifier", "name", "symbol", "enum", "lexical"),
         member("preproc_def", "name", "symbol", "macro", "lexical"),
     },
