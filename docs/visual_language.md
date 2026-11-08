@@ -59,19 +59,29 @@ Relevance must not erase semantic identity.
 
 ## Core section and Inspect Mode presentation
 
-Tracker_HUD has three language-neutral core sections (Scope, Scope Members,
-Warnings) and an optional Events section in adapters that produce events.
-Their title hues follow the user's **Neovim colorscheme**, not fixed RGB
-values:
+Tracker_HUD has three mandatory language-neutral core sections (Scope,
+Scope Members, Warnings). Adapters explicitly opt into additional permanent
+inspection surfaces. ASM, C, and C++ expose Registers, Events, Stack, and
+Heap even when no facts have been discovered at the cursor.
 
-| Section | Existing Neovim group | Use |
+The default palette uses existing Neovim highlight links for the original
+titles, and existing Tracker_HUD semantic RGB accents for the low-level
+headings. It is a shared HUD mapping by section ID, **not an ASM-only rule**.
+
+| Section | Default title style / palette source | Purpose |
 |---|---|---|
-| `Scope` | `Function` | Scope section title and mode name |
-| `Scope Members` | `String` | Scope Members title and mode name (distinct from `Function` in the current theme) |
-| `Events` | `Keyword` | Events title and Inspect Mode name, sharing the `Target:` label accent |
+| `Scope` | `Function` | Scope title and mode name |
+| `Scope Members` | `String` | Members title and mode name |
+| `Registers` | Cyan `#7DCFFF` (existing register accent) | Registers title and mode name |
+| `Events` | `Keyword` | Events title and mode name, sharing the `Target:` label accent |
+| `Stack` | Teal `#73DACA` (existing provenance accent) | Stack title and mode name |
+| `Heap` | Orange `#FF9E64` (existing numeric/warning-subject accent) | Heap title and mode name |
 | `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
-These are color-*scheme links*, not hardcoded blue/green/orange RGB values.
+The original four styles are colorscheme links, not hardcoded RGB values.
+The three low-level heading accents are **default colour definitions**,
+reused from the established semantic palette, without changing the colours
+or meanings of register, stack, or heap *facts*.
 The **default** for both the `Target:` label and `Events` section title is
 the shared `Keyword` highlight link. In the current ERIDU colour scheme,
 `Keyword` is the preferred purple accent. The `Events` event *facts* keep
@@ -84,11 +94,12 @@ styles (`EventsSectionTitle`, `TargetLabel`, etc.) without changing
 language-adapter logic or hardcoding one palette into source facts.
 The full end-user theme configuration system is not implemented yet.
 
-The namespaced styles are `<prefix>ScopeSectionTitle`,
-`<prefix>ScopeMembersSectionTitle`, `<prefix>EventsSectionTitle`, and
-`<prefix>WarningSectionTitle`. A user-customized colorscheme or highlight
-link therefore remains authoritative. Other adapter-specific sections keep
-their existing generic section and Inspect Mode presentation.
+The namespaced styles include `<prefix>ScopeSectionTitle`,
+`<prefix>ScopeMembersSectionTitle`, `<prefix>RegistersSectionTitle`,
+`<prefix>EventsSectionTitle`, `<prefix>StackSectionTitle`,
+`<prefix>HeapSectionTitle`, and `<prefix>WarningSectionTitle`. Their
+names make future user-theme overrides possible without editing adapters.
+Other, unregistered adapter-specific sections retain generic styling.
 
 In the panel statusline the literal **`Inspect:` prefix stays at a
 neutral, readable foreground** (the editor's `Normal` text colour against
@@ -100,8 +111,8 @@ The **entire Tracker_HUD panel statusline**, including the empty area after
 section's highlight bar: `#2D3138` (cterm `236`). This applies to both
 active and inactive HUD-window statuslines; other editor windows keep their
 original `StatusLine`/`StatusLineNC` colours. Dedicated namespaced statusline
-segments preserve the existing Scope/Scope Members/Events/Warnings foreground
-accents while avoiding a return to the theme's lighter statusline background.
+segments preserve the section-specific foreground accents (including
+Registers, Stack and Heap) while avoiding the lighter statusline background.
 No global `StatusLine`, `StatusLineNC`, `IncSearch`, or semantic highlight
 group is overwritten.
 
@@ -158,9 +169,10 @@ nvim samples/python/python_adapter_validation.py
 
 Cycle Inspect Mode (default `<leader><leader>`) and compare the
 selected root title with the statusline. Try `:HudVisualMode rich` and
-`:HudVisualMode plain`. Check `Scope`, `Scope Members`,
-`Events`, and `Warnings`. Non-core section modes retain their
-existing theme styling.
+`:HudVisualMode plain`. Check `Scope`, `Scope Members`, `Registers`,
+`Events`, `Stack`, `Heap`, and `Warnings` in the ASM, C, and C++
+fixtures. Adapter-specific section visibility still follows each adapter's
+presentation order.
 
 ---
 
