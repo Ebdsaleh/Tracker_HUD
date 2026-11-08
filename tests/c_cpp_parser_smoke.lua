@@ -15,6 +15,7 @@ local function run()
 
     local registry = require("tracker_hud.adapters.registry")
     local collector = require("tracker_hud.scope_members")
+    local ts_utils = require("tracker_hud.treesitter_utils")
     registry.clear()
 
     local fixtures = {
@@ -152,7 +153,7 @@ local function run()
             local function inspect(node)
                 local field = field_types[node:type()]
                 if field then
-                    local child = node:child_by_field_name(field)
+                    local child = ts_utils.get_child_by_field_name(node, field)
                     local value = child
                         and vim.treesitter.get_node_text(child, buffer) or "<absent>"
                     if value == wanted or (type(value) == "string"
@@ -175,10 +176,14 @@ local function run()
         end
 
         for _, name in ipairs(fixture.expected_member_names) do
-            assert(by_name[name],
-                fixture.ft .. " declared member missing from collector: " .. name
-                .. "\n  collected: " .. describe_member_names()
-                .. "\n  AST fields: " .. describe_ast_declarations(name))
+            -- Build diagnostic text ONLY for a genuine failure. Lua evaluates
+            -- assert() arguments eagerly, so the old version called its AST
+            -- diagnostic even when the name was already present.
+            if not by_name[name] then
+                error(fixture.ft .. " declared member missing from collector: " .. name
+                    .. "\n  collected: " .. describe_member_names()
+                    .. "\n  AST fields: " .. describe_ast_declarations(name))
+            end
         end
 
         local declaration_line = nil
@@ -210,17 +215,17 @@ local function run()
             fixture.ft .. " future declaration leaked before the cursor")
         -- C++ defaulted parameter is on the function header line. C 'previous'
         -- is on its own declaration line. Both must appear ON the line.
-        assert(has_name(at, fixture.visibility_name),
-            fixture.ft .. " declaration not visible ON its source line: "
-            .. fixture.visibility_name
-            .. "\n  members ON line: " .. (function()
-                local names = {}
-                for _, member in ipairs(at) do
-                    table.insert(names, tostring(member.name))
-                end
-                return #names > 0 and table.concat(names, ", ") or "<none>"
-            end)()
-            .. "\n  AST fields: " .. describe_ast_declarations(fixture.visibility_name))
+        if not has_name(at, fixture.visibility_name) then
+            local names = {}
+            for _, member in ipairs(at) do
+                table.insert(names, tostring(member.name))
+            end
+            error(fixture.ft .. " declaration not visible ON its source line: "
+                .. fixture.visibility_name
+                .. "\n  members ON line: "
+                .. (#names > 0 and table.concat(names, ", ") or "<none>")
+                .. "\n  AST fields: " .. describe_ast_declarations(fixture.visibility_name))
+        end
 
         for _, member in ipairs(at) do
             assert(not member.line or member.line <= declaration_line,
