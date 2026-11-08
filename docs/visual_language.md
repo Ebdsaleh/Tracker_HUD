@@ -66,7 +66,7 @@ hex values:
 | Section | Existing Neovim group | Use |
 |---|---|---|
 | `Scope` | `Function` | Scope section title and mode name |
-| `Scope Members` | `Identifier` | Scope Members title and mode name |
+| `Scope Members` | `String` | Scope Members title and mode name (distinct from `Function` in the current theme) |
 | `Warnings` | `DiagnosticWarn` | Warnings title and mode name |
 
 These are color-*scheme links*, not hardcoded blue/green/orange RGB values.
@@ -81,12 +81,25 @@ default statusline foreground**. Only the selected section's name uses its
 matching theme-linked highlight. Do not tint the prefix.
 
 The current Inspect Mode also produces a **visible focus cue in the HUD**:
-the selected root-section title is **bold and underlined**, even when the
-cursor currently has no matching source fact in that section. The section's
-own color identity remains; inactive titles retain their existing color or
-relevance treatment. Do **not** underline every descendant or shadow every
-row of the selected section. This focus cue is for navigation, not a claim
-that the section contains a warning or changed program state.
+the selected root-section title is **bold and underlined** and receives
+a root-heading-only highlight. This follows Inspect Mode even when the cursor
+currently has no matching source fact in the selected section. The section's
+own color identity remains; inactive headings lose the root-heading
+background, but keep their usual title colours and source context markers.
+Do **not** underline every descendant or shadow every row of a section.
+
+The source-location `*` marker is **not** an Inspect Mode selection marker.
+For example, the Scope Members tree seeds the current owning lexical scope
+even before a specific member is encountered. Its containing source range can
+remain relevant at the cursor, so Scope Members may still show `*` while
+`Inspect: Warnings` is selected. This is intentional source context,
+**not** a reason to keep Scope Members' heading highlighted. Header
+background and title underline follow Inspect Mode exclusively.
+
+These visual effects do not claim that a warning exists or program state
+has changed. The `String` group is used only to give Scope Members a
+distinct theme-linked heading hue; it does **not** classify members as strings.
+A different user colorscheme may render groups differently.
 
 Plain mode remains strictly colorless. The active root title is underlined
 as before; all other HUD text and the statusline label are neutral, and
@@ -96,8 +109,8 @@ background highlight is added across the whole Scope/Scope Members tree.
 This behavior separates the visual-language layers:
 
 - **Semantic identity**: section name and its theme-linked highlight group.
-- **Inspect focus**: bold/underline on the single selected root title.
-- **Source relevance**: separate, existing source-cursor fact highlighting.
+- **Inspect focus**: bold/underline and root-heading highlight on the selected section only.
+- **Source relevance**: separate source-cursor facts and their `*` markers, which can remain on another section.
 
 Validate with a fresh Neovim session:
 
