@@ -624,6 +624,8 @@ M.default_links = {
     key_hint = "Special",
     section = "Function",
     section_title = "Function",
+    scope_section_title = "Function",
+    scope_members_section_title = "Identifier",
     warning_section_title = "DiagnosticWarn",
     section_marker = "Special",
     control = "Special",
@@ -670,16 +672,10 @@ M.default_links = {
 }
 
 
--- The three language-neutral section titles reuse established semantic colors.
--- Scope blue is the existing line-number blue; Scope Members green is the
--- existing resolved-state green; Warnings amber is the warning color family.
--- ANSI cterm fallbacks keep these identities readable on low-color terminals.
---
--- These are presentation styles, not evidence that source facts are resolved.
--- Plain visual mode remains colorless and uses its existing active underline.
--- These three styles also color the active Inspect Mode statusline label.
---
--- Other adapter-specific sections keep their existing generic title styling.
+-- Core section titles retain the theme-linked highlight groups established by
+-- the visual-language baseline. No fixed RGB hues or forced ANSI overrides.
+-- These styles are reused for the Inspect Mode name, not the "Inspect:" label.
+-- Other adapter sections preserve their generic title/Inspect styles.
 M.core_section_title_styles = {
     scope = "scope_section_title",
     scope_members = "scope_members_section_title",
@@ -692,9 +688,6 @@ end
 
 -- These defaults intentionally separate operand-role sage from success green.
 M.default_style_definitions = {
-    scope_section_title = { fg = "#7AA2F7", ctermfg = 12, bold = true },
-    scope_members_section_title = { fg = "#9ECE6A", ctermfg = 10, bold = true },
-    warning_section_title = { fg = "#E0AF68", ctermfg = 11, bold = true },
     line_number = { fg = "#7AA2F7" },
     value = { fg = "#C0CAF5" },
     metadata_key = { fg = "#7DCFFF" },
@@ -770,6 +763,13 @@ M.default_style_definitions = {
 
 
 M.relevance_definitions = {
+    -- Selected root-section title only; do not underline every focused
+    -- descendant or apply a whole-section background.
+    inspecting = {
+        bold = true,
+        underline = true,
+    },
+
     focused = {
         bold = true,
     },
@@ -1392,6 +1392,7 @@ function M.plain_style_for(config, style, relevance, usage)
 
         if relevance == "focused"
             or relevance == "current"
+            or relevance == "inspecting"
         then
             return "plain_active_section_title"
         end
