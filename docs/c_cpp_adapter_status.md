@@ -438,3 +438,52 @@ Inspect `samples/c/c_adapter_validation.c` and
 `samples/cpp/cpp_adapter_validation.cpp` to confirm the HUD's
 `Target:` line shows the declared metadata. The memory-observation
 facts must remain source-only and must not trigger leak warnings.
+
+
+## Seventh tranche — preserve inactive heading identity (2026-11-08)
+
+ERIDU verified the parser-backed C/C++ member test again at `41d544b`:
+C 15 members, C++ 28 members, both ON/PAST cursor checks green. The
+screenshots show the selected headings and `Inspect:` segment in the
+new garnet/gold/copper palette, but the inactive low-level heading
+colours are too muted because source `contextual`/`historical`
+relevance also applied to the section title.
+
+Changed **only shared visual presentation**:
+- `visual_language.section_heading_relevance`: root-title relevance
+  is `inspecting` when selected and `section_idle` otherwise.
+- `hud.build_section_header_line`: retain source relevance for
+  markers/fact rows, but set the title span to its own heading
+  relevance. This prevents source history from washing out section
+  colour identity.
+- `section_idle` uses 12% blending toward the existing muted target
+  for explicit RGB title accents; linked colourscheme titles retain
+  their theme hue. No inactive underline, italic, highlight bar or
+  marker changes. Selected titles retain full hue, bold underline,
+  and charcoal bar; the neutral `Inspect:` prefix and statusline
+  remain unchanged.
+- Extended `tests/section_inspect_colors_smoke.lua` to check inactive
+  contrast-to-base, distinct identities, Inspect isolation, and
+  plain-mode behaviour.
+- Updated `docs/visual_language.md`. The mapping is shared by ASM,
+  C and C++ and will remain theme-customisable.
+
+**Validation:** source pushed to `main`; ERIDU has not yet run these
+new highlight tests. Re-run:
+
+```bat
+git pull --ff-only
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+```
+
+Visual check: open `samples/cpp/cpp_adapter_validation.cpp` and cycle
+`Inspect:` modes. Confirm all seven headings keep their identity hue
+when inactive, with only the selected title underlined/charcoal-band
+highlighted. Then try ASM to verify shared styling.
+
+**Unverified earlier work:** the parser-independent
+`tests/c_cpp_source_directives_smoke.lua` and parser-backed
+`tests/c_cpp_memory_observation_smoke.lua` have not yet been reported
+green by ERIDU. Do not infer lifetime or leak correctness from the
+C/C++ source-observation feature.
