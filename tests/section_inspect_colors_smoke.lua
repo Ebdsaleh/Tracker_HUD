@@ -19,6 +19,15 @@ local function run()
         warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
+    -- Low-level section titles use explicit colors from the already adopted
+    -- default semantic palette. Their IDs/styles are global: ASM and C/C++
+    -- share one visual-language mapping without per-adapter colour rules.
+    local low_level = {
+        registers = { style = "registers_section_title", fg = "#7DCFFF" },
+        stack = { style = "stack_section_title", fg = "#73DACA" },
+        heap = { style = "heap_section_title", fg = "#FF9E64" },
+    }
+
     local config = config_module.resolve({
         highlights = { enabled = true },
         namespace = { prefix = "HudSmoke" },
@@ -42,16 +51,58 @@ local function run()
         print("PASS " .. id .. " inherits Neovim " .. check.link)
     end
 
+    local seen_low_level_colors = {}
+    for id, check in pairs(low_level) do
+        local style = visual.section_title_style(id)
+        assert(style == check.style, id .. " title style mismatch")
+        assert(visual.default_low_level_section_colors[id] == check.fg,
+            id .. " palette default mismatch")
+        local definition = visual.default_style_definitions[style]
+        assert(type(definition) == "table"
+            and definition.fg == check.fg
+            and definition.bg == nil,
+            id .. " heading must have its own foreground without a background")
+        assert(visual.default_links[style] == nil,
+            id .. " custom semantic palette must not be masked by theme link")
+
+        local group = highlights.group_name(config, style)
+        assert(group == "HudSmoke" .. visual.style_suffixes[style],
+            id .. " missing namespaced title group")
+        local hl = vim.api.nvim_get_hl(0, { name = group, link = false })
+        assert(hl.fg == tonumber(check.fg:sub(2), 16),
+            id .. " installed heading color mismatch")
+
+        local segment = highlights.statusline_segment_group(config, style)
+        local segment_hl = vim.api.nvim_get_hl(0, {
+            name = segment, link = false,
+        })
+        assert(segment_hl.fg == hl.fg,
+            "Inspect: " .. id .. " should match its heading color")
+        assert(not seen_low_level_colors[check.fg],
+            "low-level headings should have distinct accents")
+        seen_low_level_colors[check.fg] = true
+
+        print("PASS " .. id .. " uses semantic accent " .. check.fg)
+    end
+
+    local sections_to_test = {}
+    for id in pairs(expected) do
+        sections_to_test[id] = true
+    end
+    for id in pairs(low_level) do
+        sections_to_test[id] = true
+    end
+
     -- One panel heading is selected at a time. Source-relevance remains
     -- independently free to mark an owning Scope Members node with "*".
     -- Never let that source "active" state pin the header background.
-    for section_id in pairs(expected) do
+    for section_id in pairs(sections_to_test) do
         local selected = visual.inspect_header_line_style(section_id, section_id)
         assert(type(selected) == "table"
             and selected.style == "inspect_header"
             and selected.relevance == "current",
             section_id .. " selected header not highlighted")
-        for other_id in pairs(expected) do
+        for other_id in pairs(sections_to_test) do
             if other_id ~= section_id then
                 assert(visual.inspect_header_line_style(other_id, section_id) == nil,
                     other_id .. " remains highlighted while inspecting " .. section_id)
@@ -76,9 +127,9 @@ local function run()
         "do not underline every current descendant")
     print("PASS Inspecting emphasis is separate from source relevance")
 
-    assert(visual.section_title_style("registers", "inspect_mode") == "inspect_mode",
+    assert(visual.section_title_style("custom_section", "inspect_mode") == "inspect_mode",
         "unmapped Inspect Mode must preserve existing style")
-    assert(visual.section_title_style("registers") == "section_title",
+    assert(visual.section_title_style("custom_section") == "section_title",
         "unmapped section must preserve generic title style")
     assert(visual.section_title_style("events") == "events_section_title",
         "Events must use its own section-title style")
@@ -164,6 +215,7 @@ local function run()
     for _, style in ipairs({
         "status_title", "status_marker", "scope_section_title",
         "scope_members_section_title", "events_section_title",
+        "registers_section_title", "stack_section_title", "heap_section_title",
         "warning_section_title",
     }) do
         local group = highlights.statusline_segment_group(config, style)
@@ -201,6 +253,13 @@ local function run()
 
     assert(visual.plain_style_for(plain, "inspect_header", "current", "line") == nil,
         "plain mode must not gain a colored heading background")
+    for _, check in pairs(low_level) do
+        assert(visual.plain_style_for(plain, check.style, "inspecting", "span")
+            == "plain_active_section_title",
+            check.style .. " should use plain focus underline")
+        assert(visual.plain_style_for(plain, check.style, "contextual", "span") == nil,
+            check.style .. " should not tint inactive plain headings")
+    end
     for _, check in pairs(expected) do
         assert(visual.plain_style_for(plain, check.style, "inspecting", "span")
             == "plain_active_section_title",
