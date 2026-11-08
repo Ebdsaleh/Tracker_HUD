@@ -41,7 +41,7 @@ local function run()
                 function_definition = "function",
                 lambda_expression = "function",
                 for_range_loop = "loop",
-                optional_parameter_declaration = false, -- member-only syntax
+                optional_parameter_declaration = "parameter",
             },
             expected_member_names = {
                 "tracker_hud_sample", "Counter", "amount", "fallback",
