@@ -19,14 +19,34 @@ local function run()
         warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
-    -- Low-level section titles use explicit colors from the already adopted
-    -- default semantic palette. Their IDs/styles are global: ASM and C/C++
-    -- share one visual-language mapping without per-adapter colour rules.
+    -- Shared low-level section IDENTITY colours (not underlying fact styles).
+    -- ASM, C and C++ must all inherit the same mapping for title + Inspect.
     local low_level = {
-        registers = { style = "registers_section_title", fg = "#7DCFFF" },
-        stack = { style = "stack_section_title", fg = "#73DACA" },
-        heap = { style = "heap_section_title", fg = "#FF9E64" },
+        registers = { style = "registers_section_title", fg = "#D68187" },
+        stack = { style = "stack_section_title", fg = "#D7B45D" },
+        heap = { style = "heap_section_title", fg = "#CE906A" },
     }
+
+    -- Ensure muted garnet remains readable on the selected charcoal band,
+    -- where a literal dark blood-red would be difficult to discern.
+    local function luminance(hex)
+        local channels = {}
+        for position = 2, 6, 2 do
+            local value = tonumber(hex:sub(position, position + 1), 16) / 255
+            channels[#channels + 1] = value <= 0.04045
+                and value / 12.92
+                or ((value + 0.055) / 1.055) ^ 2.4
+        end
+        return channels[1] * 0.2126
+            + channels[2] * 0.7152
+            + channels[3] * 0.0722
+    end
+
+    local function contrast(a, b)
+        local a_luma, b_luma = luminance(a), luminance(b)
+        return (math.max(a_luma, b_luma) + 0.05)
+            / (math.min(a_luma, b_luma) + 0.05)
+    end
 
     local config = config_module.resolve({
         highlights = { enabled = true },
@@ -78,6 +98,8 @@ local function run()
         })
         assert(segment_hl.fg == hl.fg,
             "Inspect: " .. id .. " should match its heading color")
+        assert(contrast(check.fg, "#2D3138") >= 4.5,
+            id .. " section title contrast is too low on Inspect charcoal")
         assert(not seen_low_level_colors[check.fg],
             "low-level headings should have distinct accents")
         seen_low_level_colors[check.fg] = true
