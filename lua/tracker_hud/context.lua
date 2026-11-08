@@ -13,6 +13,7 @@ local warnings = require("tracker_hud.warnings")
 local section_layout = require("tracker_hud.section_layout")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local target_diagnostics = require("tracker_hud.target_diagnostics")
+local c_memory_facts = require("tracker_hud.adapters.c.memory_facts")
 
 
 
@@ -441,6 +442,18 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
             root_node = root_node,
         }
     )
+
+    -- C/C++ source-observed memory operations. Only events that begin ON
+    -- or BEFORE the cursor are visited. This records allocation/release
+    -- expression sites, not successful allocations or ownership proofs.
+    if adapter.name == "c" or adapter.name == "cpp" then
+        context.source_memory_facts = c_memory_facts.collect(
+            bufnr,
+            root_node,
+            adapter.name,
+            context.cursor and context.cursor.line
+        )
+    end
 
     context.events = events.collect(context)
 
