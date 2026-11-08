@@ -86,6 +86,42 @@ local function run()
         assert(found, "C++ missing parameter source binding: " .. node_type)
     end
 
+    -- Explicit grammar-name fallbacks must be configured in each adapter.
+    -- They are used only if the primary named-field lookup cannot resolve
+    -- the declaration; never guess from arbitrary source text.
+    local function expect_name_fallback(adapter, group, node_type, fallback)
+        local found = false
+        for _, spec in ipairs(adapter.scope_members[group] or {}) do
+            if spec.syntax.node_type == node_type then
+                local child = spec.syntax.children and spec.syntax.children.name
+                assert(child and child.node_type == fallback,
+                    adapter.name .. " " .. node_type
+                        .. " missing AST name fallback " .. fallback)
+                found = true
+                break
+            end
+        end
+        assert(found, adapter.name .. " missing " .. group .. " " .. node_type)
+    end
+
+    for _, adapter in ipairs({ c, cpp }) do
+        expect_name_fallback(adapter, "functions",
+            "function_definition", "identifier")
+        expect_name_fallback(adapter, "symbols",
+            "parameter_declaration", "identifier")
+        expect_name_fallback(adapter, "symbols",
+            "struct_specifier", "type_identifier")
+        expect_name_fallback(adapter, "fields",
+            "field_declaration", "field_identifier")
+    end
+    expect_name_fallback(cpp, "symbols",
+        "class_specifier", "type_identifier")
+    expect_name_fallback(cpp, "symbols",
+        "namespace_definition", "namespace_identifier")
+    expect_name_fallback(cpp, "symbols",
+        "optional_parameter_declaration", "identifier")
+    print("PASS C/C++ grammar-specific member fallback contracts")
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.
