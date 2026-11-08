@@ -310,3 +310,66 @@ If either parser test fails, use the `AST layout:` evidence to distinguish
 grammar shape differences from collector omissions, then fix the
 minimal concrete cause. The visual and seven-section tests passed earlier
 and were not modified in this tranche.
+
+
+## Fifth tranche — C/C++ source-observed Heap operations (2026-11-08)
+
+ERIDU **confirmed** all parser-backed C/C++ member assertions green at
+`aa292b0`: C discovered 15 members and C++ discovered 28, including
+source-line ON/PAST discovery. This closes the prior empty-member failure
+but does **not** imply complete C/C++ inference.
+
+Next experimental capability, committed to `main` but still awaiting
+ERIDU validation:
+
+- `lua/tracker_hud/adapters/c/memory_facts.lua` inspects actual parsed
+  source expression nodes up to (and including) the cursor line.
+  It observes direct identifier calls named `malloc`, `calloc`,
+  `realloc`, `free`; C++ additionally observes `new_expression` and
+  `delete_expression`.
+- `context.lua` calculates these facts once for C/C++ only, before
+  collecting Events and Heap. ASM, Lua and Python are not opted in.
+- The existing **Events** section displays a source memory observation
+  for each discovered site. The existing **Heap** section displays
+  `allocation site`, `release site`, or `resize site` entries
+  together with expression text, source location, and explicitly unknown
+  success/ownership/leak status.
+- The pass is pruned at the cursor; source comments, string literals,
+  indirect/qualified calls, and macro expansions are not treated as
+  observed direct heap operations. There is no source-text regex scanner.
+- New C/C++ fixtures in `samples/c/*memory_observation_validation.c`
+  and `samples/cpp/*memory_observation_validation.cpp` cover the
+  initial direct syntax. They are small and safe to inspect in Neovim.
+- New parser-backed smoke
+  `tests/c_cpp_memory_observation_smoke.lua` checks expected operations,
+  cursor-line boundary, absence of future facts, non-invented state, and
+  Events/Heap presentation. It should exit nonzero on regression.
+
+### Nonclaims and next step
+
+This tranche does **NOT** track pointer values, resolve which `malloc`
+definition a call binds to, identify allocation success, infer actual
+releases, detect leaks, or emit warnings. The label is a **source site**,
+not an allocation or deallocation proven to have occurred. `realloc`
+is marked as a resize site, never as an unconditional free. C++ RAII,
+ownership transfers, aliases, escaped allocations and branch-aware exit
+analysis are required before trustworthy leak warnings can be enabled.
+Do not claim C/C++ allocation-lifetime analysis is complete.
+
+The shared Heap label/detail renderer changed additively, retaining
+existing ASM entries. Regression gates on ERIDU:
+
+```bat
+git pull --ff-only
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+nvim --headless -c "luafile tests/c_cpp_memory_observation_smoke.lua"
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
+
+nvim samples/c/c_memory_observation_validation.c
+nvim samples/cpp/cpp_memory_observation_validation.cpp
+```
+
+The new memory observation tests are **not yet verified** on the user's
+Neovim runtime. Keep the earlier green parser tests and avoid adding
+leak warnings until this tranche is accepted.
