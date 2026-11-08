@@ -101,6 +101,16 @@ local function run()
         "Inspect header group background does not match muted charcoal")
     assert(installed_band.fg == nil,
         "Inspect header background must not override semantic foreground")
+    -- The HUD actually requests inspect_header + current relevance, which
+    -- resolves to this composite rather than the unmodified base group.
+    local current_group = "HudSmokeInspectHeaderCurrent"
+    local current = vim.api.nvim_get_hl(0, {
+        name = current_group, link = false,
+    })
+    assert(current.bg == tonumber(band.bg:sub(2), 16),
+        "current Inspect header composite must retain muted background")
+    assert(current.fg == nil,
+        "current Inspect header composite must keep source title colours")
     print("PASS selected heading uses its own subdued background")
 
     local plain = config_module.resolve({ visual_language = { mode = "plain" } })
