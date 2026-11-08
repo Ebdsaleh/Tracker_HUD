@@ -53,6 +53,8 @@ add_construct("new_expression", "call", "new expression", "New",
 add_construct("delete_expression", "call", "delete expression", "Delete", nil, nil)
 add_construct("reference_declarator", "declaration", "reference declarator", "Reference",
     nil, nil)
+add_construct("for_range_loop", "loop", "range-for", "Range For",
+    { declarator = "declarator", right = "right", body = "body" }, "structural")
 add_construct("throw_statement", "call", "throw", "Throw", nil, nil)
 add_construct("try_statement", "block", "try", "Try", nil, "structural")
 add_construct("co_return_statement", "return", "co_return", "Co Return", nil, nil)
@@ -79,5 +81,8 @@ table.insert(M.scope_members.types,
     member("alias_declaration", "name", "symbol", "type alias", "lexical"))
 table.insert(M.scope_members.symbols,
     member("namespace_definition", "name", "symbol", "namespace", "parent_lexical"))
+M.scope_members.loops = {
+    member("for_range_loop", "declarator", "loop_variable", "range-for variable", "lexical"),
+}
 
 return M
