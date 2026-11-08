@@ -132,7 +132,10 @@ local function set_panel_statusline_surface(config)
 
     table.insert(mappings, "StatusLine:" .. group)
     table.insert(mappings, "StatusLineNC:" .. group)
-    vim.wo[panel_winid].winhighlight = table.concat(mappings, ",")
+    local updated = table.concat(mappings, ",")
+    if updated ~= existing then
+        vim.wo[panel_winid].winhighlight = updated
+    end
 end
 
 
