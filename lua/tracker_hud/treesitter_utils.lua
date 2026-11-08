@@ -87,11 +87,28 @@ function M.get_child_by_field_name(node, field_name)
         return nil
     end
 
-    local ok, child = pcall(function()
-        return node:child_by_field_name(field_name)
+    -- Neovim's TSNode API is node:field(name), which returns a LIST of
+    -- children. child_by_field_name is not a Neovim TSNode method. Returning
+    -- the first child preserves our single-node helper contract without
+    -- silently dropping fields in C/C++ (or other Tree-sitter adapters).
+    local ok, children = pcall(function()
+        return node:field(field_name)
     end)
 
     if ok then
+        if type(children) == "table" then
+            return children[1]
+        end
+        return nil
+    end
+
+    -- Retain compatibility with older mocked node fixtures which expose
+    -- child_by_field_name instead of the real TSNode:field method.
+    local legacy_ok, child = pcall(function()
+        return node:child_by_field_name(field_name)
+    end)
+
+    if legacy_ok then
         return child
     end
 
