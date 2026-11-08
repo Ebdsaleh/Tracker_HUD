@@ -180,14 +180,65 @@ local function run()
                 or table.concat(found, ", ")
         end
 
+        local function describe_ast_fallbacks(wanted)
+            local parts = {}
+            -- A small bounded dump of grammar facts, emitted ONLY when an
+            -- assertion fails. This helps distinguish a missing AST field
+            -- from an unexpected named-node layout on ERIDU.
+            local interesting = {
+                struct_specifier = true,
+                union_specifier = true,
+                class_specifier = true,
+                namespace_definition = true,
+                parameter_declaration = true,
+                optional_parameter_declaration = true,
+                type_definition = true,
+                init_declarator = true,
+            }
+            local function visit(node)
+                if #parts >= 12 then
+                    return
+                end
+                if interesting[node:type()] then
+                    local row = node:start() + 1
+                    local sexpr = node:sexpr()
+                    local field_children = {}
+                    for child, field in node:iter_children() do
+                        if field and field ~= "" then
+                            table.insert(field_children, field .. "="
+                                .. tostring(vim.treesitter.get_node_text(child, buffer))
+                                    :sub(1, 60):gsub("\\n", " "))
+                        end
+                    end
+                    if sexpr:find(wanted, 1, true)
+                        or row <= (fixture.ft == "c" and 14 or 18)
+                    then
+                        table.insert(parts, string.format(
+                            "%s@%d: %s | children: %s",
+                            node:type(), row, sexpr:sub(1, 240),
+                            #field_children > 0
+                                and table.concat(field_children, "; ")
+                                or "<no named fields>"
+                        ))
+                    end
+                end
+                for child in node:iter_children() do
+                    visit(child)
+                end
+            end
+            visit(root)
+            return #parts > 0
+                and table.concat(parts, "\n    ")
+                or "<no matching declaration nodes>"
+        end
+
         for _, name in ipairs(fixture.expected_member_names) do
-            -- Build diagnostic text ONLY for a genuine failure. Lua evaluates
-            -- assert() arguments eagerly, so the old version called its AST
-            -- diagnostic even when the name was already present.
+            -- Build diagnostics ONLY when the expectation genuinely fails.
             if not by_name[name] then
                 error(fixture.ft .. " declared member missing from collector: " .. name
                     .. "\n  collected: " .. describe_member_names()
-                    .. "\n  AST fields: " .. describe_ast_declarations(name))
+                    .. "\n  AST fields: " .. describe_ast_declarations(name)
+                    .. "\n  AST layout: " .. describe_ast_fallbacks(name))
             end
         end
 
