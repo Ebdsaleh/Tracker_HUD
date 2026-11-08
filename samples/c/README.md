@@ -28,3 +28,22 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ```
 
 This check covers Adapter Contract v1, registration, and C/C++ separation. It does not replace manual parser/HUD checks.
+
+## Parser-backed source and discovery test
+
+After the schema smoke test, run with your **usual** Neovim configuration,
+so nvim-treesitter can load its installed C and C++ parsers:
+
+```bat
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
+```
+
+This test parses real C/C++ fixtures, checks construct kinds, verifies C
+parameter binding names (e.g. `amount`, not `int amount`), checks that
+struct/class/namespace symbols are emitted, and proves declarations are
+hidden before their line and appear **ON** their source line.
+
+The parameter binding collector uses Tree-sitter's `declarator` field; a
+pointer declarator may still display `*counter`, because the shared
+collector does not yet normalise nested declarator shapes. It must never
+invent pointer values or change runtime state.
