@@ -975,6 +975,8 @@ This lets Tracker_HUD derive behavior generically. It does not need separate Ins
 |---|---|
 | `lua` | Supported: scopes, branches, locals, parameters, assignments, returns, values, and structural table members |
 | `asm`, `nasm`, `gas`, `s` | Supported through the ASM adapter and x86-64 variant: labels, registers, Events, Stack, syscall boundaries, Heap routing, warnings, and source inspection |
+| `c` | Experimental structural analysis, declarations, Scope Members and source-observed memory call sites; strict source target directives |
+| `cpp` | Experimental structural analysis, class/namespace/member discovery and source-observed memory call/new/delete sites; strict source target directives |
 | other filetypes | Panel may appear, but structural adapter support is not yet implemented |
 
 ---
@@ -1024,14 +1026,49 @@ gas  -> #, //
 masm -> ;
 ```
 
+**C and C++ use the same directive grammar and shared scanner**, with
+`//` comment markers. For example, in a C11 source file:
+
+```c
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=c;
+// mode=compiled;
+```
+
+In a C++17 source file:
+
+```cpp
+// arch=x86-64;
+// platform=windows;
+// abi=win64;
+// syntax=cpp;
+// mode=compiled;
+```
+
+C/C++ directives are checked only in the first 20 source lines. The
+`syntax` declaration must match the actual filetype's Tree-sitter
+adapter (`c` or `cpp`): a mismatch produces a warning and cannot switch
+the parser. `arch`, `platform`, `abi`, and `mode` are user-declared
+target metadata, not architecture or compiler settings discovered from
+the executable. They do not change compilation, ABI or runtime behaviour.
+Missing C/C++ architecture/platform/ABI values remain `unknown`.
+
+Run the no-parser acceptance test:
+
+```bat
+nvim --headless -u NONE -c "luafile tests/c_cpp_source_directives_smoke.lua"
+```
+
 Malformed directive-looking lines produce targeted diagnostics instead of being silently accepted. Tracker_HUD can report issues such as:
 
 - indentation before the directive
 - extra spaces after the comment prefix
 - whitespace around `=`
 - missing terminator
-- invalid/unknown target values
-- bootstrap comment-prefix conflicts with the resolved syntax
+- invalid/unknown target values (where the adapter defines a set of known values, such as ASM)
+- bootstrap comment-prefix conflicts with the resolved ASM syntax
 
 Source directives override setup target defaults. Setup target defaults override adapter/variant defaults.
 
