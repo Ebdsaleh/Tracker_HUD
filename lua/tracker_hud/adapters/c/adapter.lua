@@ -104,30 +104,45 @@ M.scope_members = {
     functions = {
         member("function_definition", "declarator", "function", "function", "parent_lexical"),
     },
+    -- The shared parameters collector consumes a named child list.
     parameters = {
-        member("parameter_declaration", "declarator", "parameter", "parameter", "lexical"),
+        {
+            syntax = {
+                node_type = "function_declarator",
+                fields = { parameters = "parameters" },
+                children = { names = { node_type = "parameter_list" } },
+            },
+            member = {
+                kind = "parameter",
+                language_term = "parameter",
+                owner_scope = "lexical",
+            },
+        },
     },
-    declarations = {
+    -- The shared symbol collector consumes named Tree-sitter fields.
+    -- C declarations include prototypes, so don't assume every one is a variable.
+    symbols = {
         member("declaration", "declarator", "symbol", "declaration", "lexical"),
         member("init_declarator", "declarator", "variable", "initialized variable", "lexical"),
-    },
-    types = {
         member("type_definition", "declarator", "symbol", "typedef", "lexical"),
         member("struct_specifier", "name", "symbol", "struct", "parent_lexical"),
         member("union_specifier", "name", "symbol", "union", "parent_lexical"),
         member("enum_specifier", "name", "symbol", "enum", "lexical"),
+        member("preproc_def", "name", "symbol", "macro", "lexical"),
     },
     fields = {
         member("field_declaration", "declarator", "field", "field", "lexical"),
-    },
-    symbols = {
-        member("preproc_def", "name", "symbol", "macro", "lexical"),
-    },
-    assignments = {
-        member("assignment_expression", "left", "assignment", "assignment", "lexical"),
-    },
-    returns = {
-        member("return_statement", nil, "return_value", "return", "lexical"),
+        {
+            syntax = {
+                node_type = "assignment_expression",
+                fields = { name = "left", value = "right" },
+            },
+            member = {
+                kind = "assignment",
+                language_term = "assignment",
+                owner_scope = "lexical",
+            },
+        },
     },
 }
 
