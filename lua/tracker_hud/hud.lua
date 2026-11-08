@@ -6,6 +6,7 @@ local hud_nodes = require("tracker_hud.hud_nodes")
 local inspect_mode = require("tracker_hud.inspect_mode")
 local hud_inspect = require("tracker_hud.hud_inspect")
 local highlights = require("tracker_hud.highlights")
+local visual_language = require("tracker_hud.visual_language")
 local hud_text = require("tracker_hud.hud_text")
 
 local M = {}
@@ -118,11 +119,22 @@ local function set_panel_statusline(config)
             "status_marker"
         )
 
-    local inspect_group =
-        statusline_group(
-            config,
-            "inspect_mode"
-        )
+    -- The statusline follows the focused core section's semantic color.
+    -- Non-core adapter sections retain their existing Inspect Mode style.
+    -- Plain mode deliberately remains white/colorless.
+    local inspect_style = visual_language.section_title_style(
+        inspect_mode.get_mode(),
+        "inspect_mode"
+    )
+
+    if visual_language.resolve_visual_mode(config) == "plain" then
+        inspect_style = "plain_text"
+    end
+
+    local inspect_group = statusline_group(
+        config,
+        inspect_style
+    )
 
     vim.wo[panel_winid].statusline =
         title_group
@@ -751,10 +763,17 @@ local function build_section_header_line(section)
     local line = hud_text.new()
     local marker =
         section.expanded and "[-]" or "[+]"
-    local title_style =
+    local fallback_title_style =
         section.title_style == "warning"
         and "warning_section_title"
         or "section_title"
+
+    -- Core section identities remain colored regardless of the selected
+    -- Inspect Mode; relevance still controls emphasis/intensity.
+    local title_style = visual_language.section_title_style(
+        section.id,
+        fallback_title_style
+    )
 
     hud_text.append(
         line,
