@@ -527,6 +527,9 @@ M.style_suffixes = {
     scope_section_title = "ScopeSectionTitle",
     scope_members_section_title = "ScopeMembersSectionTitle",
     events_section_title = "EventsSectionTitle",
+    registers_section_title = "RegistersSectionTitle",
+    stack_section_title = "StackSectionTitle",
+    heap_section_title = "HeapSectionTitle",
     warning_section_title = "WarningSectionTitle",
     inspect_header = "InspectHeader",
     plain_text = "PlainText",
@@ -693,6 +696,9 @@ M.core_section_title_styles = {
     scope = "scope_section_title",
     scope_members = "scope_members_section_title",
     events = "events_section_title",
+    registers = "registers_section_title",
+    stack = "stack_section_title",
+    heap = "heap_section_title",
     warnings = "warning_section_title",
 }
 
@@ -720,8 +726,22 @@ function M.inspect_header_line_style(section_id, inspect_mode_id)
     }
 end
 
+-- Default HUD headings for the low-level memory sections. These reuse hues
+-- already present in the semantic palette: register cyan, provenance teal,
+-- and 32-bit/memory-warning orange. They are identity accents ONLY, not
+-- claims that a register was resolved or that an allocation leaked.
+-- Named highlight groups can be overridden when user themes are supported.
+M.default_low_level_section_colors = {
+    registers = "#7DCFFF",
+    stack = "#73DACA",
+    heap = "#FF9E64",
+}
+
 -- These defaults intentionally separate operand-role sage from success green.
 M.default_style_definitions = {
+    registers_section_title = { fg = M.default_low_level_section_colors.registers },
+    stack_section_title = { fg = M.default_low_level_section_colors.stack },
+    heap_section_title = { fg = M.default_low_level_section_colors.heap },
     -- Dark, neutral selection band. Do not set fg: per-section titles retain
     -- their own theme-linked accents. No other "active" rows are affected.
     inspect_header = { bg = "#2D3138", ctermbg = 236 },
@@ -1422,6 +1442,9 @@ function M.plain_style_for(config, style, relevance, usage)
         or style == "scope_section_title"
         or style == "scope_members_section_title"
         or style == "events_section_title"
+        or style == "registers_section_title"
+        or style == "stack_section_title"
+        or style == "heap_section_title"
         or style == "warning_section_title"
     then
         if not underline_active_section_title then
