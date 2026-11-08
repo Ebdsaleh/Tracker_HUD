@@ -34,6 +34,17 @@ local function build_heap_node(entry)
     add_detail(children, entry, "pointer", "pointer register", entry.pointer_register)
     add_detail(children, entry, "size", "size register", entry.size_register)
     add_detail(children, entry, "source", "source line", entry.source_line)
+    add_detail(children, entry, "role", "observation", entry.role)
+    if core.is_table(entry.metadata) then
+        add_detail(children, entry, "expression", "source expression",
+            entry.metadata.expression)
+        add_detail(children, entry, "success", "allocation success",
+            entry.metadata.allocation_success)
+        add_detail(children, entry, "ownership", "ownership",
+            entry.metadata.ownership)
+        add_detail(children, entry, "leak", "leak status",
+            entry.metadata.leak_status)
+    end
 
     local node = lookup_tree.new_node(entry, {
         kind = "heap_entry",
