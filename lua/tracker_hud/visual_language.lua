@@ -524,6 +524,8 @@ M.style_suffixes = {
     control_marker = "ControlMarker",
     active = "Active",
     section_title = "SectionTitle",
+    scope_section_title = "ScopeSectionTitle",
+    scope_members_section_title = "ScopeMembersSectionTitle",
     warning_section_title = "WarningSectionTitle",
     plain_text = "PlainText",
     plain_section_title = "PlainSectionTitle",
@@ -668,8 +670,31 @@ M.default_links = {
 }
 
 
+-- The three language-neutral section titles reuse established semantic colors.
+-- Scope blue is the existing line-number blue; Scope Members green is the
+-- existing resolved-state green; Warnings amber is the warning color family.
+-- ANSI cterm fallbacks keep these identities readable on low-color terminals.
+--
+-- These are presentation styles, not evidence that source facts are resolved.
+-- Plain visual mode remains colorless and uses its existing active underline.
+-- These three styles also color the active Inspect Mode statusline label.
+--
+-- Other adapter-specific sections keep their existing generic title styling.
+M.core_section_title_styles = {
+    scope = "scope_section_title",
+    scope_members = "scope_members_section_title",
+    warnings = "warning_section_title",
+}
+
+function M.section_title_style(section_id, fallback)
+    return M.core_section_title_styles[section_id] or fallback or "section_title"
+end
+
 -- These defaults intentionally separate operand-role sage from success green.
 M.default_style_definitions = {
+    scope_section_title = { fg = "#7AA2F7", ctermfg = 12, bold = true },
+    scope_members_section_title = { fg = "#9ECE6A", ctermfg = 10, bold = true },
+    warning_section_title = { fg = "#E0AF68", ctermfg = 11, bold = true },
     line_number = { fg = "#7AA2F7" },
     value = { fg = "#C0CAF5" },
     metadata_key = { fg = "#7DCFFF" },
@@ -1357,6 +1382,8 @@ function M.plain_style_for(config, style, relevance, usage)
     end
 
     if style == "section_title"
+        or style == "scope_section_title"
+        or style == "scope_members_section_title"
         or style == "warning_section_title"
     then
         if not underline_active_section_title then
