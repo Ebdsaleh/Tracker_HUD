@@ -78,9 +78,20 @@ The namespaced styles are `<prefix>ScopeSectionTitle`,
 link therefore remains authoritative. Other adapter-specific sections keep
 their existing generic section and Inspect Mode presentation.
 
-In the panel statusline the literal **`Inspect:` prefix stays at the
-default statusline foreground**. Only the selected section's name uses its
-matching theme-linked highlight. Do not tint the prefix.
+In the panel statusline the literal **`Inspect:` prefix stays at a
+neutral, readable foreground** (the editor's `Normal` text colour against
+charcoal). Only the selected section's name uses its matching theme-linked
+foreground. Do not tint the prefix.
+
+The **entire Tracker_HUD panel statusline**, including the empty area after
+`Inspect: <mode>`, now uses the **same charcoal background** as the active
+section's highlight bar: `#2D3138` (cterm `236`). This applies to both
+active and inactive HUD-window statuslines; other editor windows keep their
+original `StatusLine`/`StatusLineNC` colours. Dedicated namespaced statusline
+segments preserve the existing Scope/Scope Members/Events/Warnings foreground
+accents while avoiding a return to the theme's lighter statusline background.
+No global `StatusLine`, `StatusLineNC`, `IncSearch`, or semantic highlight
+group is overwritten.
 
 The current Inspect Mode also produces a **visible focus cue in the HUD**:
 the selected root-section title is **bold and underlined** and receives
@@ -112,10 +123,13 @@ distinct theme-linked heading hue; it does **not** classify members as strings.
 A different user colorscheme may render groups differently.
 
 Plain mode remains strictly colorless. The active root title is underlined
-as before; all other HUD text and the statusline label are neutral, and
-only individually targeted active-path rows may get a neutral shadow.
-The new `InspectHeader` charcoal surface is **not** applied in plain mode.
-No background highlight is added across an entire Scope/Scope Members tree.
+as before; all other HUD text and the entire statusline label are neutral.
+The **statusline still has the same neutral charcoal background**; its title,
+marker, `Inspect:` prefix, and mode name use neutral foregrounds. Only
+individually targeted active-path rows may get a neutral shadow.
+The `InspectHeader` charcoal root-row surface is **not** applied in plain
+mode. No background highlight is added across an entire Scope/Scope Members
+tree.
 
 This behavior separates the visual-language layers:
 
