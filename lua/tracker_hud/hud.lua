@@ -141,10 +141,12 @@ local function set_panel_statusline(config)
         .. "Tracker HUD "
         .. marker_group
         .. "[-] "
+        -- The prefix uses the normal statusline foreground. Only the current
+        -- Inspect Mode name receives the section's theme-linked color.
+        .. "%*"
+        .. "Inspect: "
         .. inspect_group
-        .. statusline_escape(
-            inspect_mode.get_status_label()
-        )
+        .. statusline_escape(inspect_mode.get_label())
         .. "%*"
 end
 
@@ -804,6 +806,17 @@ local function build_section_header_line(section)
             line,
             section.relevance
         )
+    end
+
+    -- Inspect Mode selection is a UI focus signal, not a source-location
+    -- inference. Its heading must stay visible even if no matching source
+    -- member/warning exists at the cursor. Underline ONLY the root title:
+    -- marker and descendants keep their existing semantic presentation.
+    if section.id == inspect_mode.get_mode()
+        and type(line.spans) == "table"
+        and type(line.spans[1]) == "table"
+    then
+        line.spans[1].relevance = "inspecting"
     end
 
     return line
