@@ -828,23 +828,15 @@ local function section_header_line_style(section)
         return nil
     end
 
-    if section.active == true then
-        return {
-            style = "active",
-            relevance = section.relevance or "current",
-        }
-    end
-
-    if section.relevance == "focused"
-        or section.relevance == "current"
-    then
-        return {
-            style = "active",
-            relevance = section.relevance,
-        }
-    end
-
-    return nil
+    -- Source relevance and Inspect selection are different signals.
+    -- Source-relevant sections retain their "*" marker and focused facts.
+    -- A whole root-header highlight must follow the selected Inspect Mode,
+    -- rather than sticking to Scope Members because its owning scope
+    -- contains the cursor (even when no specific member is selected).
+    return visual_language.inspect_header_line_style(
+        section.id,
+        inspect_mode.get_mode()
+    )
 end
 
 
