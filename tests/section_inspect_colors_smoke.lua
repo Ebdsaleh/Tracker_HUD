@@ -14,7 +14,7 @@ local function run()
 
     local expected = {
         scope = { style = "scope_section_title", link = "Function" },
-        scope_members = { style = "scope_members_section_title", link = "Identifier" },
+        scope_members = { style = "scope_members_section_title", link = "String" },
         warnings = { style = "warning_section_title", link = "DiagnosticWarn" },
     }
 
@@ -40,6 +40,28 @@ local function run()
             style .. " should link to " .. check.link)
         print("PASS " .. id .. " inherits Neovim " .. check.link)
     end
+
+    -- One panel heading is selected at a time. Source-relevance remains
+    -- independently free to mark an owning Scope Members node with "*".
+    -- Never let that source "active" state pin the header background.
+    for section_id in pairs(expected) do
+        local selected = visual.inspect_header_line_style(section_id, section_id)
+        assert(type(selected) == "table"
+            and selected.style == "active"
+            and selected.relevance == "current",
+            section_id .. " selected header not highlighted")
+        for other_id in pairs(expected) do
+            if other_id ~= section_id then
+                assert(visual.inspect_header_line_style(other_id, section_id) == nil,
+                    other_id .. " remains highlighted while inspecting " .. section_id)
+            end
+        end
+    end
+    assert(visual.inspect_header_line_style("events", "warnings") == nil,
+        "unselected Events must not acquire a root background")
+    assert(visual.inspect_header_line_style("scope_members", "scope") == nil,
+        "Scope Members must not retain background when inspecting Scope")
+    print("PASS root header focus follows Inspect Mode, not cursor-affected section")
 
     local focus = visual.relevance_definitions.inspecting
     assert(focus and focus.bold == true and focus.underline == true,
