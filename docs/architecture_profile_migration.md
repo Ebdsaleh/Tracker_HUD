@@ -718,3 +718,52 @@ and separately profile cursor-state/AST/cache work.
 showed six untracked root filenames (`cls`, `git`, `main`,
 `n`, `nvim`, `value@22(depth`). Leave them untouched pending
 user inspection; do not call `git clean` or silently delete them.
+
+
+## ERIDU acceptance: ASCII 64-bit byte diagram (2026-11-09)
+
+**Accepted on ERIDU at `cbfd95a`.**
+
+The user supplied the missing headless smoke result and a live Neovim
+screenshot from `test.asm`:
+
+- `tests/byte_diagram_smoke.lua` PASS:
+  exact integers/precision guards, 64-bit high-to-low projection,
+  unknown/partial/width fallback, and ON/PAST discovery.
+- The live diagram at `mov rax, 60` shows
+  `[00][00][00][00][00][00][00][3C]` and
+  `0x000000000000003C`.
+- The detailed Registers tree remains visible below the diagram and
+  still reports the source-immediate relationship.
+- This closes the byte-diagram acceptance gate. It is evidence for the
+  presentation surface only; it is not a latency benchmark or live CPU
+  execution proof.
+
+### Next bounded tranche: x86-64 alias/subregister map
+
+Extend the existing diagram using architecture facts already carried by
+the register record. Do **not** change ASM instruction semantics.
+
+For a verified 64-bit scalar family, display which byte cells are
+covered by each architectural alias. For the RAX family this means
+`RAX/EAX/AX/AH/AL`, including the high-byte placement of `AH`.
+Mark the actual alias spelling observed in source and explain the
+existing write-mode truth:
+
+- full-width writes replace the whole 64-bit family;
+- 32-bit `EAX`-class writes use `zero_extend_64`, clearing the
+  upper 32 bits;
+- 16-bit/8-bit partial writes replace only their covered bits.
+
+The map is a presentation of architecture metadata, not a new register
+inference rule. Unknown register *values* may still show a structural
+alias map because alias widths/offsets are architectural facts.
+
+**Explicitly deferred:** partial-known bit/value masks. Do not invent
+known bytes for a partial value merely because the alias coverage is
+known. Add partial-known representation in a later separately tested
+tranche.
+
+Acceptance must cover byte placement, `AH` offset, source-alias focus,
+write-mode wording, family isolation (for example R8 has no high-byte
+alias), and preservation of the existing byte-value diagram.
