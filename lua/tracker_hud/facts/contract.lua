@@ -103,10 +103,12 @@ function M.new(spec)
         return nil, "source end column precedes start column"
     end
 
-    local through = spec.known_through and position(spec.known_through)
-        or discovery
-    if not through then
-        return nil, "invalid known-through position"
+    local through = discovery
+    if spec.known_through ~= nil then
+        through = position(spec.known_through)
+        if not through then
+            return nil, "invalid known-through position"
+        end
     end
     if through.line < discovery.line
         or (through.line == discovery.line
