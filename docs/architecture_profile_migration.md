@@ -559,3 +559,57 @@ those separately in the next permitted performance tranche.
 All listed smoke tests remain **unverified on ERIDU** until the
 user sends the actual Windows Neovim output; neither static review
 nor a GitHub commit is evidence of a passing Neovim parser.
+
+
+## ERIDU acceptance results & next drip-feed batch (2026-11-09)
+
+### Confirmed at `1479142` on ERIDU (Windows / Neovim)
+
+The user supplied the actual console output and seven screenshots:
+
+- `normalized_fact_contract_smoke.lua` **PASS** (certainty, exact
+  ON/PAST, independent copies).
+- `presentation_modes_smoke.lua` **PASS** (learning/standard toggles,
+  cached rendering request, Inspect/expansion preservation, namespace).
+- `adapter_contract_smoke.lua` **PASS** (Lua, Python, C, C++, ASM).
+- `section_inspect_colors_smoke.lua` **PASS** (section identity,
+  statusline, selected and unselected hues).
+- `c_cpp_parser_smoke.lua` **PASS** (parser-backed C/C++ discovery).
+- `asm_register_focus_regression.lua` **PASS** (7 target checks,
+  including RAX/RBP index/base memory-component occurrences).
+
+The screenshots show `:HudPresentation learning` and `standard`
+switching at `mov rax, 60` while preserving existing detailed
+Registers data. Learning correctly reports unknown `RAX` at
+`cpuid` rather than fabricating its post-execution value. The
+root Events and Register sections remain switchable, and source
+cursor stays where the user placed it. These observations **do
+not yet measure full cursor latency**.
+
+**Local workspace caution:** before pulling the user had untracked
+files named `cls`, `git`, `main`, `n`, `nvim` and
+`value@22(depth`. They are not part of these commits; do not
+delete or `git clean` them automatically.
+
+### Next tranche: terminal-safe 64-bit register byte diagram
+
+Build a **third, explicit presentation mode** `diagram` rather than
+changing how `standard` or `learning` work. The new presenter
+consumes the same normalized register facts and architecture-defined
+widths; it must never call the parser, infer new register values,
+mutate Inspect state, or render a known value beyond its actual
+numeric precision. The first surface is ASCII byte cells (not
+PNG/GIF or animation); graphics will come later from the same
+fact data. Clear high-byte/low-byte annotations and a truthful
+unknown/partial state are required. `cycle` should include
+`standard`, `learning`, `diagram`; original default remains
+`standard`. Keep ASCII plain-mode compatibility.
+
+Acceptance before claiming green: exact 64-bit conversion of
+`60`, `0`, `0xFFFFFFFFFFFFFFFF`, maximum-width decimals and
+negative signed numbers without Lua floating point corruption;
+unknown/symbolic/conditional facts use visibly unknown bytes;
+missing/non-64-bit register architecture facts show an honest
+fallback rather than inventing a register width. Test the
+new command and verify it preserves source cursor, Inspect
+and expansion states. No ASM instruction semantics changes.
