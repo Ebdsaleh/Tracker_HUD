@@ -7,11 +7,11 @@
 
 local M = {}
 
-local modes = { "standard", "learning" }
-local valid = { standard = true, learning = true }
+local modes = { "standard", "learning", "diagram" }
+local valid = { standard = true, learning = true, diagram = true }
 
 function M.mode_names()
-    return { "standard", "learning", "cycle" }
+    return { "standard", "learning", "diagram", "cycle" }
 end
 
 function M.resolve(config)
@@ -41,7 +41,7 @@ function M.set_mode(config, requested)
     end
 
     if not valid[mode] then
-        return nil, "expected standard, learning, or cycle"
+        return nil, "expected standard, learning, diagram, or cycle"
     end
 
     -- Never touch source state, Inspect Mode, expansion state or adapters.
