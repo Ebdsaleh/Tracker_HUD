@@ -52,7 +52,21 @@ function M.resolve_alias(adapter, name)
     -- Shared architecture profiles provide a precomputed O(1) alias map.
     -- Keep the original family scan for non-migrated custom/legacy adapters.
     if core.is_table(adapter.register_alias_index) then
-        return adapter.register_alias_index[normalized]
+        local indexed = adapter.register_alias_index[normalized]
+
+        if not indexed then
+            return nil
+        end
+
+        -- The previous scan returned a fresh wrapper on every call.
+        -- Preserve that contract so callers cannot accidentally mutate
+        -- the cached index; family/alias fact tables remain shared.
+        return {
+            canonical = indexed.canonical,
+            family = indexed.family,
+            alias = indexed.alias,
+            alias_name = indexed.alias_name,
+        }
     end
 
     for canonical, family in pairs(adapter.register_families or {}) do
