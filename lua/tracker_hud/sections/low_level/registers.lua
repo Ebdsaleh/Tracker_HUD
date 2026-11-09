@@ -77,6 +77,9 @@ local function normalize_register_spec(register_spec, context, adapter, source)
         name = name,
         kind = register_spec.kind or (family and family.kind) or "unknown",
         value = register_spec.value,
+        -- Preserve the inference engine's certainty for alternate
+        -- presentations. Legacy register labels still use the same value.
+        resolved = register_spec.resolved,
         role = register_spec.role or (family and family.role),
         source = register_spec.source or source,
 
