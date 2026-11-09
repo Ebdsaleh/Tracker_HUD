@@ -4,6 +4,9 @@ vim.opt.runtimepath:prepend(vim.fn.getcwd())
 
 local diagram = require("tracker_hud.presenters.byte_diagram")
 local learning = require("tracker_hud.presenters.learning")
+local x86_64 = require("tracker_hud.architectures.x86_64.registers")
+assert(x86_64.register_families.rax.bits == 64,
+    "RAX width must come from the shared architecture profile")
 
 local function check(value, expected)
     local bytes, err = diagram.bytes_for(value)
@@ -56,9 +59,10 @@ local function fixture(value, resolved, bits)
                 resolved = resolved,
                 value = value,
                 metadata = {
-                    family = {
-                        canonical = "rax", bits = bits,
-                    },
+                    family = bits == 64
+                        and x86_64.register_families.rax
+                        or (bits and { canonical = "rax", bits = bits }
+                            or nil),
                 },
             },
         },
