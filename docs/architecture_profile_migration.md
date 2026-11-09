@@ -276,3 +276,54 @@ nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua" -c "q
 **Gate:** Do not proceed with the second architecture migration
 tranche until this issue is explained and either resolved or
 demonstrably pre-existing. Do not change branches or trim ASM analysis.
+
+
+## ASM memory-operand source inspection — narrower expected behaviour (2026-11-09)
+
+The user's independent desktop `test.asm` screenshots confirm ordinary
+register displays still function for examples such as `mov rax, 60`,
+`xor rdi, rdi` and `syscall` on the version that was tested.
+That does **not** mean the more complex memory-operand fixture must
+be interpreted the same way, nor does it prove the shared-register
+refactor introduced the missing source focus.
+
+The new parser-backed test on ERIDU initially failed at:
+`missing source occurrence register:rax on line 27` for
+`mov rax, [rbp + rax*4 - 8]`. This establishes a gap in the
+*source-occurrence* path on the validation fixture.
+
+**Intended nuance:** Source-token discovery is different from inferred
+runtime register value. On that line, the first `rax` is the
+destination, `rbp` the base register, and the second `rax` the
+index register. Identifying all three does not mean the loaded
+memory value is known or that each address component is written.
+
+**Bounded code change committed on `main`:**
+`context_engine.discover_register_source_occurrences` no longer
+requires an instruction to match a semantic register-effect rule before
+attempting operand and memory-component source discovery. Semantic
+effect matching still owns inferred register writes and roles, and
+mnemonic-level semantic targets are **not** populated with all source
+registers simply because the matcher lacks a rule.
+
+The regression test was tightened to assert distinct occurrences
+for destination `rax`, base `rbp` and index `rax` on the
+same instruction. It now iterates fixture cases deterministically.
+These changes have **not** been accepted on ERIDU; do not claim green.
+
+```bat
+git status --short
+git pull --ff-only
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua" -c "qa!"
+```
+
+After a green result, manually inspect each token of the memory
+expression and compare cursor focus and unknown/known values with
+the original desktop sample. If the parser-backed test fails,
+trace the parser's operand/component extraction. If the test passes
+but the HUD misbehaves, inspect the selection/refresh pipeline.
+
+**Do not migrate another architecture subsystem until this behaviour
+is explained.** Preserve existing ASM depth and avoid treating a
+register's syntactic presence as proof of its runtime value.
