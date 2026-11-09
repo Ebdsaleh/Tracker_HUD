@@ -192,6 +192,9 @@ M.defaults = {
         decrease_size = "<leader>-",
         auto_size = "<leader><CR>",
         cycle_inspect_mode = "<leader><leader>",
+        -- Opt-in: set e.g. "<leader>hp" in your user profile.
+        -- No surprise default keybinding overrides for presentation presets.
+        cycle_presentation_mode = false,
         inspect_source = "<leader>t",
         expand_all_members_in_scope = "<leader>.",
         collapse_all_members_in_scope = "<leader>,",
