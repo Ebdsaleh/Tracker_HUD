@@ -540,3 +540,22 @@ for presentation switching avoids invoking the parser for the
 switch itself. It does **not** prove a full HUD render is fast,
 nor does it fix potential per-cursor AST replay costs. Profile
 those separately in the next permitted performance tranche.
+
+
+### Follow-up correctness fixes in the same pending tranche
+
+- The learning presenter was audited against
+  `instruction_utils.lua`: Tree-sitter-derived source token columns are
+  **zero-based**; `context_engine.get_cursor_location().column` is
+  **one-based**. Only the cursor is converted. A smoke test pins the
+  exact first-character transition.
+- Malformed `known_through` metadata now produces a constructor
+  error rather than silently defaulting to the discovery position.
+- The learning presenter provides a short everyday explanation for
+  `source` and `destination` roles while leaving detailed role data
+  visible in the existing Registers tree.
+
+**No new ASM inference changes in this batch.**
+All listed smoke tests remain **unverified on ERIDU** until the
+user sends the actual Windows Neovim output; neither static review
+nor a GitHub commit is evidence of a passing Neovim parser.
