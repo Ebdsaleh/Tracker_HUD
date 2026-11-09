@@ -223,3 +223,56 @@ allocation or live pointer addresses from source alone.
 - The new architecture smoke is pending ERIDU execution. The
   C/C++ memory-observation and source-directive tests have not been
   conclusively accepted in the available handoff.
+
+
+## ERIDU validation and ASM focus report (2026-11-09)
+
+The user ran tranche-one acceptance on ERIDU:
+- Architecture smoke PASS: 164 aliases, 50 static rows, indexed/legacy
+  parity. This was interrupted to exit headless Neovim; the PASS was
+  printed, but the process exit wasn't clean due to missing `-c "qa!"`.
+- Optional alias benchmark (80,000 lookups/path):
+  legacy scan 19.403 ms, indexed 2.142 ms (~9.06x on this
+  microbenchmark only). Do not extrapolate to HUD redraw.
+- Adapter contract smoke PASS (Lua, Python, C, C++, section order).
+- Visual-language smoke PASS; user accepts inactive colours and
+  selection visuals.
+- C/C++ parser smoke PASS (C 15, C++ 28 facts and ON/PAST visibility).
+- Git fast-forward to `9e672f5` worked; automatic pack cleanup
+  reported unlink errors on Windows, probably file locks. Do not
+  manually delete Git pack files.
+
+**Outstanding ASM observation:** In
+`samples/asm/x86_64/memory_operand_validation.asm`, user screenshots
+show Registers missing the expected `*` source focus when the cursor
+moves across `mov rax, [rbp + rax*4 - 8]`, though register data for
+`rbp` and `rsi` still appears. This is *not* explained by the
+`asm-lsp.toml` warning: it is an LSP configuration message separate
+from Tracker_HUD's Tree-sitter analysis. The alias parity smoke proves
+static data survived, not per-column focus selection.
+
+Pre- and post-refactor comparisons confirm the register definitions
+were copied verbatim and the ASM architecture variant's surrounding
+instruction/stack sections were unchanged. Neither disproves nor
+confirms a cursor-selection regression.
+
+**New focused diagnostic**
+`tests/asm_register_focus_regression.lua` was added to `main`. It
+loads the actual ASM Tree-sitter parser and reports the source occurrence
+ranges and state IDs on `mov rbp, rsp`, `mov rax, [rbp + rax*4 - 8]`,
+`mov [rsp + 8], rax` and `lea rsi, [rel msg]`. It asserts that the
+expected register target IDs exist. If it passes while the interactive
+HUD doesn't highlight the selected register, inspect the HUD
+selection/refresh chain next; if it fails, repair source occurrence
+discovery. No production register-effect changes made for this issue.
+
+```bat
+git status --short
+git pull --ff-only
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua" -c "qa!"
+```
+
+**Gate:** Do not proceed with the second architecture migration
+tranche until this issue is explained and either resolved or
+demonstrably pre-existing. Do not change branches or trim ASM analysis.
