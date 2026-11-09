@@ -27,11 +27,15 @@ local function register_value(record)
     return { status = "partial" }
 end
 
--- The legacy register engine stores source positions in 1-based columns;
--- the v1 fact contract uses 0-based columns.
+-- Tree-sitter register facts store 0-based source columns.
+-- The current Tracker_HUD cursor object uses 1-based columns (the
+-- context engine adds 1 to nvim_win_get_cursor). Convert ONLY the cursor.
 local function source_column_to_zero(column)
-    local n = type(column) == "number" and column or 1
-    return math.max(0, n - 1)
+    return type(column) == "number" and math.max(0, column) or 0
+end
+
+local function cursor_column_to_zero(column)
+    return type(column) == "number" and math.max(0, column - 1) or 0
 end
 
 function M.register_fact(record, context)
@@ -77,7 +81,7 @@ function M.lines(context)
 
     local cursor = {
         line = context.cursor.line,
-        column = source_column_to_zero(context.cursor.column),
+        column = cursor_column_to_zero(context.cursor.column),
     }
 
     local candidates = {}
