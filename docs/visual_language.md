@@ -805,3 +805,31 @@ visual_language = {
 ```
 
 Values wider than the configured maximum still keep their original text color.
+
+
+### Register byte diagram — terminal-first prototype (2026-11-09)
+
+A third **meaning/detail presentation** `:HudPresentation diagram`
+projects one active, source-visible register fact into eight
+ASCII byte cells, currently only when its architecture-provided
+width is exactly 64 bits.
+
+The diagram shows bytes from **most-significant** to
+**least-significant**, independent of actual memory layout:
+
+```text
+  RAX  (64 bits = 8 bytes)
+  MSB                                 LSB
+  [00][00][00][00][00][00][00][3C]
+```
+
+A source-inferred unknown or symbolic result uses `[??]`
+cells, not misleading zeroes. A width-less or 32-bit record
+does not get an invented 64-bit diagram. Existing semantic
+colours and `:HudVisualMode plain` are separate from
+these content/detail presets. All regular technical sections
+remain navigable in `diagram` mode.
+
+This is an **ASCII educational surface**, not the future
+image/animation renderer.
+
