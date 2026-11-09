@@ -125,6 +125,13 @@ function M.lines(context)
 
     if role and role ~= "" then
         lines[#lines + 1] = "  Source role: " .. role
+        if role == "destination" then
+            lines[#lines + 1] =
+                "  A destination register receives an instruction's result."
+        elseif role == "source" then
+            lines[#lines + 1] =
+                "  A source register supplies data to an instruction."
+        end
     end
     return lines
 end
