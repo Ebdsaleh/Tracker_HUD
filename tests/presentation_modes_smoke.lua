@@ -22,6 +22,7 @@ assert(modes.resolve(config) == "learning")
 assert(inspect.get_mode() == starting_inspect)
 assert(config.visual_language.mode == starting_visual)
 assert(config.analysis.cache_line_limit == starting_cache_limit)
+assert(modes.set_mode(config, "cycle") == "diagram")
 assert(modes.set_mode(config, "cycle") == "standard")
 assert(modes.set_mode(config, "cycle") == "learning")
 assert(modes.set_mode(config, "standard") == "standard")
@@ -32,6 +33,10 @@ assert(modes.set_mode(config, "visual") == nil,
     "unfinished graphical mode must not be selectable")
 assert(modes.resolve(config) == previous,
     "invalid selection must not change the prior mode")
+assert(modes.set_mode(config, "diagram") == "diagram")
+assert(modes.resolve(config) == "diagram")
+assert(modes.set_mode(config, "standard") == "standard")
+assert(vim.tbl_contains(modes.mode_names(), "diagram"))
 print("PASS presentation switching: independent of Inspect, colours, cache")
 
 local context = {
@@ -42,6 +47,7 @@ local context = {
             name = "rax", source = "instruction",
             source_line = 12, source_start_column = 5,
             role = "destination", value = 60, resolved = true,
+            metadata = { family = { canonical = "rax", bits = 64 } },
         },
         {
             name = "rsp", source = "adapter", value = nil,
@@ -126,8 +132,9 @@ local old_cursor = state.source_cursor
 local old_inspect = inspect.get_mode()
 vim.cmd("HudPresentation learning")
 vim.cmd("HudPresentation cycle")
+vim.cmd("HudPresentation standard")
 vim.cmd("HudPresentation")
-assert(updates == 2, "presentation commands must rerender cached context")
+assert(updates == 3, "presentation commands must rerender cached context")
 assert(state.source_cursor == old_cursor and inspect.get_mode() == old_inspect)
 assert(sections.is_expanded("registers"),
     "presentation switch collapsed the user's Registers section")
