@@ -2666,40 +2666,6 @@ local function build_register_mnemonic_occurrence(
         end
     end
 
-    -- A register can be present in syntactically valid instructions for
-    -- which no semantic effect rule has been implemented (e.g. mov reg,
-    -- [base + index*scale]). Discover its source identity without claiming
-    -- a register write or assigning any inferred runtime value.
-    if #effect_specs == 0 then
-        for _, operand in ipairs(instruction.operands or {}) do
-            if operand.kind == "register" then
-                add_unique_string(
-                    target_ids,
-                    seen_target_ids,
-                    register_occurrence_target_id(adapter, operand.text)
-                )
-            end
-
-            local components = core.is_table(operand.memory)
-                and operand.memory.components
-                or {}
-
-            for _, component in ipairs(components or {}) do
-                if component.kind == "register" then
-                    add_unique_string(
-                        target_ids,
-                        seen_target_ids,
-                        register_occurrence_target_id(adapter, component.text)
-                    )
-                end
-            end
-        end
-    end
-
-    if #target_ids == 0 then
-        return nil
-    end
-
     local range = instruction.mnemonic_range
 
     return {
@@ -2713,7 +2679,6 @@ local function build_register_mnemonic_occurrence(
         metadata = {
             mnemonic = instruction.mnemonic,
             inspection_kind = "operation",
-            syntax_only = #effect_specs == 0,
             target_roles = target_roles,
             instruction_start_column =
                 instruction.source_start_column,
