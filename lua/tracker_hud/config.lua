@@ -23,6 +23,15 @@ M.defaults = {
         enabled = true,
     },
 
+    -- Runtime *meaning/detail* preset, independent of terminal colours
+    -- (:HudVisualMode) and selected source section (Inspect Mode).
+    -- "standard" is the unchanged full technical text HUD.
+    -- "learning" adds a concise, source-grounded explanation; the
+    -- underlying sections, inference and expansion state stay available.
+    presentation = {
+        mode = "standard",
+    },
+
     -- Renderer-agnostic visual language controls.
     --
     -- These options are intentionally data/config first. The current text HUD
