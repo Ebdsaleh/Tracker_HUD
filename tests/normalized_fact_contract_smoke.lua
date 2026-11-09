@@ -40,6 +40,13 @@ assert(facts.visible_at(zero, { line = 13, column = 0 }))
 assert(not facts.visible_at(zero, { line = 0, column = 0 }))
 assert(not make({ status = "known", data = 1 },
     { line = 12, start_column = -1 }), "invalid column accepted")
+assert(not facts.new({
+    id = "register:test", kind = "register",
+    subject = { name = "rax" },
+    source = { line = 12, start_column = 4 },
+    value = { status = "unknown" },
+    known_through = { line = -4 },
+}), "invalid known-through must not be silently replaced")
 print("PASS fact v1: ON/PAST source discovery and invalid position guard")
 
 local original = {
