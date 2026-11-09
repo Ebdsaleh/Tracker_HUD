@@ -158,6 +158,116 @@ local function hex_value(bytes)
     return "0x" .. table.concat(items)
 end
 
+local function alias_range(alias)
+    if type(alias) ~= "table"
+        or type(alias.bits) ~= "number"
+        or type(alias.offset) ~= "number"
+        or alias.bits <= 0
+        or alias.offset < 0
+        or alias.bits % 8 ~= 0
+        or alias.offset % 8 ~= 0
+        or alias.offset + alias.bits > 64
+    then
+        return nil
+    end
+
+    return {
+        first_bit = alias.offset,
+        last_bit = alias.offset + alias.bits - 1,
+    }
+end
+
+local function alias_cells(alias)
+    local range = alias_range(alias)
+    if not range then return nil end
+
+    local cells = {}
+    -- Diagram order is high significance to low significance, matching
+    -- the value row above. The architecture profile stores offsets from
+    -- bit zero, so byte seven is displayed first.
+    for byte_index = 7, 0, -1 do
+        local first = byte_index * 8
+        local last = first + 7
+        local covered = first >= range.first_bit and last <= range.last_bit
+        cells[#cells + 1] = covered and "[##]" or "[..]"
+    end
+    return table.concat(cells), range
+end
+
+local function source_write_explanation(alias_name, alias)
+    if type(alias_name) ~= "string" or alias_name == ""
+        or type(alias) ~= "table"
+    then
+        return nil
+    end
+
+    local name = alias_name:upper()
+    if alias.write_mode == "full" then
+        return "  Source write: " .. name
+            .. " replaces all 64 bits of this register family."
+    end
+    if alias.write_mode == "zero_extend_64" then
+        return "  Source write: " .. name
+            .. " clears the upper 32 bits to zero."
+    end
+    if alias.write_mode == "partial" then
+        return "  Source write: " .. name
+            .. " changes only its covered bits; other bits are preserved."
+    end
+
+    return "  Source write mode: " .. tostring(alias.write_mode or "unspecified")
+end
+
+local function append_alias_map(lines, fact)
+    local metadata = type(fact.metadata) == "table" and fact.metadata or {}
+    local family = metadata.register_family
+    if type(family) ~= "table"
+        or family.bits ~= 64
+        or type(family.aliases) ~= "table"
+        or type(family.alias_order) ~= "table"
+    then
+        return
+    end
+
+    lines[#lines + 1] = "  Alias map (# = covered byte, . = outside alias):"
+
+    local source_alias = type(metadata.source_alias) == "string"
+        and metadata.source_alias:lower() or nil
+    local source_spec = nil
+
+    for _, alias_name in ipairs(family.alias_order) do
+        local alias = family.aliases[alias_name]
+        local cells, range = alias_cells(alias)
+        if cells and range then
+            local marker = source_alias == alias_name:lower() and ">" or " "
+            local bit_text
+            if range.first_bit == range.last_bit then
+                bit_text = "bit " .. tostring(range.first_bit)
+            else
+                bit_text = "bits " .. tostring(range.last_bit)
+                    .. ".." .. tostring(range.first_bit)
+            end
+            lines[#lines + 1] = string.format(
+                "  %s %-4s %s  %s",
+                marker,
+                alias_name:upper(),
+                cells,
+                bit_text
+            )
+            if marker == ">" then
+                source_spec = alias
+            end
+        end
+    end
+
+    if source_alias then
+        lines[#lines + 1] =
+            "  > marks the architectural alias used by this source effect."
+        local explanation = source_write_explanation(source_alias, source_spec)
+        if explanation then lines[#lines + 1] = explanation end
+    end
+end
+
 -- Fact shape is defined by tracker_hud.facts.contract; it must contain
 -- an architecture-provided width to draw a faithful register bank.
 function M.lines(fact)
@@ -206,6 +316,7 @@ function M.lines(fact)
         "  MSB = highest-value byte; LSB = lowest-value byte."
     lines[#lines + 1] =
         "  Left to right: high to low significance, NOT memory order."
+    append_alias_map(lines, fact)
     return lines
 end
 
