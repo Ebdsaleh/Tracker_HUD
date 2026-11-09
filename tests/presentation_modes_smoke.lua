@@ -56,10 +56,16 @@ assert(rendered:find("destination", 1, true))
 assert(not rendered:find("RSP", 1, true),
     "static register profiles must not be claimed as source effects")
 
-context.cursor.column = 2
+-- ASM/Tree-sitter token begins at 0-based column 5: Neovim cursor
+-- column 5 is before it, column 6 is ON its first character.
+context.cursor.column = 5
 local before = table.concat(learning.lines(context), "\n")
 assert(not before:find("RAX = 60", 1, true),
     "learning view leaked an undiscovered source effect")
+context.cursor.column = 6
+assert(table.concat(learning.lines(context), "\n"):find(
+    "RAX = 60", 1, true
+), "learning view must reveal facts exactly ON the token")
 context.cursor.column = 10
 
 context.registers[1].value = nil
