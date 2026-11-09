@@ -203,6 +203,8 @@ function M.lines(fact)
     end
 
     lines[#lines + 1] =
+        "  MSB = highest-value byte; LSB = lowest-value byte."
+    lines[#lines + 1] =
         "  Left to right: high to low significance, NOT memory order."
     return lines
 end
