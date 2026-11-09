@@ -12,6 +12,7 @@ local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
 local hex_width = require("tracker_hud.hex_width")
 local analysis_cache = require("tracker_hud.analysis_cache")
+local presentation_mode = require("tracker_hud.presentation_mode")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
 
@@ -368,6 +369,52 @@ local function set_visual_mode_command(command_opts)
 end
 
 
+local function presentation_mode_usage()
+    return "Usage: :" .. command_name("Presentation")
+        .. " <standard|learning|cycle>"
+end
+
+
+local function set_presentation_mode_command(command_opts)
+    local requested = command_opts.args
+
+    if requested == nil or requested == "" then
+        vim.notify(
+            "tracker_hud: presentation is '"
+                .. presentation_mode.resolve(config)
+                .. "'. "
+                .. presentation_mode_usage(),
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    local selected, err = presentation_mode.set_mode(
+        config,
+        requested
+    )
+    if not selected then
+        vim.notify(
+            "tracker_hud: " .. tostring(err)
+                .. ". " .. presentation_mode_usage(),
+            vim.log.levels.WARN
+        )
+        return
+    end
+
+    -- Re-render an existing snapshot, not source / effect analysis.
+    -- Do not alter Inspect Mode, source cursor or expanded sections.
+    if state.source_context then
+        hud.update_panel()
+    end
+
+    vim.notify(
+        "tracker_hud: presentation set to '" .. selected .. "'",
+        vim.log.levels.INFO
+    )
+end
+
+
 local function cache_limit_usage()
     return analysis_cache.usage(command_name("CacheLimit"))
 end
@@ -487,6 +534,14 @@ function M.setup(opts)
         nargs = "?",
         complete = function()
             return visual_language.visual_mode_names()
+        end,
+        force = true,
+    })
+
+    register_user_command("Presentation", set_presentation_mode_command, {
+        nargs = "?",
+        complete = function()
+            return presentation_mode.mode_names()
         end,
         force = true,
     })
