@@ -68,6 +68,12 @@ local function run()
             "alias matching must remain case insensitive: " .. name)
     end
     local eax = register_model.resolve_alias(asm, "eax")
+    local eax_again = register_model.resolve_alias(asm, "eax")
+    assert(eax ~= eax_again,
+        "indexed alias lookup must return fresh wrappers, as the old scan did")
+    eax_again.alias_name = "deliberately_changed"
+    assert(register_model.resolve_alias(asm, "eax").alias_name == "eax",
+        "one caller must not mutate future indexed alias results")
     assert(eax.canonical == "rax"
         and eax.alias.bits == 32
         and eax.alias.offset == 0
