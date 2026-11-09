@@ -384,7 +384,7 @@ end
 
 local function presentation_mode_usage()
     return "Usage: :" .. command_name("Presentation")
-        .. " <standard|learning|cycle>"
+        .. " <standard|learning|diagram|cycle>"
 end
 
 
