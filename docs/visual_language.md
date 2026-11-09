@@ -282,6 +282,65 @@ the command becomes:
 
 ---
 
+## Runtime presentation presets (separate from visual modes)
+
+The **meaning/detail** preset is independent of `:HudVisualMode` and of
+`Inspect` section selection. It is a reversible reading lens, **not**
+another language adapter and not a new inference pass.
+
+```vim
+:HudPresentation
+:HudPresentation standard
+:HudPresentation learning
+:HudPresentation cycle
+```
+
+- `standard` — unchanged full technical text HUD (default).
+- `learning` — early accessibility-first text preview. Adds one short
+  explanation for a currently discovered register-state fact when
+  available, explicitly labelling source inference rather than execution.
+  Retains **all existing sections**, expansion selections, colour rules
+  and source position. Other sections still show their technical detail.
+- `cycle` — toggles between the implemented presets using existing
+  in-memory HUD state; it does not reparse merely to change presentation.
+
+These are implemented **text presentations only**. Future graphics,
+animation, byte/bit cells and reduced-motion/accessibility alternatives
+are design objectives, not selectable renderers yet. Never report them
+as active modes before they exist.
+
+The command respects the namespace prefix: with `namespace.prefix =
+"MyHud"`, use `:MyHudPresentation cycle`.
+
+An optional user-chosen keymap avoids overriding existing mappings:
+
+```lua
+require("tracker_hud").setup({
+    keymaps = { cycle_presentation_mode = "<leader>hp" },
+})
+```
+
+`:HudVisualMode rich` still controls semantic colour/tags, and the
+normal Inspect cycle still selects Scope, Registers, Events and so on;
+neither is changed by switching presentation presets.
+
+### Presentation contract for future graphical modes
+
+Every renderer consumes normalized, cursor-visible facts (same state
+and certainty). Different formats may show:
+- 64-bit registers in faithful **8-byte / 64-bit** diagrams, including
+  byte order, register aliases and known/unknown bit lanes;
+- arrows connecting source operands to destination state, with a text
+  equivalent;
+- simplified explanations for younger learners and explicit advanced
+  detail on demand.
+
+Never imply an unknown memory load is a confirmed number, use colour
+alone as the information carrier, or remove the user's ability to
+switch back without navigation.
+
+---
+
 ## Plain mode
 
 Plain mode is the dedicated colorless/unreliable-terminal mode.
