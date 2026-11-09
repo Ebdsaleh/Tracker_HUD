@@ -58,6 +58,11 @@ function M.register_fact(record, context)
             name = record.name,
             architecture = type(context.targets) == "table"
                 and context.targets.architecture or nil,
+            -- Width is architecture-owned. Never infer 64 bits merely
+            -- from a register-looking name in source code.
+            width_bits = type(record.metadata) == "table"
+                and type(record.metadata.family) == "table"
+                and record.metadata.family.bits or nil,
         },
         source = {
             line = record.source_line,
@@ -67,6 +72,33 @@ function M.register_fact(record, context)
         value = register_value(record),
         provenance = { kind = record.source or "source" },
     })
+end
+
+-- Share precisely the same source-discovery selection across text and
+-- diagram presenters. Inference already happened in context construction.
+function M.select_fact(context)
+    if type(context) ~= "table" or type(context.cursor) ~= "table"
+        or type(context.registers) ~= "table"
+    then
+        return nil
+    end
+
+    local cursor = {
+        line = context.cursor.line,
+        column = cursor_column_to_zero(context.cursor.column),
+    }
+
+    for _, record in ipairs(context.registers) do
+        -- Static architectural register listings are not source effects.
+        if record.source_line == cursor.line then
+            local fact = M.register_fact(record, context)
+            if fact and facts.visible_at(fact, cursor) then
+                return fact
+            end
+        end
+    end
+
+    return nil
 end
 
 function M.lines(context)
@@ -79,25 +111,8 @@ function M.lines(context)
         return lines
     end
 
-    local cursor = {
-        line = context.cursor.line,
-        column = cursor_column_to_zero(context.cursor.column),
-    }
-
-    local candidates = {}
-    for _, record in ipairs(context.registers or {}) do
-        -- Only facts whose most recent visible source action is ON this
-        -- line are introduced. Static architecture register rows do not
-        -- become fictional program effects.
-        if record.source_line == cursor.line then
-            local fact = M.register_fact(record, context)
-            if fact and facts.visible_at(fact, cursor) then
-                candidates[#candidates + 1] = fact
-            end
-        end
-    end
-
-    if #candidates == 0 then
+    local fact = M.select_fact(context)
+    if not fact then
         lines[#lines + 1] =
             "  No register value established at this cursor position."
         lines[#lines + 1] =
@@ -106,7 +121,6 @@ function M.lines(context)
     end
 
     -- Keep the introductory view calm: one focused example per update.
-    local fact = candidates[1]
     local name = fact.subject.name:upper()
     local role = type(fact.effect.role) == "string"
         and fact.effect.role or nil
