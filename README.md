@@ -2218,3 +2218,26 @@ Created by [@Ebdsaleh](https://github.com/Ebdsaleh).
 ## License
 
 This project is licensed under the Apache License 2.0.
+
+
+### Experimental live presentation presets (November 2026)
+
+Tracker_HUD now supports a reversible, text-only introduction to
+future accessibility/teaching displays:
+
+```vim
+:HudPresentation standard   " existing detailed text HUD, default
+:HudPresentation learning   " brief, source-grounded register explanation
+:HudPresentation diagram    " 64-bit register bytes in ASCII, when known
+:HudPresentation cycle      " standard -> learning -> diagram -> standard
+```
+
+These are independent of the current Inspect section and
+`:HudVisualMode` colour/tags/plain options; no new keymap is
+bound by default. Unknown values appear as unknown bytes, and
+physical machine values are **not** claimed to be observed at runtime.
+See `docs/semantic_fact_contract.md` for precision/width limits.
+
+This mode remains experimental until validated on ERIDU. It is
+not a graphical/GIF renderer.
+
