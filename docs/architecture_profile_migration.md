@@ -767,3 +767,82 @@ tranche.
 Acceptance must cover byte placement, `AH` offset, source-alias focus,
 write-mode wording, family isolation (for example R8 has no high-byte
 alias), and preservation of the existing byte-value diagram.
+
+
+## Implementation: x86-64 alias/subregister byte map (2026-11-09)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+This tranche extends only the `diagram` presentation. It does not
+change ASM parsing, register-effect inference, target selection, or the
+technical Registers section.
+
+### Changes
+
+- `presenters/learning.lua` now copies two architecture-owned items
+  into the detached normalized fact snapshot:
+  - `metadata.register_family` — the verified register family;
+  - `metadata.source_alias` — the actual alias spelling attached to
+    the source-side register record.
+  The fact contract deep-copies this data, so the presenter does not
+  retain or mutate the live adapter tables.
+- `presenters/byte_diagram.lua` renders a byte-aligned alias map for
+  verified 64-bit scalar families. The map is still high-significance
+  byte first, matching the value row.
+- For RAX the expected structural map is RAX/EAX/AX/AH/AL. In
+  particular AH covers bits 15..8 and AL covers bits 7..0.
+- The source alias is marked with `>`. This marks the architectural
+  alias involved in the source effect; it does **not** assert that the
+  occurrence is necessarily a write.
+- Write-mode text is deliberately conditional architecture wording:
+  “if EAX is written...” / “if AH is written...”. This avoids turning
+  an alias definition into a false claim about a read occurrence.
+- Unknown values remain eight `[??]` cells. The structural alias map
+  can still be shown because alias widths/offsets are architecture
+  truths independent of whether the runtime/source value is known.
+- R8-family rows are sourced from the R8 architecture family and do
+  not acquire legacy AH/AL aliases.
+
+### New regression
+
+`tests/register_alias_diagram_smoke.lua` checks:
+
+1. RAX/EAX/AX/AH/AL byte placement;
+2. the AH 15..8 high-byte offset;
+3. source-alias focus for RAX, EAX and AH;
+4. full, zero-extend-64 and partial write-rule wording;
+5. R8 family isolation;
+6. unknown values remain unknown while architecture shape stays visible.
+
+Partial-known bit/value masks remain intentionally deferred. No current
+code derives known sub-bytes from a `partial` value.
+
+### ERIDU acceptance commands
+
+From the repository root:
+
+```bat
+git status --short
+git pull --ff-only
+git log -8 --oneline
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manual acceptance in `nvim test.asm`:
+
+- On `mov rax, 60`, `:HudPresentation diagram` should still show
+  the accepted value row and then an alias map with `> RAX`.
+- If convenient, add or inspect temporary source examples using
+  `eax`, `ax`, `ah`, and `al`; the `>` marker should follow
+  the alias actually involved in the source record.
+- The AH row must cover the second-lowest byte only.
+- Switching back to `standard` or `learning` must preserve the
+  existing cursor/Inspect/expansion behaviour.
+
+Do not claim this tranche green until ERIDU returns the new smoke output.
+The earlier six untracked root filenames remain user-owned workspace
+state; do not run `git clean`.
