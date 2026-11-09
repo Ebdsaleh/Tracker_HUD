@@ -28,6 +28,13 @@ The current implementation is still experimental, but `v0.8.0` marks a substanti
 
 The long-term direction is a systems-programming analysis HUD: complete the low-level ASM model first, then extend the same adapter-driven state-tracking architecture toward C/C++ pointer/allocation/lifetime state and Rust ownership/lifetime information.
 
+> **Architecture migration (November 2026):** The first shared CPU-profile
+> tranche moves x86-64 register/alias definitions out of the ASM adapter into
+> `lua/tracker_hud/architectures/`, while preserving existing ASM behaviour.
+> See [the staged architecture migration and ERIDU validation handoff](docs/architecture_profile_migration.md).
+> This is groundwork; full incremental cursor-state analysis and performance
+> improvements are not yet claimed.
+
 ---
 
 ## Design goals
