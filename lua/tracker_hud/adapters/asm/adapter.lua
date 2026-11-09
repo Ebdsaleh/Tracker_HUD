@@ -760,6 +760,8 @@ local function apply_variant(variant)
     -- Variant-owned descriptive specs.
     M.registers = variant.registers or { static = {} }
     M.register_families = variant.register_families or {}
+    -- Optional prebuilt architecture alias map; old variants keep scan fallback.
+    M.register_alias_index = variant.register_alias_index
     M.presentation = resolve_presentation(variant)
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
