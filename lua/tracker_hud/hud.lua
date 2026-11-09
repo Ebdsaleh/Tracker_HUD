@@ -1170,7 +1170,9 @@ local function format_panel_lines(context, config)
                 line_spans,
                 hud_text.plain(
                     overlay_line,
-                    index == 1 and "title" or "muted"
+                    index == 1 and "title"
+                        or (selected_presentation == "diagram"
+                            and "status_value" or "muted")
                 ),
                 nil
             )
