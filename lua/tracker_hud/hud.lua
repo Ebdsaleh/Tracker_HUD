@@ -8,6 +8,8 @@ local hud_inspect = require("tracker_hud.hud_inspect")
 local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
 local hud_text = require("tracker_hud.hud_text")
+local presentation_mode = require("tracker_hud.presentation_mode")
+local learning_presenter = require("tracker_hud.presenters.learning")
 
 local M = {}
 
@@ -1132,6 +1134,33 @@ local function format_panel_lines(context, config)
                 line_styles,
                 line_spans,
                 target_line,
+                nil
+            )
+        end
+    end
+
+    -- A presentation switch reuses this already-collected context.
+    -- No parser, adapter or effect inference is invoked by the lens.
+    if presentation_mode.resolve(config) == "learning" then
+        append_line(
+            lines,
+            line_styles,
+            line_spans,
+            "",
+            nil
+        )
+
+        for index, learning_line in ipairs(
+            learning_presenter.lines(context)
+        ) do
+            append_line(
+                lines,
+                line_styles,
+                line_spans,
+                hud_text.plain(
+                    learning_line,
+                    index == 1 and "title" or "muted"
+                ),
                 nil
             )
         end
