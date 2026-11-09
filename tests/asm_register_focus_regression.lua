@@ -38,15 +38,19 @@ local function run()
         end
         return false
     end
+    -- Stable order: when a case fails, diagnostics always identify the
+    -- same first regression rather than depending on Lua table iteration.
     local targets = {
-        ["mov rbp, rsp"] = { "rbp", "rsp" },
-        ["mov rax, [rbp + rax*4 - 8]"] = { "rax", "rbp" },
-        ["mov [rsp + 8], rax"] = { "rsp", "rax" },
-        ["lea rsi, [rel msg]"] = { "rsi" },
+        { source = "mov rbp, rsp", registers = { "rbp", "rsp" } },
+        { source = "mov rax, [rbp + rax*4 - 8]",
+          registers = { "rax", "rbp" } },
+        { source = "mov [rsp + 8], rax", registers = { "rsp", "rax" } },
+        { source = "lea rsi, [rel msg]", registers = { "rsi" } },
     }
 
     local count = 0
-    for search, expected in pairs(targets) do
+    for _, case in ipairs(targets) do
+        local search, expected = case.source, case.registers
         local line_number
         for i, line in ipairs(lines) do
             if line:find(search, 1, true) then
@@ -69,6 +73,29 @@ local function run()
         end
         print("ASM line " .. line_number .. " [" .. search .. "]: "
             .. table.concat(observed, " | "))
+        -- The memory-load regression must preserve exact token focus,
+        -- not merely attach every mentioned register to the mnemonic.
+        if search == "mov rax, [rbp + rax*4 - 8]" then
+            local function has_source_token(kind, name)
+                local target = "register:" .. name
+                for _, occurrence in ipairs(occurrences) do
+                    if occurrence.kind == kind
+                        and occurrence.text == name
+                        and contains((occurrence.targets or {}).state, target)
+                    then
+                        return true
+                    end
+                end
+                return false
+            end
+            assert(has_source_token("operand", "rax"),
+                "mov memory-load destination rax lacks its own operand occurrence")
+            assert(has_source_token("memory_component", "rbp"),
+                "mov memory-load base rbp lacks its own memory-component occurrence")
+            assert(has_source_token("memory_component", "rax"),
+                "mov memory-load index rax lacks its own memory-component occurrence")
+        end
+
         for _, register_name in ipairs(expected) do
             local target = "register:" .. register_name
             local found = false
