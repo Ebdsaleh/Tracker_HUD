@@ -85,6 +85,11 @@ modules alone is not a benchmark or proof of better runtime performance.
      including aliases, bit sizes, offsets and write modes.
    - Verifies `eax` zero extension, `ah` high-byte partial writes,
      case-insensitivity, unknown names, row count and row order.
+7. **New** `tests/architecture_alias_benchmark.lua`
+   - Optional, non-gating lookup microbenchmark that runs indexed
+     lookups against the previous family-scan fallback.
+   - Reports times on ERIDU; it is **not** a full HUD benchmark
+     and has no unstable wall-clock acceptance threshold.
 
 ### Explicitly unchanged
 
@@ -113,6 +118,7 @@ git status --short
 git pull --ff-only
 git log -6 --oneline
 nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua"
+nvim --headless -u NONE -c "luafile tests/architecture_alias_benchmark.lua"
 nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua"
 nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua"
