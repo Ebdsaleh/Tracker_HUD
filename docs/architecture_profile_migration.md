@@ -613,3 +613,108 @@ missing/non-64-bit register architecture facts show an honest
 fallback rather than inventing a register width. Test the
 new command and verify it preserves source cursor, Inspect
 and expansion states. No ASM instruction semantics changes.
+
+
+## Implementation: ASCII 64-bit register byte diagram (2026-11-09)
+
+**Status: pushed on `main`, pending next ERIDU smoke/manual acceptance.**
+
+The first follow-up presentation after the accepted fact-v1 tranche is
+now implemented. It is deliberately **pure text**, not an image/GIF;
+it proves the data-to-view separation for future graphical renderers.
+
+### Code and behaviour
+
+- `lua/tracker_hud/presenters/byte_diagram.lua` renders an 8-byte
+  value bank for one source-visible register whose architectural
+  `metadata.family.bits` establishes width **exactly 64 bits**.
+  Bytes are shown MSB on the left and LSB on the right with a
+  plain-language glossary. This is significance order, **not**
+  CPU memory order. A register fact without verified 64-bit width
+  produces an explicit fallback rather than assuming a width.
+- Exact integer conversion uses byte-wise division of decimal digit
+  strings, or direct hex-pair parsing, never JavaScript/Lua bitshifts
+  on 64-bit doubles. Supports signed 64-bit down to
+  `-9223372036854775808`, unsigned up to
+  `18446744073709551615`, and exact hex strings. Lua numeric
+  inputs at/above 2^53 are rejected to prevent silent rounding;
+  the same values supplied as decimal strings are accepted.
+  Out-of-range/symbolic/fractional values are not rendered as
+  known bit patterns.
+- `lua/tracker_hud/presenters/learning.lua` now exposes
+  `select_fact(context)` so both learning text and diagram use
+  **the same ON/PAST cursor-visible register record**, and passes
+  architecture-owned `width_bits` into normalized fact subjects.
+  Static CPU register listings cannot masquerade as source effects.
+- `lua/tracker_hud/presentation_mode.lua` now supports
+  `standard`, `learning`, `diagram`, `cycle`, with cycle order
+  **standard -> learning -> diagram -> standard**.
+- `lua/tracker_hud/hud.lua` displays an ASCII diagram above the
+  still-navigable technical sections **only in diagram mode**.
+  Standard remains the original default. ASCII bytes have a
+  readable semantic foreground in normal and plain terminal modes.
+  `lua/tracker_hud/init.lua` updates the command usage text.
+- `tests/byte_diagram_smoke.lua` checks exact byte projections,
+  64-bit bounds, non-exact numeric rejection, unknown/partial
+  states, verified width from the actual x86-64 profile, and
+  ON/PAST source discovery.
+- `tests/presentation_modes_smoke.lua` now checks the three-mode
+  cycle, explicit `:HudPresentation diagram`, and preservation
+  of Inspect, visual theme, source position, and expanded sections.
+
+The other ASM effects, architecture tables, target directives,
+C/C++ adapters, and core Inspect selection were **not changed**.
+
+### Expected manual preview
+
+On `test.asm` at `mov rax, 60` in diagram mode:
+
+```text
+Byte diagram (source inference, not live CPU state):
+  RAX  (64 bits = 8 bytes)
+  MSB                                 LSB
+  [00][00][00][00][00][00][00][3C]
+  Bits: 0x000000000000003C
+  Source-inferred value, not execution proof.
+  MSB = highest-value byte; LSB = lowest-value byte.
+  Left to right: high to low significance, NOT memory order.
+```
+
+At `cpuid`, when a value is not established from source, all
+eight byte cells must show `[??]`, **not** zero. The full technical
+Registers tree must remain below the diagram. At a position with no
+register discovery, the text should explain why no diagram is
+available; it should not speculate about CPU state.
+
+### Exact acceptance commands (ERIDU)
+
+```bat
+git status --short
+git pull --ff-only
+git log -1 --oneline
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manually use `:HudPresentation diagram`,
+`:HudPresentation learning`, `:HudPresentation standard`,
+`:HudPresentation cycle` and `:HudVisualMode plain` in
+`nvim test.asm`. Switching must not lose cursor/Inspect/expansion
+state. No new default keyboard mappings.
+
+No UI image renderer or 8/16/32-bit alias overlay is provided yet.
+No end-to-end latency improvement has been measured by this work;
+do not mistake the cheap diagram projection for reduced ASM
+source-analysis work. Future tranches can implement byte-accurate
+alias overlays, partial-known masks and animated/graphical views,
+and separately profile cursor-state/AST/cache work.
+
+**Workspace caution:** Earlier ERIDU `git status --short`
+showed six untracked root filenames (`cls`, `git`, `main`,
+`n`, `nvim`, `value@22(depth`). Leave them untouched pending
+user inspection; do not call `git clean` or silently delete them.
