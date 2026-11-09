@@ -148,6 +148,10 @@ function M.new(opts)
         return nil
     end
 
+    -- The generic lookup model predates explicit certainty. Preserve this
+    -- register-only field for learning/visual presenters without changing
+    -- existing display text or mutating the inference engine's facts.
+    register.resolved = opts.resolved
     register.label = M.build_label(register)
 
     return register
