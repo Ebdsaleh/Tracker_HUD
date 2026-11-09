@@ -171,3 +171,62 @@ memory, stack, heap, events and warnings; add source/provenance detail
 and byte-accurate visual projections; measure render-vs-analysis
 cost separately; add accessible layouts without deleting existing
 expert detail.
+
+
+## Second presentation tranche — ASCII register byte diagram (2026-11-09)
+
+The new optional `diagram` preset adds a terminal-safe **eight-byte**
+high-significance-to-low-significance register diagram. It is a text
+projection of the same normalized source facts. It is **not** a picture,
+GIF, CPU debugger, or measured runtime state.
+
+```vim
+:HudPresentation standard
+:HudPresentation learning
+:HudPresentation diagram
+:HudPresentation cycle
+```
+
+`cycle` now moves `standard -> learning -> diagram -> standard`.
+`standard` remains the unchanged default; the entire technical HUD
+and its user-controlled Inspect selection/expanded nodes remain
+available in every mode. Switching reuses an already-collected context.
+
+For an x86-64 source-inferred 64-bit register value of 60:
+
+```text
+Byte diagram (source inference, not live CPU state):
+  RAX  (64 bits = 8 bytes)
+  MSB                                 LSB
+  [00][00][00][00][00][00][00][3C]
+  Bits: 0x000000000000003C
+  Source-inferred value, not execution proof.
+  Left to right: high to low significance, NOT memory order.
+```
+
+The **width** must come from an architecture-profile register family
+(e.g. `register.metadata.family.bits = 64`), not a guessed register
+name. Unknown, partial, unresolved or conditional results show
+`[??]` for each byte. If the architecture width is unavailable or
+not 64 bits, the presenter says so instead of fabricating a bank.
+This initial diagram does not yet show 8-/16-/32-bit registers or
+per-alias overlays.
+
+The precise converter `presenters/byte_diagram.lua` accepts
+64-bit decimal and hexadecimal **string** integers, and safe exact
+Lua numeric integers. Arithmetic on decimal strings is byte-by-byte
+and preserves unsigned values through
+`18446744073709551615` (`0xFFFFFFFFFFFFFFFF`) as well as negative
+64-bit signed values down to `-9223372036854775808`. Numeric inputs
+outside Lua's safe-integer precision, fractional/symbolic data, and
+out-of-range values are not silently rounded, wrapped or rendered as
+verified bytes.
+
+MSB/LSB describes the significance of the register value, **not
+the byte order of a memory load or store**. Do not equate the diagram
+with memory layout or claim x86-64 memory has been inspected.
+
+`tests/byte_diagram_smoke.lua` covers width, conversion, signed
+boundary, known/unknown/partial state and ON/PAST source gating.
+ERIDU acceptance remains pending at the moment of this update.
+
