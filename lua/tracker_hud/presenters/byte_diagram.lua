@@ -203,19 +203,19 @@ local function source_write_explanation(alias_name, alias)
 
     local name = alias_name:upper()
     if alias.write_mode == "full" then
-        return "  Source write: " .. name
-            .. " replaces all 64 bits of this register family."
+        return "  Write rule: if " .. name
+            .. " is written, all 64 bits of this register family are replaced."
     end
     if alias.write_mode == "zero_extend_64" then
-        return "  Source write: " .. name
-            .. " clears the upper 32 bits to zero."
+        return "  Write rule: if " .. name
+            .. " is written, the upper 32 bits are cleared to zero."
     end
     if alias.write_mode == "partial" then
-        return "  Source write: " .. name
-            .. " changes only its covered bits; other bits are preserved."
+        return "  Write rule: if " .. name
+            .. " is written, only its covered bits change; other bits are preserved."
     end
 
-    return "  Source write mode: " .. tostring(alias.write_mode or "unspecified")
+    return "  Architectural write mode: " .. tostring(alias.write_mode or "unspecified")
 end
 
 local function append_alias_map(lines, fact)
