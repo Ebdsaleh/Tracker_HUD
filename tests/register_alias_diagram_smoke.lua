@@ -55,22 +55,22 @@ assert(rax_lines:find("bits 15..8", 1, true),
     "AH bit range must be explicit")
 assert(rax_lines:find("> RAX", 1, true),
     "source alias marker must identify RAX")
-assert(rax_lines:find("replaces all 64 bits", 1, true),
-    "full-width source write explanation missing")
+assert(rax_lines:find("if RAX is written, all 64 bits", 1, true),
+    "full-width architecture write rule missing")
 print("PASS alias diagram: RAX/EAX/AX/AH/AL byte placement and full write")
 
 local eax_lines = rendered(fixture("rax", "eax", 60, true))
 assert(eax_lines:find("> EAX", 1, true),
     "source alias marker must follow EAX source spelling")
-assert(eax_lines:find("clears the upper 32 bits to zero", 1, true),
-    "EAX zero-extension semantics must be explained")
+assert(eax_lines:find("if EAX is written, the upper 32 bits are cleared to zero", 1, true),
+    "EAX zero-extension write rule must be explained")
 print("PASS alias diagram: EAX source focus and zero_extend_64 wording")
 
 local ah_lines = rendered(fixture("rax", "ah", 60, true))
 assert(ah_lines:find("> AH", 1, true),
     "source alias marker must follow AH source spelling")
-assert(ah_lines:find("changes only its covered bits; other bits are preserved", 1, true),
-    "partial-write preservation must be explained")
+assert(ah_lines:find("if AH is written, only its covered bits change; other bits are preserved", 1, true),
+    "partial-write preservation rule must be explained")
 print("PASS alias diagram: AH source focus and partial-write wording")
 
 local r8_lines = rendered(fixture("r8", "r8b", 7, true))
