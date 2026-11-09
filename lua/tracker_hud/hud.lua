@@ -10,6 +10,7 @@ local visual_language = require("tracker_hud.visual_language")
 local hud_text = require("tracker_hud.hud_text")
 local presentation_mode = require("tracker_hud.presentation_mode")
 local learning_presenter = require("tracker_hud.presenters.learning")
+local byte_diagram = require("tracker_hud.presenters.byte_diagram")
 
 local M = {}
 
@@ -1139,9 +1140,12 @@ local function format_panel_lines(context, config)
         end
     end
 
-    -- A presentation switch reuses this already-collected context.
-    -- No parser, adapter or effect inference is invoked by the lens.
-    if presentation_mode.resolve(config) == "learning" then
+    -- Presentation is a read-only projection of the existing context.
+    -- None of these views performs source parsing or semantic inference.
+    local selected_presentation = presentation_mode.resolve(config)
+    if selected_presentation == "learning"
+        or selected_presentation == "diagram"
+    then
         append_line(
             lines,
             line_styles,
@@ -1150,15 +1154,22 @@ local function format_panel_lines(context, config)
             nil
         )
 
-        for index, learning_line in ipairs(
-            learning_presenter.lines(context)
-        ) do
+        local overlay_lines
+        if selected_presentation == "diagram" then
+            overlay_lines = byte_diagram.lines(
+                learning_presenter.select_fact(context)
+            )
+        else
+            overlay_lines = learning_presenter.lines(context)
+        end
+
+        for index, overlay_line in ipairs(overlay_lines) do
             append_line(
                 lines,
                 line_styles,
                 line_spans,
                 hud_text.plain(
-                    learning_line,
+                    overlay_line,
                     index == 1 and "title" or "muted"
                 ),
                 nil
