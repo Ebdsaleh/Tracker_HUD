@@ -71,6 +71,15 @@ function M.register_fact(record, context)
         effect = { role = record.role },
         value = register_value(record),
         provenance = { kind = record.source or "source" },
+        -- Architecture facts stay detached in the normalized snapshot so
+        -- alternate presenters can explain aliases without reaching back
+        -- into the live adapter or inference state.
+        metadata = {
+            register_family = type(record.metadata) == "table"
+                and record.metadata.family or nil,
+            source_alias = type(record.metadata) == "table"
+                and record.metadata.alias_written or nil,
+        },
     })
 end
 
