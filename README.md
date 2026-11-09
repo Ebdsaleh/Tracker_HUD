@@ -35,6 +35,17 @@ The long-term direction is a systems-programming analysis HUD: complete the low-
 > This is groundwork; full incremental cursor-state analysis and performance
 > improvements are not yet claimed.
 
+> **Accessibility/presentation prototype (November 2026):** A new normalized
+> fact contract and first reversible learning lens are available on `main`
+> for ERIDU validation. Use `:HudPresentation standard` (existing full
+> technical HUD), `:HudPresentation learning` (source-based introductory
+> register explanation), or `:HudPresentation cycle`. These controls are
+> independent of `:HudVisualMode` and Inspect. No graphical/animated
+> renderer is implemented yet. See
+> [the visual-language specification](docs/visual_language.md) and
+> [architecture handoff](docs/architecture_profile_migration.md).
+> This work remains experimental until the Neovim smoke passes on ERIDU.
+
 ---
 
 ## Design goals
