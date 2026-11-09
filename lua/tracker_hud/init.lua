@@ -233,6 +233,19 @@ local function setup_keymaps()
         })
     end
 
+    if keymaps.cycle_presentation_mode then
+        vim.keymap.set("n", keymaps.cycle_presentation_mode, function()
+            local selected = presentation_mode.set_mode(config, "cycle")
+            if selected and state.source_context then
+                hud.update_panel()
+            end
+        end, {
+            desc = "Cycle Tracker HUD presentation without re-analysis",
+            silent = true,
+            noremap = true,
+        })
+    end
+
     if keymaps.inspect_source then
         vim.keymap.set("n", keymaps.inspect_source, function()
             hud.inspect_source_at_cursor()
