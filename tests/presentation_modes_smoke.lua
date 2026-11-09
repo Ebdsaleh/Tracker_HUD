@@ -131,10 +131,12 @@ end
 local old_cursor = state.source_cursor
 local old_inspect = inspect.get_mode()
 vim.cmd("HudPresentation learning")
-vim.cmd("HudPresentation cycle")
+vim.cmd("HudPresentation cycle") -- learning -> diagram
+vim.cmd("HudPresentation cycle") -- diagram -> standard
+vim.cmd("HudPresentation diagram")
 vim.cmd("HudPresentation standard")
 vim.cmd("HudPresentation")
-assert(updates == 3, "presentation commands must rerender cached context")
+assert(updates == 5, "presentation commands must rerender cached context")
 assert(state.source_cursor == old_cursor and inspect.get_mode() == old_inspect)
 assert(sections.is_expanded("registers"),
     "presentation switch collapsed the user's Registers section")
