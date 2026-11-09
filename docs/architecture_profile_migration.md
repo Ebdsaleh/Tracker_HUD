@@ -447,3 +447,96 @@ text equivalents, reduced-motion and per-user complexity settings.
 - Small commits and a fresh handoff after each batch.
 - New UI/presentation tests must prove switching and switching back
   retain source position, Inspect selection and existing output.
+
+
+## Tranche: structured facts + live learning presentation (2026-11-09)
+
+**Handoff-first policy fulfilled:** this objective was recorded in
+commit `02a6fba` before the implementation work began.
+
+### Added on main (ERIDU execution pending)
+
+- `lua/tracker_hud/facts/contract.lua` — pure Lua language-neutral fact
+  schema for register/memory/stack/heap/event/warning kinds; explicit
+  known/unknown/partial/conditional values; exact source-column ON/PAST
+  discovery; detached copies of inputs. Known zero and false are not
+  mistaken for unknown; known `nil` is explicit `is_nil=true`.
+- `lua/tracker_hud/presentation_mode.lua` — independent
+  `standard` / `learning` / `cycle` reading presets. Does not change
+  current Inspect section or `:HudVisualMode` colour/tag mode.
+- `lua/tracker_hud/presenters/learning.lua` — first text-only
+  educational lens, using a normalized register fact snapshot.
+  Selected source-state facts can show one short explanation; unknown
+  and symbolic values are explicitly not presented as confirmed
+  numeric values. Static architectural definitions are not mistaken
+  for newly inferred source effects.
+- `lua/tracker_hud/config.lua` — default `presentation.mode =
+  "standard"`; optional `keymaps.cycle_presentation_mode` mapping
+  disabled by default to avoid user-keymap conflicts.
+- `lua/tracker_hud/init.lua` — namespaced `:HudPresentation`
+  command supports `standard`, `learning`, `cycle`, and no-args
+  status. Toggles trigger `hud.update_panel()` with cached context;
+  they do not run `context.get_cursor_context()` just to switch
+  explanation mode.
+- `lua/tracker_hud/hud.lua` — learning-only educational lines appear
+  above normal sections. `standard` follows the old output branch.
+- `lua/tracker_hud/sections/low_level/registers.lua` and
+  `register_model.lua` — additive preservation of the inference
+  `resolved` flag through existing section records, without changing
+  the legacy register label or effect rules.
+- `tests/normalized_fact_contract_smoke.lua` and
+  `tests/presentation_modes_smoke.lua` — new tests for source
+  discovery, certainty, configuration isolation, namespace cleanup,
+  cached-context redraw and preservation of Inspect and expanded
+  sections.
+- `docs/semantic_fact_contract.md`, `docs/visual_language.md`,
+  `README.md` — public API, facts and accessibility roadmap.
+
+**Important source-column nuance:** the ASM/Tree-sitter token record
+stores a zero-based column, but
+`context_engine.get_cursor_location().column` is one-based. The
+learning presenter converts *only the cursor*; a regression checks
+that the fact becomes visible on the first character, not one earlier.
+
+### ERIDU acceptance checklist (pending, not claimed green)
+
+```bat
+git status --short
+git pull --ff-only
+git log -1 --oneline
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/c_cpp_parser_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manual Neovim source:
+
+```bat
+nvim samples/asm/x86_64/memory_operand_validation.asm
+```
+
+With the sample open, toggle `:HudPresentation learning` and
+`:HudPresentation standard` or `:HudPresentation cycle`. Confirm
+the familiar text HUD returns, Inspect stays selected, expanded
+sections stay expanded, source cursor stays put, and learning text
+does not claim to know a value for a symbolic/unresolved memory load.
+
+`standard` is the default. Only the first text `learning` lens
+is implemented; **do not claim that GIF/PNG/graphical/animated
+register diagrams exist yet.** The existing `:HudVisualMode` mode
+controls remain fully separate.
+
+**Open regression from prior tranche:** memory-component ASM focus
+on `mov rax, [rbp + rax*4 - 8]` must be tested independently;
+this accessibility tranche intentionally does not alter the
+ASM instruction-effect tables. Avoid further architectural
+migration until ERIDU returns its tests.
+
+**Performance qualification:** using an already collected context
+for presentation switching avoids invoking the parser for the
+switch itself. It does **not** prove a full HUD render is fast,
+nor does it fix potential per-cursor AST replay costs. Profile
+those separately in the next permitted performance tranche.
