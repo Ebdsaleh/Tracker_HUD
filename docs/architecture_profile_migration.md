@@ -327,3 +327,123 @@ but the HUD misbehaves, inspect the selection/refresh pipeline.
 **Do not migrate another architecture subsystem until this behaviour
 is explained.** Preserve existing ASM depth and avoid treating a
 register's syntactic presence as proof of its runtime value.
+
+
+## Accessibility, interchangeable presentations and structured facts (2026-11-09)
+
+### Permanent product objective — not just an ASM inspector
+
+**Tracker_HUD is a cursor-time source, state and effect explorer for any
+supported language and target, designed as an accessibility-first
+learning tool as well as an advanced development aid.** The ultimate
+audience includes first-time programmers (including children roughly
+age 10+), people with cognitive/learning disabilities, overwhelmed
+developers, and expert low-level programmers. Avoid assuming one reading
+level or one preferred density.
+
+The deep ASM analysis is an **asset**, not dead weight to trim. In the
+first pass the UI renders this detail as text; later presentations
+may show registers with byte/bit cells, arrows, pictures, animations and
+other intuitive teaching metaphors. All visualisations must be faithful
+to real architectural widths and known/unknown values.
+
+Example `mov rax, 60`: a future 64-bit visual register can show the
+known value 0x000000000000003C in eight byte cells, rather than implying
+that the number 60 occupies a single byte at an arbitrary location.
+A learning view may explain “the instruction writes 60 to RAX”.
+A technical view retains aliases, source roles and confidence.
+
+### Two orthogonal axes of presentation
+
+1. **Meaning/detail preset** (new, future-facing): standard/expert
+   source facts, learning explanation, eventually visual diagrams. A
+   person must be able to switch **at runtime** without reopening files,
+   changing cursor, changing Inspect section, losing expansion
+   selections, or re-analysing/replaying the code solely to switch view.
+   Use an explicit, namespace-aware command and an optional keymap.
+   There must be an obvious route back to the existing text HUD.
+2. **Terminal/colour encoding** (already implemented):
+   `:HudVisualMode auto|rich|tagged|markers|plain` and terminal-aware
+   semantic highlights. **Do not overload/redefine this command** as
+   a teaching/detail-mode selector.
+
+The existing `Inspect: <section>` cycles the target sections; it is
+**not** a presentation-mode selector. All these controls must be
+independent. Avoid forcing images, animations, colours, colour-only
+meaning or dense charts on users. Respect reduced-motion/low-colour
+capabilities when graphical modes eventually exist.
+
+### Normalized semantic fact contract (v1 proposal)
+
+Language adapters continue reporting source facts. Architecture/ABI
+profiles supply machine truths. An inference engine emits normalized
+facts with unambiguous fields. A presenter consumes *snapshots*, not
+live mutable inference tables. Suggested minimal v1:
+
+```lua
+{
+  id = "stable-fact-identity",
+  kind = "register", -- memory | event | warning | stack | heap later
+  subject = { kind = "register", name = "rax", architecture = "x86-64" },
+  source = { buffer = 9, line = 12, start_column = 4, end_column = 7 },
+  effect = { operation = "write", role = "destination" },
+  value = { status = "known", data = 60 }, -- or status="unknown"
+  provenance = { kind = "inferred", rule = "mov-immediate" },
+}
+```
+
+Contract obligations:
+
+- Distinguish `known`, `unknown`, `partial`, and
+  `conditional` / uncertain. `false`, `0`, and valid `nil`
+  language values must not be mistaken for missing data.
+- Do not invent CPU runtime values, heap addresses or control-flow
+  outcomes when source alone cannot establish them.
+- Include source position, cursor-known-through position, evidence
+  and provenance; **ON the declaration/effect or PAST it** means
+  eligible for discovery. Future cached data must not leak.
+- Register/flag architecture descriptions must not be confused with
+  ABI overlays (Linux syscall vs Win64 etc.).
+- Any view must consume the same fact identity; the display may
+  differ but not the underlying truth or certainty.
+- Normalize incrementally; adapt one section without forcing
+  all existing adapters or renderers to switch immediately.
+- Presentation conversion must be cheap and must not invoke the
+  parser or semantic inference on its own.
+
+### Safe implementation sequence (after handoff update)
+
+**A. Fact contract foundation:** add an isolated, pure Lua normalized
+fact module with validation, value certainty and source discovery gates;
+build regression coverage for unknown vs zero, ON/PAST and no leaks.
+No immediate replacement of existing ASM rules or HUD renderer.
+
+**B. Runtime presentation control:** introduce distinct, namespace-aware
+`:HudPresentation` / cycle interface with a backwards-compatible
+`standard` mode and first accessible `learning` text view.
+Switching changes rendering of an existing context immediately;
+the source cursor and Inspect state stay intact. Preserve current
+existing colours, controls and default output. Never expose an
+unimplemented graphical renderer as if functional.
+
+**C. First fact consumer:** translate a bounded register example into
+a normalized fact and readable instructional wording; verify that
+unknown memory loads never claim a numeric result. Keep the richer
+underlying details available in standard/expert mode.
+
+**D. Future:** multiple display surfaces (byte-cells, animation,
+graphical) with the same facts, interaction commands, semantic colours,
+terminal fallback, user theme overrides, screen-reader-friendly
+text equivalents, reduced-motion and per-user complexity settings.
+
+### Gates and reminders
+
+- Existing **ASM memory-token source-occurrence regression** is still
+  awaiting ERIDU verification on latest `main`. Do not assert it
+  passed, and do not change ASM inference as part of the UI work.
+- C/C++ parser and visual smoke tests have passed on ERIDU. Preserve
+  their contracts and all existing adapter-specific sections.
+- Keep `main / dev / test` branch policy; no new branches.
+- Small commits and a fresh handoff after each batch.
+- New UI/presentation tests must prove switching and switching back
+  retain source position, Inspect selection and existing output.
