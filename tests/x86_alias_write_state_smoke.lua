@@ -9,7 +9,10 @@ local function run()
     local source = {
         "bits 64",
         "mov ah, 0x3C",
-        -- Keep this full-width seed below 2^53 because the legacy immediate\n        -- resolver still converts source numerics through Lua number. The alias\n        -- composer itself remains exact-string/byte based.\n        "mov rax, 0x0011223344556677",
+        -- Keep this parser-backed seed small because the legacy immediate
+        -- resolver converts source numerics through Lua number/tostring. The
+        -- pure composer smoke separately covers exact 64-bit hex strings.
+        "mov rax, 0x12345678",
         "mov ah, 0xAA",
         "mov al, 0xBB",
         "mov ax, 0xCCDD",
