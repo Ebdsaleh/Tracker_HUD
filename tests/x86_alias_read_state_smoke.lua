@@ -16,6 +16,9 @@ local function run()
         "add ah, 1",
         "mov rax, 0x1122334455667788",
         "add al, 1",
+        "mov rax, 0x1122334455667788",
+        "mov ah, bl",
+        "add al, 1",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -99,6 +102,18 @@ local function run()
         and al.metadata.write_value == "137",
         "AL arithmetic must read low byte from known canonical RAX")
     print("PASS x86 alias read: AL projects known canonical low byte")
+
+    local partial_al = state_after(12)
+    assert(partial_al.name == "al"
+        and partial_al.resolved == false
+        and partial_al.value == nil
+        and partial_al.metadata.write_value == "137"
+        and partial_al.metadata.partial_value.known_mask
+            == "0xFFFFFFFFFFFF00FF"
+        and partial_al.metadata.partial_value.known_value
+            == "0x1122334455660089",
+        "AL arithmetic must read its proven slice from partial canonical RAX state")
+    print("PASS x86 alias read: partial canonical certainty feeds proven alias reads")
 
     print("PASS Tracker_HUD x86 canonical-to-alias read smoke")
 end
