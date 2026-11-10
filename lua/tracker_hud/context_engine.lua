@@ -2353,17 +2353,43 @@ local function apply_register_effect(
         family_state[state_key] = fact
 
         -- Keep source-operand lookup behaviour separate from canonical reduced
-        -- state. A later register-read of the same spelling sees the value
-        -- that was written through that alias, while presentation consumes
-        -- latest_state_facts.
+        -- state. Invalidate sibling spellings first so a later source read
+        -- can never observe a stale AL/AH/AX/EAX value after another alias
+        -- changed the same physical family.
+        local alias_resolution = resolve_register_alias(adapter, fact.name)
+        local family = alias_resolution and alias_resolution.family or nil
+
+        if core.is_table(family) and core.is_table(family.aliases) then
+            for alias_name, _ in pairs(family.aliases) do
+                facts_by_register[tostring(alias_name):lower()] = nil
+            end
+        end
+
+        local write_resolved = fact.metadata
+            and fact.metadata.write_resolved
+
         facts_by_register[fact.name] = {
             name = fact.name,
             value = fact.metadata and fact.metadata.write_value or fact.value,
-            resolved = fact.metadata
-                and fact.metadata.write_resolved
+            resolved = write_resolved ~= nil
+                and write_resolved
                 or fact.resolved,
             metadata = fact.metadata,
         }
+
+        -- When composition proves the entire canonical family, publish that
+        -- exact state under the canonical spelling as well. Partial state is
+        -- deliberately not exposed as a resolved whole-register operand.
+        if fact.resolved ~= false
+            and state_key ~= fact.name
+        then
+            facts_by_register[state_key] = {
+                name = state_key,
+                value = fact.value,
+                resolved = true,
+                metadata = fact.metadata,
+            }
+        end
     end
 end
 
