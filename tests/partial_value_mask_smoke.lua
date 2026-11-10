@@ -18,7 +18,7 @@ local partial = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 9, start_column = 8 },
+    source = { line = 9, start_col = 8 },
     value = {
         status = "partial",
         known_mask = "0x000000000000FF00",
@@ -71,8 +71,8 @@ local function count_cell_spans(line, style, relevance)
         if not start_index then break end
 
         ranges[#ranges + 1] = {
-            start_column = start_index - 1,
-            end_column = end_index,
+            start_col = start_index - 1,
+            end_col = end_index,
         }
 
         search_from = end_index + 1
@@ -85,8 +85,8 @@ local function count_cell_spans(line, style, relevance)
             and (relevance == nil or span.relevance == relevance)
         then
             for _, range in ipairs(ranges) do
-                if span.start_column == range.start_column
-                    and span.end_column == range.end_column
+                if span.start_col == range.start_col
+                    and span.end_col == range.end_col
                 then
                     count = count + 1
                     break
@@ -125,7 +125,7 @@ local subbyte = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 10, start_column = 8 },
+    source = { line = 10, start_col = 8 },
     value = {
         status = "partial",
         known_mask = "0x00000000000000F0",
@@ -168,7 +168,7 @@ local symbolic = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 11, start_column = 8 },
+    source = { line = 11, start_col = 8 },
     value = { status = "partial", data = "symbolic expression" },
 }))
 local symbolic_lines = table.concat(diagram.lines(symbolic), "\n")
@@ -186,7 +186,7 @@ local context = {
             name = "rax",
             source = "instruction",
             source_line = 9,
-            source_start_column = 8,
+            source_start_col = 8,
             role = "partial test",
             resolved = false,
             value = nil,
