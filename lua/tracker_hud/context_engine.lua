@@ -1622,6 +1622,84 @@ local function register_state_key(adapter, register_name)
 end
 
 
+local function get_register_value_width(adapter, register_name)
+    local resolved = resolve_register_alias(adapter, register_name)
+
+    if resolved
+        and core.is_table(resolved.alias)
+        and core.is_number(resolved.alias.bits)
+    then
+        return resolved.alias.bits
+    end
+
+    local static_spec = get_static_register_spec(adapter, register_name)
+
+    if static_spec and core.is_number(static_spec.bits) then
+        return static_spec.bits
+    end
+
+    return nil
+end
+
+
+local function apply_register_value_width_policy(
+    adapter,
+    target_register,
+    effect,
+    value,
+    resolved
+)
+    local policy = core.is_table(effect)
+        and effect.value_width_policy
+        or nil
+
+    if policy == nil then
+        return value, resolved, nil
+    end
+
+    local metadata = {
+        value_width_policy = policy,
+        pre_width_write_value = value,
+    }
+
+    if resolved == false or value == nil then
+        return value, resolved, metadata
+    end
+
+    if policy ~= "wrap_unsigned_target" then
+        metadata.value_width_error = "unsupported policy"
+        return nil, false, metadata
+    end
+
+    local bits = get_register_value_width(
+        adapter,
+        target_register
+    )
+
+    metadata.value_width_bits = bits
+
+    if not bits then
+        metadata.value_width_error = "target width unavailable"
+        return nil, false, metadata
+    end
+
+    local wrapped = integer_value.wrap_unsigned(
+        value,
+        bits
+    )
+
+    if wrapped == nil then
+        metadata.value_width_error = "value is not an exact integer"
+        return nil, false, metadata
+    end
+
+    local normalized = integer_value.normalize(value)
+    metadata.value_wrapped = normalized ~= wrapped
+
+    return wrapped, true, metadata
+end
+
+
 
 local function parse_numeric_value(value)
     return integer_value.normalize(value)
@@ -2157,6 +2235,16 @@ local function make_register_fact(
         instruction_state
     )
 
+    local width_metadata
+    write_value, write_resolved, width_metadata =
+        apply_register_value_width_policy(
+            adapter,
+            target_register,
+            effect,
+            write_value,
+            write_resolved
+        )
+
     local value = write_value
     local resolved = write_resolved
 
@@ -2206,6 +2294,22 @@ local function make_register_fact(
         canonical_name = canonical_name,
         write_value = write_value,
         write_resolved = write_resolved ~= false,
+
+        value_width_policy = width_metadata
+            and width_metadata.value_width_policy
+            or nil,
+        value_width_bits = width_metadata
+            and width_metadata.value_width_bits
+            or nil,
+        pre_width_write_value = width_metadata
+            and width_metadata.pre_width_write_value
+            or nil,
+        value_wrapped = width_metadata
+            and width_metadata.value_wrapped
+            or nil,
+        value_width_error = width_metadata
+            and width_metadata.value_width_error
+            or nil,
     }
 
     if reduced_state and reduced_state.partial_value then
