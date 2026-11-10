@@ -904,3 +904,85 @@ focus on RDI.
 
 This is a visualization of the same cursor-time reduced state already
 shown in Registers, not live CPU execution.
+
+
+## Implementation: persistent register-state bank (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+This tranche implements the persistence requested after the accepted alias
+diagram. It deliberately reuses the already-reduced Registers snapshot instead
+of adding a second state/replay engine.
+
+### Behaviour
+
+- The accepted current-effect byte diagram and alias map remain unchanged.
+- Diagram mode now appends a compact
+  **`Persistent register state (through cursor)`** bank.
+- `presenters/learning.state_facts(context)` converts only dynamic register
+  records that already have source positions in `context.registers`.
+  Architecture-only static rows are excluded.
+- `presenters/register_state_bank.lua` renders those detached normalized
+  facts as compact 64-bit byte rows.
+- A prior state remains visible after the cursor moves past its source line,
+  exactly because the underlying Registers reducer still carries that state.
+- `>` marks a register whose latest reduced-state change occurred on the
+  current line. This is plain-text scaffolding only; semantic colour/highlight
+  remains deliberately deferred.
+- Unknown/partial values display unknown bytes; the presenter does not recover
+  or guess an earlier known value after the inference engine has invalidated it.
+
+Example:
+
+```asm
+mov rax, 60
+xor rdi, rdi
+```
+
+At the second instruction the persistent bank should include both:
+
+```text
+  RAX  [00][00][00][00][00][00][00][3C]  known   @ line 9
+> RDI  [00][00][00][00][00][00][00][00]  known   @ line 10
+```
+
+If a later instruction changes RAX to unknown, only RAX changes to `[??]`;
+RDI remains carried until its own state changes.
+
+### Regression
+
+New `tests/persistent_register_diagram_smoke.lua` pins:
+
+1. prior RAX=60 state surviving the later RDI=0 update;
+2. static untouched RBX not appearing as discovered state;
+3. later unknown RAX replacing only RAX, while RDI persists;
+4. both states surviving onto a later non-effect line;
+5. current-line marker disappearing when neither latest change is on the
+   cursor line.
+
+### ERIDU acceptance
+
+```bat
+git status --short
+git pull --ff-only
+git log -8 --oneline
+nvim --headless -u NONE -c "luafile tests/persistent_register_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manual check in `nvim test.asm`:
+
+- at `mov rax, 60`, the persistent bank contains RAX=60;
+- at `xor rdi, rdi`, the bank contains both carried RAX=60 and current RDI=0;
+- at `syscall`, any existing inference update to RAX is reflected honestly
+  while RDI remains carried;
+- on a later instruction/non-effect position, reduced states still remain
+  visible according to the technical Registers section.
+
+Do not start colourisation until this state-parity tranche is green on ERIDU.
+The intended next presentation-only batch is semantic highlighting of current
+affected register/alias/byte regions while retained state stays visually quieter.
