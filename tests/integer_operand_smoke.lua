@@ -156,4 +156,57 @@ assert(unsupported == nil
     "unknown interpretation must fail closed")
 print("PASS integer operand: missing and unknown policies fail closed")
 
+local ambiguous, ambiguous_meta = operand.interpret(
+    "1",
+    {
+        kind = "signed_bits",
+        bits = 8,
+        bits_from = "target",
+    },
+    {
+        target_bits = 64,
+    }
+)
+assert(ambiguous == nil
+    and ambiguous_meta.error == "source width policy is ambiguous",
+    "runtime must reject ambiguous fixed/derived width policy")
+
+local bad_max, bad_max_meta = operand.interpret(
+    "1",
+    {
+        kind = "signed_bits",
+        bits = 8,
+        max_bits = 0,
+    }
+)
+assert(bad_max == nil
+    and bad_max_meta.error == "invalid maximum source width",
+    "runtime must reject invalid maximum source width")
+
+local inverted, inverted_meta = operand.interpret(
+    "1",
+    {
+        kind = "signed_bits",
+        bits = 8,
+        min_bits = 16,
+        max_bits = 8,
+    }
+)
+assert(inverted == nil
+    and inverted_meta.error == "minimum source width exceeds maximum",
+    "runtime must reject inverted source-width bounds")
+
+local exact_with_width, exact_with_width_meta = operand.interpret(
+    "1",
+    {
+        kind = "exact",
+        bits = 8,
+    }
+)
+assert(exact_with_width == nil
+    and exact_with_width_meta.error
+        == "exact interpretation does not use source width",
+    "runtime must reject meaningless width on exact interpretation")
+print("PASS integer operand: malformed policies fail closed at runtime")
+
 print("PASS Tracker_HUD integer operand interpretation smoke")
