@@ -1,14 +1,14 @@
 -- lua/tracker_hud/adapters/asm/arch/x86_64/adapter.lua
 --
--- x86-64 architecture facts for the ASM adapter.
+-- x86-64 ASM variant description.
 --
--- This file is spec-only.
+-- This file is spec-only. Shared hardware and target-overlay truth comes from
+-- tracker_hud.architectures.x86_64; this module describes how ASM syntax and
+-- instruction semantics expose that target.
 --
 -- It describes:
---   - public architecture name
---   - aliases
---   - register families / register aliases
---   - registers
+--   - ASM architecture aliases / target selection
+--   - syntax and construct descriptions
 --   - stack concepts
 --   - scope member declarations
 --   - register effects / instruction events
