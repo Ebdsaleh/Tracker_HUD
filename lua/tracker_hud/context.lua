@@ -420,6 +420,29 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         config = config,
     })
 
+    -- Keep an explicit reduced snapshot from BEFORE the current source line.
+    -- The normal Registers collection may already contain a latest effect from
+    -- this line even when the cursor is still on its mnemonic and the effect's
+    -- source column is not visible yet. Alternate presenters need the prior
+    -- family state so history does not visually disappear during that gap.
+    context.registers_before_current_line = {}
+
+    if context.cursor and type(context.cursor.line) == "number" then
+        context.registers_before_current_line = registers.collect(
+            context,
+            adapter,
+            {
+                bufnr = bufnr,
+                root_node = root_node,
+                config = config,
+                limit_position = {
+                    line = context.cursor.line,
+                    column = 0,
+                },
+            }
+        )
+    end
+
     context.stack = stack.collect(context, adapter, {
         bufnr = bufnr,
         root_node = root_node,
