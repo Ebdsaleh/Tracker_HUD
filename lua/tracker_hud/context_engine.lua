@@ -2309,8 +2309,9 @@ local function resolve_register_effect_value(
                 value = value_operand.text
 
                 if value_operand.kind == "register" then
-                    local source_fact = get_register_fact_from_map(
+                    local source_fact = get_register_fact_for_read(
                         facts_by_register,
+                        adapter,
                         value_operand.text
                     )
 
