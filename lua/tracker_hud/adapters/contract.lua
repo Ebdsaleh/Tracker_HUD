@@ -792,6 +792,185 @@ local function validate_operands(operands, path)
 end
 
 
+local function valid_positive_integer(value)
+    return core.is_number(value)
+        and value == math.floor(value)
+        and value >= 1
+end
+
+
+local function validate_integer_interpretation(spec, path)
+    if spec == nil then
+        return true, nil
+    end
+
+    if not core.is_table(spec) then
+        return path_error(path, "must be a table when provided")
+    end
+
+    local kind = spec.kind
+
+    if kind ~= "exact"
+        and kind ~= "signed_bits"
+        and kind ~= "unsigned_bits"
+    then
+        return path_error(
+            path .. ".kind",
+            "must be 'exact', 'signed_bits', or 'unsigned_bits'"
+        )
+    end
+
+    if kind == "exact" then
+        if spec.bits ~= nil
+            or spec.bits_from ~= nil
+            or spec.max_bits ~= nil
+            or spec.min_bits ~= nil
+        then
+            return path_error(
+                path,
+                "exact interpretation must not declare width fields"
+            )
+        end
+
+        return true, nil
+    end
+
+    local has_fixed_bits = spec.bits ~= nil
+    local has_derived_bits = spec.bits_from ~= nil
+
+    if has_fixed_bits == has_derived_bits then
+        return path_error(
+            path,
+            "must declare exactly one of bits or bits_from"
+        )
+    end
+
+    if has_fixed_bits and not valid_positive_integer(spec.bits) then
+        return path_error(
+            path .. ".bits",
+            "must be a positive integer"
+        )
+    end
+
+    if has_derived_bits and spec.bits_from ~= "target" then
+        return path_error(
+            path .. ".bits_from",
+            "must be 'target'"
+        )
+    end
+
+    if spec.max_bits ~= nil
+        and not valid_positive_integer(spec.max_bits)
+    then
+        return path_error(
+            path .. ".max_bits",
+            "must be a positive integer when provided"
+        )
+    end
+
+    if spec.min_bits ~= nil
+        and not valid_positive_integer(spec.min_bits)
+    then
+        return path_error(
+            path .. ".min_bits",
+            "must be a positive integer when provided"
+        )
+    end
+
+    if spec.max_bits ~= nil
+        and spec.min_bits ~= nil
+        and spec.min_bits > spec.max_bits
+    then
+        return path_error(
+            path,
+            "min_bits must not exceed max_bits"
+        )
+    end
+
+    return true, nil
+end
+
+
+local function effect_has_target(effect)
+    local target_operand = tonumber(effect.target_operand)
+
+    return (target_operand
+            and target_operand >= 1
+            and target_operand == math.floor(target_operand))
+        or core.is_non_empty_string(effect.target_register)
+end
+
+
+local function effect_has_operand(effect, key)
+    local index = tonumber(effect[key])
+
+    return index
+        and index >= 1
+        and index == math.floor(index)
+end
+
+
+local function validate_effect_semantics(effect, path)
+    if not core.is_table(effect) then
+        return true, nil
+    end
+
+    if effect.value_width_policy ~= nil then
+        if effect.value_width_policy ~= "wrap_unsigned_target" then
+            return path_error(
+                path .. ".value_width_policy",
+                "must be 'wrap_unsigned_target' when provided"
+            )
+        end
+
+        if not effect_has_target(effect) then
+            return path_error(
+                path .. ".value_width_policy",
+                "requires target_operand or target_register"
+            )
+        end
+    end
+
+    local ok, err = validate_integer_interpretation(
+        effect.value_operand_interpretation,
+        path .. ".value_operand_interpretation"
+    )
+
+    if not ok then
+        return false, err
+    end
+
+    if effect.value_operand_interpretation ~= nil
+        and not effect_has_operand(effect, "value_operand")
+    then
+        return path_error(
+            path .. ".value_operand_interpretation",
+            "requires value_operand"
+        )
+    end
+
+    ok, err = validate_integer_interpretation(
+        effect.value_delta_operand_interpretation,
+        path .. ".value_delta_operand_interpretation"
+    )
+
+    if not ok then
+        return false, err
+    end
+
+    if effect.value_delta_operand_interpretation ~= nil
+        and not effect_has_operand(effect, "value_delta_operand")
+    then
+        return path_error(
+            path .. ".value_delta_operand_interpretation",
+            "requires value_delta_operand"
+        )
+    end
+
+    return true, nil
+end
+
+
 local function validate_instruction_rule_set(
     rule_set,
     dataset_name,
@@ -876,6 +1055,17 @@ local function validate_instruction_rule_set(
 
             if opts.require_effect and not core.is_table(rule.effect) then
                 return path_error(path .. ".effect", "must be a table")
+            end
+
+            if core.is_table(rule.effect) then
+                ok, err = validate_effect_semantics(
+                    rule.effect,
+                    path .. ".effect"
+                )
+
+                if not ok then
+                    return false, err
+                end
             end
 
             if opts.require_event and not core.is_table(rule.event) then
