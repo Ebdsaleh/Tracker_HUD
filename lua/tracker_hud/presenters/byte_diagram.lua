@@ -5,6 +5,8 @@
 -- Conversion is performed using decimal strings/individual bytes, not
 -- floating-point or bitwise shifts of 64-bit numbers.
 
+local hud_text = require("tracker_hud.hud_text")
+
 local M = {}
 
 local BYTE_COUNT = 8
@@ -177,18 +179,29 @@ local function alias_range(alias)
     }
 end
 
-local function alias_cells(alias)
+function M.alias_byte_coverage(alias)
     local range = alias_range(alias)
     if not range then return nil end
+
+    local coverage = {}
+    for byte_index = 7, 0, -1 do
+        local first = byte_index * 8
+        local last = first + 7
+        coverage[#coverage + 1] =
+            first >= range.first_bit and last <= range.last_bit
+    end
+    return coverage, range
+end
+
+local function alias_cells(alias)
+    local coverage, range = M.alias_byte_coverage(alias)
+    if not coverage then return nil end
 
     local cells = {}
     -- Diagram order is high significance to low significance, matching
     -- the value row above. The architecture profile stores offsets from
     -- bit zero, so byte seven is displayed first.
-    for byte_index = 7, 0, -1 do
-        local first = byte_index * 8
-        local last = first + 7
-        local covered = first >= range.first_bit and last <= range.last_bit
+    for _, covered in ipairs(coverage) do
         cells[#cells + 1] = covered and "[##]" or "[..]"
     end
     return table.concat(cells), range
@@ -318,6 +331,137 @@ function M.lines(fact)
         "  Left to right: high to low significance, NOT memory order."
     append_alias_map(lines, fact)
     return lines
+end
+
+local function source_alias_spec(fact)
+    local metadata = type(fact) == "table"
+        and type(fact.metadata) == "table"
+        and fact.metadata or {}
+    local family = type(metadata.register_family) == "table"
+        and metadata.register_family or nil
+    local source_alias = type(metadata.source_alias) == "string"
+        and metadata.source_alias:lower() or nil
+
+    if not family or not source_alias
+        or type(family.aliases) ~= "table"
+    then
+        return nil, nil
+    end
+
+    return source_alias, family.aliases[source_alias]
+end
+
+local function add_cell_spans(line, text, coverage, style, relevance)
+    if type(coverage) ~= "table" then return end
+
+    local cell_number = 0
+    local search_from = 1
+    while true do
+        local start_index, end_index = text:find("%[[^%]]+%]", search_from)
+        if not start_index then break end
+        cell_number = cell_number + 1
+        if coverage[cell_number] then
+            hud_text.add_span(
+                line,
+                start_index - 1,
+                end_index,
+                style,
+                420
+            )
+            line.spans[#line.spans].relevance = relevance
+        end
+        search_from = end_index + 1
+    end
+end
+
+local function add_alias_row_spans(line, text, source_alias, source_spec)
+    local marker, alias_name = text:match("^  ([> ])%s*(%S+)%s+")
+    if not alias_name then return end
+
+    local alias_start = text:find(alias_name, 1, true)
+    if alias_start then
+        hud_text.add_span(
+            line,
+            alias_start - 1,
+            alias_start - 1 + #alias_name,
+            "register_alias",
+            380
+        )
+        line.spans[#line.spans].relevance =
+            alias_name:lower() == source_alias and "current" or "historical"
+    end
+
+    if marker == ">" and source_spec then
+        local coverage = M.alias_byte_coverage(source_spec)
+        add_cell_spans(
+            line,
+            text,
+            coverage,
+            "affected",
+            "current"
+        )
+    end
+end
+
+-- Structured version of lines() for the live HUD. Text remains identical to
+-- the plain renderer; only semantic spans are added. This keeps plain mode and
+-- regression fixtures stable while allowing rich terminals to highlight the
+-- current alias and exactly the byte cells that alias covers.
+function M.rich_lines(fact)
+    local raw = M.lines(fact)
+    local result = {}
+    local source_alias, source_spec = source_alias_spec(fact)
+    local source_coverage = source_spec and M.alias_byte_coverage(source_spec) or nil
+    local value_status = type(fact) == "table"
+        and type(fact.value) == "table"
+        and fact.value.status or "unknown"
+
+    for index, text in ipairs(raw) do
+        local line = hud_text.new()
+        hud_text.append(line, text, nil)
+
+        if index == 1 then
+            hud_text.add_span(line, 0, #text, "title", 250)
+        elseif text:match("^  %S+  %(64 bits = 8 bytes%)") then
+            local name = text:match("^  (%S+)")
+            local start = name and text:find(name, 1, true) or nil
+            if start then
+                hud_text.add_span(
+                    line,
+                    start - 1,
+                    start - 1 + #name,
+                    "register",
+                    380
+                )
+                line.spans[#line.spans].relevance = "current"
+            end
+        elseif text:match("^  %[") and source_coverage then
+            add_cell_spans(
+                line,
+                text,
+                source_coverage,
+                value_status == "known" and "affected" or "unresolved",
+                "current"
+            )
+        elseif text:match("^  [> ]%s*[%w]+%s+%[") and source_alias then
+            add_alias_row_spans(
+                line,
+                text,
+                source_alias,
+                source_spec
+            )
+        elseif text:match("^  Write rule:") then
+            hud_text.add_span(line, 2, #text, "affected", 330)
+            line.spans[#line.spans].relevance = "current"
+        elseif text:match("^  Bits:") then
+            hud_text.add_span(line, 2, #text, "immediate", 300)
+            line.spans[#line.spans].relevance = "current"
+        end
+
+        result[#result + 1] = line
+    end
+
+    return result
 end
 
 return M
