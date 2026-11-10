@@ -846,3 +846,61 @@ Manual acceptance in `nvim test.asm`:
 Do not claim this tranche green until ERIDU returns the new smoke output.
 The earlier six untracked root filenames remain user-owned workspace
 state; do not run `git clean`.
+
+
+## ERIDU acceptance: x86-64 alias/subregister diagram (2026-11-10)
+
+**Accepted on ERIDU at `9390e9b`.**
+
+The user returned both the complete smoke output and live Neovim screenshots.
+
+Confirmed green:
+
+- `register_alias_diagram_smoke.lua`: RAX/EAX/AX/AH/AL placement,
+  EAX zero extension wording, AH partial-write wording, family isolation,
+  and unknown-value honesty.
+- Existing `byte_diagram_smoke.lua`, `presentation_modes_smoke.lua`,
+  `normalized_fact_contract_smoke.lua`, and
+  `asm_register_focus_regression.lua` all remain green.
+- Live `test.asm` screenshots confirm the alias map renders under the
+  byte diagram and the detailed technical Registers tree remains intact.
+
+### User-directed next behaviour: persistent diagram state
+
+The current diagram is still primarily a **source-occurrence lens**:
+it chooses the register fact associated with the current source effect.
+The technical Registers section, by contrast, already contains the
+reduced register state accumulated through the cursor position.
+
+The next bounded tranche must expose that already-computed persistent
+state visually without creating a second state engine.
+
+Implementation target:
+
+1. Keep the existing detailed/current-effect byte diagram and alias map.
+2. Add a compact **persistent register-state bank** built only from the
+   current `context.registers` snapshot.
+3. A register changed on an earlier line remains visible at later cursor
+   positions until the existing inference engine changes or invalidates it.
+4. The bank must not replay source, parse instructions, or invent values.
+5. Untouched static architecture rows must not masquerade as discovered
+   state.
+6. Known, unknown and partial values remain distinct.
+7. Colour/highlight of affected bytes/registers is explicitly deferred to
+   the following presentation-only tranche. First prove persistence and
+   state parity in plain text.
+
+Example intent after:
+
+```asm
+mov rax, 60
+xor rdi, rdi
+```
+
+At the second line, the compact persistent state view should be able to
+show both the carried `RAX = 60` state and the newly established
+`RDI = 0` state, while the detailed current-effect panel may still
+focus on RDI.
+
+This is a visualization of the same cursor-time reduced state already
+shown in Registers, not live CPU execution.
