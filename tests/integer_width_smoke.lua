@@ -44,6 +44,26 @@ assert(integer.wrap_unsigned("18446744073709551616", 64) == "0"
     "64-bit modular wrapping must remain exact above Lua number precision")
 print("PASS integer width: 64-bit wrapping remains exact")
 
+assert(integer.reinterpret_signed("255", 8) == "-1"
+    and integer.reinterpret_signed("128", 8) == "-128"
+    and integer.reinterpret_signed("127", 8) == "127"
+    and integer.reinterpret_signed("-128", 8) == "-128"
+    and integer.reinterpret_signed("256", 8) == nil
+    and integer.reinterpret_signed("-129", 8) == nil,
+    "signed bit-pattern reinterpretation boundaries are incorrect")
+print("PASS integer width: signed bit-pattern reinterpretation")
+
+assert(integer.reinterpret_signed(
+        "18446744073709551615",
+        64
+    ) == "-1"
+    and integer.reinterpret_signed(
+        "9223372036854775808",
+        64
+    ) == "-9223372036854775808",
+    "64-bit signed reinterpretation must remain exact")
+print("PASS integer width: 64-bit signed reinterpretation remains exact")
+
 local huge = "134078079299425970995740249982058461274793658205923933"
     .. "77723561443721764030073546976801874298166903427690031"
     .. "858186486050853753882811946569946433649006084096"
