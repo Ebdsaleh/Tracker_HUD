@@ -762,6 +762,15 @@ local function apply_variant(variant)
     M.register_families = variant.register_families or {}
     -- Optional prebuilt architecture alias map; old variants keep scan fallback.
     M.register_alias_index = variant.register_alias_index
+
+    -- Shared target overlays are exposed to generic low-level consumers.
+    -- Target resolution still uses the selected variant directly.
+    M.platforms = variant.platforms or {}
+    M.default_platform = variant.default_platform
+    M.platform_aliases = variant.platform_aliases or {}
+    M.calling_conventions = variant.calling_conventions or {}
+    M.register_roles = variant.register_roles or {}
+
     M.presentation = resolve_presentation(variant)
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
