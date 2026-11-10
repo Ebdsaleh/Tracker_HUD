@@ -1178,3 +1178,138 @@ Bounded first half:
 Only after this representation is green should a following tranche make proven
 AL/AH/AX/EAX write rules produce masks. This keeps representation correctness
 separate from new inference semantics.
+
+
+## Implementation: explicit partial-known value-mask contract (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+This is intentionally the representation half only. It does **not** yet make
+x86 AL/AH/AX/EAX writes produce partial masks.
+
+### Normalized fact contract
+
+A value with `status = "partial"` may now carry:
+
+```lua
+known_mask = "0x..."
+known_value = "0x..."
+```
+
+Both are exact hexadecimal literals of at most 64 bits.
+
+The contract enforces:
+
+- mask and value must be supplied together;
+- only `partial` status may carry them;
+- the mask must contain at least one known bit;
+- an all-ones 64-bit mask is rejected because that is a fully `known` value;
+- `known_value` may not set any bit that `known_mask` marks unknown.
+
+Legacy symbolic partial facts without a mask remain valid and remain completely
+unknown in the byte projection.
+
+### Normalization bridge
+
+`presenters/learning.lua` preserves an explicit producer payload from:
+
+```lua
+record.metadata.partial_value = {
+    known_mask = "...",
+    known_value = "...",
+}
+```
+
+into the detached normalized value fact.
+
+A producer may therefore expose partial certainty later without presenters
+reaching back into adapter/inference state.
+
+### Byte diagram
+
+`presenters/byte_diagram.lua` now supports three compact byte states:
+
+- `[3C]` — all 8 bits of this byte are proven;
+- `[??]` — no bit of this byte is proven;
+- `[~?]` — some, but not all, bits of this byte are proven.
+
+For any masked partial value the diagram also prints exact bit truth:
+
+```text
+Known mask: 0x000000000000FF00
+Known bits: 0x0000000000003C00
+```
+
+This means the compact cell never has to pretend an arbitrary sub-byte mask is
+a whole known byte.
+
+Example:
+
+```text
+[??][??][??][??][??][??][3C][??]
+Known mask: 0x000000000000FF00
+Known bits: 0x0000000000003C00
+```
+
+For a nibble-only proof such as mask `0xF0`, the corresponding byte is
+`[~?]` and the exact mask/value lines retain the real bit information.
+
+### Persistent state bank
+
+The persistent register bank now uses the same value-cell projection, so a
+future partially-known reduced register state can persist through the cursor
+without collapsing to either wholly known or wholly unknown.
+
+### New regression
+
+`tests/partial_value_mask_smoke.lua` checks:
+
+1. a fully known byte inside an otherwise unknown 64-bit value renders exactly;
+2. neighbouring unknown bytes remain unknown;
+3. arbitrary sub-byte knowledge renders `[~?]` rather than a fabricated hex byte;
+4. exact known mask/value lines are retained;
+5. symbolic partial facts without masks remain all unknown;
+6. the normalized register snapshot preserves explicit partial certainty;
+7. the persistent state bank renders the mixed-known state.
+
+`tests/normalized_fact_contract_smoke.lua` now also rejects:
+
+- missing mask/value partner;
+- masks attached to fully-known status;
+- zero-known masks;
+- all-known masks labelled partial;
+- known-value bits outside the mask.
+
+### ERIDU acceptance
+
+```bat
+git status --short
+git pull --ff-only
+git log -10 --oneline
+nvim --headless -u NONE -c "luafile tests/partial_value_mask_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/diagram_highlight_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/persistent_register_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+No live source example is expected to produce `[~?]` or a mixed byte row yet:
+that producer is deliberately the **next** tranche after this representation
+passes.
+
+### Next tranche after green
+
+Make x86-64 alias writes produce proven partial certainty from architecture
+rules, starting with byte-aligned scalar aliases:
+
+- AL -> low 8-bit mask;
+- AH -> bits 15..8 mask;
+- AX -> low 16-bit mask;
+- EAX-class writes -> zero-extend semantics, which can often yield a fully
+  known 64-bit value when the 32-bit source value is known.
+
+This must be implemented in the reducer/architecture semantic boundary, not
+reverse-engineered by the presenter.
