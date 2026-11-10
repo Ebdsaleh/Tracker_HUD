@@ -47,6 +47,50 @@ local function run()
 
     local engine = require("tracker_hud.context_engine")
 
+    local function expect_equal(actual, expected, label)
+        assert(actual == expected,
+            label
+                .. ": expected "
+                .. vim.inspect(expected)
+                .. ", got "
+                .. vim.inspect(actual))
+    end
+
+    local function find_effect(effect_name)
+        for _, rules in pairs(adapter.register_effects or {}) do
+            for _, rule in ipairs(rules or {}) do
+                if rule.effect and rule.effect.name == effect_name then
+                    return rule.effect
+                end
+            end
+        end
+
+        return nil
+    end
+
+    local active_add = assert(
+        find_effect("add_register_immediate"),
+        "configured ASM adapter lost add_register_immediate"
+    )
+    assert(type(active_add.value_delta_operand_interpretation) == "table",
+        "configured ASM adapter lost ADD immediate interpretation policy")
+    expect_equal(
+        active_add.value_delta_operand_interpretation.kind,
+        "signed_bits",
+        "configured ADD immediate interpretation kind"
+    )
+    expect_equal(
+        active_add.value_delta_operand_interpretation.bits_from,
+        "target",
+        "configured ADD immediate width source"
+    )
+    expect_equal(
+        active_add.value_delta_operand_interpretation.max_bits,
+        32,
+        "configured ADD immediate maximum width"
+    )
+    print("PASS x86 immediate interpretation: configured adapter retains source policy")
+
     local function state_after(line_number, canonical_name)
         local facts = engine.collect_register_effects(
             { cursor = { line = line_number, column = 200 } },
@@ -79,14 +123,46 @@ local function run()
     end
 
     local add_minus_one = state_after(3, "rax")
-    assert(add_minus_one.value == "18446744073709551615"
-        and add_minus_one.metadata.source_integer_raw_value == "4294967295"
-        and add_minus_one.metadata.source_integer_value == "-1"
-        and add_minus_one.metadata.source_integer_bits == 32
-        and add_minus_one.metadata.source_integer_bits_source == "target_capped"
-        and add_minus_one.metadata.pre_width_write_value == "-1"
-        and add_minus_one.metadata.value_wrapped == true,
-        "RAX ADD 0xFFFFFFFF must interpret imm32 as -1 before wrapping")
+    expect_equal(
+        add_minus_one.metadata.effect,
+        "add_register_immediate",
+        "RAX ADD latest effect"
+    )
+    expect_equal(
+        add_minus_one.value,
+        "18446744073709551615",
+        "RAX ADD final value"
+    )
+    expect_equal(
+        add_minus_one.metadata.source_integer_raw_value,
+        "4294967295",
+        "RAX ADD raw immediate"
+    )
+    expect_equal(
+        add_minus_one.metadata.source_integer_value,
+        "-1",
+        "RAX ADD interpreted immediate"
+    )
+    expect_equal(
+        add_minus_one.metadata.source_integer_bits,
+        32,
+        "RAX ADD source width"
+    )
+    expect_equal(
+        add_minus_one.metadata.source_integer_bits_source,
+        "target_capped",
+        "RAX ADD source width origin"
+    )
+    expect_equal(
+        add_minus_one.metadata.pre_width_write_value,
+        "-1",
+        "RAX ADD pre-width result"
+    )
+    expect_equal(
+        add_minus_one.metadata.value_wrapped,
+        true,
+        "RAX ADD destination wrap flag"
+    )
     print("PASS x86 immediate interpretation: RAX ADD sign-interprets imm32")
 
     local sub_minus_one = state_after(5, "rax")
