@@ -491,6 +491,21 @@ function M.lines(fact)
         lines[#lines + 1] = "  ?? = unknown byte (" .. tostring(reason) .. ")"
     end
 
+    local metadata = type(fact.metadata) == "table" and fact.metadata or {}
+    if metadata.carried_state == true then
+        local source_line = type(fact.source) == "table"
+            and fact.source.line
+            or nil
+
+        lines[#lines + 1] =
+            "  Carried state: the current source effect has not been reached yet."
+
+        if source_line then
+            lines[#lines + 1] =
+                "  Latest proven change is from line " .. tostring(source_line) .. "."
+        end
+    end
+
     lines[#lines + 1] =
         "  MSB = highest-value byte; LSB = lowest-value byte."
     lines[#lines + 1] =
@@ -540,7 +555,14 @@ local function add_cell_spans(line, text, coverage, style, relevance)
     end
 end
 
-local function add_value_cell_spans(line, text, coverage, value, relevance)
+local function add_value_cell_spans(
+    line,
+    text,
+    coverage,
+    value,
+    relevance,
+    known_style
+)
     if type(coverage) ~= "table" then return end
     local states = M.value_cell_states(value)
 
@@ -553,7 +575,7 @@ local function add_value_cell_spans(line, text, coverage, value, relevance)
 
         if coverage[cell_number] then
             local style = states[cell_number] == "known"
-                and "affected"
+                and (known_style or "affected")
                 or "unresolved"
             hud_text.add_span(
                 line,
@@ -569,7 +591,13 @@ local function add_value_cell_spans(line, text, coverage, value, relevance)
     end
 end
 
-local function add_alias_row_spans(line, text, source_alias, source_spec)
+local function add_alias_row_spans(
+    line,
+    text,
+    source_alias,
+    source_spec,
+    carried
+)
     local marker, alias_name = text:match("^  ([> ])%s*(%S+)%s+")
     if not alias_name then return end
 
@@ -583,7 +611,9 @@ local function add_alias_row_spans(line, text, source_alias, source_spec)
             380
         )
         line.spans[#line.spans].relevance =
-            alias_name:lower() == source_alias and "current" or "historical"
+            (not carried and alias_name:lower() == source_alias)
+            and "current"
+            or "historical"
     end
 
     if marker == ">" and source_spec then
@@ -592,8 +622,8 @@ local function add_alias_row_spans(line, text, source_alias, source_spec)
             line,
             text,
             coverage,
-            "affected",
-            "current"
+            carried and "immediate" or "affected",
+            carried and "historical" or "current"
         )
     end
 end
@@ -605,6 +635,12 @@ end
 function M.rich_lines(fact)
     local raw = M.lines(fact)
     local result = {}
+    local metadata = type(fact) == "table"
+        and type(fact.metadata) == "table"
+        and fact.metadata
+        or {}
+    local carried = metadata.carried_state == true
+    local relevance = carried and "historical" or "current"
     local source_alias, source_spec = source_alias_spec(fact)
     local source_coverage = source_spec and M.alias_byte_coverage(source_spec) or nil
     for index, text in ipairs(raw) do
@@ -624,7 +660,7 @@ function M.rich_lines(fact)
                     "register",
                     380
                 )
-                line.spans[#line.spans].relevance = "current"
+                line.spans[#line.spans].relevance = relevance
             end
         elseif text:match("^  %[") and source_coverage then
             add_value_cell_spans(
@@ -632,21 +668,34 @@ function M.rich_lines(fact)
                 text,
                 source_coverage,
                 type(fact) == "table" and fact.value or nil,
-                "current"
+                relevance,
+                carried and "immediate" or "affected"
             )
         elseif text:match("^  [> ]%s*[%w]+%s+%[") and source_alias then
             add_alias_row_spans(
                 line,
                 text,
                 source_alias,
-                source_spec
+                source_spec,
+                carried
             )
         elseif text:match("^  Write rule:") then
-            hud_text.add_span(line, 2, #text, "affected", 330)
-            line.spans[#line.spans].relevance = "current"
+            hud_text.add_span(
+                line,
+                2,
+                #text,
+                carried and "immediate" or "affected",
+                330
+            )
+            line.spans[#line.spans].relevance = relevance
         elseif text:match("^  Bits:") then
             hud_text.add_span(line, 2, #text, "immediate", 300)
-            line.spans[#line.spans].relevance = "current"
+            line.spans[#line.spans].relevance = relevance
+        elseif text:match("^  Carried state:")
+            or text:match("^  Latest proven change")
+        then
+            hud_text.add_span(line, 2, #text, "muted", 280)
+            line.spans[#line.spans].relevance = "historical"
         end
 
         result[#result + 1] = line
