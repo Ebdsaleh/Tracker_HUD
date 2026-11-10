@@ -1611,6 +1611,68 @@ local function resolve_register_alias(adapter, register_name)
     return adapter.register_alias_index[register_name:lower()]
 end
 
+
+local function get_register_fact_for_read(
+    facts_by_register,
+    adapter,
+    register_name
+)
+    local direct = get_register_fact_from_map(
+        facts_by_register,
+        register_name
+    )
+
+    if core.is_table(direct)
+        and direct.value ~= nil
+        and direct.resolved ~= false
+    then
+        return direct
+    end
+
+    local alias_resolution = resolve_register_alias(
+        adapter,
+        register_name
+    )
+
+    if not alias_resolution
+        or not core.is_table(alias_resolution.alias)
+        or not core.is_non_empty_string(alias_resolution.canonical)
+    then
+        return direct
+    end
+
+    local canonical_name = alias_resolution.canonical:lower()
+
+    if canonical_name == tostring(register_name):lower() then
+        return direct
+    end
+
+    local canonical_fact = get_register_fact_from_map(
+        facts_by_register,
+        canonical_name
+    )
+
+    if not core.is_table(canonical_fact) then
+        return direct
+    end
+
+    local projected = register_value_mask.read_alias_value(
+        canonical_fact,
+        alias_resolution.alias
+    )
+
+    if projected == nil then
+        return direct
+    end
+
+    return {
+        name = tostring(register_name):lower(),
+        value = projected,
+        resolved = true,
+        metadata = canonical_fact.metadata,
+    }
+end
+
 local function register_state_key(adapter, register_name)
     local resolved = resolve_register_alias(adapter, register_name)
     if resolved and core.is_non_empty_string(resolved.canonical) then
@@ -2074,6 +2136,16 @@ local function prepare_register_instruction_inference_state(
                     operand,
                     {
                         parse_numeric_value = parse_numeric_value,
+                        resolve_register_fact = function(
+                            register_facts,
+                            register_name
+                        )
+                            return get_register_fact_for_read(
+                                register_facts,
+                                adapter,
+                                register_name
+                            )
+                        end,
                     }
                 )
             end,
@@ -2108,8 +2180,9 @@ local function resolve_register_effect_value(
     end
 
     if core.is_non_empty_string(effect.value_from_register) then
-        local source_fact = get_register_fact_from_map(
+        local source_fact = get_register_fact_for_read(
             facts_by_register,
+            adapter,
             effect.value_from_register
         )
 
@@ -2124,8 +2197,9 @@ local function resolve_register_effect_value(
         local source_operand = instruction.operands[tonumber(effect.value_from_register_operand)]
 
         if source_operand and core.is_non_empty_string(source_operand.text) then
-            local source_fact = get_register_fact_from_map(
+            local source_fact = get_register_fact_for_read(
                 facts_by_register,
+                adapter,
                 source_operand.text
             )
 
@@ -2150,7 +2224,11 @@ local function resolve_register_effect_value(
         end
 
         local target_fact = target_register
-            and get_register_fact_from_map(facts_by_register, target_register)
+            and get_register_fact_for_read(
+                facts_by_register,
+                adapter,
+                target_register
+            )
 
         if not register_fact_is_resolved(target_fact) then
             return nil, false
@@ -2536,16 +2614,17 @@ local function apply_register_effect(
             metadata = fact.metadata,
         }
 
-        -- When composition proves the entire canonical family, publish that
-        -- exact state under the canonical spelling as well. Partial state is
-        -- deliberately not exposed as a resolved whole-register operand.
-        if fact.resolved ~= false
-            and state_key ~= fact.name
-        then
+        -- Publish the reduced canonical family state as well. A partial
+        -- canonical fact remains unresolved as a whole register, but its
+        -- explicit certainty mask lets later alias reads project any slice
+        -- that is fully known.
+        if state_key ~= fact.name then
             facts_by_register[state_key] = {
                 name = state_key,
-                value = fact.value,
-                resolved = true,
+                value = fact.resolved ~= false
+                    and fact.value
+                    or nil,
+                resolved = fact.resolved ~= false,
                 metadata = fact.metadata,
             }
         end
