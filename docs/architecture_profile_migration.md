@@ -2309,3 +2309,436 @@ Two related pieces now stand out:
    base/index/scale/displacement/symbol/address mode.
 
 The exact integer and target-width layers should remain reusable by both.
+
+
+## Foundational inference tranche: source immediate interpretation (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+The target-width tranche established the final arithmetic destination boundary:
+
+```text
+exact mathematical result
+    -> declared destination-width policy
+    -> architectural alias composition
+```
+
+One semantic layer was still missing before that boundary:
+
+```text
+what exact integer does the source immediate represent?
+```
+
+That question is not the same as destination wrapping.
+
+For x86-64 integer ADD/SUB forms, a 64-bit destination does not carry an
+arbitrary 64-bit immediate. The architectural immediate is capped at 32 bits
+and is interpreted as a signed value before the destination arithmetic is
+performed.
+
+This tranche makes source interpretation explicit and reusable.
+
+### Exact signed bit-pattern interpretation
+
+`lua/tracker_hud/low_level/integer_value.lua` now provides:
+
+```text
+reinterpret_signed(value, bits)
+```
+
+The operation is exact and string-based.
+
+Examples:
+
+```text
+reinterpret_signed(255, 8)
+-> -1
+
+reinterpret_signed(128, 8)
+-> -128
+
+reinterpret_signed(127, 8)
+-> 127
+
+reinterpret_signed(18446744073709551615, 64)
+-> -1
+```
+
+Values that cannot fit either the signed or raw unsigned bit-pattern range of
+the declared width fail closed.
+
+Examples:
+
+```text
+reinterpret_signed(256, 8)
+-> nil
+
+reinterpret_signed(-129, 8)
+-> nil
+```
+
+### Architecture-neutral operand policy module
+
+Created:
+
+```text
+lua/tracker_hud/low_level/integer_operand.lua
+```
+
+This layer interprets an already exact integer according to declarative source
+semantics.
+
+Supported interpretation kinds:
+
+```text
+exact
+signed_bits
+unsigned_bits
+```
+
+Widths may be:
+
+```text
+fixed
+target-derived
+target-derived with max/min bounds
+```
+
+For example:
+
+```lua
+{
+    kind = "signed_bits",
+    bits_from = "target",
+    max_bits = 32,
+}
+```
+
+means:
+
+```text
+use target width as source width,
+but never interpret more than 32 source bits
+```
+
+Thus:
+
+```text
+target 64 -> source bits 32
+target 32 -> source bits 32
+target 16 -> source bits 16
+target  8 -> source bits  8
+```
+
+The module is architecture-neutral. It does not know what RAX/EAX/AX/AL are.
+
+### Runtime policy validation
+
+The low-level interpreter itself fails closed on malformed policies.
+
+Rejected examples include:
+
+- both `bits` and `bits_from`;
+- neither width source for signed/unsigned policies;
+- invalid `max_bits` / `min_bits`;
+- `min_bits > max_bits`;
+- unsupported width derivation;
+- width fields attached to `kind = "exact"`;
+- unsupported interpretation kinds.
+
+Correctness therefore does not depend solely on adapter registration.
+
+### Context-engine integration
+
+`context_engine.lua` now supports two optional effect declarations:
+
+```text
+value_operand_interpretation
+value_delta_operand_interpretation
+```
+
+The source interpretation occurs before destination-width reduction.
+
+The semantic pipeline is now:
+
+```text
+source text
+    -> exact integer normalization
+    -> declared source integer interpretation
+    -> exact mathematical instruction effect
+    -> declared destination-width policy
+    -> architectural alias composition
+    -> canonical register state
+```
+
+Existing effects that declare no interpretation policy retain their previous
+behavior.
+
+### Source interpretation metadata
+
+Register facts now preserve:
+
+```text
+source_integer_interpretation
+source_integer_bits
+source_integer_bits_source
+source_integer_max_bits
+source_integer_min_bits
+source_integer_raw_value
+source_integer_value
+source_integer_error
+```
+
+This keeps source spelling/bit-pattern truth separate from the interpreted
+mathematical value.
+
+Example:
+
+```text
+source:
+0xFFFFFFFF
+
+raw exact integer:
+4294967295
+
+interpretation:
+signed_bits
+
+source bits:
+32
+
+interpreted mathematical value:
+-1
+```
+
+### x86 ADD/SUB declaration
+
+Only the two currently reduced register-immediate arithmetic effects opt in:
+
+```text
+add_register_immediate
+sub_register_immediate
+```
+
+Each declares:
+
+```lua
+value_delta_operand_interpretation = {
+    kind = "signed_bits",
+    bits_from = "target",
+    max_bits = 32,
+}
+```
+
+The existing destination declaration remains:
+
+```lua
+value_width_policy = "wrap_unsigned_target"
+```
+
+The two policies serve different purposes.
+
+### Result examples
+
+```asm
+mov rax, 0
+add rax, 0xFFFFFFFF
+```
+
+reduces as:
+
+```text
+raw source             = 4294967295
+source bits            = 32
+interpreted source     = -1
+mathematical result    = -1
+destination bits       = 64
+final RAX              = 18446744073709551615
+```
+
+For subtraction:
+
+```asm
+mov rax, 0
+sub rax, 0xFFFFFFFF
+```
+
+becomes:
+
+```text
+interpreted source     = -1
+0 - (-1)               = 1
+final RAX              = 1
+```
+
+Signed boundary examples:
+
+```text
+0x80000000 -> -2147483648
+0x7FFFFFFF ->  2147483647
+```
+
+### Smaller aliases
+
+The same declaration derives source width from the architecture-owned alias:
+
+```text
+EAX -> 32 source bits
+AX  -> 16 source bits
+AL  ->  8 source bits
+```
+
+The destination-width and alias-composition layers then run normally.
+
+### Fail-closed encodability boundary
+
+For the declared RAX ADD/SUB source policy:
+
+```text
+0x100000000
+```
+
+does not fit the 32-bit source field.
+
+Tracker_HUD therefore produces an unresolved write fact with:
+
+```text
+source_integer_error = "value does not fit source width"
+```
+
+It does not truncate the source to 32 bits.
+
+### MOV remains separate
+
+`mov_register_immediate` intentionally has no source interpretation policy in
+this tranche.
+
+Data movement has different encoding choices and must not inherit arithmetic
+immediate semantics merely because both instructions contain integer operands.
+
+### Shared Adapter Contract validation
+
+`lua/tracker_hud/adapters/contract.lua` now validates semantic declarations.
+
+Supported destination policy:
+
+```text
+wrap_unsigned_target
+```
+
+Supported integer interpretations:
+
+```text
+exact
+signed_bits
+unsigned_bits
+```
+
+The contract validates:
+
+- policy names;
+- fixed widths;
+- target-derived widths;
+- min/max width bounds;
+- required source operand references;
+- required destination target references.
+
+Existing effects with no such declarations remain valid under Adapter Contract
+v1.
+
+### New tests
+
+`tests/integer_operand_smoke.lua`
+
+Covers:
+
+- exact interpretation;
+- fixed signed-bit interpretation;
+- signed boundaries;
+- target-derived/capped width;
+- smaller target widths;
+- unsigned interpretation;
+- out-of-range rejection;
+- missing/unknown policy rejection;
+- malformed runtime policy rejection.
+
+`tests/x86_immediate_policy_contract_smoke.lua`
+
+Covers:
+
+- exactly ADD/SUB declare the x86 arithmetic immediate policy;
+- the policy shape is signed/target-derived/capped-32;
+- MOV remains outside arithmetic interpretation.
+
+`tests/x86_immediate_interpretation_smoke.lua`
+
+Parser-backed coverage includes:
+
+- RAX ADD of `0xFFFFFFFF`;
+- RAX SUB of `0xFFFFFFFF`;
+- signed imm32 lower/upper boundaries;
+- EAX/AX/AL derived source widths;
+- out-of-range imm32 failure.
+
+`tests/effect_semantic_contract_smoke.lua`
+
+Covers:
+
+- current ASM semantic declarations validate;
+- unknown interpretation kind rejection;
+- invalid source width rejection;
+- interpretation without source operand rejection;
+- unknown destination-width policy rejection;
+- width policy without a target rejection;
+- valid exact value-operand policy acceptance.
+
+`tests/integer_width_smoke.lua` additionally pins the underlying signed
+bit-pattern primitive directly, including exact 64-bit cases.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -14 --oneline
+
+nvim --headless -u NONE -c "luafile tests/integer_value_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/integer_width_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/integer_operand_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/x86_width_policy_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/x86_immediate_policy_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/effect_semantic_contract_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/wide_integer_inference_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_width_wrap_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_register_roles_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
+
+### Next foundational tranche after green
+
+Proceed to **structural memory operands**.
+
+The parser already exposes memory-oriented metadata in several places, but the
+long-term semantic model should make these first-class normalized fields:
+
+```text
+base register
+index register
+scale
+displacement
+symbol
+address mode
+segment / architecture extension when required
+```
+
+The exact integer and source-interpretation layers from the preceding tranches
+should be reused for displacement values rather than reparsing memory text in
+presentation code.
