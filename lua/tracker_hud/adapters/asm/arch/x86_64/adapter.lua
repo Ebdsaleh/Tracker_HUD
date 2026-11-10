@@ -34,104 +34,17 @@ M.aliases = {
     "x64",
 }
 
-M.metadata = {
-    architecture = "x86-64",
-    family = "x86",
-    bits = 64,
-    endian = "little",
-}
+local architecture_profile =
+    assert(
+        require("tracker_hud.architectures.registry").get(M.name),
+        "missing shared x86-64 architecture profile"
+    )
 
-M.platforms = {
-    linux = {
-        abi = "linux_syscall",
-        status = "supported",
-    },
-
-    windows = {
-        abi = "windows_x64",
-        status = "declared",
-    },
-    darwin = {
-        abi = "darwin_x86_64",
-        status = "declared",
-    },
-}
-
-M.default_platform = "linux"
-
-M.platform_aliases = {
-
-    linux = "linux",
-
-    windows = "windows",
-    win64 = "windows",
-
-    darwin = "darwin",
-    macos = "darwin",
-    mac = "darwin",
-}
-
-
-M.syntaxes = {
-    nasm = {
-        status = "supported",
-        directive_comment_prefixes = {
-            ";",
-        },
-    },
-
-    gas = {
-        status = "declared",
-        directive_comment_prefixes = {
-            "#",
-            "//",
-        },
-    },
-
-    masm = {
-        status = "declared",
-        directive_comment_prefixes = {
-            ";",
-        },
-    },
-}
-
-
-M.calling_conventions = {
-    linux_syscall = {
-        kind = "syscall",
-        platform = "linux",
-
-        number_register = "rax",
-        return_register = "rax",
-
-        argument_registers = {
-            "rdi",
-            "rsi",
-            "rdx",
-            "r10",
-            "r8",
-            "r9",
-        },
-
-        clobbers = {
-            "rcx",
-            "r11",
-        },
-    },
-
-    windows_x64 = {
-        kind = "function_call",
-        platform = "windows",
-        status = "declared",
-    },
-
-    darwin_x86_64 = {
-        kind = "syscall",
-        platform = "darwin",
-        status = "declared",
-    },
-}
+M.metadata = architecture_profile.metadata
+M.platforms = architecture_profile.platforms
+M.default_platform = architecture_profile.default_platform
+M.platform_aliases = architecture_profile.platform_aliases
+M.calling_conventions = architecture_profile.calling_conventions
 
 
 M.comments = {
@@ -953,12 +866,9 @@ M.presentation = {
 
 -- The target CPU owns registers/aliases; ASM supplies their syntax/effects.
 -- Keep these exact adapter fields for all existing context/Registers consumers.
-local architecture_registers =
-    require("tracker_hud.architectures.registry").get(M.name)
-
-M.register_families = architecture_registers.register_families
-M.registers = architecture_registers.registers
-M.register_alias_index = architecture_registers.register_alias_index
+M.register_families = architecture_profile.register_families
+M.registers = architecture_profile.registers
+M.register_alias_index = architecture_profile.register_alias_index
 
 M.stack = {
     static = {
