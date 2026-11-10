@@ -121,6 +121,11 @@ return {
                         name = "add_register_immediate",
                         target_operand = 1,
                         value_width_policy = "wrap_unsigned_target",
+                        value_delta_operand_interpretation = {
+                            kind = "signed_bits",
+                            bits_from = "target",
+                            max_bits = 32,
+                        },
                         value_delta_operand = 2,
                         role = "increased by immediate",
                     },
@@ -222,6 +227,11 @@ return {
                         name = "sub_register_immediate",
                         target_operand = 1,
                         value_width_policy = "wrap_unsigned_target",
+                        value_delta_operand_interpretation = {
+                            kind = "signed_bits",
+                            bits_from = "target",
+                            max_bits = 32,
+                        },
                         value_delta_operand = 2,
                         value_delta_sign = -1,
                         role = "decreased by immediate",
