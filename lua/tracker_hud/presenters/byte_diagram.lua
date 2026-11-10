@@ -268,6 +268,41 @@ function M.value_cells(value)
     return M.cells(nil)
 end
 
+function M.value_cell_states(value)
+    local states = {}
+
+    if type(value) == "table" and value.status == "known" then
+        local bytes = M.bytes_for(value.data)
+        if bytes then
+            for index = 1, BYTE_COUNT do states[index] = "known" end
+            return states
+        end
+    end
+
+    if type(value) == "table"
+        and value.status == "partial"
+        and value.known_mask ~= nil
+        and value.known_value ~= nil
+    then
+        local _, mask_bytes = M.partial_bytes(value)
+        if mask_bytes then
+            for index = 1, BYTE_COUNT do
+                if mask_bytes[index] == 255 then
+                    states[index] = "known"
+                elseif mask_bytes[index] == 0 then
+                    states[index] = "unknown"
+                else
+                    states[index] = "partial"
+                end
+            end
+            return states
+        end
+    end
+
+    for index = 1, BYTE_COUNT do states[index] = "unknown" end
+    return states
+end
+
 local function alias_range(alias)
     if type(alias) ~= "table"
         or type(alias.bits) ~= "number"
@@ -505,6 +540,35 @@ local function add_cell_spans(line, text, coverage, style, relevance)
     end
 end
 
+local function add_value_cell_spans(line, text, coverage, value, relevance)
+    if type(coverage) ~= "table" then return end
+    local states = M.value_cell_states(value)
+
+    local cell_number = 0
+    local search_from = 1
+    while true do
+        local start_index, end_index = text:find("%[[^%]]+%]", search_from)
+        if not start_index then break end
+        cell_number = cell_number + 1
+
+        if coverage[cell_number] then
+            local style = states[cell_number] == "known"
+                and "affected"
+                or "unresolved"
+            hud_text.add_span(
+                line,
+                start_index - 1,
+                end_index,
+                style,
+                420
+            )
+            line.spans[#line.spans].relevance = relevance
+        end
+
+        search_from = end_index + 1
+    end
+end
+
 local function add_alias_row_spans(line, text, source_alias, source_spec)
     local marker, alias_name = text:match("^  ([> ])%s*(%S+)%s+")
     if not alias_name then return end
@@ -543,10 +607,6 @@ function M.rich_lines(fact)
     local result = {}
     local source_alias, source_spec = source_alias_spec(fact)
     local source_coverage = source_spec and M.alias_byte_coverage(source_spec) or nil
-    local value_status = type(fact) == "table"
-        and type(fact.value) == "table"
-        and fact.value.status or "unknown"
-
     for index, text in ipairs(raw) do
         local line = hud_text.new()
         hud_text.append(line, text, nil)
@@ -567,11 +627,11 @@ function M.rich_lines(fact)
                 line.spans[#line.spans].relevance = "current"
             end
         elseif text:match("^  %[") and source_coverage then
-            add_cell_spans(
+            add_value_cell_spans(
                 line,
                 text,
                 source_coverage,
-                value_status == "known" and "affected" or "unresolved",
+                type(fact) == "table" and fact.value or nil,
                 "current"
             )
         elseif text:match("^  [> ]%s*[%w]+%s+%[") and source_alias then
