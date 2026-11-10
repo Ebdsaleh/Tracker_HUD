@@ -1869,3 +1869,187 @@ nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
 ```
+
+
+## Foundational inference tranche: exact integer transport and arithmetic (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+After the architecture/ABI ownership cleanup, source integer values still had
+one foundational precision leak.
+
+ASM operands remained source text initially, but register inference converted
+integer immediates through Lua `tonumber()` and then `tostring()`. Values
+above Lua's exact integer range could therefore be rounded or rendered in
+scientific notation before reaching the exact register mask machinery.
+
+### New architecture-neutral exact integer module
+
+Created:
+
+```text
+lua/tracker_hud/low_level/integer_value.lua
+```
+
+It provides exact string-based integer operations without routing wide values
+through floating point.
+
+Supported source forms:
+
+```text
+decimal
++decimal
+-decimal
+0xHEX
++0xHEX
+-0xHEX
+0bBINARY
++0bBINARY
+-0bBINARY
+```
+
+Normalized values are canonical signed decimal strings.
+
+Examples:
+
+```text
+0x123456789ABCDEF0
+    -> 1311768467463790320
+
+0xFFFFFFFFFFFFFFFF
+    -> 18446744073709551615
+```
+
+The module also provides exact signed addition/negation and an explicit
+`to_safe_number()` boundary for subsystems that genuinely require a Lua
+number.
+
+### Register inference no longer round-trips through Lua numbers
+
+`context_engine.lua` now uses exact normalized strings for:
+
+- immediate register writes;
+- current register values used by delta effects;
+- fixed deltas;
+- immediate delta operands;
+- INC/DEC style arithmetic;
+- ADD/SUB immediate state reduction.
+
+For example:
+
+```asm
+mov rax, 0x123456789ABCDEF0
+inc rax
+sub rax, 0x10
+```
+
+reduces exactly as:
+
+```text
+1311768467463790320
+1311768467463790321
+1311768467463790305
+```
+
+No intermediate Lua floating-point conversion is used.
+
+### Register operand resolution
+
+`low_level/register_infer.lua` now uses the exact integer parser as its
+fallback instead of `tonumber()`.
+
+This means the exact contract is available even to callers that do not inject
+the context engine's parser callback.
+
+### Register byte/mask conversion
+
+`low_level/register_value_mask.lua` now shares the same exact integer parser.
+
+The certainty composer still performs byte arithmetic, but parsing decimal,
+hexadecimal and binary source values is centralized.
+
+Partial known masks/values are also routed through that exact conversion path.
+
+### Stack depth remains deliberately numeric
+
+Stack depth is a small relative offset model and still uses Lua numbers.
+
+`stack_infer.lua` now explicitly converts integer strings through
+`integer_value.to_safe_number()`.
+
+Therefore:
+
+- ordinary offsets such as 8/16/32 remain unchanged;
+- unsafe values above 2^53 are rejected for stack-depth arithmetic;
+- they are never silently rounded.
+
+This does not prevent a wide pushed **value** from remaining exact; it only
+protects the numeric stack-depth counter.
+
+### Width overflow is NOT part of this tranche
+
+This tranche establishes exact transport and exact signed arithmetic.
+
+It does **not** yet claim architecture-width wrapping.
+
+For example, generic exact arithmetic may represent:
+
+```text
+18446744073709551615 + 1
+= 18446744073709551616
+```
+
+A later width-aware reducer must decide, from the target register family and
+instruction semantics, whether an operation wraps, traps, saturates, becomes
+unknown, or has some other architecture-specific behavior.
+
+Keeping these steps separate avoids baking x86 overflow rules into the generic
+integer layer.
+
+### New tests
+
+`tests/integer_value_smoke.lua` covers:
+
+- canonical decimal parsing;
+- exact 64-bit hexadecimal conversion;
+- exact 64-bit binary conversion;
+- signed addition above 2^53;
+- exact negation;
+- explicit Lua-safe-number boundary;
+- invalid/unsafe numeric input rejection;
+- safe stack-depth offsets;
+- rejection of unsafe stack-depth numeric conversion.
+
+`tests/wide_integer_inference_smoke.lua` is parser-backed and covers:
+
+- wide x86-64 MOV immediate above 2^53;
+- exact INC above 2^53;
+- exact SUB immediate delta above 2^53;
+- UINT64_MAX decimal immediate;
+- exact round-trip from reduced register value to 64-bit bytes.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/integer_value_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/wide_integer_inference_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_register_roles_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
+
+### Next foundational step after green
+
+Add explicit bit-width semantics above the exact integer layer.
+
+The target/register family must supply the width; the generic reducer may then
+provide operations such as width validation and modular wrapping without
+assuming x86-64 globally.
+
+Only after that should wide arithmetic effects claim machine-width results.
