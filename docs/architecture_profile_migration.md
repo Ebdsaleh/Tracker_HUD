@@ -1732,3 +1732,140 @@ nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
 ```
+
+
+## Tranche 3: separate hardware register roles from function-ABI roles (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+The shared x86-64 register profile still contained historical role strings that
+mixed CPU identity with calling-convention usage. Examples included:
+
+- `rax = accumulator / return value`;
+- `rdi = destination index / argument register`;
+- `rbx = callee-saved general register`;
+- `r10 = temporary general register`.
+
+Those descriptions are useful to a programmer, but they do not all belong to
+the CPU architecture itself.
+
+### Hardware profile is now ABI-neutral
+
+`architectures/x86_64/registers.lua` now keeps architecture-only roles such as:
+
+```text
+rax -> accumulator
+rbx -> general register
+rcx -> counter
+rdx -> data
+rsi -> source index
+rdi -> destination index
+rbp -> base pointer
+rsp -> stack pointer
+r8..r15 -> general register
+```
+
+Alias width/offset/write-mode semantics are unchanged.
+
+### Function ABI is distinct from syscall ABI
+
+The Linux target now declares:
+
+```text
+abi          = linux_syscall
+function_abi = sysv_amd64
+```
+
+This is intentional.
+
+`linux_syscall` describes the `syscall` boundary:
+
+```text
+number : rax
+return : rax
+args   : rdi rsi rdx r10 r8 r9
+clobber: rcx r11
+```
+
+`sysv_amd64` describes ordinary function-call register usage:
+
+```text
+return       : rax
+arguments    : rdi rsi rdx rcx r8 r9
+callee-saved : rbx rbp r12 r13 r14 r15
+caller/temp  : r10 r11
+```
+
+Darwin currently points its function ABI at the same SysV role profile.
+Windows points at `windows_x64`, but no Windows register-role overlay is
+claimed yet.
+
+### Shared structured role overlay
+
+`architectures/x86_64/targets.lua` now exposes:
+
+```text
+register_roles.sysv_amd64
+```
+
+Each entry carries a display role plus structured usage metadata. SysV argument
+registers also carry their ordinal argument index.
+
+### Generic composition
+
+`sections/low_level/registers.lua` now composes static register roles through
+the active target's `function_abi`.
+
+This logic is generic and does not know about ASM or x86-64. It consumes the
+adapter/profile fields:
+
+- `active_targets.platform`;
+- `platforms[platform].function_abi`;
+- `register_roles[function_abi]`.
+
+Dynamic inference roles such as `written by mov` remain authoritative and are
+not replaced by static target roles.
+
+Collected register metadata now retains both layers:
+
+- `architecture_role`;
+- `target_role`;
+- `target_role_profile`;
+- `target_role_spec`.
+
+### No Linux UI regression intended
+
+For the supported Linux target, the composed static role text deliberately
+matches the established HUD wording. The ownership changed; the user-facing
+wording did not.
+
+Targets without a role overlay fall back to architecture truth instead of
+silently inheriting another ABI.
+
+### New regression
+
+`tests/architecture_register_roles_smoke.lua` pins:
+
+1. ABI-neutral hardware register roles;
+2. SysV role ownership in the target profile;
+3. SysV argument ordering;
+4. shared-table identity through the ASM variant and master adapter;
+5. preservation of established Linux static register wording;
+6. metadata containing both hardware and target-role layers;
+7. fallback to hardware truth when a target has no role overlay.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_target_overlay_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_register_roles_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
