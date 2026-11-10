@@ -158,8 +158,8 @@ local function previous_certainty(fact)
         and metadata.partial_value or nil
 
     if partial then
-        local mask = hex_to_bytes(partial.known_mask or "")
-        local value = hex_to_bytes(partial.known_value or "")
+        local mask = M.bytes_for_integer(partial.known_mask or "")
+        local value = M.bytes_for_integer(partial.known_value or "")
         if mask and value and value_within_mask(value, mask) then
             return mask, value
         end
