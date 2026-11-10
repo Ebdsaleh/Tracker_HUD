@@ -2053,3 +2053,259 @@ provide operations such as width validation and modular wrapping without
 assuming x86-64 globally.
 
 Only after that should wide arithmetic effects claim machine-width results.
+
+
+## Foundational inference tranche: target-width integer semantics (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+The preceding exact-integer tranche removed Lua-number precision loss but
+deliberately left one semantic question unanswered:
+
+```text
+18446744073709551615 + 1
+```
+
+The generic exact integer layer can represent the mathematical result exactly:
+
+```text
+18446744073709551616
+```
+
+but an architectural register may require a different result.
+
+For x86 integer destination arithmetic, the destination width supplies the
+modulus.
+
+This tranche adds that width boundary without making x86 behavior a global
+assumption.
+
+### Generic exact width primitives
+
+`lua/tracker_hud/low_level/integer_value.lua` now provides:
+
+```text
+fits_unsigned(value, bits)
+fits_signed(value, bits)
+normalize_unsigned(value, bits)
+wrap_unsigned(value, bits)
+```
+
+All operations remain string exact.
+
+Examples:
+
+```text
+wrap_unsigned(256, 8)
+-> 0
+
+wrap_unsigned(-1, 8)
+-> 255
+
+wrap_unsigned(18446744073709551616, 64)
+-> 0
+
+wrap_unsigned(-1, 64)
+-> 18446744073709551615
+```
+
+The implementation is not limited to 64-bit machine widths. The regression
+suite includes an exact `2^512 -> 0` wrap at 512 bits.
+
+### Width remains architecture-owned
+
+The generic reducer does not infer register width from names.
+
+It obtains the target alias from the architecture-owned register alias index and
+uses:
+
+```text
+alias.bits
+```
+
+Therefore:
+
+```text
+rax -> 64
+eax -> 32
+ax  -> 16
+al  -> 8
+```
+
+come from the shared x86 architecture profile, not from the ASM adapter or UI.
+
+### Explicit effect policy
+
+Width behavior is opt-in.
+
+The generic context reducer recognizes:
+
+```lua
+value_width_policy = "wrap_unsigned_target"
+```
+
+Only effects that declare this policy receive modulo-target-width reduction.
+
+Unknown width policies fail closed instead of guessing.
+
+The reducer also records semantic metadata:
+
+```text
+value_width_policy
+value_width_bits
+pre_width_write_value
+value_wrapped
+value_width_error
+```
+
+The `value_wrapped` field preserves a real boolean `false`; absence and false
+are not collapsed.
+
+### x86 declarations
+
+All currently value-reduced x86 integer arithmetic delta effects declare
+`wrap_unsigned_target`:
+
+```text
+add_register_immediate
+sub_register_immediate
+inc_register
+dec_register
+
+incb_writes_destination
+incw_writes_destination
+incl_writes_destination
+incq_writes_destination
+
+decb_writes_destination
+decw_writes_destination
+decl_writes_destination
+decq_writes_destination
+```
+
+No MOV/data-movement rule receives arithmetic wrapping.
+
+### Alias composition remains downstream
+
+Width normalization is applied to the value written to the architectural target
+**before** the existing alias composer.
+
+That preserves established x86-64 alias behavior.
+
+Examples:
+
+```text
+INC RAX at UINT64_MAX
+    mathematical result = 18446744073709551616
+    target width = 64
+    written value = 0
+
+INC EAX at UINT32_MAX
+    mathematical result = 4294967296
+    target width = 32
+    written value = 0
+    alias rule then zero-extends EAX into RAX
+
+INC AX at UINT16_MAX
+    written AX = 0
+    surrounding RAX bits are preserved
+
+INC AL at UINT8_MAX
+    written AL = 0
+    surrounding RAX bits are preserved
+```
+
+Negative underflow uses the same exact modulo rule:
+
+```text
+0 - 1 at 8 bits
+-> 255
+```
+
+### Deliberate boundary: immediate encoding semantics
+
+This tranche does **not** claim to model x86 immediate encoding/sign extension.
+
+Destination-width arithmetic and immediate interpretation are separate concerns.
+
+For example, an instruction whose encoded immediate is sign-extended must
+eventually declare that source-operand rule explicitly. The width reducer only
+receives the already interpreted arithmetic value and applies destination-width
+semantics.
+
+Do not add implicit x86 imm8/imm32 sign-extension rules to
+`integer_value.lua`.
+
+### New tests
+
+`tests/integer_width_smoke.lua`
+
+Covers:
+
+- unsigned fit boundaries;
+- signed fit boundaries;
+- range-checked unsigned normalization;
+- positive and negative 8-bit wrapping;
+- 16-bit wrapping;
+- exact 64-bit wrapping above Lua precision;
+- exact 512-bit wrapping;
+- invalid width rejection.
+
+`tests/x86_width_policy_contract_smoke.lua`
+
+Covers:
+
+- every currently reduced x86 arithmetic delta declares
+  `wrap_unsigned_target`;
+- exactly 12 such effects currently exist;
+- no non-delta arithmetic effect declares wrapping.
+
+`tests/x86_width_wrap_state_smoke.lua`
+
+Parser-backed coverage includes:
+
+- MOV stays outside arithmetic policy;
+- UINT64_MAX INC wraps to zero;
+- zero DEC wraps to UINT64_MAX;
+- ADD immediate overflow wraps at 64 bits;
+- SUB immediate underflow wraps at 64 bits;
+- EAX wraps at 32 bits and then zero-extends;
+- AX wraps at 16 bits;
+- AL wraps at 8 bits;
+- AL underflow wraps to 0xFF.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/integer_value_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/integer_width_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/x86_width_policy_contract_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/wide_integer_inference_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_width_wrap_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_register_roles_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
+
+### Next foundational work after green
+
+The strongest next architectural target is **operand interpretation and
+structural memory semantics**.
+
+Two related pieces now stand out:
+
+1. declare source-immediate extension semantics separately from destination
+   width behavior;
+2. continue replacing memory-expression strings with structural facts:
+   base/index/scale/displacement/symbol/address mode.
+
+The exact integer and target-width layers should remain reusable by both.
