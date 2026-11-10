@@ -45,6 +45,7 @@ M.platforms = architecture_profile.platforms
 M.default_platform = architecture_profile.default_platform
 M.platform_aliases = architecture_profile.platform_aliases
 M.calling_conventions = architecture_profile.calling_conventions
+M.register_roles = architecture_profile.register_roles
 
 
 M.comments = {
