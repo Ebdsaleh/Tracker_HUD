@@ -91,10 +91,19 @@ function M.resolve_operand_value(facts_by_register, instruction, operand, opts)
     local source_text = operand.text
 
     if operand.kind == "register" then
-        local source_fact = M.get_fact_from_map(
-            facts_by_register,
-            operand.text
-        )
+        local source_fact
+
+        if type(opts.resolve_register_fact) == "function" then
+            source_fact = opts.resolve_register_fact(
+                facts_by_register,
+                operand.text
+            )
+        else
+            source_fact = M.get_fact_from_map(
+                facts_by_register,
+                operand.text
+            )
+        end
 
         resolved = M.fact_is_resolved(source_fact)
 
