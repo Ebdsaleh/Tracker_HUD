@@ -160,6 +160,114 @@ local function hex_value(bytes)
     return "0x" .. table.concat(items)
 end
 
+local function value_bits_within_mask(value_byte, mask_byte)
+    local value = value_byte
+    local mask = mask_byte
+
+    for _ = 1, 8 do
+        local value_bit = value % 2
+        local mask_bit = mask % 2
+        if value_bit == 1 and mask_bit == 0 then
+            return false
+        end
+        value = math.floor(value / 2)
+        mask = math.floor(mask / 2)
+    end
+
+    return true
+end
+
+function M.partial_bytes(value)
+    if type(value) ~= "table"
+        or value.status ~= "partial"
+        or type(value.known_mask) ~= "string"
+        or type(value.known_value) ~= "string"
+    then
+        return nil, nil, "partial value has no explicit known mask"
+    end
+
+    local mask_bytes, mask_err = M.bytes_for(value.known_mask)
+    if not mask_bytes then
+        return nil, nil, "invalid known mask: " .. tostring(mask_err)
+    end
+
+    local value_bytes, value_err = M.bytes_for(value.known_value)
+    if not value_bytes then
+        return nil, nil, "invalid known value: " .. tostring(value_err)
+    end
+
+    local any_known = false
+    local all_known = true
+
+    for index = 1, BYTE_COUNT do
+        local mask_byte = mask_bytes[index]
+        local value_byte = value_bytes[index]
+
+        if mask_byte ~= 0 then any_known = true end
+        if mask_byte ~= 255 then all_known = false end
+
+        if not value_bits_within_mask(value_byte, mask_byte) then
+            return nil, nil, "known value sets bits outside known mask"
+        end
+    end
+
+    if not any_known then
+        return nil, nil, "partial known mask contains no known bits"
+    end
+    if all_known then
+        return nil, nil, "all bits known; value should use known status"
+    end
+
+    return value_bytes, mask_bytes
+end
+
+function M.masked_cells(value_bytes, mask_bytes)
+    local tokens = {}
+
+    for index = 1, BYTE_COUNT do
+        local value_byte = type(value_bytes) == "table" and value_bytes[index] or nil
+        local mask_byte = type(mask_bytes) == "table" and mask_bytes[index] or nil
+
+        if type(value_byte) ~= "number" or type(mask_byte) ~= "number" then
+            tokens[#tokens + 1] = "[??]"
+        elseif mask_byte == 255 then
+            tokens[#tokens + 1] = "[" .. byte_to_hex(value_byte) .. "]"
+        elseif mask_byte == 0 then
+            tokens[#tokens + 1] = "[??]"
+        else
+            -- Some, but not all, bits in this byte are proven. The exact
+            -- bit-level mask is printed separately so the compact cell never
+            -- pretends the whole byte is known.
+            tokens[#tokens + 1] = "[~?]"
+        end
+    end
+
+    return table.concat(tokens)
+end
+
+function M.value_cells(value)
+    if type(value) ~= "table" then
+        return M.cells(nil)
+    end
+
+    if value.status == "known" then
+        local bytes = M.bytes_for(value.data)
+        return bytes and M.cells(bytes) or M.cells(nil)
+    end
+
+    if value.status == "partial"
+        and value.known_mask ~= nil
+        and value.known_value ~= nil
+    then
+        local value_bytes, mask_bytes = M.partial_bytes(value)
+        if value_bytes and mask_bytes then
+            return M.masked_cells(value_bytes, mask_bytes)
+        end
+    end
+
+    return M.cells(nil)
+end
+
 local function alias_range(alias)
     if type(alias) ~= "table"
         or type(alias.bits) ~= "number"
@@ -307,20 +415,43 @@ function M.lines(fact)
 
     local value = type(fact.value) == "table" and fact.value or {}
     local bytes, reason
+    local partial_value_bytes, partial_mask_bytes
 
     if value.status == "known" then
         bytes, reason = M.bytes_for(value.data)
+    elseif value.status == "partial"
+        and value.known_mask ~= nil
+        and value.known_value ~= nil
+    then
+        partial_value_bytes, partial_mask_bytes, reason = M.partial_bytes(value)
     else
         reason = "value status: " .. tostring(value.status or "unknown")
     end
 
     lines[#lines + 1] = "  " .. name .. "  (64 bits = 8 bytes)"
     lines[#lines + 1] = "  MSB                                 LSB"
-    lines[#lines + 1] = "  " .. M.cells(bytes)
+
+    if bytes then
+        lines[#lines + 1] = "  " .. M.cells(bytes)
+    elseif partial_value_bytes and partial_mask_bytes then
+        lines[#lines + 1] = "  " .. M.masked_cells(
+            partial_value_bytes,
+            partial_mask_bytes
+        )
+    else
+        lines[#lines + 1] = "  " .. M.cells(nil)
+    end
 
     if bytes then
         lines[#lines + 1] = "  Bits: " .. hex_value(bytes)
         lines[#lines + 1] = "  Source-inferred value, not execution proof."
+    elseif partial_value_bytes and partial_mask_bytes then
+        lines[#lines + 1] = "  Known mask: " .. hex_value(partial_mask_bytes)
+        lines[#lines + 1] = "  Known bits: " .. hex_value(partial_value_bytes)
+        lines[#lines + 1] =
+            "  ~? = partially known byte; ?? = fully unknown byte."
+        lines[#lines + 1] =
+            "  Partial source inference, not execution proof."
     else
         lines[#lines + 1] = "  ?? = unknown byte (" .. tostring(reason) .. ")"
     end
