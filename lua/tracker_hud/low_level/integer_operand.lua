@@ -21,27 +21,63 @@ local function resolve_bits(spec, context)
     spec = spec or {}
     context = context or {}
 
+    local has_fixed_bits = spec.bits ~= nil
+    local has_derived_bits = spec.bits_from ~= nil
+
+    if has_fixed_bits == has_derived_bits then
+        return nil, nil, "source width policy is ambiguous"
+    end
+
     local bits
     local bits_source
 
-    if positive_integer(spec.bits) then
+    if has_fixed_bits then
+        if not positive_integer(spec.bits) then
+            return nil, nil, "invalid fixed source width"
+        end
+
         bits = spec.bits
         bits_source = "fixed"
-    elseif spec.bits_from == "target" and positive_integer(context.target_bits) then
+    else
+        if spec.bits_from ~= "target" then
+            return nil, nil, "unsupported source width derivation"
+        end
+
+        if not positive_integer(context.target_bits) then
+            return nil, nil, "source width unavailable"
+        end
+
         bits = context.target_bits
         bits_source = "target"
-    else
-        return nil, nil, "source width unavailable"
     end
 
-    if positive_integer(spec.max_bits) and bits > spec.max_bits then
-        bits = spec.max_bits
-        bits_source = bits_source .. "_capped"
+    if spec.max_bits ~= nil then
+        if not positive_integer(spec.max_bits) then
+            return nil, nil, "invalid maximum source width"
+        end
+
+        if bits > spec.max_bits then
+            bits = spec.max_bits
+            bits_source = bits_source .. "_capped"
+        end
     end
 
-    if positive_integer(spec.min_bits) and bits < spec.min_bits then
-        bits = spec.min_bits
-        bits_source = bits_source .. "_floored"
+    if spec.min_bits ~= nil then
+        if not positive_integer(spec.min_bits) then
+            return nil, nil, "invalid minimum source width"
+        end
+
+        if bits < spec.min_bits then
+            bits = spec.min_bits
+            bits_source = bits_source .. "_floored"
+        end
+    end
+
+    if spec.max_bits ~= nil
+        and spec.min_bits ~= nil
+        and spec.min_bits > spec.max_bits
+    then
+        return nil, nil, "minimum source width exceeds maximum"
     end
 
     return bits, bits_source, nil
@@ -69,6 +105,19 @@ function M.interpret(value, spec, context)
     end
 
     if spec.kind == nil or spec.kind == "exact" then
+        if spec.kind == "exact"
+            and (
+                spec.bits ~= nil
+                or spec.bits_from ~= nil
+                or spec.max_bits ~= nil
+                or spec.min_bits ~= nil
+            )
+        then
+            metadata.interpretation = "exact"
+            metadata.error = "exact interpretation does not use source width"
+            return nil, metadata
+        end
+
         metadata.interpretation = spec.kind or "exact"
         metadata.value = raw
         return raw, metadata
