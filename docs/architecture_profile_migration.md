@@ -986,3 +986,55 @@ Manual check in `nvim test.asm`:
 Do not start colourisation until this state-parity tranche is green on ERIDU.
 The intended next presentation-only batch is semantic highlighting of current
 affected register/alias/byte regions while retained state stays visually quieter.
+
+
+## ERIDU acceptance: persistent register-state diagram (2026-11-10)
+
+**Accepted on ERIDU at `a585a08`.**
+
+The user returned complete smoke output plus live Neovim screenshots.
+
+Confirmed green:
+
+- `persistent_register_diagram_smoke.lua`: carried RAX state survives the
+  RDI update, later unknown state replaces only its own register, and reduced
+  state survives onto later non-effect lines.
+- Existing alias-diagram, byte-diagram, presentation-mode,
+  normalized-fact, and ASM source-occurrence regressions remain green.
+- Live `test.asm` screenshots show:
+  - line 9: persistent RAX=60;
+  - line 10: carried RAX=60 plus current RDI=0;
+  - line 11 `syscall`: RAX/RCX/R11 become unknown according to the existing
+    reducer while RDI=0 remains carried.
+
+This confirms the diagram is now projecting the same cursor-time reduced state
+as the technical Registers section rather than maintaining a second state model.
+
+### Next bounded tranche: semantic diagram highlighting
+
+The user requested colourisation after persistence was proven.
+
+This tranche is presentation-only:
+
+1. Keep textual `>` markers so colour is never the sole meaning carrier.
+2. In the detailed current-effect byte row, highlight only the bytes covered by
+   the current source alias (for example all eight for RAX, low four for EAX,
+   the second-lowest byte for AH).
+3. In the alias map, highlight the current source alias label and its covered
+   cells; keep other aliases visually quieter.
+4. In the persistent state bank, make current-line changed rows prominent and
+   carried rows visually historical/quieter.
+5. Unknown current state should use the existing unresolved semantic colour,
+   not a success/known colour.
+6. Use existing Tracker_HUD semantic styles/relevance and namespace-aware
+   highlight infrastructure. Do not hard-code ANSI escapes or bypass
+   `hud_text` spans.
+7. `:HudVisualMode plain` must remain meaningful through `>` markers and
+   text even when semantic colour is disabled.
+
+Do not change register inference, replay, architecture facts, or persistence
+semantics in this tranche.
+
+**Workspace caution:** ERIDU now also shows an untracked root file named
+`register` in addition to the previously observed user-owned files. Leave all
+untracked root artifacts untouched; do not run `git clean`.
