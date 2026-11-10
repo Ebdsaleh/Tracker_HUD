@@ -14,8 +14,8 @@ local function run()
         "mov al, 0xBB",
         "mov ax, 0xCCDD",
         "mov eax, 0x12345678",
-        "mov ah, mystery",
-        "mov eax, mystery",
+        "mov ah, bl",
+        "mov eax, ebx",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
