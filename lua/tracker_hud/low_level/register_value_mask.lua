@@ -7,6 +7,8 @@
 -- It deliberately uses byte arithmetic and exact strings rather than Lua
 -- integer-width assumptions.
 
+local integer_value = require("tracker_hud.low_level.integer_value")
+
 local M = {}
 
 local BYTE_COUNT = 8
@@ -45,21 +47,6 @@ local function decimal_to_bytes(digits)
     return digits == "0" and result or nil
 end
 
-local function hex_to_bytes(text)
-    local digits = text:match("^0[xX](%x+)$")
-    if not digits or #digits > 16 then return nil end
-
-    digits = string.rep("0", 16 - #digits) .. digits
-    local result = {}
-    for index = 1, BYTE_COUNT do
-        result[index] = tonumber(
-            digits:sub(index * 2 - 1, index * 2),
-            16
-        )
-    end
-    return result
-end
-
 local function twos_complement(bytes)
     local carry = 1
     for index = BYTE_COUNT, 1, -1 do
@@ -75,41 +62,34 @@ local function twos_complement(bytes)
 end
 
 function M.bytes_for_integer(value)
-    local text
-    if type(value) == "number" then
-        if value ~= value or value == math.huge or value == -math.huge
-            or value ~= math.floor(value)
-            or math.abs(value) >= 9007199254740992
-        then
-            return nil
-        end
-        text = string.format("%.0f", value)
-    elseif type(value) == "string" then
-        text = value:gsub("^%s+", ""):gsub("%s+$", "")
-    else
+    local text = integer_value.normalize(value)
+    if not text then
         return nil
     end
 
     local negative = text:sub(1, 1) == "-"
-    if negative or text:sub(1, 1) == "+" then
+    if negative then
         text = text:sub(2)
     end
 
-    local bytes
-    if text:match("^%d+$") then
-        bytes = decimal_to_bytes(text)
-    elseif text:match("^0[xX]%x+$") and not negative then
-        bytes = hex_to_bytes(text)
+    local bytes = decimal_to_bytes(text)
+    if not bytes then
+        return nil
     end
-    if not bytes then return nil end
 
     if negative then
-        if bytes[1] > 128 then return nil end
+        if bytes[1] > 128 then
+            return nil
+        end
+
         if bytes[1] == 128 then
             for index = 2, BYTE_COUNT do
-                if bytes[index] ~= 0 then return nil end
+                if bytes[index] ~= 0 then
+                    return nil
+                end
             end
         end
+
         twos_complement(bytes)
     end
 
