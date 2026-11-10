@@ -79,6 +79,18 @@ local function run()
         "EAX arithmetic must read low 32 bits from known canonical RAX")
     print("PASS x86 alias read: EAX projects known canonical low dword")
 
+    for iteration = 1, 32 do
+        local repeated = state_after(3)
+
+        assert(repeated.name == "eax"
+            and repeated.resolved ~= false
+            and repeated.value == "0x0000000055667789"
+            and repeated.metadata.write_value == "1432778633",
+            "canonical-to-EAX read changed across repeated collection at iteration "
+                .. tostring(iteration))
+    end
+    print("PASS x86 alias read: repeated collection is deterministic")
+
     local ax = state_after(5)
     assert(ax.name == "ax"
         and ax.resolved ~= false
