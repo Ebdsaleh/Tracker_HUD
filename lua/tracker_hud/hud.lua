@@ -1157,11 +1157,11 @@ local function format_panel_lines(context, config)
 
         local overlay_lines
         if selected_presentation == "diagram" then
-            overlay_lines = byte_diagram.lines(
+            overlay_lines = byte_diagram.rich_lines(
                 learning_presenter.select_fact(context)
             )
 
-            local persistent_lines = register_state_bank.lines(
+            local persistent_lines = register_state_bank.rich_lines(
                 learning_presenter.state_facts(context),
                 context.cursor and context.cursor.line or nil
             )
@@ -1175,16 +1175,21 @@ local function format_panel_lines(context, config)
         end
 
         for index, overlay_line in ipairs(overlay_lines) do
-            append_line(
-                lines,
-                line_styles,
-                line_spans,
-                hud_text.plain(
+            local rendered = overlay_line
+            if type(overlay_line) ~= "table" then
+                rendered = hud_text.plain(
                     overlay_line,
                     index == 1 and "title"
                         or (selected_presentation == "diagram"
                             and "status_value" or "muted")
-                ),
+                )
+            end
+
+            append_line(
+                lines,
+                line_styles,
+                line_spans,
+                rendered,
                 nil
             )
         end
