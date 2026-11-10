@@ -9,6 +9,7 @@ local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local integer_value = require("tracker_hud.low_level.integer_value")
+local integer_operand = require("tracker_hud.low_level.integer_operand")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -1705,6 +1706,55 @@ local function parse_numeric_value(value)
     return integer_value.normalize(value)
 end
 
+
+local function build_integer_operand_metadata(metadata)
+    if not core.is_table(metadata) then
+        return nil
+    end
+
+    return {
+        source_integer_interpretation = metadata.interpretation,
+        source_integer_bits = metadata.bits,
+        source_integer_bits_source = metadata.bits_source,
+        source_integer_max_bits = metadata.max_bits,
+        source_integer_min_bits = metadata.min_bits,
+        source_integer_raw_value = metadata.raw_value,
+        source_integer_value = metadata.value,
+        source_integer_error = metadata.error,
+    }
+end
+
+
+local function interpret_integer_operand_value(
+    adapter,
+    target_register,
+    value,
+    policy
+)
+    if not core.is_table(policy) then
+        local normalized = parse_numeric_value(value)
+
+        return normalized,
+            normalized ~= nil,
+            nil
+    end
+
+    local interpreted, metadata = integer_operand.interpret(
+        value,
+        policy,
+        {
+            target_bits = get_register_value_width(
+                adapter,
+                target_register
+            ),
+        }
+    )
+
+    return interpreted,
+        interpreted ~= nil,
+        build_integer_operand_metadata(metadata)
+end
+
 local function parse_numeric_number(value)
     return integer_value.to_safe_number(value)
 end
@@ -2032,7 +2082,14 @@ local function prepare_register_instruction_inference_state(
 end
 
 
-local function resolve_register_effect_value(facts_by_register, instruction, effect, instruction_state)
+local function resolve_register_effect_value(
+    facts_by_register,
+    instruction,
+    effect,
+    instruction_state,
+    adapter,
+    target_register
+)
     local value = effect.value
     local resolved = value ~= nil
 
@@ -2119,14 +2176,27 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
             has_delta = total_delta ~= nil
         end
 
+        local source_integer_metadata = nil
+
         if tonumber(effect.value_delta_operand) then
             local delta_operand = instruction.operands[tonumber(effect.value_delta_operand)]
 
             if delta_operand and delta_operand.text ~= nil then
-                local operand_delta = parse_numeric_value(delta_operand.text)
+                local operand_delta
+                local operand_resolved
 
-                if not operand_delta then
-                    return nil, false
+                operand_delta,
+                    operand_resolved,
+                    source_integer_metadata =
+                    interpret_integer_operand_value(
+                        adapter,
+                        target_register,
+                        delta_operand.text,
+                        effect.value_delta_operand_interpretation
+                    )
+
+                if not operand_resolved or not operand_delta then
+                    return nil, false, source_integer_metadata
                 end
 
                 total_delta = integer_value.add(total_delta, operand_delta)
@@ -2150,7 +2220,9 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
 
         local result = integer_value.add(current_value, total_delta)
 
-        return result, result ~= nil
+        return result,
+            result ~= nil,
+            source_integer_metadata
     end
 
     if value == nil and tonumber(effect.value_operand) then
@@ -2170,14 +2242,21 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
                         value = source_fact.value
                     end
                 elseif value_operand.kind == "integer" then
-                    local numeric_value = parse_numeric_value(value_operand.text)
+                    local source_integer_metadata
 
-                    if numeric_value ~= nil then
-                        value = numeric_value
-                        resolved = true
-                    else
-                        resolved = false
-                    end
+                    value,
+                        resolved,
+                        source_integer_metadata =
+                        interpret_integer_operand_value(
+                            adapter,
+                            target_register,
+                            value_operand.text,
+                            effect.value_operand_interpretation
+                        )
+
+                    return value,
+                        resolved,
+                        source_integer_metadata
                 else
                     resolved = value ~= nil
                 end
@@ -2228,12 +2307,15 @@ local function make_register_fact(
         return nil
     end
 
-    local write_value, write_resolved = resolve_register_effect_value(
-        facts_by_register,
-        instruction,
-        effect,
-        instruction_state
-    )
+    local write_value, write_resolved, source_integer_metadata =
+        resolve_register_effect_value(
+            facts_by_register,
+            instruction,
+            effect,
+            instruction_state,
+            adapter,
+            target_register
+        )
 
     local width_metadata
     write_value, write_resolved, width_metadata =
@@ -2314,6 +2396,11 @@ local function make_register_fact(
     if reduced_state and reduced_state.partial_value then
         metadata.partial_value = reduced_state.partial_value
     end
+
+    merge_source_metadata(
+        metadata,
+        source_integer_metadata
+    )
 
     merge_source_metadata(
         metadata,
