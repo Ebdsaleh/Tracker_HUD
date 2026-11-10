@@ -55,4 +55,29 @@ assert(integer.normalize("1.5") == nil
     "invalid or unsafe numeric inputs must not become resolved integers")
 print("PASS exact integer: invalid and unsafe numeric inputs stay unresolved")
 
+local stack = require("tracker_hud.low_level.stack_infer")
+local stack_state = {}
+local pushed = stack.push(
+    stack_state,
+    { value = "wide", resolved = true },
+    { offset_delta = "-8" }
+)
+assert(pushed
+    and pushed.stack_depth_before == 0
+    and pushed.stack_depth_after == -8
+    and pushed.stack_depth_delta == -8,
+    "normal stack offsets must remain numeric and unchanged")
+
+local wide_push = stack.push(
+    stack_state,
+    { value = "wide", resolved = true },
+    { offset_delta = "-9007199254740992" }
+)
+assert(wide_push
+    and wide_push.stack_depth_before == -8
+    and wide_push.stack_depth_after == -8
+    and wide_push.stack_depth_delta == nil,
+    "unsafe stack-depth values must be rejected rather than rounded")
+print("PASS exact integer: stack depth keeps safe-number boundary")
+
 print("PASS Tracker_HUD exact integer value smoke")
