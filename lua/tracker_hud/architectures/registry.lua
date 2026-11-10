@@ -9,7 +9,7 @@
 local M = {}
 
 local modules = {
-    ["x86-64"] = "tracker_hud.architectures.x86_64.registers",
+    ["x86-64"] = "tracker_hud.architectures.x86_64",
 }
 
 local aliases = {
