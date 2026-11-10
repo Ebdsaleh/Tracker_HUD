@@ -59,6 +59,45 @@ local function count_spans(line, style, relevance)
     return count
 end
 
+local function count_cell_spans(line, style, relevance)
+    local text = hud_text.to_text(line)
+    local ranges = {}
+    local search_from = 1
+
+    while true do
+        local start_index, end_index =
+            text:find("%[[^%]]+%]", search_from)
+
+        if not start_index then break end
+
+        ranges[#ranges + 1] = {
+            start_column = start_index - 1,
+            end_column = end_index,
+        }
+
+        search_from = end_index + 1
+    end
+
+    local count = 0
+
+    for _, span in ipairs(hud_text.spans(line)) do
+        if span.style == style
+            and (relevance == nil or span.relevance == relevance)
+        then
+            for _, range in ipairs(ranges) do
+                if span.start_column == range.start_column
+                    and span.end_column == range.end_column
+                then
+                    count = count + 1
+                    break
+                end
+            end
+        end
+    end
+
+    return count
+end
+
 local rich = diagram.rich_lines(partial)
 local rich_value
 for _, line in ipairs(rich) do
@@ -185,8 +224,8 @@ for _, line in ipairs(rich_bank) do
     end
 end
 assert(rich_bank_row
-    and count_spans(rich_bank_row, "immediate", "historical") == 1
-    and count_spans(rich_bank_row, "unresolved", "historical") == 7,
+    and count_cell_spans(rich_bank_row, "immediate", "historical") == 1
+    and count_cell_spans(rich_bank_row, "unresolved", "historical") == 7,
     "persistent partial state must style known and unknown bytes separately")
 print("PASS partial masks: normalized and persistent presentations preserve certainty")
 
