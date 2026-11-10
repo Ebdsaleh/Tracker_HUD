@@ -8,6 +8,7 @@
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
+local integer_value = require("tracker_hud.low_level.integer_value")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -1623,52 +1624,11 @@ end
 
 
 local function parse_numeric_value(value)
-    if value == nil then
-        return nil
-    end
+    return integer_value.normalize(value)
+end
 
-    if type(value) == "number" then
-        return value
-    end
-
-    if type(value) ~= "string" then
-        return nil
-    end
-
-    local normalized = value:gsub("^%s+", ""):gsub("%s+$", "")
-
-    if normalized == "" then
-        return nil
-    end
-
-    local sign = 1
-
-    if normalized:sub(1, 1) == "-" then
-        sign = -1
-        normalized = normalized:sub(2)
-    elseif normalized:sub(1, 1) == "+" then
-        normalized = normalized:sub(2)
-    end
-
-    local hex = normalized:match("^0[xX]([%da-fA-F]+)$")
-
-    if hex then
-        return sign * tonumber(hex, 16)
-    end
-
-    local binary = normalized:match("^0[bB]([01]+)$")
-
-    if binary then
-        return sign * tonumber(binary, 2)
-    end
-
-    local decimal = tonumber(normalized)
-
-    if decimal then
-        return sign * decimal
-    end
-
-    return nil
+local function parse_numeric_number(value)
+    return integer_value.to_safe_number(value)
 end
 
 
@@ -1978,6 +1938,7 @@ local function prepare_register_instruction_inference_state(
         effect_specs,
         {
             parse_numeric_value = parse_numeric_value,
+            parse_numeric_number = parse_numeric_number,
             resolve_operand_value = function(operand)
                 return register_infer.resolve_operand_value(
                     facts_by_register,
@@ -2060,13 +2021,13 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
             return nil, false
         end
 
-        local current_number = parse_numeric_value(target_fact.value)
+        local current_value = parse_numeric_value(target_fact.value)
 
-        if not current_number then
+        if not current_value then
             return nil, false
         end
 
-        local total_delta = 0
+        local total_delta = "0"
         local has_delta = false
 
         if effect.value_delta ~= nil then
@@ -2076,8 +2037,8 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
                 return nil, false
             end
 
-            total_delta = total_delta + fixed_delta
-            has_delta = true
+            total_delta = integer_value.add(total_delta, fixed_delta)
+            has_delta = total_delta ~= nil
         end
 
         if tonumber(effect.value_delta_operand) then
@@ -2090,20 +2051,28 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
                     return nil, false
                 end
 
-                total_delta = total_delta + operand_delta
-                has_delta = true
+                total_delta = integer_value.add(total_delta, operand_delta)
+                has_delta = total_delta ~= nil
             elseif effect.value_delta == nil then
                 return nil, false
             end
         end
 
-        if not has_delta then
+        if not has_delta or not total_delta then
             return nil, false
         end
 
         local sign = tonumber(effect.value_delta_sign) or 1
 
-        return tostring(current_number + (total_delta * sign)), true
+        if sign == -1 then
+            total_delta = integer_value.negate(total_delta)
+        elseif sign ~= 1 then
+            return nil, false
+        end
+
+        local result = integer_value.add(current_value, total_delta)
+
+        return result, result ~= nil
     end
 
     if value == nil and tonumber(effect.value_operand) then
@@ -2126,7 +2095,7 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
                     local numeric_value = parse_numeric_value(value_operand.text)
 
                     if numeric_value ~= nil then
-                        value = tostring(numeric_value)
+                        value = numeric_value
                         resolved = true
                     else
                         resolved = false
