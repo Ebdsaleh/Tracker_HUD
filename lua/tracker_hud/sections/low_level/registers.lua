@@ -35,6 +35,47 @@ local function merge_metadata(base, extra)
     return metadata
 end
 
+
+local function resolve_static_target_role(adapter, register_name)
+    if not core.is_table(adapter)
+        or not core.is_non_empty_string(register_name)
+        or not core.is_table(adapter.active_targets)
+        or not core.is_table(adapter.platforms)
+        or not core.is_table(adapter.register_roles)
+    then
+        return nil, nil, nil
+    end
+
+    local platform_name = adapter.active_targets.platform
+    local platform = platform_name
+        and adapter.platforms[platform_name]
+        or nil
+
+    if not core.is_table(platform)
+        or not core.is_non_empty_string(platform.function_abi)
+    then
+        return nil, nil, nil
+    end
+
+    local role_profile = platform.function_abi
+    local role_table = adapter.register_roles[role_profile]
+    local role_spec = core.is_table(role_table)
+        and role_table[register_name]
+        or nil
+
+    if core.is_non_empty_string(role_spec) then
+        return role_spec, role_profile, role_spec
+    end
+
+    if core.is_table(role_spec)
+        and core.is_non_empty_string(role_spec.role)
+    then
+        return role_spec.role, role_profile, role_spec
+    end
+
+    return nil, role_profile, role_spec
+end
+
 local function normalize_register_spec(register_spec, context, adapter, source)
     if not core.is_table(register_spec) then
         return nil
@@ -62,6 +103,20 @@ local function normalize_register_spec(register_spec, context, adapter, source)
         family = register_model.family_for_register(adapter, normalized_name)
     end
 
+    local architecture_role = register_spec.role
+        or (family and family.role)
+
+    local target_role = nil
+    local target_role_profile = nil
+    local target_role_spec = nil
+
+    -- Only static target rows receive platform/function-ABI role overlays.
+    -- Dynamic inference roles such as "written by mov" remain authoritative.
+    if source == "adapter" then
+        target_role, target_role_profile, target_role_spec =
+            resolve_static_target_role(adapter, name)
+    end
+
     local metadata = merge_metadata(register_spec.metadata, {
         adapter = adapter and adapter.name,
         context = context,
@@ -70,6 +125,10 @@ local function normalize_register_spec(register_spec, context, adapter, source)
         alias_spec = alias,
         alias_written = alias_name,
         raw_name = normalized_name,
+        architecture_role = architecture_role,
+        target_role = target_role,
+        target_role_profile = target_role_profile,
+        target_role_spec = target_role_spec,
     })
 
     return {
@@ -80,7 +139,7 @@ local function normalize_register_spec(register_spec, context, adapter, source)
         -- Preserve the inference engine's certainty for alternate
         -- presentations. Legacy register labels still use the same value.
         resolved = register_spec.resolved,
-        role = register_spec.role or (family and family.role),
+        role = target_role or architecture_role,
         source = register_spec.source or source,
 
         source_line = register_spec.source_line,
