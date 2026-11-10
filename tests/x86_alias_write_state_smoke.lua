@@ -9,9 +9,8 @@ local function run()
     local source = {
         "bits 64",
         "mov ah, 0x3C",
-        -- Keep this parser-backed seed small because the legacy immediate
-        -- resolver converts source numerics through Lua number/tostring. The
-        -- pure composer smoke separately covers exact 64-bit hex strings.
+        -- Keep a compact seed here because this smoke is about alias
+        -- composition. Wide parser-backed integers have their own regression.
         "mov rax, 0x12345678",
         "mov ah, 0xAA",
         "mov al, 0xBB",
