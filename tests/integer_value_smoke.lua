@@ -78,6 +78,17 @@ assert(wide_push
     and wide_push.stack_depth_after == -8
     and wide_push.stack_depth_delta == nil,
     "unsafe stack-depth values must be rejected rather than rounded")
+
+local unsafe_numeric_push = stack.push(
+    stack_state,
+    { value = "wide", resolved = true },
+    { offset_delta = 9007199254740992 }
+)
+assert(unsafe_numeric_push
+    and unsafe_numeric_push.stack_depth_before == -8
+    and unsafe_numeric_push.stack_depth_after == -8
+    and unsafe_numeric_push.stack_depth_delta == nil,
+    "unsafe numeric stack-depth values must not bypass the safety boundary")
 print("PASS exact integer: stack depth keeps safe-number boundary")
 
 print("PASS Tracker_HUD exact integer value smoke")
