@@ -17,6 +17,23 @@ local function numeric_literal(value)
 end
 
 local function register_value(record)
+    local metadata = type(record) == "table"
+        and type(record.metadata) == "table"
+        and record.metadata or {}
+    local partial = type(metadata.partial_value) == "table"
+        and metadata.partial_value or nil
+
+    if partial
+        and type(partial.known_mask) == "string"
+        and type(partial.known_value) == "string"
+    then
+        return {
+            status = "partial",
+            known_mask = partial.known_mask,
+            known_value = partial.known_value,
+        }
+    end
+
     if record.resolved == false or record.value == nil then
         return { status = "unknown" }
     end
