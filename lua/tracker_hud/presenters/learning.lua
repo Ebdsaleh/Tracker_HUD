@@ -127,6 +127,115 @@ function M.select_fact(context)
     return nil
 end
 
+local function dynamic_record_by_name(records)
+    local result = {}
+
+    for _, record in ipairs(type(records) == "table" and records or {}) do
+        if type(record) == "table"
+            and type(record.name) == "string"
+            and record.name ~= ""
+            and type(record.source_line) == "number"
+        then
+            result[record.name:lower()] = record
+        end
+    end
+
+    return result
+end
+
+local function record_is_64_bit_scalar(record)
+    return type(record) == "table"
+        and type(record.metadata) == "table"
+        and type(record.metadata.family) == "table"
+        and record.metadata.family.bits == 64
+end
+
+-- Diagram mode has a slightly different UX need from the introductory
+-- learning lens. If the cursor is still before this line's register effect
+-- (for example on the "mov" mnemonic), keep showing the previously proven
+-- state for that SAME register family rather than flashing an empty diagram.
+--
+-- This does not make the pending instruction visible early: the returned fact
+-- comes from registers_before_current_line and is explicitly marked carried.
+function M.select_diagram_fact(context)
+    local current = M.select_fact(context)
+    if current then
+        return current
+    end
+
+    if type(context) ~= "table"
+        or type(context.cursor) ~= "table"
+        or type(context.registers) ~= "table"
+        or type(context.registers_before_current_line) ~= "table"
+    then
+        return nil
+    end
+
+    local cursor = {
+        line = context.cursor.line,
+        column = cursor_column_to_zero(context.cursor.column),
+    }
+
+    local prior_by_name =
+        dynamic_record_by_name(context.registers_before_current_line)
+
+    local fallback_target = nil
+
+    for _, record in ipairs(context.registers) do
+        if type(record) == "table"
+            and record.source_line == cursor.line
+            and record_is_64_bit_scalar(record)
+        then
+            local fact = M.register_fact(record, context)
+
+            if fact and not facts.visible_at(fact, cursor) then
+                -- Prefer an explicit operand target over implicit architectural
+                -- side effects such as RFLAGS when a mnemonic touches both.
+                local origin = type(record.metadata) == "table"
+                    and record.metadata.effect_target_origin
+                    or nil
+
+                if origin == "operand" then
+                    fallback_target = record
+                    break
+                end
+
+                fallback_target = fallback_target or record
+            end
+        end
+    end
+
+    if not fallback_target
+        or type(fallback_target.name) ~= "string"
+    then
+        return nil
+    end
+
+    local prior = prior_by_name[fallback_target.name:lower()]
+    if not prior then
+        return nil
+    end
+
+    local fact = M.register_fact(prior, context)
+    if not fact or not facts.visible_at(fact, cursor) then
+        return nil
+    end
+
+    fact.metadata = fact.metadata or {}
+    fact.metadata.carried_state = true
+    fact.metadata.carried_for_line = cursor.line
+    fact.metadata.pending_source_alias =
+        type(fallback_target.metadata) == "table"
+        and fallback_target.metadata.alias_written
+        or nil
+    fact.metadata.pending_mnemonic =
+        type(fallback_target.metadata) == "table"
+        and fallback_target.metadata.mnemonic
+        or nil
+
+    return fact
+end
+
 -- The Registers section already contains the reduced state through the
 -- current cursor position. Expose detached normalized snapshots of those
 -- dynamic records without re-parsing/replaying source. Unlike select_fact(),
@@ -147,13 +256,38 @@ function M.state_facts(context)
         column = cursor_column_to_zero(context.cursor.column),
     }
 
+    local prior_by_name =
+        dynamic_record_by_name(context.registers_before_current_line)
+    local emitted = {}
+
     for _, record in ipairs(context.registers) do
         -- Static architecture rows have no source position. Only reduced
         -- source/inference state is eligible for the persistent bank.
-        if type(record.source_line) == "number" then
+        if type(record.source_line) == "number"
+            and type(record.name) == "string"
+        then
+            local name = record.name:lower()
             local fact = M.register_fact(record, context)
+
             if fact and facts.visible_at(fact, cursor) then
                 result[#result + 1] = fact
+                emitted[name] = true
+            elseif not emitted[name] then
+                -- The latest reduced state may belong to the current line but
+                -- still be to the right of the cursor. Fall back to the state
+                -- that reached the start of this line instead of erasing the
+                -- row until the current effect becomes visible.
+                local prior = prior_by_name[name]
+                local prior_fact = prior and M.register_fact(prior, context)
+
+                if prior_fact and facts.visible_at(prior_fact, cursor) then
+                    prior_fact.metadata = prior_fact.metadata or {}
+                    prior_fact.metadata.carried_state = true
+                    prior_fact.metadata.carried_for_line = cursor.line
+
+                    result[#result + 1] = prior_fact
+                    emitted[name] = true
+                end
             end
         end
     end
