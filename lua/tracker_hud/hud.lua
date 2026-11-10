@@ -1158,7 +1158,7 @@ local function format_panel_lines(context, config)
         local overlay_lines
         if selected_presentation == "diagram" then
             overlay_lines = byte_diagram.rich_lines(
-                learning_presenter.select_fact(context)
+                learning_presenter.select_diagram_fact(context)
             )
 
             local persistent_lines = register_state_bank.rich_lines(
