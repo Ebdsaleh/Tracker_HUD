@@ -11,6 +11,7 @@ local M = {}
 M.platforms = {
     linux = {
         abi = "linux_syscall",
+        function_abi = "sysv_amd64",
         status = "supported",
     },
 
@@ -21,6 +22,7 @@ M.platforms = {
 
     darwin = {
         abi = "darwin_x86_64",
+        function_abi = "sysv_amd64",
         status = "declared",
     },
 }
@@ -39,6 +41,15 @@ M.platform_aliases = {
 }
 
 M.calling_conventions = {
+    sysv_amd64 = {
+        kind = "function_call",
+        platforms = {
+            "linux",
+            "darwin",
+        },
+        status = "described",
+    },
+
     linux_syscall = {
         kind = "syscall",
         platform = "linux",
@@ -71,6 +82,29 @@ M.calling_conventions = {
         kind = "syscall",
         platform = "darwin",
         status = "declared",
+    },
+}
+
+-- Static register-role overlays are target conventions, not CPU structure.
+-- These preserve the established Linux/Darwin HUD wording while keeping the
+-- hardware register profile language- and ABI-neutral.
+M.register_roles = {
+    sysv_amd64 = {
+        rax = { role = "accumulator / return value", usage = "return_value" },
+        rbx = { role = "callee-saved general register", usage = "callee_saved" },
+        rcx = { role = "counter / argument register", usage = "argument" },
+        rdx = { role = "data / argument register", usage = "argument" },
+        rsi = { role = "source index / argument register", usage = "argument" },
+        rdi = { role = "destination index / argument register", usage = "argument" },
+        rbp = { role = "frame/base pointer", usage = "callee_saved" },
+        r8  = { role = "argument / general register", usage = "argument" },
+        r9  = { role = "argument / general register", usage = "argument" },
+        r10 = { role = "temporary general register", usage = "caller_saved" },
+        r11 = { role = "temporary general register", usage = "caller_saved" },
+        r12 = { role = "callee-saved general register", usage = "callee_saved" },
+        r13 = { role = "callee-saved general register", usage = "callee_saved" },
+        r14 = { role = "callee-saved general register", usage = "callee_saved" },
+        r15 = { role = "callee-saved general register", usage = "callee_saved" },
     },
 }
 
