@@ -1485,3 +1485,127 @@ Expected milestones:
 
 Do not begin the separate wide-immediate parser precision fix until this
 alias-state reducer tranche is green.
+
+
+## Follow-up: diagram persistence before current effect (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+ERIDU exposed an important presentation-state gap after the scalar alias reducer
+landed.
+
+When the cursor was on an instruction mnemonic such as:
+
+```asm
+mov rax, 0x12345678
+```
+
+the technical Registers tree still contained the correct reduced RAX state, but
+the diagram overlay could temporarily show:
+
+```text
+No register fact at this cursor position.
+No source-established 64-bit register state yet.
+```
+
+The reason was not lost inference. The latest reduced RAX record belonged to the
+current line, but its destination source column was still to the right of the
+cursor. The diagram correctly rejected that not-yet-visible effect, but the
+previous RAX snapshot had already been replaced in the reduced collection.
+
+### Fix
+
+Context construction now retains a second register snapshot:
+
+```text
+context.registers_before_current_line
+```
+
+It is reduced strictly before column zero of the current source line.
+
+The diagram presenter now distinguishes:
+
+1. the normal current reduced collection;
+2. the state that reached the start of the current line.
+
+If a current-line register effect exists but is not yet visible at the cursor,
+the diagram falls back to the prior state for the **same canonical register
+family**.
+
+The pending instruction is **not** applied early.
+
+### Carried-state wording
+
+The large byte diagram marks fallback state explicitly:
+
+```text
+Carried state: the current source effect has not been reached yet.
+Latest proven change is from line N.
+```
+
+Carried state uses historical styling rather than current-effect emphasis.
+
+Once the cursor reaches the destination operand, the current instruction's fact
+replaces the carried state normally.
+
+### Persistent bank
+
+`learning.state_facts()` now also falls back per canonical register name when
+the current-line latest record exists but is not yet source-visible.
+
+This prevents the persistent bank from blinking a register row out while moving
+across the mnemonic/whitespace preceding a destination operand.
+
+### Regressions corrected from the previous gate
+
+ERIDU also exposed two test-fixture mistakes:
+
+1. `x86_alias_write_state_smoke.lua` still contained the old large parser
+   seed while its assertion expected the new small exact seed.
+2. `partial_value_mask_smoke.lua` counted the separate `partial` status
+   highlight as though it were an eighth unresolved byte.
+
+Both tests have been corrected without weakening their semantic assertions.
+
+### New parser-backed regression
+
+`tests/diagram_mnemonic_persistence_smoke.lua`
+
+The test verifies:
+
+- line 2 establishes partial RAX through AH;
+- cursor on line 3 `mov` mnemonic does not expose line 3's write;
+- the large diagram carries line 2's exact RAX mask/value;
+- the persistent bank also carries line 2 RAX;
+- moving to line 3's destination register replaces carried state with the
+  current full write.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/partial_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/diagram_mnemonic_persistence_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/diagram_highlight_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/persistent_register_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manual validation remains:
+
+```bat
+nvim samples\asm\x86_64\alias_write_validation.asm
+```
+
+With `:HudPresentation diagram`, move between the mnemonic and destination
+operand of each later `mov`. The diagram should now remain visually continuous
+instead of appearing to forget prior register state.
