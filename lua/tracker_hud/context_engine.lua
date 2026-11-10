@@ -2120,7 +2120,8 @@ local function prepare_register_instruction_inference_state(
     low_level_state,
     facts_by_register,
     instruction,
-    effect_specs
+    effect_specs,
+    adapter
 )
     return stack_infer.prepare_instruction_state(
         low_level_state,
@@ -2763,7 +2764,8 @@ function M.collect_register_effects(context, adapter, opts)
                 low_level_state,
                 facts_by_register,
                 instruction,
-                effect_specs
+                effect_specs,
+                adapter
             )
 
             for _, effect_spec in ipairs(effect_specs or {}) do
