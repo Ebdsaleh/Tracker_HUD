@@ -2742,3 +2742,141 @@ segment / architecture extension when required
 The exact integer and source-interpretation layers from the preceding tranches
 should be reused for displacement values rather than reparsing memory text in
 presentation code.
+
+
+## Integration repair: canonical-to-alias register reads (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+The first ERIDU run of the source-immediate tranche proved that:
+
+- the configured x86 ADD/SUB source policy survived adapter configuration;
+- RAX ADD/SUB signed imm32 interpretation worked;
+- the signed imm32 boundaries worked;
+- the failure began only when the arithmetic destination was a subregister.
+
+The failing sequence was structurally equivalent to:
+
+```asm
+mov rax, 0
+add eax, 0xFFFFFFFF
+```
+
+### Root cause
+
+Register-write reduction already tracked one canonical family state, but
+register reads still primarily looked up the literal source spelling.
+
+After a full `RAX` write, the reducer had a proven `rax` fact but no separate
+`eax` fact. Arithmetic on `EAX` therefore failed to obtain its previous
+value even though bits 31..0 were fully known.
+
+This was an alias-read defect, not an immediate-interpretation defect.
+
+### New canonical-to-alias projection
+
+`low_level/register_value_mask.lua` now exposes:
+
+```text
+read_alias_value(canonical_fact, alias_spec)
+```
+
+It uses the existing certainty-mask model.
+
+A read succeeds only when every bit/byte of the requested alias slice is proven.
+
+Examples from a known canonical value:
+
+```text
+RAX = 0x0011223344556677
+
+EAX -> 0x44556677
+AX  -> 0x6677
+AH  -> 0x66
+AL  -> 0x77
+```
+
+The returned value is an exact canonical decimal integer string.
+
+### Partial canonical state
+
+Partial canonical facts are now retained in the register-read map as unresolved
+whole-register facts with their certainty metadata intact.
+
+That does NOT make the whole register resolved.
+
+It allows a later alias read to ask whether its own slice is fully proven.
+
+Example:
+
+```text
+known mask = 0xFFFFFFFFFFFF00FF
+```
+
+means:
+
+- AL can still be read exactly;
+- AH cannot;
+- AX cannot.
+
+This preserves the distinction between partial certainty and fabricated whole-register certainty.
+
+### Generic register-read callback
+
+`low_level/register_infer.lua` now accepts an optional
+`resolve_register_fact` callback.
+
+The context engine supplies an architecture-aware implementation that:
+
+1. tries the exact alias spelling;
+2. resolves the architecture-owned alias family;
+3. falls back to canonical family state;
+4. projects the requested alias only if its slice is proven.
+
+This path is reused for:
+
+- arithmetic target reads;
+- implicit register sources;
+- register source operands;
+- generic value operands;
+- stack operand resolution.
+
+The stack preparation helper was also corrected to carry the active adapter
+into this callback.
+
+### New tests
+
+`tests/register_value_mask_smoke.lua` now pins:
+
+- exact EAX/AX/AH/AL projection from known RAX;
+- projection from partial canonical certainty;
+- refusal to resolve aliases whose slice includes unknown bits.
+
+New parser-backed regression:
+
+`tests/x86_alias_read_state_smoke.lua`
+
+It covers:
+
+- full RAX -> ADD EAX;
+- full RAX -> ADD AX;
+- full RAX -> ADD AH;
+- full RAX -> ADD AL;
+- partial canonical RAX -> ADD AL when AL remains fully proven.
+
+The source-immediate regression now also reports EAX/AX/AL fields separately if
+another integration mismatch remains.
+
+### Targeted ERIDU repair gate
+
+```bat
+git pull --ff-only
+
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+```
+
+If these are green, rerun the broader source-immediate acceptance gate before
+starting structural-memory work.
