@@ -26,6 +26,12 @@ local function nonempty(value)
     return type(value) == "string" and value ~= ""
 end
 
+local function hex_literal(value)
+    if type(value) ~= "string" then return false end
+    local digits = value:match("^0[xX](%x+)$")
+    return digits ~= nil and #digits <= 16
+end
+
 local function position(pos)
     if type(pos) ~= "table"
         or type(pos.line) ~= "number"
@@ -95,6 +101,24 @@ function M.new(spec)
         and (status ~= "known" or value.data ~= nil)
     then
         return nil, "is_nil applies only to a known nil value"
+    end
+
+    local has_known_mask = value.known_mask ~= nil
+    local has_known_value = value.known_value ~= nil
+
+    if has_known_mask ~= has_known_value then
+        return nil, "partial known mask/value must be supplied together"
+    end
+
+    if has_known_mask then
+        if status ~= "partial" then
+            return nil, "known mask/value applies only to partial values"
+        end
+        if not hex_literal(value.known_mask)
+            or not hex_literal(value.known_value)
+        then
+            return nil, "partial known mask/value must be exact <=64-bit hex literals"
+        end
     end
 
     if type(source.end_column) == "number"
