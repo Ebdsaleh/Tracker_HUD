@@ -371,6 +371,38 @@ function M.normalize_unsigned(value, bits)
     return M.normalize(value)
 end
 
+function M.reinterpret_signed(value, bits)
+    if not valid_bit_width(bits) then
+        return nil
+    end
+
+    local normalized = M.normalize(value)
+    if not normalized then
+        return nil
+    end
+
+    if normalized:sub(1, 1) == "-" then
+        return M.fits_signed(normalized, bits)
+            and normalized
+            or nil
+    end
+
+    if not M.fits_unsigned(normalized, bits) then
+        return nil
+    end
+
+    local sign_bit = power_of_two(bits - 1)
+
+    if compare_abs(normalized, sign_bit) < 0 then
+        return normalized
+    end
+
+    return M.add(
+        normalized,
+        M.negate(power_of_two(bits))
+    )
+end
+
 function M.wrap_unsigned(value, bits)
     if not valid_bit_width(bits) then
         return nil
