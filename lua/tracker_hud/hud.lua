@@ -11,6 +11,7 @@ local hud_text = require("tracker_hud.hud_text")
 local presentation_mode = require("tracker_hud.presentation_mode")
 local learning_presenter = require("tracker_hud.presenters.learning")
 local byte_diagram = require("tracker_hud.presenters.byte_diagram")
+local register_state_bank = require("tracker_hud.presenters.register_state_bank")
 
 local M = {}
 
@@ -1159,6 +1160,16 @@ local function format_panel_lines(context, config)
             overlay_lines = byte_diagram.lines(
                 learning_presenter.select_fact(context)
             )
+
+            local persistent_lines = register_state_bank.lines(
+                learning_presenter.state_facts(context),
+                context.cursor and context.cursor.line or nil
+            )
+
+            overlay_lines[#overlay_lines + 1] = ""
+            for _, persistent_line in ipairs(persistent_lines) do
+                overlay_lines[#overlay_lines + 1] = persistent_line
+            end
         else
             overlay_lines = learning_presenter.lines(context)
         end
