@@ -32,6 +32,56 @@ local function hex_literal(value)
     return digits ~= nil and #digits <= 16
 end
 
+local function padded_hex_digits(value)
+    if not hex_literal(value) then return nil end
+    local digits = value:sub(3):upper()
+    return string.rep("0", 16 - #digits) .. digits
+end
+
+local function nibble_within_mask(value_digit, mask_digit)
+    local value = tonumber(value_digit, 16)
+    local mask = tonumber(mask_digit, 16)
+    if value == nil or mask == nil then return false end
+
+    for _ = 1, 4 do
+        local value_bit = value % 2
+        local mask_bit = mask % 2
+        if value_bit == 1 and mask_bit == 0 then
+            return false
+        end
+        value = math.floor(value / 2)
+        mask = math.floor(mask / 2)
+    end
+
+    return true
+end
+
+local function valid_partial_mask_value(mask_text, value_text)
+    local mask = padded_hex_digits(mask_text)
+    local value = padded_hex_digits(value_text)
+    if not mask or not value then
+        return false, "partial known mask/value must be exact <=64-bit hex literals"
+    end
+
+    if mask:match("^0+$") then
+        return false, "partial known mask must contain at least one known bit"
+    end
+    if mask:match("^F+$") then
+        return false, "all-known mask must use known value status"
+    end
+
+    for index = 1, 16 do
+        if not nibble_within_mask(
+            value:sub(index, index),
+            mask:sub(index, index)
+        ) then
+            return false, "partial known value sets bits outside known mask"
+        end
+    end
+
+    return true
+end
+
 local function position(pos)
     if type(pos) ~= "table"
         or type(pos.line) ~= "number"
@@ -114,10 +164,12 @@ function M.new(spec)
         if status ~= "partial" then
             return nil, "known mask/value applies only to partial values"
         end
-        if not hex_literal(value.known_mask)
-            or not hex_literal(value.known_value)
-        then
-            return nil, "partial known mask/value must be exact <=64-bit hex literals"
+        local valid_partial, partial_err = valid_partial_mask_value(
+            value.known_mask,
+            value.known_value
+        )
+        if not valid_partial then
+            return nil, partial_err
         end
     end
 
