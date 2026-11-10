@@ -2880,3 +2880,61 @@ nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 
 If these are green, rerun the broader source-immediate acceptance gate before
 starting structural-memory work.
+
+
+## Stability follow-up: alias-read repeatability gate (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU repeatability acceptance.**
+
+ERIDU produced one transient result after pulling the canonical-to-alias repair:
+
+```text
+FAIL x86 canonical-to-alias read smoke:
+EAX arithmetic must read low 32 bits from known canonical RAX
+```
+
+Running the exact same command again immediately, with no code change, passed the
+entire test:
+
+```text
+PASS x86 alias read: EAX projects known canonical low dword
+PASS x86 alias read: AX projects known canonical low word
+PASS x86 alias read: AH projects known canonical high byte
+PASS x86 alias read: AL projects known canonical low byte
+PASS x86 alias read: partial canonical certainty feeds proven alias reads
+PASS Tracker_HUD x86 canonical-to-alias read smoke
+```
+
+The source-immediate and alias-write regressions also passed in that same ERIDU
+session.
+
+The parser itself does not depend on the arbitrary register-effect representative
+rule: `instruction_utils.parse_instruction()` ignores the effect-spec argument
+and parses from the adapter's instruction construct specification.
+
+To guard against reducer/cache mutation within one process,
+`tests/x86_alias_read_state_smoke.lua` now repeats the canonical RAX -> EAX
+collection 32 times and requires the exact same reduced state every time.
+
+New expected line:
+
+```text
+PASS x86 alias read: repeated collection is deterministic
+```
+
+For this stability gate, run the parser-backed smoke once with normal Neovim and
+once with `-u NONE`. The latter avoids user-init/plugin startup contamination
+while still using the installed Tree-sitter parser if it is available on the
+standard site runtime.
+
+```bat
+git pull --ff-only
+
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+```
+
+If `-u NONE` cannot see the installed ASM parser, that is an environment
+limitation rather than a semantic failure; the normal-config repeatability line
+is still the required product gate.
