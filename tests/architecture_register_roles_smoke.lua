@@ -59,11 +59,17 @@ local function run()
     assert(sysv.rax.role == "accumulator / return value"
         and sysv.rax.usage == "return_value")
     assert(sysv.rdi.role == "destination index / argument register"
-        and sysv.rdi.usage == "argument")
+        and sysv.rdi.usage == "argument"
+        and sysv.rdi.argument_index == 1)
     assert(sysv.rbx.role == "callee-saved general register"
         and sysv.rbx.usage == "callee_saved")
     assert(sysv.r10.role == "temporary general register"
         and sysv.r10.usage == "caller_saved")
+    assert(sysv.rsi.argument_index == 2
+        and sysv.rdx.argument_index == 3
+        and sysv.rcx.argument_index == 4
+        and sysv.r8.argument_index == 5
+        and sysv.r9.argument_index == 6)
     print("PASS SysV register usage lives in target overlay")
 
     local variant = require("tracker_hud.adapters.asm.arch.x86_64.init")
