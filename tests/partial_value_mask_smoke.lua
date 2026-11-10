@@ -18,7 +18,7 @@ local partial = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 9, start_col = 8 },
+    source = { line = 9, start_column = 8 },
     value = {
         status = "partial",
         known_mask = "0x000000000000FF00",
@@ -125,7 +125,7 @@ local subbyte = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 10, start_col = 8 },
+    source = { line = 10, start_column = 8 },
     value = {
         status = "partial",
         known_mask = "0x00000000000000F0",
@@ -168,7 +168,7 @@ local symbolic = assert(facts.new({
         architecture = "x86-64",
         width_bits = 64,
     },
-    source = { line = 11, start_col = 8 },
+    source = { line = 11, start_column = 8 },
     value = { status = "partial", data = "symbolic expression" },
 }))
 local symbolic_lines = table.concat(diagram.lines(symbolic), "\n")
@@ -186,7 +186,7 @@ local context = {
             name = "rax",
             source = "instruction",
             source_line = 9,
-            source_start_col = 8,
+            source_start_column = 8,
             role = "partial test",
             resolved = false,
             value = nil,
