@@ -191,33 +191,42 @@ local function run()
     print("PASS x86 immediate interpretation: imm32 sign boundary maximum")
 
     local eax = state_after(11, "rax")
-    assert(eax.name == "eax"
-        and eax.value == "0x00000000FFFFFFFF"
-        and eax.metadata.write_value == "4294967295"
-        and eax.metadata.source_integer_value == "-1"
-        and eax.metadata.source_integer_bits == 32
-        and eax.metadata.source_integer_bits_source == "target",
-        "EAX immediate interpretation must derive 32 source bits")
+    expect_equal(eax.name, "eax", "EAX source alias")
+    expect_equal(eax.value, "0x00000000FFFFFFFF", "EAX canonical value")
+    expect_equal(eax.metadata.write_value, "4294967295", "EAX written value")
+    expect_equal(eax.metadata.source_integer_value, "-1", "EAX interpreted immediate")
+    expect_equal(eax.metadata.source_integer_bits, 32, "EAX source width")
+    expect_equal(
+        eax.metadata.source_integer_bits_source,
+        "target",
+        "EAX source width origin"
+    )
     print("PASS x86 immediate interpretation: EAX derives 32 source bits")
 
     local ax = state_after(13, "rax")
-    assert(ax.name == "ax"
-        and ax.value == "0x000000000000FFFF"
-        and ax.metadata.write_value == "65535"
-        and ax.metadata.source_integer_value == "-1"
-        and ax.metadata.source_integer_bits == 16
-        and ax.metadata.source_integer_bits_source == "target",
-        "AX immediate interpretation must derive 16 source bits")
+    expect_equal(ax.name, "ax", "AX source alias")
+    expect_equal(ax.value, "0x000000000000FFFF", "AX canonical value")
+    expect_equal(ax.metadata.write_value, "65535", "AX written value")
+    expect_equal(ax.metadata.source_integer_value, "-1", "AX interpreted immediate")
+    expect_equal(ax.metadata.source_integer_bits, 16, "AX source width")
+    expect_equal(
+        ax.metadata.source_integer_bits_source,
+        "target",
+        "AX source width origin"
+    )
     print("PASS x86 immediate interpretation: AX derives 16 source bits")
 
     local al = state_after(15, "rax")
-    assert(al.name == "al"
-        and al.value == "0x00000000000000FF"
-        and al.metadata.write_value == "255"
-        and al.metadata.source_integer_value == "-1"
-        and al.metadata.source_integer_bits == 8
-        and al.metadata.source_integer_bits_source == "target",
-        "AL immediate interpretation must derive 8 source bits")
+    expect_equal(al.name, "al", "AL source alias")
+    expect_equal(al.value, "0x00000000000000FF", "AL canonical value")
+    expect_equal(al.metadata.write_value, "255", "AL written value")
+    expect_equal(al.metadata.source_integer_value, "-1", "AL interpreted immediate")
+    expect_equal(al.metadata.source_integer_bits, 8, "AL source width")
+    expect_equal(
+        al.metadata.source_integer_bits_source,
+        "target",
+        "AL source width origin"
+    )
     print("PASS x86 immediate interpretation: AL derives 8 source bits")
 
     local overflow = state_after(17, "rax")
