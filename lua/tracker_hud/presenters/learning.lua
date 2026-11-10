@@ -110,6 +110,40 @@ function M.select_fact(context)
     return nil
 end
 
+-- The Registers section already contains the reduced state through the
+-- current cursor position. Expose detached normalized snapshots of those
+-- dynamic records without re-parsing/replaying source. Unlike select_fact(),
+-- this intentionally includes facts whose last effect occurred on an earlier
+-- line: that is the persistence the technical Registers tree already shows.
+function M.state_facts(context)
+    local result = {}
+
+    if type(context) ~= "table"
+        or type(context.cursor) ~= "table"
+        or type(context.registers) ~= "table"
+    then
+        return result
+    end
+
+    local cursor = {
+        line = context.cursor.line,
+        column = cursor_column_to_zero(context.cursor.column),
+    }
+
+    for _, record in ipairs(context.registers) do
+        -- Static architecture rows have no source position. Only reduced
+        -- source/inference state is eligible for the persistent bank.
+        if type(record.source_line) == "number" then
+            local fact = M.register_fact(record, context)
+            if fact and facts.visible_at(fact, cursor) then
+                result[#result + 1] = fact
+            end
+        end
+    end
+
+    return result
+end
+
 function M.lines(context)
     local lines = {
         "Learning view (source-based, not program execution):",
