@@ -16,17 +16,7 @@ end
 
 local function cells_for_fact(fact)
     local value = type(fact.value) == "table" and fact.value or {}
-
-    if value.status ~= "known" then
-        return byte_diagram.cells(nil)
-    end
-
-    local bytes = byte_diagram.bytes_for(value.data)
-    if not bytes then
-        return byte_diagram.cells(nil)
-    end
-
-    return byte_diagram.cells(bytes)
+    return byte_diagram.value_cells(value)
 end
 
 function M.lines(facts, cursor_line)
