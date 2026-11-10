@@ -20,4 +20,5 @@ return {
     default_platform = targets.default_platform,
     platform_aliases = targets.platform_aliases,
     calling_conventions = targets.calling_conventions,
+    register_roles = targets.register_roles,
 }
