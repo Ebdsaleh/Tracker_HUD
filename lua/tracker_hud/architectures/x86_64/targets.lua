@@ -17,6 +17,7 @@ M.platforms = {
 
     windows = {
         abi = "windows_x64",
+        function_abi = "windows_x64",
         status = "declared",
     },
 
