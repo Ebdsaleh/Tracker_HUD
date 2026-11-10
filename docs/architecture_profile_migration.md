@@ -1132,3 +1132,49 @@ Manual acceptance in `nvim test.asm`:
 
 Do not proceed to partial-known bit masks until this presentation-only colour
 tranche is green.
+
+
+## ERIDU acceptance: semantic diagram highlighting (2026-11-10)
+
+**Accepted on ERIDU at `a163e1a`.**
+
+The user returned complete regression output and live Neovim screenshots.
+
+Confirmed green:
+
+- `diagram_highlight_smoke.lua`: current RAX alias/all covered bytes,
+  AH bits 15..8 only, unresolved colouring for unknown current bytes,
+  current-vs-carried persistent styling, and rich/plain text parity.
+- Existing persistent-state, alias-map, byte-diagram, presentation-mode,
+  section/Inspect colour, and ASM source-occurrence regressions remain green.
+- Live screenshots confirm current known state is emphasized in green/sage,
+  current unknown state uses unresolved red/pink, and carried state remains
+  visible but visually quieter.
+
+The cursor-column screenshots also confirm ON/PAST gating remains intact:
+before the source token the detailed diagram does not expose the future fact;
+on/past the token it appears.
+
+### Next semantic tranche: explicit partial-known value masks
+
+Repository tracing confirms the current register reducer stores only a whole
+`value` plus binary `resolved`. There is no existing hidden known-bit mask.
+Therefore the next work must introduce an explicit representation before any
+x86 alias write is allowed to claim partially known state.
+
+Bounded first half:
+
+1. Extend normalized value facts so `status = "partial"` may carry exact
+   `known_mask` + `known_value` 64-bit hexadecimal literals.
+2. Require the pair together; reject them on non-partial statuses.
+3. Teach byte diagrams/state-bank rows to render fully known bytes from the
+   mask, unknown bytes as `[??]`, and non-byte-complete knowledge as
+   `[~?]`.
+4. Print the exact known mask and known-bit value so sub-byte knowledge is
+   never hidden by the compact cells.
+5. Existing symbolic `partial` facts without masks remain all unknown.
+6. Do **not** yet change x86 register reduction in this half.
+
+Only after this representation is green should a following tranche make proven
+AL/AH/AX/EAX write rules produce masks. This keeps representation correctness
+separate from new inference semantics.
