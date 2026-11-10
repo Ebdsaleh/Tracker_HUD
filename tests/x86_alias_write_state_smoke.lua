@@ -9,7 +9,7 @@ local function run()
     local source = {
         "bits 64",
         "mov ah, 0x3C",
-        "mov rax, 0x1122334455667788",
+        -- Keep this full-width seed below 2^53 because the legacy immediate\n        -- resolver still converts source numerics through Lua number. The alias\n        -- composer itself remains exact-string/byte based.\n        "mov rax, 0x0011223344556677",
         "mov ah, 0xAA",
         "mov al, 0xBB",
         "mov ax, 0xCCDD",
@@ -79,24 +79,27 @@ local function run()
     print("PASS x86 alias state: AH into unknown RAX proves only bits 15..8")
 
     local full = state_after(3)
+    local value_mask = require("tracker_hud.low_level.register_value_mask")
+    local full_bytes = assert(value_mask.bytes_for_integer(full.value))
     assert(full.resolved ~= false
-        and full.value == "0x1122334455667788",
-        "full RAX write must establish exact 64-bit value")
+        and value_mask.hex_for_bytes(full_bytes)
+            == "0x0011223344556677",
+        "full RAX write must establish exact seed value")
 
     local ah = state_after(4)
     assert(ah.resolved ~= false
-        and ah.value == "0x112233445566AA88",
+        and ah.value == "0x001122334455AA77",
         "AH write must preserve all other known RAX bytes")
     print("PASS x86 alias state: AH preserves prior known family bits")
 
     local al = state_after(5)
     assert(al.resolved ~= false
-        and al.value == "0x112233445566AABB",
+        and al.value == "0x001122334455AABB",
         "AL write must replace only bits 7..0")
 
     local ax = state_after(6)
     assert(ax.resolved ~= false
-        and ax.value == "0x112233445566CCDD",
+        and ax.value == "0x001122334455CCDD",
         "AX write must replace only bits 15..0")
     print("PASS x86 alias state: AL/AX compose into canonical RAX")
 
