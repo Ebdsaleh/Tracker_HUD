@@ -8,6 +8,7 @@
 
 local core = require("tracker_hud.core")
 local inference = require("tracker_hud.low_level.inference")
+local integer_value = require("tracker_hud.low_level.integer_value")
 
 local M = {}
 
@@ -104,7 +105,7 @@ function M.resolve_operand_value(facts_by_register, instruction, operand, opts)
         local parse_numeric_value = opts.parse_numeric_value
         local numeric_value = type(parse_numeric_value) == "function"
             and parse_numeric_value(operand.text)
-            or tonumber(operand.text)
+            or integer_value.normalize(operand.text)
 
         if numeric_value ~= nil then
             value = tostring(numeric_value)
