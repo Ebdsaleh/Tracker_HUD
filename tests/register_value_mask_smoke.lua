@@ -61,6 +61,13 @@ assert(ax_known.value == "0x001122334455CCDD",
     "AX must replace only low word")
 print("PASS alias composer: known AH/AL/AX writes preserve surrounding bits")
 
+assert(compose.read_alias_value(previous, rax.aliases.eax) == "1146447479"
+    and compose.read_alias_value(previous, rax.aliases.ax) == "26231"
+    and compose.read_alias_value(previous, rax.aliases.ah) == "102"
+    and compose.read_alias_value(previous, rax.aliases.al) == "119",
+    "known canonical RAX state must project exact alias values")
+print("PASS alias composer: known canonical state projects exact alias reads")
+
 local eax_known = assert(compose.apply_alias_write(
     nil,
     rax.aliases.eax,
@@ -87,6 +94,20 @@ assert(unknown_ah.status == "partial"
     and unknown_ah.partial_value.known_value == "0x0000000012340078",
     "unknown AH must invalidate only its own byte")
 print("PASS alias composer: unknown AH preserves proven surrounding state")
+
+local partial_fact = {
+    value = nil,
+    resolved = false,
+    metadata = {
+        partial_value = unknown_ah.partial_value,
+    },
+}
+
+assert(compose.read_alias_value(partial_fact, rax.aliases.al) == "120"
+    and compose.read_alias_value(partial_fact, rax.aliases.ah) == nil
+    and compose.read_alias_value(partial_fact, rax.aliases.ax) == nil,
+    "partial canonical certainty must expose only fully-known alias slices")
+print("PASS alias composer: partial canonical state projects only proven aliases")
 
 local unknown_eax = assert(compose.apply_alias_write(
     {
