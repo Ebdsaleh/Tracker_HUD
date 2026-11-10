@@ -2305,8 +2305,7 @@ local function make_register_fact(
             and width_metadata.pre_width_write_value
             or nil,
         value_wrapped = width_metadata
-            and width_metadata.value_wrapped
-            or nil,
+            and width_metadata.value_wrapped,
         value_width_error = width_metadata
             and width_metadata.value_width_error
             or nil,
