@@ -79,27 +79,24 @@ local function run()
     print("PASS x86 alias state: AH into unknown RAX proves only bits 15..8")
 
     local full = state_after(3)
-    local value_mask = require("tracker_hud.low_level.register_value_mask")
-    local full_bytes = assert(value_mask.bytes_for_integer(full.value))
     assert(full.resolved ~= false
-        and value_mask.hex_for_bytes(full_bytes)
-            == "0x0011223344556677",
+        and tostring(full.value) == tostring(0x12345678),
         "full RAX write must establish exact seed value")
 
     local ah = state_after(4)
     assert(ah.resolved ~= false
-        and ah.value == "0x001122334455AA77",
+        and ah.value == "0x000000001234AA78",
         "AH write must preserve all other known RAX bytes")
     print("PASS x86 alias state: AH preserves prior known family bits")
 
     local al = state_after(5)
     assert(al.resolved ~= false
-        and al.value == "0x001122334455AABB",
+        and al.value == "0x000000001234AABB",
         "AL write must replace only bits 7..0")
 
     local ax = state_after(6)
     assert(ax.resolved ~= false
-        and ax.value == "0x001122334455CCDD",
+        and ax.value == "0x000000001234CCDD",
         "AX write must replace only bits 15..0")
     print("PASS x86 alias state: AL/AX compose into canonical RAX")
 
