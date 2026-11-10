@@ -1609,3 +1609,126 @@ nvim samples\asm\x86_64\alias_write_validation.asm
 With `:HudPresentation diagram`, move between the mnemonic and destination
 operand of each later `mov`. The diagram should now remain visually continuous
 instead of appearing to forget prior register state.
+
+
+## Tranche 2: shared x86-64 target / ABI overlays (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+After the register-profile extraction, the x86-64 ASM variant still owned a
+second category of non-language truth:
+
+- platform declarations;
+- platform aliases;
+- the default target platform;
+- ABI / calling-convention descriptions.
+
+That ownership was wrong for the long-term adapter model. NASM, GAS, C, C++,
+Rust, disassembly and future source adapters may all target the same x86-64
+Linux/Windows/Darwin conventions.
+
+### New shared target module
+
+`lua/tracker_hud/architectures/x86_64/targets.lua`
+
+This module now owns the existing target overlays:
+
+- Linux -> `linux_syscall` (supported);
+- Windows -> `windows_x64` (declared);
+- Darwin -> `darwin_x86_64` (declared);
+- aliases such as `win64`, `macos`, and `mac`;
+- the Linux syscall number/return/argument/clobber register contract.
+
+The module has no ASM, Tree-sitter, Neovim UI or inference dependency.
+
+### Composite architecture profile
+
+`lua/tracker_hud/architectures/x86_64/init.lua`
+
+The architecture registry now resolves one composite x86-64 profile exposing:
+
+- hardware metadata;
+- register families;
+- static register descriptions;
+- the alias index;
+- platform overlays;
+- ABI / calling-convention overlays.
+
+`architectures/registry.lua` now resolves:
+
+```text
+tracker_hud.architectures.x86_64
+```
+
+instead of returning the register module directly.
+
+Existing register-table identity is deliberately retained.
+
+### ASM becomes a consumer
+
+`adapters/asm/arch/x86_64/adapter.lua` no longer defines x86-64 platform and
+ABI tables.
+
+It references the shared architecture profile for:
+
+- `metadata`;
+- `platforms`;
+- `default_platform`;
+- `platform_aliases`;
+- `calling_conventions`;
+- `register_families`;
+- `registers`;
+- `register_alias_index`.
+
+ASM still owns syntax, construct descriptions, instruction effects, stack
+effects, instruction events and ASM presentation.
+
+### New regression
+
+`tests/architecture_target_overlay_smoke.lua`
+
+The smoke test pins four invariants:
+
+1. loading the shared x86-64 profile must not load ASM;
+2. Linux/Windows/Darwin target declarations stay unchanged;
+3. the Linux syscall register contract stays unchanged;
+4. the ASM variant consumes the shared platform/ABI tables by identity.
+
+### Architectural boundary after tranche 2
+
+The intended ownership is now clearer:
+
+```text
+architectures/x86_64/registers.lua
+    hardware register structure
+
+architectures/x86_64/targets.lua
+    platform / ABI overlays
+
+architectures/x86_64/init.lua
+    composite language-independent target profile
+
+adapters/asm/arch/x86_64/adapter.lua
+    ASM syntax + instruction/effect description
+```
+
+The next likely migration is ABI-dependent **register roles**. The current
+register profile still contains historical labels such as `argument register`,
+`return value`, and `callee-saved`, which mix hardware identity with ABI
+usage. That should be separated only after this target-overlay boundary is
+accepted.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -10 --oneline
+
+nvim --headless -u NONE -c "luafile tests/architecture_registry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/architecture_target_overlay_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
