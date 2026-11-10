@@ -67,25 +67,36 @@ function M.lines(facts, cursor_line)
     return lines
 end
 
-local function append_cell_tokens(line, cells, style, relevance)
+local function append_cell_tokens(line, cells, styles, relevance)
     local search_from = 1
+    local cell_number = 0
+
     while true do
         local start_index, end_index = cells:find("%[[^%]]+%]", search_from)
         if not start_index then break end
 
-        local offset = #line.text
+        cell_number = cell_number + 1
         hud_text.append(line, cells:sub(search_from, start_index - 1), nil)
+
         local token = cells:sub(start_index, end_index)
         local start_col = #line.text
         hud_text.append(line, token, nil)
-        hud_text.add_span(
-            line,
-            start_col,
-            #line.text,
-            style,
-            420
-        )
-        line.spans[#line.spans].relevance = relevance
+
+        local style = type(styles) == "table"
+            and styles[cell_number]
+            or styles
+
+        if style then
+            hud_text.add_span(
+                line,
+                start_col,
+                #line.text,
+                style,
+                420
+            )
+            line.spans[#line.spans].relevance = relevance
+        end
+
         search_from = end_index + 1
     end
 
@@ -101,9 +112,16 @@ local function rich_state_row(fact, cursor_line)
     local marker = current and ">" or " "
     local name = fact.subject.name:upper()
     local cells = cells_for_fact(fact)
-    local state_style = value.status == "known"
-        and (current and "affected" or "immediate")
-        or "unresolved"
+    local certainty = byte_diagram.value_cell_states(value)
+    local state_styles = {}
+
+    for index, cell_state in ipairs(certainty) do
+        if cell_state == "known" then
+            state_styles[index] = current and "affected" or "immediate"
+        else
+            state_styles[index] = "unresolved"
+        end
+    end
 
     hud_text.append(line, "  ", nil)
     hud_text.append(line, marker, current and "affected" or "muted")
@@ -124,7 +142,7 @@ local function rich_state_row(fact, cursor_line)
     append_cell_tokens(
         line,
         cells,
-        state_style,
+        state_styles,
         relevance
     )
 
