@@ -12,6 +12,7 @@
 
 local core = require("tracker_hud.core")
 local inference = require("tracker_hud.low_level.inference")
+local integer_value = require("tracker_hud.low_level.integer_value")
 
 local M = {}
 
@@ -77,15 +78,27 @@ local function parse_number(value, opts)
 
     opts = opts or {}
 
-    if type(opts.parse_numeric_value) == "function" then
-        local parsed = opts.parse_numeric_value(value)
+    if type(opts.parse_numeric_number) == "function" then
+        local parsed = opts.parse_numeric_number(value)
 
         if parsed ~= nil then
             return parsed
         end
     end
 
-    return tonumber(value)
+    if type(opts.parse_numeric_value) == "function" then
+        local parsed = opts.parse_numeric_value(value)
+
+        if type(parsed) == "number" then
+            return parsed
+        end
+
+        if parsed ~= nil then
+            return integer_value.to_safe_number(parsed)
+        end
+    end
+
+    return integer_value.to_safe_number(value)
 end
 
 
