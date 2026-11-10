@@ -69,7 +69,7 @@ end
 
 local function parse_number(value, opts)
     if type(value) == "number" then
-        return value
+        return integer_value.to_safe_number(value)
     end
 
     if value == nil then
@@ -291,9 +291,10 @@ function M.push(state, value_fact, opts)
     local metadata = get_metadata(state)
     local before = metadata and metadata.depth_bytes or 0
     local delta = parse_number(opts.offset_delta)
+    local size = parse_number(opts.size)
 
-    if delta == nil and core.is_number(opts.size) then
-        delta = -math.abs(opts.size)
+    if delta == nil and size ~= nil then
+        delta = -math.abs(size)
     end
 
     local fact = core.is_table(value_fact)
@@ -344,9 +345,10 @@ function M.pop(state, opts)
     local before = metadata and metadata.depth_bytes or 0
     local value_fact = table.remove(state.stack)
     local delta = parse_number(opts.offset_delta)
+    local size = parse_number(opts.size)
 
-    if delta == nil and core.is_number(opts.size) then
-        delta = math.abs(opts.size)
+    if delta == nil and size ~= nil then
+        delta = math.abs(size)
     end
 
     if core.is_number(delta) and metadata then
