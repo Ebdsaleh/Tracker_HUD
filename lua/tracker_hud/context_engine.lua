@@ -4520,6 +4520,7 @@ function M.collect_stack_effects(context, adapter, opts)
                     stack_effect_specs,
                     {
                         parse_numeric_value = parse_numeric_value,
+                        parse_numeric_number = parse_numeric_number,
                         resolve_operand_value = function(operand)
                             return register_infer.resolve_operand_value(
                                 facts_by_register,
