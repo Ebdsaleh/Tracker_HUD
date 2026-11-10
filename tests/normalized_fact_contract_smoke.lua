@@ -28,9 +28,42 @@ local unknown = assert(make({ status = "unknown" }))
 assert(not facts.is_known(unknown) and unknown.value.data == nil)
 local partial = assert(make({ status = "partial", data = "low 8 bits" }))
 assert(partial.value.status == "partial")
+local masked_partial = assert(make({
+    status = "partial",
+    known_mask = "0x000000000000FF00",
+    known_value = "0x0000000000003C00",
+}))
+assert(masked_partial.value.known_mask == "0x000000000000FF00"
+    and masked_partial.value.known_value == "0x0000000000003C00")
+assert(not make({
+    status = "partial",
+    known_mask = "0xFF",
+}), "partial mask without known value must fail")
+assert(not make({
+    status = "known",
+    data = 0,
+    known_mask = "0xFF",
+    known_value = "0x00",
+}), "known status must not carry a partial mask")
+assert(not make({
+    status = "partial",
+    known_mask = "0x0",
+    known_value = "0x0",
+}), "zero-known mask must be unknown, not partial")
+assert(not make({
+    status = "partial",
+    known_mask = "0xFFFFFFFFFFFFFFFF",
+    known_value = "0x3C",
+}), "all-known mask must use known status")
+assert(not make({
+    status = "partial",
+    known_mask = "0xF0",
+    known_value = "0x0F",
+}), "known value must not set bits outside known mask")
 local conditional = assert(make({ status = "conditional" }))
 assert(conditional.value.status == "conditional")
 print("PASS fact v1: known zero/false/nil distinct from unknown, partial, conditional")
+print("PASS fact v1: explicit partial masks enforce certainty invariants")
 
 assert(not facts.visible_at(zero, { line = 11, column = 100 }))
 assert(not facts.visible_at(zero, { line = 12, column = 3 }))
