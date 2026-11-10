@@ -1038,3 +1038,97 @@ semantics in this tranche.
 **Workspace caution:** ERIDU now also shows an untracked root file named
 `register` in addition to the previously observed user-owned files. Leave all
 untracked root artifacts untouched; do not run `git clean`.
+
+
+## Implementation: semantic diagram highlighting (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+This tranche changes presentation only. Register reduction, persistence,
+architecture facts and ASM instruction semantics are unchanged.
+
+### Detailed current-effect diagram
+
+`presenters/byte_diagram.lua` now has `rich_lines(fact)` in addition to
+the existing plain `lines(fact)` API.
+
+The text is identical; semantic `hud_text` spans are layered on top:
+
+- current register identity: `register + current`;
+- current source alias: `register_alias + current`;
+- bytes covered by the current alias: `affected + current` when known;
+- covered unknown bytes: `unresolved + current`;
+- non-current alias labels: `register_alias + historical`;
+- current write-rule text: `affected + current`.
+
+Alias byte coverage comes directly from the existing architecture
+`bits` + `offset` data. Examples:
+
+- RAX highlights all 8 byte cells;
+- EAX highlights only the low 4 cells;
+- AH highlights exactly the bits 15..8 cell;
+- AL highlights exactly the bits 7..0 cell.
+
+No byte is considered known merely because its alias coverage is known.
+
+### Persistent state bank
+
+`presenters/register_state_bank.lua` now has `rich_lines(facts, cursor_line)`.
+
+- current-line register name + known bytes use `affected + current`;
+- current unknown/partial bytes use `unresolved + current`;
+- carried register identity uses `register + historical`;
+- carried known byte cells use `immediate + historical`;
+- carried unknown cells use `unresolved + historical`;
+- source line numbers inherit matching current/historical relevance.
+
+The literal `>` current marker remains in the text.
+
+### HUD integration
+
+`hud.lua` accepts structured overlay lines directly. Diagram mode uses the
+new rich renderers; learning/plain string renderers remain compatible.
+
+`:HudVisualMode plain` still disables semantic colour. The same text and
+`>` markers remain, so colour is not the only carrier of meaning.
+
+### Regression
+
+New `tests/diagram_highlight_smoke.lua` checks:
+
+1. RAX highlights all eight current value cells;
+2. current RAX alias row highlights all eight covered cells;
+3. non-current aliases use historical relevance;
+4. AH highlights exactly one cell at bits 15..8;
+5. unknown current bytes use unresolved rather than affected semantics;
+6. current persistent RDI row is prominent while carried RAX is historical;
+7. rich semantic spans do not change the plain text output.
+
+### ERIDU acceptance commands
+
+```bat
+git status --short
+git pull --ff-only
+git log -8 --oneline
+nvim --headless -u NONE -c "luafile tests/diagram_highlight_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/persistent_register_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/section_inspect_colors_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+Manual acceptance in `nvim test.asm`:
+
+- `mov rax, 60`: all eight current RAX cells should be emphasized;
+- `xor rdi, rdi`: RDI current-effect cells/current persistent row should be
+  prominent while carried RAX is quieter;
+- `syscall`: unknown current RAX/RCX/R11 state should use unresolved
+  highlighting rather than looking like known values;
+- if a temporary AH example is used, only the bits 15..8 cell should receive
+  current affected emphasis;
+- `:HudVisualMode plain` must remain readable and preserve all markers/text.
+
+Do not proceed to partial-known bit masks until this presentation-only colour
+tranche is green.
