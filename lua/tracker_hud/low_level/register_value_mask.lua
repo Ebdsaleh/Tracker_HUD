@@ -196,6 +196,30 @@ local function alias_byte_window(alias)
     return first_index, last_index, byte_count
 end
 
+function M.read_alias_value(fact, alias)
+    local first_index, last_index = alias_byte_window(alias)
+    if not first_index then
+        return nil
+    end
+
+    local mask, value = previous_certainty(fact)
+
+    for index = first_index, last_index do
+        if mask[index] ~= 255 then
+            return nil
+        end
+    end
+
+    local hex = { "0x" }
+
+    for index = first_index, last_index do
+        hex[#hex + 1] = byte_hex(value[index])
+    end
+
+    return integer_value.normalize(table.concat(hex))
+end
+
+
 local function source_bytes_for_alias(value, alias)
     local bytes = M.bytes_for_integer(value)
     local first_index, last_index, byte_count = alias_byte_window(alias)
