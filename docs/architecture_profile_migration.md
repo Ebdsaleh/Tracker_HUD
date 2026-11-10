@@ -1313,3 +1313,175 @@ rules, starting with byte-aligned scalar aliases:
 
 This must be implemented in the reducer/architecture semantic boundary, not
 reverse-engineered by the presenter.
+
+
+## ERIDU acceptance: partial-known value-mask representation (2026-11-10)
+
+**Accepted on ERIDU at `922c5fd`.**
+
+The user returned the full regression output and live Neovim screenshots.
+
+Confirmed green:
+
+- `partial_value_mask_smoke.lua`: exact known byte inside a partial 64-bit
+  value, sub-byte honesty, symbolic-partial fallback, normalized persistence.
+- `normalized_fact_contract_smoke.lua`: explicit partial-mask invariants.
+- Existing diagram highlight, persistent state, alias map, byte diagram,
+  presentation mode, and ASM source-occurrence regressions all remain green.
+- The user confirmed the live HUD remains stable in diagram mode while moving
+  through syscall/cpuid and Inspect views.
+
+The representation is therefore accepted. It is now valid for the reducer to
+produce explicit partial certainty; presenters no longer need to guess.
+
+## Implementation: x86-64 scalar alias write certainty (2026-11-10)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+This tranche connects real x86-64 GPR alias writes to the accepted partial-mask
+representation.
+
+### Exact certainty composer
+
+New module:
+
+`lua/tracker_hud/low_level/register_value_mask.lua`
+
+It is architecture-neutral. The x86 profile supplies:
+
+- alias width;
+- bit offset;
+- `write_mode`.
+
+The composer owns byte-exact certainty merging without Lua bit-width
+assumptions.
+
+Supported write modes in this tranche:
+
+- `partial` — preserve prior proven bits outside the alias and replace only
+  the covered slice;
+- `zero_extend_64` — replace the low 32-bit slice and prove the upper
+  32 bits are zero.
+
+Important behaviours:
+
+- `AH = 0x3C` into unknown RAX ->
+  mask `0x000000000000FF00`, value `0x0000000000003C00`;
+- known RAX followed by AH/AL/AX writes preserves all known surrounding bytes;
+- known EAX write fully determines RAX because x86-64 clears the upper dword;
+- unknown AH write invalidates only bits 15..8;
+- unknown EAX write still proves upper 32 bits zero;
+- out-of-width alias sources are not silently truncated into false certainty.
+
+### Canonical family reduction
+
+`context_engine.lua` now keeps two concepts separate:
+
+1. source-spelling operand lookup;
+2. latest reduced architectural family state.
+
+The latest state uses the canonical family key (for example `rax`) while the
+fact itself retains the source alias spelling (for example `ah`).
+
+This prevents RAX/EAX/AX/AH/AL from appearing as independent physical state in
+the final reduced register collection.
+
+Sibling alias lookup entries are invalidated when another spelling changes the
+same family so stale source data cannot survive an overwrite. When the whole
+canonical family becomes known, the canonical spelling is republished as a
+resolved source lookup.
+
+### Byte-granular partial styling
+
+The accepted partial-mask renderer now exposes per-byte certainty states:
+
+- known;
+- unknown;
+- partial.
+
+Current and persistent highlighting follows those states rather than colouring
+every byte as unresolved merely because the whole 64-bit register is partial.
+
+For example, initial `mov ah, 0x3C` may render:
+
+```text
+[??][??][??][??][??][??][3C][??]
+```
+
+The `3C` cell is known/affected while the surrounding cells remain unresolved.
+
+### New regressions
+
+`tests/register_value_mask_smoke.lua` is parser-independent and pins the exact
+composer semantics.
+
+`tests/x86_alias_write_state_smoke.lua` is parser-backed and exercises real
+ASM source through `context_engine.collect_register_effects`.
+
+It covers:
+
+1. AH into unknown RAX;
+2. AH preserving prior known family state;
+3. AL and AX slice replacement;
+4. EAX zero-extension to full RAX;
+5. unknown AH invalidating only its byte;
+6. unknown EAX still proving upper 32 zero;
+7. one latest reduced state per canonical RAX family.
+
+A new manual sample is also available:
+
+`samples/asm/x86_64/alias_write_validation.asm`
+
+### Parser numeric boundary deliberately unchanged
+
+The existing source immediate resolver still converts numeric literals through
+Lua numeric values before this composer receives them. This tranche does not
+silently broaden into that separate precision issue.
+
+Therefore the parser-backed regression uses a small exact seed. The pure
+composer regression separately proves exact 64-bit hexadecimal composition.
+
+### ERIDU acceptance commands
+
+```bat
+git status --short
+git pull --ff-only
+git log -12 --oneline
+nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/partial_value_mask_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/diagram_highlight_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/persistent_register_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_alias_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/byte_diagram_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+### Manual acceptance
+
+Open:
+
+```bat
+nvim samples\asm\x86_64\alias_write_validation.asm
+```
+
+Then:
+
+```vim
+:HudPresentation diagram
+```
+
+Expected milestones:
+
+- first `mov ah, 0x3C`: only AH byte known inside otherwise unknown RAX;
+- full RAX write: all bytes known;
+- later AH/AL/AX immediate writes: surrounding bytes preserved;
+- EAX immediate write: upper 32 bits visibly zero;
+- `mov ah, bl` with unknown BL: only AH byte becomes unknown;
+- `mov eax, ebx` with unknown EBX: high four bytes remain known zero while
+  low four become unknown.
+
+Do not begin the separate wide-immediate parser precision fix until this
+alias-state reducer tranche is green.
