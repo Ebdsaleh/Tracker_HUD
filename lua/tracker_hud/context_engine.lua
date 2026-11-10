@@ -9,6 +9,7 @@ local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local register_infer = require("tracker_hud.low_level.register_infer")
+local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
 local control_infer = require("tracker_hud.low_level.control_infer")
@@ -1597,6 +1598,28 @@ local function get_register_fact_from_map(facts_by_register, register_name)
     return facts_by_register[register_name:lower()]
 end
 
+local function resolve_register_alias(adapter, register_name)
+    if not core.is_table(adapter)
+        or not core.is_non_empty_string(register_name)
+        or not core.is_table(adapter.register_alias_index)
+    then
+        return nil
+    end
+
+    return adapter.register_alias_index[register_name:lower()]
+end
+
+local function register_state_key(adapter, register_name)
+    local resolved = resolve_register_alias(adapter, register_name)
+    if resolved and core.is_non_empty_string(resolved.canonical) then
+        return resolved.canonical:lower()
+    end
+
+    return core.is_non_empty_string(register_name)
+        and register_name:lower()
+        or nil
+end
+
 
 
 local function parse_numeric_value(value)
@@ -2119,7 +2142,14 @@ local function resolve_register_effect_value(facts_by_register, instruction, eff
 end
 
 
-local function make_register_fact(facts_by_register, adapter, instruction, effect_spec, instruction_state)
+local function make_register_fact(
+    facts_by_register,
+    family_state,
+    adapter,
+    instruction,
+    effect_spec,
+    instruction_state
+)
 
     if not core.is_table(facts_by_register)
         or not core.is_table(adapter)
@@ -2151,14 +2181,44 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         return nil
     end
 
-    local value, resolved = resolve_register_effect_value(
+    local write_value, write_resolved = resolve_register_effect_value(
         facts_by_register,
         instruction,
         effect,
         instruction_state
     )
 
-    local static_spec = get_static_register_spec(adapter, target_register) or {}
+    local value = write_value
+    local resolved = write_resolved
+
+    local alias_resolution = resolve_register_alias(adapter, target_register)
+    local canonical_name = alias_resolution
+        and alias_resolution.canonical
+        or target_register:lower()
+
+    local reduced_state = nil
+    if alias_resolution
+        and core.is_table(alias_resolution.family)
+        and alias_resolution.family.bits == 64
+        and core.is_table(alias_resolution.alias)
+        and alias_resolution.alias.bits < 64
+    then
+        reduced_state = register_value_mask.apply_alias_write(
+            family_state and family_state[canonical_name],
+            alias_resolution.alias,
+            write_value,
+            write_resolved
+        )
+
+        if reduced_state then
+            value = reduced_state.value
+            resolved = reduced_state.resolved
+        end
+    end
+
+    local static_spec = get_static_register_spec(adapter, canonical_name)
+        or get_static_register_spec(adapter, target_register)
+        or {}
     local metadata = {
         adapter = adapter.name,
         architecture = adapter.architecture,
@@ -2173,7 +2233,15 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
         effect_target_origin = target_index
             and "operand"
             or "implicit_register",
+
+        canonical_name = canonical_name,
+        write_value = write_value,
+        write_resolved = write_resolved ~= false,
     }
+
+    if reduced_state and reduced_state.partial_value then
+        metadata.partial_value = reduced_state.partial_value
+    end
 
     merge_source_metadata(
         metadata,
@@ -2230,7 +2298,15 @@ local function make_register_fact(facts_by_register, adapter, instruction, effec
 end
 
 
-local function apply_register_effect(facts_by_register, adapter, instruction, effect_spec, instruction_state)
+local function apply_register_effect(
+    facts_by_register,
+    family_state,
+    latest_state_facts,
+    adapter,
+    instruction,
+    effect_spec,
+    instruction_state
+)
     if not core.is_table(facts_by_register)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -2262,6 +2338,7 @@ local function apply_register_effect(facts_by_register, adapter, instruction, ef
 
     local fact = make_register_fact(
         facts_by_register,
+        family_state,
         adapter,
         instruction,
         effect_spec,
@@ -2269,7 +2346,24 @@ local function apply_register_effect(facts_by_register, adapter, instruction, ef
     )
 
     if fact then
-        facts_by_register[fact.name] = fact
+        local state_key = register_state_key(adapter, fact.name)
+            or fact.name
+
+        latest_state_facts[state_key] = fact
+        family_state[state_key] = fact
+
+        -- Keep source-operand lookup behaviour separate from canonical reduced
+        -- state. A later register-read of the same spelling sees the value
+        -- that was written through that alias, while presentation consumes
+        -- latest_state_facts.
+        facts_by_register[fact.name] = {
+            name = fact.name,
+            value = fact.metadata and fact.metadata.write_value or fact.value,
+            resolved = fact.metadata
+                and fact.metadata.write_resolved
+                or fact.resolved,
+            metadata = fact.metadata,
+        }
     end
 end
 
@@ -2377,6 +2471,8 @@ function M.collect_register_effects(context, adapter, opts)
     end)
 
     local facts_by_register = {}
+    local family_state = {}
+    local latest_state_facts = {}
     local low_level_state = low_level_inference.new_state()
 
     for _, entry in ipairs(nodes) do
@@ -2408,6 +2504,8 @@ function M.collect_register_effects(context, adapter, opts)
             for _, effect_spec in ipairs(effect_specs or {}) do
                 apply_register_effect(
                     facts_by_register,
+                    family_state,
+                    latest_state_facts,
                     adapter,
                     instruction,
                     effect_spec,
@@ -2417,7 +2515,7 @@ function M.collect_register_effects(context, adapter, opts)
         end
     end
 
-    return register_infer.to_fact_list(facts_by_register)
+    return register_infer.to_fact_list(latest_state_facts)
 end
 
 
