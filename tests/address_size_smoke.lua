@@ -12,6 +12,10 @@ local policy = {
         [32] = 32,
         [64] = 64,
     },
+    prefixes = {
+        a32 = 32,
+        a64 = 64,
+    },
 }
 
 local function register(name, role)
@@ -61,6 +65,52 @@ assert(result.status == "known"
     and result.source == "register_width",
     "32-bit address registers must resolve 32-bit address size")
 print("PASS address size: 32-bit register addressing")
+
+result = address_size.resolve(
+    policy,
+    {},
+    resolve,
+    {
+        explicit_bits = 32,
+        explicit_prefix = "a32",
+    }
+)
+assert(result.status == "known"
+    and result.bits == 32
+    and result.source == "explicit_prefix"
+    and result.details.prefix == "a32",
+    "explicit A32 must select 32-bit address size")
+print("PASS address size: explicit prefix selects address width")
+
+result = address_size.resolve(
+    policy,
+    {
+        register("rax", "base_register"),
+    },
+    resolve,
+    {
+        explicit_bits = 32,
+        explicit_prefix = "a32",
+    }
+)
+assert(result.status == "unknown"
+    and result.reason == "address-size prefix conflicts with registers",
+    "explicit address size must conflict with incompatible register width")
+print("PASS address size: explicit prefix/register conflict fails closed")
+
+result = address_size.resolve(
+    policy,
+    {},
+    resolve,
+    {
+        explicit_error = "conflicting explicit address-size prefixes",
+        explicit_prefixes = { "a32", "a64" },
+    }
+)
+assert(result.status == "unknown"
+    and result.reason == "conflicting explicit address-size prefixes",
+    "conflicting source prefixes must fail closed")
+print("PASS address size: conflicting explicit prefixes fail closed")
 
 result = address_size.resolve(policy, {
     register("rax", "base_register"),
