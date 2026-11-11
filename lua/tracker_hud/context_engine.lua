@@ -3578,16 +3578,16 @@ local function build_memory_source_operand(
 end
 
 
-function M.discover_memory_source_operands(
+local function collect_memory_source_operands_where(
     bufnr,
     root_node,
     adapter,
-    line_number
+    line_predicate
 )
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
-        or not core.is_number(line_number)
+        or type(line_predicate) ~= "function"
     then
         return {}
     end
@@ -3619,7 +3619,9 @@ function M.discover_memory_source_operands(
             end_row,
             end_column = node:range()
 
-        if start_row + 1 == line_number then
+        local source_line = start_row + 1
+
+        if line_predicate(source_line) then
             local node_key = table.concat({
                 node:type(),
                 tostring(start_row),
@@ -3691,6 +3693,13 @@ function M.discover_memory_source_operands(
     end
 
     table.sort(result, function(left, right)
+        local left_line = left.source_line or 0
+        local right_line = right.source_line or 0
+
+        if left_line ~= right_line then
+            return left_line < right_line
+        end
+
         local left_column = left.source_start_column or 0
         local right_column = right.source_start_column or 0
 
@@ -3704,6 +3713,53 @@ function M.discover_memory_source_operands(
 
     return result
 end
+
+
+function M.discover_memory_source_operands(
+    bufnr,
+    root_node,
+    adapter,
+    line_number
+)
+    if not core.is_number(line_number) then
+        return {}
+    end
+
+    local exact_line = math.floor(line_number)
+
+    return collect_memory_source_operands_where(
+        bufnr,
+        root_node,
+        adapter,
+        function(source_line)
+            return source_line == exact_line
+        end
+    )
+end
+
+
+function M.collect_memory_source_operands(
+    bufnr,
+    root_node,
+    adapter,
+    cursor_line
+)
+    if not core.is_number(cursor_line) then
+        return {}
+    end
+
+    local visible_line = math.floor(cursor_line)
+
+    return collect_memory_source_operands_where(
+        bufnr,
+        root_node,
+        adapter,
+        function(source_line)
+            return source_line <= visible_line
+        end
+    )
+end
+
 
 function M.discover_register_source_occurrences(
     bufnr,
