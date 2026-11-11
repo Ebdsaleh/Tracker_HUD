@@ -52,6 +52,22 @@ assert(kind == "address_only"
 print("PASS memory access: address-only intent remains distinct")
 
 kind, metadata = access.resolve(
+    {
+        xchg = {
+            { operand_index = 1, operand_kind = "memory", access = "read_write" },
+        },
+    },
+    "xchg",
+    1,
+    { kind = "memory" }
+)
+assert(kind == "read_write"
+    and metadata.declared == true
+    and metadata.ambiguous == false,
+    "read_write intent must remain a first-class normalized value")
+print("PASS memory access: read_write intent remains distinct")
+
+kind, metadata = access.resolve(
     rules,
     "inc",
     1,
