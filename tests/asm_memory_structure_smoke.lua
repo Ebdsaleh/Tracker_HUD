@@ -11,6 +11,7 @@ local function run()
         "mov [rsp + 8], rax",
         "lea rsi, [rel msg]",
         "lea rdx, [abs 0x1234]",
+        "lea r8, [rax + 0b1000]",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -152,6 +153,18 @@ local function run()
         and absolute_address.displacement.value == "4660",
         "ABS numeric address must preserve exact displacement")
     print("PASS ASM memory structure: ABS mode + exact hexadecimal displacement")
+
+    local binary = parse_line(6)
+    local binary_address = assert(
+        binary.operands[2]
+            and binary.operands[2].memory
+            and binary.operands[2].memory.normalized
+    )
+    assert(binary_address.base and binary_address.base.name == "rax"
+        and binary_address.displacement
+        and binary_address.displacement.value == "8",
+        "binary displacement must reuse exact integer parsing")
+    print("PASS ASM memory structure: binary displacement stays exact")
 
     local register_occurrences =
         engine.discover_register_source_occurrences(
