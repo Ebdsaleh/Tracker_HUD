@@ -97,6 +97,22 @@ function M.normalize(memory)
         address_mode = memory.address_mode or "default",
         address_mode_token = memory.address_mode_token,
 
+        address_size_bits = type(memory.address_size) == "table"
+            and memory.address_size.bits
+            or nil,
+        address_size_status = type(memory.address_size) == "table"
+            and memory.address_size.status
+            or "unknown",
+        address_size_source = type(memory.address_size) == "table"
+            and memory.address_size.source
+            or nil,
+        address_size_reason = type(memory.address_size) == "table"
+            and memory.address_size.reason
+            or nil,
+        address_size_details = type(memory.address_size) == "table"
+            and vim.deepcopy(memory.address_size.details or {})
+            or {},
+
         memory_size_bits = type(memory.size) == "table"
             and memory.size.bits
             or nil,
