@@ -470,6 +470,168 @@ local function validate_branch(branch, path)
 end
 
 
+local function validate_memory_operand_spec(memory, path)
+    if memory == nil then
+        return true, nil
+    end
+
+    if not core.is_table(memory) then
+        return path_error(path, "must be a table when provided")
+    end
+
+    for _, key in ipairs({
+        "kind",
+        "container_kind",
+        "address_kind",
+    }) do
+        if memory[key] ~= nil
+            and not core.is_non_empty_string(memory[key])
+        then
+            return path_error(
+                path .. "." .. key,
+                "must be a non-empty string when provided"
+            )
+        end
+    end
+
+    if memory.brackets ~= nil then
+        if not core.is_table(memory.brackets) then
+            return path_error(path .. ".brackets", "must be a table")
+        end
+
+        for _, key in ipairs({ "open", "close" }) do
+            if not core.is_non_empty_string(memory.brackets[key]) then
+                return path_error(
+                    path .. ".brackets." .. key,
+                    "must be a non-empty string"
+                )
+            end
+        end
+    end
+
+    if memory.address_modes ~= nil then
+        if not core.is_table(memory.address_modes) then
+            return path_error(path .. ".address_modes", "must be a table")
+        end
+
+        for token, mode in pairs(memory.address_modes) do
+            if not core.is_non_empty_string(token) then
+                return path_error(
+                    path .. ".address_modes",
+                    "keys must be non-empty strings"
+                )
+            end
+
+            if not core.is_table(mode)
+                or not core.is_non_empty_string(mode.kind)
+            then
+                return path_error(
+                    path .. ".address_modes[" .. tostring(token) .. "]",
+                    "must declare a non-empty kind"
+                )
+            end
+        end
+    end
+
+    if memory.size_prefixes ~= nil then
+        if not core.is_table(memory.size_prefixes) then
+            return path_error(path .. ".size_prefixes", "must be a table")
+        end
+
+        for prefix, size in pairs(memory.size_prefixes) do
+            if not core.is_non_empty_string(prefix) then
+                return path_error(
+                    path .. ".size_prefixes",
+                    "keys must be non-empty strings"
+                )
+            end
+
+            if not core.is_table(size)
+                or not core.is_number(size.bits)
+                or size.bits <= 0
+                or size.bits ~= math.floor(size.bits)
+            then
+                return path_error(
+                    path .. ".size_prefixes[" .. tostring(prefix) .. "].bits",
+                    "must be a positive integer"
+                )
+            end
+
+            if size.label ~= nil
+                and not core.is_non_empty_string(size.label)
+            then
+                return path_error(
+                    path .. ".size_prefixes[" .. tostring(prefix) .. "].label",
+                    "must be a non-empty string when provided"
+                )
+            end
+        end
+    end
+
+    if memory.component_roles ~= nil then
+        if not core.is_table(memory.component_roles) then
+            return path_error(path .. ".component_roles", "must be a table")
+        end
+
+        for role, role_spec in pairs(memory.component_roles) do
+            if not core.is_non_empty_string(role) then
+                return path_error(
+                    path .. ".component_roles",
+                    "keys must be non-empty strings"
+                )
+            end
+
+            if not core.is_table(role_spec) then
+                return path_error(
+                    path .. ".component_roles[" .. tostring(role) .. "]",
+                    "must be a table"
+                )
+            end
+
+            if role_spec.label ~= nil
+                and not core.is_non_empty_string(role_spec.label)
+            then
+                return path_error(
+                    path .. ".component_roles[" .. tostring(role) .. "].label",
+                    "must be a non-empty string when provided"
+                )
+            end
+
+            if role_spec.kind ~= nil
+                and not core.is_non_empty_string(role_spec.kind)
+            then
+                return path_error(
+                    path .. ".component_roles[" .. tostring(role) .. "].kind",
+                    "must be a non-empty string when provided"
+                )
+            end
+        end
+    end
+
+    if memory.register_role_overrides ~= nil then
+        if not core.is_table(memory.register_role_overrides) then
+            return path_error(
+                path .. ".register_role_overrides",
+                "must be a table"
+            )
+        end
+
+        for register_name, role in pairs(memory.register_role_overrides) do
+            if not core.is_non_empty_string(register_name)
+                or not core.is_non_empty_string(role)
+            then
+                return path_error(
+                    path .. ".register_role_overrides",
+                    "must map non-empty register names to non-empty roles"
+                )
+            end
+        end
+    end
+
+    return true, nil
+end
+
+
 local function validate_construct_entry(node_type, spec, path)
     if not core.is_table(spec) then
         return path_error(path, "must be a table")
@@ -525,6 +687,17 @@ local function validate_construct_entry(node_type, spec, path)
             path .. ".value.language_term",
             "is required when value is declared"
         )
+    end
+
+    if core.is_table(spec.operand) then
+        ok, err = validate_memory_operand_spec(
+            spec.operand.memory,
+            path .. ".operand.memory"
+        )
+
+        if not ok then
+            return false, err
+        end
     end
 
     ok, err = validate_branch(
