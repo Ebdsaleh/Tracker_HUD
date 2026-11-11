@@ -3335,3 +3335,122 @@ normalized address without pretending memory contents are already modeled.
 
 Only after access intent is reliable should effective-address calculation reuse
 known register state and exact displacement arithmetic.
+
+
+## Test-harness repair: force parser regressions onto the working tree (2026-11-11)
+
+**Status: pushed on `main`, pending ERIDU confirmation.**
+
+The first ERIDU run of the structural-memory tranche produced an impossible state
+for the committed parser implementation:
+
+```text
+operand.memory existed
+operand.memory.normalized was nil
+```
+
+At the same time, the older source-focus regression still printed:
+
+```text
+memory_component:rel msg
+```
+
+instead of separating:
+
+```text
+address_mode = relative
+symbol = msg
+```
+
+Static review confirmed:
+
+- the repository contains only one
+  `lua/tracker_hud/adapters/asm/instruction_utils.lua`;
+- its committed `analyze_memory_operand()` always assigns
+  `memory.normalized = memory_address.normalize(memory)` before returning;
+- the default ASM variant is x86-64;
+- the x86 variant entry point is the exact adapter module containing the new
+  memory declarations.
+
+Therefore a current-repository parser cannot return a memory table lacking
+`normalized`.
+
+The remaining credible cause is normal Neovim startup preloading an installed or
+plugin-manager copy of Tracker_HUD before the regression script prepends the
+working repository to `runtimepath`.
+
+Lua `require()` consults `package.loaded` first, so changing runtimepath after
+the module has already been loaded does not replace that cached module.
+
+### Working-tree isolation helper
+
+Created:
+
+```text
+tests/test_runtime.lua
+```
+
+Parser-backed source-tree regressions now call:
+
+```lua
+dofile("tests/test_runtime.lua").use_working_tree()
+```
+
+before requiring Tracker_HUD modules.
+
+The helper:
+
+1. prepends the current repository to Neovim runtimepath;
+2. removes every cached `tracker_hud` / `tracker_hud.*` module from
+   `package.loaded`;
+3. allows subsequent `require()` calls to load the freshly pulled working tree.
+
+Applied to:
+
+```text
+tests/asm_memory_structure_smoke.lua
+tests/asm_register_focus_regression.lua
+tests/x86_alias_read_state_smoke.lua
+tests/x86_alias_write_state_smoke.lua
+tests/x86_immediate_interpretation_smoke.lua
+tests/x86_width_wrap_state_smoke.lua
+```
+
+### Isolation regression
+
+Created:
+
+```text
+tests/test_runtime_smoke.lua
+```
+
+The test deliberately installs a fake stale module into:
+
+```lua
+package.loaded["tracker_hud.low_level.memory_address"]
+```
+
+then runs the helper and requires the module again.
+
+Expected:
+
+```text
+PASS test runtime: preloaded Tracker_HUD module is evicted
+PASS test runtime: repository implementation reloads from working tree
+PASS Tracker_HUD test runtime isolation smoke
+```
+
+### Targeted ERIDU gate
+
+```bat
+git pull --ff-only
+
+nvim --headless -u NONE -c "luafile tests/test_runtime_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
+
+If the normalized-memory regression still fails after this isolation, treat it
+as a real parser defect and inspect the now-current module path/state.
+
+Do not weaken structural-memory assertions.
