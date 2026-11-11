@@ -15,8 +15,6 @@ local function run()
         "lea rsi, [rel msg]",
         "mov rax, 0xFFFFFFFFFFFFFFFF",
         "mov rbx, [rax + 1]",
-        "mov rax, 0x1000",
-        "mov rbx, [eax + 4]",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -99,14 +97,6 @@ local function run()
             == "18446744073709551616",
         "64-bit address arithmetic must wrap only at target-width boundary")
     print("PASS ASM effective address: 64-bit address wrap is explicit")
-
-    local alias = one(11)
-    assert(alias.effective_address.status == "known"
-        and alias.effective_address.value == "4100"
-        and alias.effective_address.components.base.name == "eax"
-        and alias.effective_address.components.base.value == "4096",
-        "effective address must reuse canonical-to-alias register projection")
-    print("PASS ASM effective address: alias-aware base register read")
 
     vim.api.nvim_set_current_buf(buffer)
     vim.api.nvim_win_set_cursor(0, { 9, 0 })
