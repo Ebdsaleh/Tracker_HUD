@@ -3758,6 +3758,14 @@ local function build_memory_source_operand(
             execution_status = "not_observed",
         },
     }
+
+    append_effective_address_metadata(
+        fact.metadata,
+        evaluation,
+        "effective_address"
+    )
+
+    return fact
 end
 
 
