@@ -1938,6 +1938,23 @@ local function append_memory_operand_metadata(metadata, operand)
         metadata.memory_size_prefix = memory.size.prefix
     end
 
+    if core.is_table(memory.normalized) then
+        local address = memory.normalized
+
+        metadata.memory_address_structured = address
+        metadata.memory_address_mode = address.address_mode
+        metadata.memory_base_register =
+            address.base and address.base.name or nil
+        metadata.memory_index_register =
+            address.index and address.index.name or nil
+        metadata.memory_scale =
+            address.scale and address.scale.value or nil
+        metadata.memory_displacement =
+            address.displacement and address.displacement.value or nil
+        metadata.memory_symbol =
+            address.symbol and address.symbol.name or nil
+    end
+
     local component_labels = {}
 
     for _, component in ipairs(memory.components or {}) do
@@ -1975,7 +1992,9 @@ local function append_memory_component_metadata(metadata, operand, component)
     metadata.focused_token_kind = get_operand_kind_label(component.kind)
     metadata.address_role = component.role_label
         or format_operand_role_label(component.role)
-    metadata.address_role_id = component.role
+    metadata.address_role_id = component.structural_role
+        or component.role
+    metadata.address_display_role_id = component.role
 
     if core.is_non_empty_string(operand and operand.text) then
         metadata.value_source = build_value_source_label(operand)
@@ -3568,60 +3587,102 @@ function M.discover_memory_source_operands(
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
-        or not core.is_table(adapter.register_effects)
         or not core.is_number(line_number)
     then
         return {}
     end
 
-    local effect_index = get_register_effect_index(adapter)
+    local instruction_spec = core.is_table(adapter.construct_specs)
+        and adapter.construct_specs.instruction
+        or nil
+    local syntax = core.is_table(instruction_spec)
+        and instruction_spec.syntax
+        or nil
+    local instruction_node_type =
+        core.is_table(syntax)
+        and core.is_non_empty_string(syntax.node_type)
+        and syntax.node_type
+        or "instruction"
+
+    local effect_index = core.is_table(adapter.register_effects)
+        and get_register_effect_index(adapter)
+        or nil
+
     local result = {}
     local seen_nodes = {}
 
-    for node_type, _ in pairs(effect_index.node_types) do
-        for _, node in ipairs(
-            collect_nodes_by_type(root_node, node_type)
-        ) do
-            local start_row,
-                start_column,
-                end_row,
-                end_column = node:range()
+    for _, node in ipairs(
+        collect_nodes_by_type(root_node, instruction_node_type)
+    ) do
+        local start_row,
+            start_column,
+            end_row,
+            end_column = node:range()
 
-            if start_row + 1 == line_number then
-                local node_key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
+        if start_row + 1 == line_number then
+            local node_key = table.concat({
+                node:type(),
+                tostring(start_row),
+                tostring(start_column),
+                tostring(end_row),
+                tostring(end_column),
+            }, ":")
 
-                if not seen_nodes[node_key] then
-                    seen_nodes[node_key] = true
+            if not seen_nodes[node_key] then
+                seen_nodes[node_key] = true
 
-                    local instruction, matching_specs =
-                        get_matching_register_effect_specs(
-                            effect_index,
-                            adapter,
-                            node,
-                            bufnr
-                        )
+                local instruction = collect_instruction_operands(
+                    adapter,
+                    node,
+                    bufnr,
+                    nil
+                )
 
-                    if instruction then
-                        for operand_index, operand in ipairs(
-                            instruction.operands or {}
-                        ) do
-                            local memory_operand =
-                                build_memory_source_operand(
-                                    instruction,
-                                    operand,
-                                    operand_index,
-                                    matching_specs
-                                )
+                local matching_specs = {}
 
-                            if memory_operand then
-                                table.insert(result, memory_operand)
-                            end
+                if instruction and effect_index then
+                    local node_bucket = effect_index.by_node_type[
+                        node:type()
+                    ]
+
+                    local mnemonic = normalize_mnemonic(
+                        instruction.mnemonic
+                    )
+
+                    local candidates = node_bucket
+                        and mnemonic
+                        and node_bucket[mnemonic]
+                        or nil
+
+                    for _, effect_spec in ipairs(candidates or {}) do
+                        if operands_match_effect(instruction, effect_spec)
+                            and condition_matches(
+                                instruction,
+                                effect_spec.condition
+                            )
+                        then
+                            table.insert(
+                                matching_specs,
+                                effect_spec
+                            )
+                        end
+                    end
+                end
+
+                if instruction then
+                    for operand_index, operand in ipairs(
+                        instruction.operands or {}
+                    ) do
+                        local memory_operand =
+                            build_memory_source_operand(
+                                instruction,
+                                operand,
+                                operand_index,
+                                matching_specs
+                            )
+
+                        if memory_operand then
+                            table.insert(result, memory_operand)
                         end
                     end
                 end
@@ -3643,7 +3704,6 @@ function M.discover_memory_source_operands(
 
     return result
 end
-
 
 function M.discover_register_source_occurrences(
     bufnr,
