@@ -415,6 +415,7 @@ local function token_kind(token, register_index)
     end
 
     if token:match("^[+-]?0[xX][0-9a-fA-F]+$")
+        or token:match("^[+-]?0[bB][01]+$")
         or token:match("^[+-]?%d+$")
     then
         return "integer"
