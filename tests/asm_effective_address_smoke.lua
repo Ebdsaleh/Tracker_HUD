@@ -83,10 +83,11 @@ local function run()
 
     local symbolic = one(7)
     assert(symbolic.effective_address.status == "unknown"
-        and symbolic.effective_address.reason == "symbol address unresolved"
+        and symbolic.effective_address.reason
+            == "relative address basis unresolved"
         and symbolic.effective_address.details.symbol == "msg"
         and symbolic.metadata.execution_status == "not_observed",
-        "REL symbol must remain unresolved without symbol-address model")
+        "REL symbol must remain unresolved without instruction-position basis")
     print("PASS ASM effective address: symbolic REL address stays unresolved")
 
     local wrapped = one(9)
