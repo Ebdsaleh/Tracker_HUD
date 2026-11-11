@@ -100,7 +100,7 @@ local symbolic = evaluator.evaluate({
     symbol = {
         name = "msg",
     },
-    address_mode = "relative",
+    address_mode = "default",
     metadata = { ambiguous = {} },
 }, {
     bits = 64,
