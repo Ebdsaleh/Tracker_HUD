@@ -48,6 +48,14 @@ assert(not map_ok
     "address-size register map outside allowed widths must fail")
 print("PASS memory contract: invalid address-size register map is rejected")
 
+local bad_address_prefix = fresh_adapter()
+memory_spec(bad_address_prefix).address_size_policy.prefixes.a32 = 16
+local prefix_ok, prefix_err = contract.validate_adapter(bad_address_prefix)
+assert(not prefix_ok
+    and tostring(prefix_err):find("prefixes[a32]", 1, true),
+    "address-size prefix outside allowed widths must fail")
+print("PASS memory contract: invalid address-size prefix is rejected")
+
 local duplicate_address_width = fresh_adapter()
 memory_spec(duplicate_address_width).address_size_policy.allowed_bits = {
     32,
