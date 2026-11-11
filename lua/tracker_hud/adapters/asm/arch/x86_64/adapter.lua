@@ -345,6 +345,15 @@ M.construct_specs = {
                 container_kind = "memory",
                 address_kind = "address_expression",
 
+                address_modes = {
+                    rel = {
+                        kind = "relative",
+                    },
+                    abs = {
+                        kind = "absolute",
+                    },
+                },
+
                 brackets = {
                     open = "[",
                     close = "]",
