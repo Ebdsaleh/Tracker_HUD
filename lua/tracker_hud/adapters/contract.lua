@@ -593,6 +593,38 @@ local function validate_memory_operand_spec(memory, path)
             )
         end
 
+        if policy.prefixes ~= nil then
+            if not core.is_table(policy.prefixes) then
+                return path_error(
+                    policy_path .. ".prefixes",
+                    "must be a table"
+                )
+            end
+
+            for prefix, bits in pairs(policy.prefixes) do
+                if not core.is_non_empty_string(prefix) then
+                    return path_error(
+                        policy_path .. ".prefixes",
+                        "keys must be non-empty strings"
+                    )
+                end
+
+                if not core.is_number(bits)
+                    or bits <= 0
+                    or bits ~= math.floor(bits)
+                    or not allowed[bits]
+                then
+                    return path_error(
+                        policy_path
+                            .. ".prefixes["
+                            .. tostring(prefix)
+                            .. "]",
+                        "must map to a width declared in allowed_bits"
+                    )
+                end
+            end
+        end
+
         if policy.register_width_map ~= nil then
             if not core.is_table(policy.register_width_map) then
                 return path_error(
