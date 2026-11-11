@@ -9,6 +9,7 @@
 -- This module does not emulate instructions.
 
 local treesitter_utils = require("tracker_hud.treesitter_utils")
+local memory_address = require("tracker_hud.low_level.memory_address")
 
 local M = {}
 
@@ -473,6 +474,7 @@ local function add_memory_component(components, opts)
         text = opts.text,
         kind = opts.kind,
         role = opts.role,
+        structural_role = opts.structural_role or opts.role,
         role_label = opts.role_label,
         source_line = opts.source_line,
         source_column = opts.source_column,
@@ -518,6 +520,7 @@ local function add_token_component(
         text = clean_token,
         kind = kind,
         role = final_role,
+        structural_role = role,
         role_label = role_label(final_role, memory_spec),
         source_line = address_source_line,
         source_column = address_start_column + clean_offset,
@@ -667,6 +670,43 @@ local function parse_memory_components(
 end
 
 
+local function parse_address_mode(
+    address_text,
+    address_start_column,
+    memory_spec
+)
+    if type(address_text) ~= "string" then
+        return nil, nil, address_text, address_start_column
+    end
+
+    local modes = type(memory_spec) == "table"
+        and memory_spec.address_modes
+        or nil
+
+    if type(modes) ~= "table" then
+        return nil, nil, address_text, address_start_column
+    end
+
+    local token, rest = address_text:match("^([%a_][%w_]*)%s+(.+)$")
+    if not token then
+        return nil, nil, address_text, address_start_column
+    end
+
+    local spec = modes[token:lower()]
+    if type(spec) ~= "table" then
+        return nil, nil, address_text, address_start_column
+    end
+
+    local rest_start = address_text:find(rest, #token + 1, true)
+        or (#token + 2)
+
+    return token:lower(),
+        spec.kind or token:lower(),
+        rest,
+        address_start_column + rest_start - 1
+end
+
+
 local function analyze_memory_operand(
     bufnr,
     node,
@@ -709,10 +749,19 @@ local function analyze_memory_operand(
             source_start_column + open_end
         )
 
+    local address_mode_token,
+        address_mode,
+        component_text,
+        component_start_column = parse_address_mode(
+            trimmed_address or "",
+            trimmed_address_column,
+            memory_spec
+        )
+
     local register_index = build_register_alias_index(adapter)
     local components = parse_memory_components(
-        trimmed_address or "",
-        trimmed_address_column,
+        component_text or "",
+        component_start_column,
         source_start_line,
         memory_spec,
         register_index
@@ -723,7 +772,7 @@ local function analyze_memory_operand(
         memory_spec
     )
 
-    return {
+    local memory = {
         kind = memory_spec.kind or "memory",
         container_kind = memory_spec.container_kind or "memory",
         address_kind = memory_spec.address_kind or "address_expression",
@@ -731,9 +780,16 @@ local function analyze_memory_operand(
         address_start_column = trimmed_address_column,
         address_end_column = trimmed_address_column
             + #(trimmed_address or ""),
+        source_line = source_start_line,
+        address_mode = address_mode or "default",
+        address_mode_token = address_mode_token,
         size = size,
         components = components,
     }
+
+    memory.normalized = memory_address.normalize(memory)
+
+    return memory
 end
 
 
