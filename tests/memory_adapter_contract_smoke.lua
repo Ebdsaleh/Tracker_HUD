@@ -64,4 +64,32 @@ assert(not override_ok
     "empty register-role override must fail at adapter contract")
 print("PASS memory contract: invalid role override is rejected")
 
+local bad_access = fresh_adapter()
+bad_access.memory_accesses.mov[1].access = "execute"
+local access_ok, access_err = contract.validate_adapter(bad_access)
+assert(not access_ok
+    and tostring(access_err):find("memory_accesses[mov][1].access", 1, true),
+    "invalid memory access kind must fail at adapter contract")
+print("PASS memory contract: invalid access intent is rejected")
+
+local duplicate_access = fresh_adapter()
+duplicate_access.memory_accesses.mov[#duplicate_access.memory_accesses.mov + 1] = {
+    operand_index = 1,
+    operand_kind = "memory",
+    access = "read",
+}
+local duplicate_ok, duplicate_err = contract.validate_adapter(duplicate_access)
+assert(not duplicate_ok
+    and tostring(duplicate_err):find("operand_index", 1, true),
+    "duplicate memory access rule must fail at adapter contract")
+print("PASS memory contract: duplicate operand access rule is rejected")
+
+local bad_operand_index = fresh_adapter()
+bad_operand_index.memory_accesses.mov[1].operand_index = 0
+local index_ok, index_err = contract.validate_adapter(bad_operand_index)
+assert(not index_ok
+    and tostring(index_err):find("operand_index", 1, true),
+    "invalid memory access operand index must fail at adapter contract")
+print("PASS memory contract: invalid access operand index is rejected")
+
 print("PASS Tracker_HUD memory adapter contract smoke")
