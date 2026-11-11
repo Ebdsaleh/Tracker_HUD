@@ -111,6 +111,18 @@ assert(symbolic.status == "unknown"
     "symbolic address must remain unresolved without symbol-address model")
 print("PASS effective address: symbolic address remains unresolved")
 
+local relative_numeric = evaluator.evaluate({
+    address_mode = "relative",
+    displacement = component(nil, "displacement", "16"),
+    metadata = { ambiguous = {} },
+}, {
+    bits = 64,
+})
+assert(relative_numeric.status == "unknown"
+    and relative_numeric.reason == "relative address basis unresolved",
+    "relative numeric address must not become absolute without instruction basis")
+print("PASS effective address: relative numeric basis remains unresolved")
+
 local ambiguous = evaluator.evaluate({
     base = component("rax", "base_register"),
     metadata = {
