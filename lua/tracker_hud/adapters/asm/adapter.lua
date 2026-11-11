@@ -776,6 +776,7 @@ local function apply_variant(variant)
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
     M.register_effects = variant.register_effects or {}
+    M.memory_accesses = variant.memory_accesses or {}
     M.stack_effects = variant.stack_effects or {}
     M.boundary_effects = variant.boundary_effects or {}
     M.instruction_events = variant.instruction_events or {}
