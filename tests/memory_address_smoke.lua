@@ -74,8 +74,11 @@ assert(normalized.version == 1
 assert(normalized.base
     and normalized.base.name == "rbp"
     and normalized.base.role == "base_register"
-    and normalized.base.display_role == "frame pointer base",
-    "base register must separate structural/display roles")
+    and normalized.base.display_role == "frame pointer base"
+    and normalized.base.identity_known == true
+    and normalized.base.value_status == "not_evaluated"
+    and normalized.base.resolved == nil,
+    "base register must separate structural identity from runtime value")
 assert(normalized.index and normalized.index.name == "rax",
     "index register missing")
 assert(normalized.scale
@@ -108,8 +111,11 @@ local relative = assert(memory_address.normalize({
 assert(relative.address_mode == "relative"
     and relative.address_mode_token == "rel"
     and relative.symbol
-    and relative.symbol.name == "msg",
-    "relative symbol structure changed")
+    and relative.symbol.name == "msg"
+    and relative.symbol.identity_known == true
+    and relative.symbol.value_status == "not_evaluated"
+    and relative.symbol.resolved == nil,
+    "relative symbol identity must not claim a runtime address")
 print("PASS memory address: address mode and symbol stay separate")
 
 local ambiguous = assert(memory_address.normalize({
