@@ -3800,3 +3800,456 @@ become numeric effective addresses.
 
 Even a known effective address must remain distinct from proof that a memory
 access executed or that memory contents are known.
+
+
+## Accepted memory access-intent gate (2026-11-11)
+
+The memory access-intent tranche is accepted green on ERIDU.
+
+Confirmed:
+
+~~~
+PASS memory access: declared read intent resolves
+PASS memory access: declared write intent resolves
+PASS memory access: address-only intent remains distinct
+PASS memory access: read_write intent remains distinct
+PASS memory access: undeclared intent fails closed
+PASS memory access: conflicting rules fail closed
+PASS memory access: normalized access vocabulary
+PASS Tracker_HUD memory access-intent smoke
+~~~
+
+Parser-backed x86 coverage also passed:
+
+~~~
+PASS ASM memory access: MOV source memory is read
+PASS ASM memory access: MOV destination memory is write
+PASS ASM memory access: LEA is address_only
+PASS ASM memory access: Inspect reuses address-only intent
+PASS ASM memory access: undeclared instruction stays unknown
+PASS ASM memory access: context preserves ON/PAST access intent
+PASS Tracker_HUD ASM memory access-intent smoke
+~~~
+
+The structural-memory, register-focus, alias-read, Adapter Contract, and
+normalized-fact regressions remained green.
+
+## Foundational memory tranche: effective-address evaluation (2026-11-11)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+The previous memory layers now separate three distinct facts:
+
+~~~
+address structure
+access intent
+execution status
+~~~
+
+This tranche adds a fourth:
+
+~~~
+source-derived effective-address value
+~~~
+
+only when every required numeric input is proven.
+
+A known effective address still does not imply:
+
+~~~
+the instruction executed
+memory was successfully accessed
+memory contents are known
+the pointer is valid
+~~~
+
+### Exact multiplication
+
+Updated:
+
+~~~
+lua/tracker_hud/low_level/integer_value.lua
+~~~
+
+New operation:
+
+~~~
+multiply(left, right)
+~~~
+
+It preserves exact signed decimal-string arithmetic and never routes wide values
+through Lua floating-point numbers.
+
+Examples:
+
+~~~
+3 * 4
+-> 12
+
+-3 * 4
+-> -12
+
+18446744073709551615 * 4
+-> 73786976294838206460
+~~~
+
+This is required for index*scale address terms.
+
+### Architecture-neutral effective-address evaluator
+
+Created:
+
+~~~
+lua/tracker_hud/low_level/effective_address.lua
+~~~
+
+The evaluator consumes:
+
+~~~
+normalized address structure
++
+caller-supplied register resolver
++
+optional target address width
+~~~
+
+It knows no x86 register names.
+
+For a normalized address:
+
+~~~
+base         = rbp
+index        = rcx
+scale        = 4
+displacement = -8
+~~~
+
+with:
+
+~~~
+rbp = 4096
+rcx = 3
+~~~
+
+the exact source expression is:
+
+~~~
+4096 + 3*4 - 8
+= 4100
+~~~
+
+### Certainty rules
+
+The evaluator returns:
+
+~~~
+status = known
+value
+bits
+wrapped
+components
+~~~
+
+or:
+
+~~~
+status = unknown
+reason
+details
+~~~
+
+It fails closed when:
+
+- a required base register is unresolved;
+- a required index register is unresolved;
+- scale/displacement cannot be normalized;
+- scale exists without an index;
+- the structural address is ambiguous;
+- a symbol has no numeric address model;
+- relative addressing requires an unavailable instruction-position basis;
+- address-width wrapping cannot be performed.
+
+### Relative addresses
+
+Explicit relative address modes remain unresolved.
+
+For example:
+
+~~~
+[rel msg]
+~~~
+
+does NOT become a guessed numeric address.
+
+Likewise:
+
+~~~
+[rel 0x10]
+~~~
+
+does NOT become absolute address 16.
+
+The current model does not yet have a numeric instruction-position / next-IP
+basis, so the evaluator reports:
+
+~~~
+relative address basis unresolved
+~~~
+
+This is deliberate.
+
+### Absolute numeric addresses
+
+A displacement-only absolute numeric address can evaluate directly.
+
+Example:
+
+~~~
+[abs 0x1234]
+-> 4660
+~~~
+
+provided the architecture address width is known.
+
+### Target-width wrapping
+
+The evaluator can optionally apply the architecture address width after exact
+mathematical evaluation.
+
+Example for x86-64:
+
+~~~
+base = 18446744073709551615
+displacement = 1
+
+exact:
+18446744073709551616
+
+64-bit effective:
+0
+
+wrapped = true
+~~~
+
+### Active architecture metadata forwarding
+
+The effective-address audit found that the mutable master ASM adapter did not
+forward variant metadata.
+
+Updated:
+
+~~~
+lua/tracker_hud/adapters/asm/adapter.lua
+~~~
+
+The active variant now forwards:
+
+~~~
+metadata
+~~~
+
+alongside its other architecture-owned tables.
+
+For x86-64 this exposes:
+
+~~~
+metadata.architecture = x86-64
+metadata.bits = 64
+metadata.endian = little
+~~~
+
+Generic consumers therefore obtain address width from architecture truth rather
+than hard-coded x86 logic.
+
+### Pre-instruction state
+
+Effective addresses are evaluated from register state strictly BEFORE the memory
+instruction begins.
+
+The context engine uses its existing source-position reducer boundary:
+
+~~~
+limit_position = instruction start
+~~~
+
+This matters for self-referential instructions.
+
+Example:
+
+~~~
+mov rax, 0x2000
+lea rax, [rax + 8]
+~~~
+
+The LEA address uses the old RAX:
+
+~~~
+base = 8192
+effective = 8200
+~~~
+
+not any post-instruction destination state.
+
+### Canonical register certainty reuse
+
+The context engine converts the reduced register facts into a lookup map and
+uses the existing alias-aware register read path.
+
+Thus effective-address evaluation automatically inherits:
+
+~~~
+known canonical register state
+partial certainty handling
+canonical-to-alias projection
+fail-closed unresolved reads
+~~~
+
+The first parser-backed effective-address tranche deliberately does not claim
+32-bit address-size semantics from EAX/ESP forms yet. Address-size override
+semantics should be modeled explicitly rather than silently inheriting 64 bits.
+
+### Source memory facts
+
+First-class memory source facts now carry:
+
+~~~
+effective_address = {
+    status,
+    value,
+    bits,
+    wrapped,
+    components,
+    reason/details when unknown
+}
+~~~
+
+Metadata also exposes:
+
+~~~
+effective_address
+effective_address_status
+effective_address_value
+effective_address_reason
+effective_address_bits
+effective_address_wrapped
+~~~
+
+The compatibility effective_address field contains the proven value when known,
+otherwise "unknown".
+
+Runtime execution remains:
+
+~~~
+runtime_address = unknown
+execution_status = not_observed
+~~~
+
+### Inspect reuse
+
+Register/source occurrence metadata now consumes the same evaluated result.
+
+Inspect metadata exposes:
+
+~~~
+memory_effective_address
+memory_effective_address_status
+memory_effective_address_value
+memory_effective_address_reason
+memory_effective_address_bits
+memory_effective_address_wrapped
+~~~
+
+So selecting base/index/symbol components reuses the same source-time evaluation
+rather than reparsing or recomputing via presentation code.
+
+### Context lifecycle
+
+context.source_memory_operands preserves effective-address certainty for every
+visible source operand at that operand's own source-time register state.
+
+A later register write must not retroactively change an earlier address fact.
+
+The first implementation uses the existing prefix reducer per memory instruction
+for correctness and semantic reuse. If profiling later shows this is expensive
+on large files, prefix-state snapshots can optimize it without changing the
+effective-address contract.
+
+### New regressions
+
+tests/integer_value_smoke.lua now additionally pins exact wide multiplication.
+
+tests/effective_address_smoke.lua covers:
+
+- exact base + index*scale + displacement;
+- exact wide unbounded arithmetic;
+- explicit 64-bit wrapping;
+- unresolved required register;
+- unresolved symbol;
+- unresolved relative numeric basis;
+- ambiguous structure;
+- scale-without-index rejection;
+- displacement-only absolute evaluation.
+
+tests/asm_effective_address_smoke.lua covers:
+
+- active x86-64 architecture width forwarding;
+- proven pre-instruction base/index/scale/displacement;
+- Inspect reuse of known effective address;
+- unresolved register fail-closed behavior;
+- absolute numeric address;
+- unresolved REL basis;
+- Inspect reuse of unresolved REL reason;
+- 64-bit wraparound;
+- self-referential LEA using pre-instruction RAX;
+- normal context preserving source-time address certainty.
+
+### Deliberate boundaries
+
+This tranche does NOT yet model:
+
+~~~
+32-bit address-size override semantics
+RIP/next-instruction numeric source addresses
+symbol/linker addresses
+actual process memory
+successful execution
+memory contents
+pointer validity
+~~~
+
+Those remain separate foundations.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -16 --oneline
+
+nvim --headless -u NONE -c "luafile tests/integer_value_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_access_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/memory_adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after green
+
+The strongest next step is explicit **address-size semantics**.
+
+For x86-64, source forms using 64-bit and 32-bit address registers do not have
+identical width behavior. The model should represent address-size separately
+from operand size and architecture default width.
+
+That layer should make forms such as EAX/ESP-based addressing precise before
+expanding effective-address evaluation further.
+
+After address-size semantics, a separate symbol/instruction-position model can
+unlock RIP-relative and REL symbol evaluation without guessing.
