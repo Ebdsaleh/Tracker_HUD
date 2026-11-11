@@ -533,6 +533,107 @@ local function validate_memory_operand_spec(memory, path)
         end
     end
 
+    if memory.address_size_policy ~= nil then
+        local policy = memory.address_size_policy
+        local policy_path = path .. ".address_size_policy"
+
+        if not core.is_table(policy) then
+            return path_error(policy_path, "must be a table")
+        end
+
+        if not core.is_number(policy.default_bits)
+            or policy.default_bits <= 0
+            or policy.default_bits ~= math.floor(policy.default_bits)
+        then
+            return path_error(
+                policy_path .. ".default_bits",
+                "must be a positive integer"
+            )
+        end
+
+        if not core.is_table(policy.allowed_bits)
+            or #policy.allowed_bits == 0
+        then
+            return path_error(
+                policy_path .. ".allowed_bits",
+                "must be a non-empty array"
+            )
+        end
+
+        local allowed = {}
+
+        for index, bits in ipairs(policy.allowed_bits) do
+            if not core.is_number(bits)
+                or bits <= 0
+                or bits ~= math.floor(bits)
+            then
+                return path_error(
+                    policy_path
+                        .. ".allowed_bits["
+                        .. tostring(index)
+                        .. "]",
+                    "must be a positive integer"
+                )
+            end
+
+            if allowed[bits] then
+                return path_error(
+                    policy_path .. ".allowed_bits",
+                    "must not contain duplicate widths"
+                )
+            end
+
+            allowed[bits] = true
+        end
+
+        if not allowed[policy.default_bits] then
+            return path_error(
+                policy_path .. ".default_bits",
+                "must be present in allowed_bits"
+            )
+        end
+
+        if policy.register_width_map ~= nil then
+            if not core.is_table(policy.register_width_map) then
+                return path_error(
+                    policy_path .. ".register_width_map",
+                    "must be a table"
+                )
+            end
+
+            for register_bits, address_bits in pairs(
+                policy.register_width_map
+            ) do
+                local numeric_register_bits = tonumber(register_bits)
+
+                if not numeric_register_bits
+                    or numeric_register_bits <= 0
+                    or numeric_register_bits
+                        ~= math.floor(numeric_register_bits)
+                then
+                    return path_error(
+                        policy_path .. ".register_width_map",
+                        "keys must be positive integer widths"
+                    )
+                end
+
+                if not core.is_number(address_bits)
+                    or address_bits <= 0
+                    or address_bits ~= math.floor(address_bits)
+                    or not allowed[address_bits]
+                then
+                    return path_error(
+                        policy_path
+                            .. ".register_width_map["
+                            .. tostring(register_bits)
+                            .. "]",
+                        "must map to a width declared in allowed_bits"
+                    )
+                end
+            end
+        end
+    end
+
     if memory.size_prefixes ~= nil then
         if not core.is_table(memory.size_prefixes) then
             return path_error(path .. ".size_prefixes", "must be a table")
