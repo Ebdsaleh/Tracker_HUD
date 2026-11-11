@@ -65,19 +65,42 @@ local function run()
         ))
     end
 
+    local function expect_equal(actual, expected, label)
+        assert(actual == expected,
+            label
+                .. ": expected "
+                .. vim.inspect(expected)
+                .. ", got "
+                .. vim.inspect(actual))
+    end
+
     local load = parse_line(2)
     local load_memory = assert(load.operands[2] and load.operands[2].memory,
         "line 2 memory source not parsed")
     local load_address = assert(load_memory.normalized,
         "line 2 normalized memory address missing")
 
-    assert(load_address.memory_size_bits == 64
-        and load_address.base and load_address.base.name == "rbp"
-        and load_address.index and load_address.index.name == "rcx"
-        and load_address.scale and load_address.scale.value == "4"
-        and load_address.displacement
-        and load_address.displacement.value == "-16",
-        "base/index/scale/displacement structure changed")
+    expect_equal(load_address.memory_size_bits, 64, "line 2 memory size")
+    expect_equal(
+        load_address.base and load_address.base.name,
+        "rbp",
+        "line 2 base register"
+    )
+    expect_equal(
+        load_address.index and load_address.index.name,
+        "rcx",
+        "line 2 index register"
+    )
+    expect_equal(
+        load_address.scale and load_address.scale.value,
+        "4",
+        "line 2 scale"
+    )
+    expect_equal(
+        load_address.displacement and load_address.displacement.value,
+        "-16",
+        "line 2 displacement"
+    )
     assert(load_address.base.role == "base_register"
         and load_address.base.display_role == "frame pointer base",
         "frame-pointer display role must not replace structural base role")
