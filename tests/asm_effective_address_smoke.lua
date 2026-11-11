@@ -15,6 +15,8 @@ local function run()
         "lea rsi, [rel msg]",
         "mov rax, 0xFFFFFFFFFFFFFFFF",
         "mov rbx, [rax + 1]",
+        "mov rax, 0x2000",
+        "lea rax, [rax + 8]",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -168,8 +170,16 @@ local function run()
         "64-bit address arithmetic must wrap only at target-width boundary")
     print("PASS ASM effective address: 64-bit address wrap is explicit")
 
+    local pre_state = one(11)
+    assert(pre_state.effective_address.status == "known"
+        and pre_state.effective_address.value == "8200"
+        and pre_state.effective_address.components.base.value == "8192"
+        and pre_state.access == "address_only",
+        "self-referential LEA must evaluate from pre-instruction RAX state")
+    print("PASS ASM effective address: self-referential LEA uses pre-instruction state")
+
     vim.api.nvim_set_current_buf(buffer)
-    vim.api.nvim_win_set_cursor(0, { 9, 0 })
+    vim.api.nvim_win_set_cursor(0, { 11, 0 })
 
     local context = require("tracker_hud.context")
         .get_cursor_context(buffer, {})
@@ -179,6 +189,7 @@ local function run()
     local saw_absolute = false
     local saw_symbolic = false
     local saw_wrapped = false
+    local saw_pre_state = false
 
     for _, fact in ipairs(context.source_memory_operands or {}) do
         if fact.source_line == 4 then
@@ -191,6 +202,8 @@ local function run()
             saw_symbolic = fact.effective_address.status == "unknown"
         elseif fact.source_line == 9 then
             saw_wrapped = fact.effective_address.value == "0"
+        elseif fact.source_line == 11 then
+            saw_pre_state = fact.effective_address.value == "8200"
         end
 
         assert(fact.metadata.execution_status == "not_observed",
@@ -201,7 +214,8 @@ local function run()
         and saw_unknown
         and saw_absolute
         and saw_symbolic
-        and saw_wrapped,
+        and saw_wrapped
+        and saw_pre_state,
         "normal context must preserve per-source effective-address certainty")
     print("PASS ASM effective address: context preserves source-time address certainty")
 
