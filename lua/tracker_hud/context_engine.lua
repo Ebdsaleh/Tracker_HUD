@@ -10,6 +10,7 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local integer_value = require("tracker_hud.low_level.integer_value")
 local integer_operand = require("tracker_hud.low_level.integer_operand")
+local memory_access = require("tracker_hud.low_level.memory_access")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -3527,6 +3528,7 @@ end
 
 
 local function build_memory_source_operand(
+    adapter,
     instruction,
     operand,
     operand_index,
@@ -3546,6 +3548,13 @@ local function build_memory_source_operand(
         operand_index
     )
 
+    local access, access_metadata = memory_access.resolve(
+        adapter and adapter.memory_accesses,
+        instruction.mnemonic,
+        operand_index,
+        operand
+    )
+
     return {
         id = table.concat({
             "memory-operand",
@@ -3558,6 +3567,7 @@ local function build_memory_source_operand(
         source = "asm_source_memory",
         text = operand.text,
         role = role,
+        access = access,
         operand_index = operand_index,
 
         source_line = operand.source_line,
@@ -3573,8 +3583,13 @@ local function build_memory_source_operand(
             observation = "source memory operand only",
             mnemonic = instruction.mnemonic,
             operand_role = role,
+            access_intent = access,
+            access_declared = access_metadata.declared,
+            access_ambiguous = access_metadata.ambiguous,
+            access_rule_count = access_metadata.rule_count,
             effective_address = "unknown",
             runtime_address = "unknown",
+            execution_status = "not_observed",
         },
     }
 end
@@ -3679,6 +3694,7 @@ local function collect_memory_source_operands_where(
                     ) do
                         local memory_operand =
                             build_memory_source_operand(
+                                adapter,
                                 instruction,
                                 operand,
                                 operand_index,
