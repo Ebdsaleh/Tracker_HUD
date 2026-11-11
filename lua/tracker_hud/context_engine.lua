@@ -3839,16 +3839,23 @@ local function collect_memory_source_operands_where(
                     for operand_index, operand in ipairs(
                         instruction.operands or {}
                     ) do
-                        local evaluation =
-                            evaluate_memory_address_before_instruction(
-                                bufnr,
-                                root_node,
-                                adapter,
-                                instruction,
-                                operand.memory
-                                    and operand.memory.normalized
-                                    or nil
+                        local evaluation
+
+                        if operand.kind == "memory"
+                            and core.is_table(operand.memory)
+                            and core.is_table(
+                                operand.memory.normalized
                             )
+                        then
+                            evaluation =
+                                evaluate_memory_address_before_instruction(
+                                    bufnr,
+                                    root_node,
+                                    adapter,
+                                    instruction,
+                                    operand.memory.normalized
+                                )
+                        end
 
                         local memory_operand =
                             build_memory_source_operand(
