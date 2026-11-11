@@ -3518,3 +3518,285 @@ git pull --ff-only
 nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
 ```
+
+
+## Accepted structural-memory gate after Neovim sync (2026-11-11)
+
+The normalized structural-memory tranche is accepted green on ERIDU.
+
+The user identified that the first size-prefix failure happened before their local
+Neovim/plugin copy had been synchronized with the freshly pulled repository.
+After synchronizing Neovim and rerunning, the parser-backed structural-memory
+regression passed repeatedly:
+
+~~~
+PASS ASM memory structure: base/index/scale/displacement + qword size
+PASS ASM memory structure: context exposes normalized source memory operand
+PASS ASM memory structure: stack-relative base/displacement
+PASS ASM memory structure: REL mode separated from symbol
+PASS ASM memory structure: ABS mode + exact hexadecimal displacement
+PASS ASM memory structure: binary displacement stays exact
+PASS ASM memory structure: Inspect metadata reuses normalized address
+PASS ASM memory structure: context obeys ON/PAST visibility
+PASS ASM memory structure: source operands stay separate from runtime events
+PASS Tracker_HUD ASM normalized memory structure smoke
+~~~
+
+The source-focus regression also remained green and showed the new structural
+REL behavior:
+
+~~~
+memory_component:msg
+~~~
+
+instead of treating rel msg as one symbol token.
+
+The structural-address representation is therefore the accepted foundation for
+the next semantic layer.
+
+## Foundational memory tranche: access intent (2026-11-11)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+Address structure and memory access behavior are now modeled as separate concerns.
+
+A normalized address answers:
+
+~~~
+where does the source expression point structurally?
+~~~
+
+Access intent answers:
+
+~~~
+what does this instruction intend to do with that memory operand?
+~~~
+
+Neither question implies that the instruction executed.
+
+### Normalized vocabulary
+
+Created:
+
+~~~
+lua/tracker_hud/low_level/memory_access.lua
+~~~
+
+Supported access kinds:
+
+~~~
+read
+write
+read_write
+address_only
+unknown
+~~~
+
+The resolver is architecture-neutral and consumes adapter-owned declaration
+tables.
+
+If no declaration matches, the result is unknown.
+
+If direct callers provide conflicting rules, the resolver also fails closed to
+unknown and marks the result ambiguous.
+
+### x86-64 declarations
+
+Created:
+
+~~~
+lua/tracker_hud/adapters/asm/arch/x86_64/memory_accesses.lua
+~~~
+
+The first deliberately small declaration set is:
+
+~~~
+MOV operand 1 memory -> write
+MOV operand 2 memory -> read
+LEA operand 2 memory -> address_only
+~~~
+
+Examples:
+
+~~~
+mov rax, [rbp + 8]
+-> read
+
+mov [rsp + 8], rax
+-> write
+
+lea rsi, [rel msg]
+-> address_only
+~~~
+
+Instructions not yet declared remain unknown.
+
+This is intentional. A read-modify-write instruction should eventually declare
+read_write explicitly rather than being guessed from its mnemonic.
+
+### Variant ownership
+
+The x86 variant owns its memory-access table.
+
+The master ASM adapter now forwards memory_accesses from the active architecture
+variant alongside register, stack, boundary, and event semantics.
+
+Memory access behavior is therefore instruction/architecture semantics, not
+hardware-register truth and not presentation logic.
+
+### Source memory facts
+
+context_engine.lua now attaches access intent directly to first-class source
+memory operands:
+
+~~~
+fact.access
+metadata.access_intent
+metadata.access_declared
+metadata.access_ambiguous
+metadata.access_rule_count
+metadata.execution_status
+~~~
+
+Source observations always record:
+
+~~~
+execution_status = not_observed
+~~~
+
+This preserves the distinction:
+
+~~~
+source says this is a read
+!=
+the read definitely executed
+~~~
+
+### Inspect reuse
+
+Existing source/Inspect memory metadata now resolves the same adapter declaration
+and exposes:
+
+~~~
+memory_access_intent
+memory_access_declared
+memory_access_ambiguous
+memory_access_rule_count
+memory_execution_status
+~~~
+
+Thus context facts and focused source components consume one access model.
+
+### Adapter Contract validation
+
+adapters/contract.lua now validates optional adapter.memory_accesses.
+
+For each mnemonic, rules must be a non-empty array.
+
+Each rule must declare:
+
+~~~
+operand_index
+access
+~~~
+
+and may declare:
+
+~~~
+operand_kind
+~~~
+
+The contract rejects:
+
+- non-positive or fractional operand indexes;
+- unknown access kinds;
+- empty operand kinds;
+- duplicate rules for the same mnemonic/operand index.
+
+Duplicate rules are rejected because true read-modify-write behavior should be
+declared as one explicit read_write rule.
+
+### New regressions
+
+tests/memory_access_smoke.lua pins:
+
+- read intent;
+- write intent;
+- address-only intent;
+- read-write vocabulary;
+- undeclared fallback to unknown;
+- conflicting direct rules fail closed;
+- normalized access vocabulary.
+
+tests/asm_memory_access_smoke.lua provides parser-backed x86 coverage for:
+
+- MOV memory source -> read;
+- MOV memory destination -> write;
+- LEA memory operand -> address_only;
+- undeclared INC memory operand -> unknown;
+- unknown intent preserves normalized structure;
+- Inspect metadata reuses address-only intent;
+- context ON/PAST lifecycle preserves access intent;
+- execution remains not_observed.
+
+tests/memory_adapter_contract_smoke.lua now additionally pins rejection of:
+
+- invalid access kind;
+- duplicate access rule;
+- invalid access operand index.
+
+### Deliberate boundary
+
+This tranche still does NOT infer:
+
+~~~
+effective runtime address
+memory contents
+successful memory access
+instruction execution
+~~~
+
+It only adds source-level intended access semantics to the already-normalized
+address structure.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/memory_access_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_access_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after green
+
+The next memory layer should be effective-address evaluation from proven state.
+
+It should reuse:
+
+~~~
+normalized base/index/scale/displacement
+canonical register-state certainty
+exact integer arithmetic
+target-width semantics
+~~~
+
+and return a certainty-aware address result.
+
+Do not evaluate an address unless every required numeric component is proven.
+
+Symbols such as rel msg need a separate symbol-address model before they can
+become numeric effective addresses.
+
+Even a known effective address must remain distinct from proof that a memory
+access executed or that memory contents are known.
