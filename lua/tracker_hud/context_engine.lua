@@ -1945,6 +1945,10 @@ local function append_memory_operand_metadata(metadata, operand)
 
         metadata.memory_address_structured = address
         metadata.memory_address_mode = address.address_mode
+        metadata.memory_address_size_bits = address.address_size_bits
+        metadata.memory_address_size_status = address.address_size_status
+        metadata.memory_address_size_source = address.address_size_source
+        metadata.memory_address_size_reason = address.address_size_reason
         metadata.memory_base_register =
             address.base and address.base.name or nil
         metadata.memory_index_register =
