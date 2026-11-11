@@ -14,6 +14,20 @@ local normalized = assert(memory_address.normalize({
     address_end_column = 30,
     source_line = 7,
     address_mode = "default",
+    address_size = {
+        status = "known",
+        bits = 32,
+        source = "register_width",
+        details = {
+            registers = {
+                {
+                    register = "rbp",
+                    register_bits = 32,
+                    address_bits = 32,
+                },
+            },
+        },
+    },
     size = {
         prefix = "qword",
         bits = 64,
@@ -69,8 +83,11 @@ local normalized = assert(memory_address.normalize({
 
 assert(normalized.version == 1
     and normalized.address_mode == "default"
-    and normalized.memory_size_bits == 64,
-    "normalized memory header changed")
+    and normalized.memory_size_bits == 64
+    and normalized.address_size_status == "known"
+    and normalized.address_size_bits == 32
+    and normalized.address_size_source == "register_width",
+    "normalized memory header/address-size separation changed")
 assert(normalized.base
     and normalized.base.name == "rbp"
     and normalized.base.role == "base_register"
@@ -93,6 +110,7 @@ assert(normalized.metadata.effective_address == "unknown"
     and normalized.metadata.runtime_address == "unknown",
     "normalized address model must not invent runtime addresses")
 print("PASS memory address: structural base/index/scale/displacement normalization")
+print("PASS memory address: data width stays separate from address width")
 
 local relative = assert(memory_address.normalize({
     address_text = "rel msg",
