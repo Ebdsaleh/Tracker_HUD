@@ -52,7 +52,8 @@ local function mapped_bits(policy, register_bits)
         or map[tostring(register_bits)]
 end
 
-function M.resolve(policy, components, resolve_register_bits)
+function M.resolve(policy, components, resolve_register_bits, opts)
+    opts = opts or {}
     if type(policy) ~= "table" then
         return unknown("address-size policy unavailable")
     end
@@ -118,6 +119,35 @@ function M.resolve(policy, components, resolve_register_bits)
     if #unique_bits > 1 then
         return unknown("mixed address register widths", {
             address_bits = unique_bits,
+            registers = observed,
+        })
+    end
+
+    local explicit_bits = opts.explicit_bits
+
+    if explicit_bits ~= nil then
+        if type(explicit_bits) ~= "number"
+            or not allowed(policy, explicit_bits)
+        then
+            return unknown("explicit address size unsupported", {
+                bits = explicit_bits,
+                prefix = opts.explicit_prefix,
+            })
+        end
+
+        if #unique_bits == 1
+            and unique_bits[1] ~= explicit_bits
+        then
+            return unknown("address-size prefix conflicts with registers", {
+                explicit_bits = explicit_bits,
+                register_bits = unique_bits[1],
+                prefix = opts.explicit_prefix,
+                registers = observed,
+            })
+        end
+
+        return known(explicit_bits, "explicit_prefix", {
+            prefix = opts.explicit_prefix,
             registers = observed,
         })
     end
