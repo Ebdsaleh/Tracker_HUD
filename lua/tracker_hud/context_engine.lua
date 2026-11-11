@@ -3221,6 +3221,21 @@ local function build_operand_occurrence_metadata(
         metadata.value_source_text = operand.text
 
         append_memory_operand_metadata(metadata, operand)
+
+        if operand.kind == "memory" then
+            local access, access_metadata = memory_access.resolve(
+                adapter and adapter.memory_accesses,
+                instruction and instruction.mnemonic,
+                operand_index,
+                operand
+            )
+
+            metadata.memory_access_intent = access
+            metadata.memory_access_declared = access_metadata.declared
+            metadata.memory_access_ambiguous = access_metadata.ambiguous
+            metadata.memory_access_rule_count = access_metadata.rule_count
+            metadata.memory_execution_status = "not_observed"
+        end
     end
 
     if core.is_table(operand)
