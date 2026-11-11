@@ -194,6 +194,29 @@ local function run()
         "register occurrence metadata did not expose structural base role")
     print("PASS ASM memory structure: Inspect metadata reuses normalized address")
 
+    vim.api.nvim_set_current_buf(buffer)
+    vim.api.nvim_win_set_cursor(0, { 4, 0 })
+
+    local context = require("tracker_hud.context")
+        .get_cursor_context(buffer, {})
+
+    assert(type(context.source_memory_operands) == "table"
+        and #context.source_memory_operands == 3,
+        "cursor context must contain exactly the three visible memory operands")
+
+    assert(context.source_memory_operands[1].source_line == 2
+        and context.source_memory_operands[2].source_line == 3
+        and context.source_memory_operands[3].source_line == 4,
+        "visible memory operands must remain source ordered")
+    assert(context.source_memory_operands[3].address.address_mode == "relative"
+        and context.source_memory_operands[3].address.symbol.name == "msg",
+        "cursor context lost normalized REL structure")
+    for _, fact in ipairs(context.source_memory_operands) do
+        assert(fact.source_line <= 4,
+            "future memory operand leaked before its source line")
+    end
+    print("PASS ASM memory structure: context obeys ON/PAST visibility")
+
     print("PASS Tracker_HUD ASM normalized memory structure smoke")
 end
 
