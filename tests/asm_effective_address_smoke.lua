@@ -71,6 +71,43 @@ local function run()
         "known base/index/scale/displacement must evaluate before the memory instruction")
     print("PASS ASM effective address: proven pre-instruction state evaluates exactly")
 
+    local focus = engine.discover_register_source_occurrences(
+        buffer,
+        root,
+        adapter,
+        4
+    )
+    local saw_base = false
+    local saw_index = false
+
+    for _, occurrence in ipairs(focus or {}) do
+        if occurrence.kind == "memory_component"
+            and occurrence.text == "rbp"
+        then
+            local metadata = occurrence.metadata or {}
+
+            assert(metadata.memory_effective_address_status == "known"
+                and metadata.memory_effective_address_value == "4100"
+                and metadata.memory_effective_address_bits == 64
+                and metadata.memory_effective_address_wrapped == false,
+                "Inspect base component lost effective-address certainty")
+            saw_base = true
+        elseif occurrence.kind == "memory_component"
+            and occurrence.text == "rcx"
+        then
+            local metadata = occurrence.metadata or {}
+
+            assert(metadata.memory_effective_address_status == "known"
+                and metadata.memory_effective_address_value == "4100",
+                "Inspect index component lost effective-address certainty")
+            saw_index = true
+        end
+    end
+
+    assert(saw_base and saw_index,
+        "Inspect did not expose both effective-address register components")
+    print("PASS ASM effective address: Inspect reuses evaluated address certainty")
+
     local unresolved = one(5)
     assert(unresolved.effective_address.status == "unknown"
         and unresolved.effective_address.reason == "index register unresolved"
@@ -95,6 +132,32 @@ local function run()
         and symbolic.metadata.execution_status == "not_observed",
         "REL symbol must remain unresolved without instruction-position basis")
     print("PASS ASM effective address: symbolic REL address stays unresolved")
+
+    local rel_focus = engine.discover_register_source_occurrences(
+        buffer,
+        root,
+        adapter,
+        7
+    )
+    local saw_symbol = false
+
+    for _, occurrence in ipairs(rel_focus or {}) do
+        if occurrence.kind == "memory_component"
+            and occurrence.text == "msg"
+        then
+            local metadata = occurrence.metadata or {}
+
+            assert(metadata.memory_effective_address_status == "unknown"
+                and metadata.memory_effective_address_reason
+                    == "relative address basis unresolved",
+                "Inspect REL component must preserve unresolved instruction basis")
+            saw_symbol = true
+        end
+    end
+
+    assert(saw_symbol,
+        "Inspect did not expose REL symbol component")
+    print("PASS ASM effective address: Inspect preserves unresolved REL basis")
 
     local wrapped = one(9)
     assert(wrapped.effective_address.status == "known"
