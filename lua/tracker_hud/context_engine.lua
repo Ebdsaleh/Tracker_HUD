@@ -3635,25 +3635,60 @@ local function evaluate_memory_address_before_instruction(
             )
 
             if not register_fact_is_resolved(fact) then
+                local partial = fact
+                    and fact.metadata
+                    and fact.metadata.partial_value
+                    or nil
+
                 return nil, {
-                    status = fact
-                        and (
-                            fact.metadata
-                            and fact.metadata.partial_value
-                            and "partial"
-                            or "unknown"
-                        )
-                        or "unknown",
-                    fact = fact,
+                    status = partial and "partial" or "unknown",
+                    fact_name = fact and fact.name or nil,
+                    partial_value = partial,
                 }
             end
 
             return fact.value, {
                 status = "known",
-                fact = fact,
+                fact_name = fact.name,
             }
         end,
     })
+end
+
+
+local function append_effective_address_metadata(
+    metadata,
+    evaluation,
+    prefix
+)
+    if not core.is_table(metadata) then
+        return
+    end
+
+    prefix = prefix or "effective_address"
+
+    local status = core.is_table(evaluation)
+        and evaluation.status
+        or "unknown"
+    local value = core.is_table(evaluation)
+        and evaluation.value
+        or nil
+    local reason = core.is_table(evaluation)
+        and evaluation.reason
+        or nil
+    local bits = core.is_table(evaluation)
+        and evaluation.bits
+        or nil
+    local wrapped = core.is_table(evaluation)
+        and evaluation.wrapped == true
+        or false
+
+    metadata[prefix] = value or "unknown"
+    metadata[prefix .. "_status"] = status
+    metadata[prefix .. "_value"] = value
+    metadata[prefix .. "_reason"] = reason
+    metadata[prefix .. "_bits"] = bits
+    metadata[prefix .. "_wrapped"] = wrapped
 end
 
 
@@ -3686,7 +3721,7 @@ local function build_memory_source_operand(
         operand
     )
 
-    return {
+    local fact = {
         id = table.concat({
             "memory-operand",
             tostring(operand.source_line or instruction.source_line or "?"),
@@ -3719,26 +3754,8 @@ local function build_memory_source_operand(
             access_declared = access_metadata.declared,
             access_ambiguous = access_metadata.ambiguous,
             access_rule_count = access_metadata.rule_count,
-            effective_address = evaluation
-                and evaluation.value
-                or "unknown",
             runtime_address = "unknown",
             execution_status = "not_observed",
-            effective_address_status = evaluation
-                and evaluation.status
-                or "unknown",
-            effective_address_value = evaluation
-                and evaluation.value
-                or nil,
-            effective_address_reason = evaluation
-                and evaluation.reason
-                or nil,
-            effective_address_bits = evaluation
-                and evaluation.bits
-                or nil,
-            effective_address_wrapped = evaluation
-                and evaluation.wrapped
-                or false,
         },
     }
 end
@@ -4017,6 +4034,24 @@ function M.discover_register_source_occurrences(
                         for operand_index, operand in ipairs(
                             instruction.operands or {}
                         ) do
+                            local evaluation
+
+                            if operand.kind == "memory"
+                                and core.is_table(operand.memory)
+                                and core.is_table(
+                                    operand.memory.normalized
+                                )
+                            then
+                                evaluation =
+                                    evaluate_memory_address_before_instruction(
+                                        bufnr,
+                                        root_node,
+                                        adapter,
+                                        instruction,
+                                        operand.memory.normalized
+                                    )
+                            end
+
                             local operand_occurrence =
                                 build_register_operand_occurrence(
                                     adapter,
@@ -4027,6 +4062,12 @@ function M.discover_register_source_occurrences(
                                 )
 
                             if operand_occurrence then
+                                append_effective_address_metadata(
+                                    operand_occurrence.metadata,
+                                    evaluation,
+                                    "memory_effective_address"
+                                )
+
                                 table.insert(
                                     occurrences,
                                     operand_occurrence
@@ -4042,6 +4083,12 @@ function M.discover_register_source_occurrences(
                                     matching_specs
                                 )
                             ) do
+                                append_effective_address_metadata(
+                                    component_occurrence.metadata,
+                                    evaluation,
+                                    "memory_effective_address"
+                                )
+
                                 table.insert(
                                     occurrences,
                                     component_occurrence
