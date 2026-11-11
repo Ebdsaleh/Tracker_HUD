@@ -221,6 +221,33 @@ function M.negate(value)
     return "-" .. normalized
 end
 
+local function mul_abs(left, right)
+    left = strip_zeroes(left)
+    right = strip_zeroes(right)
+
+    if left == "0" or right == "0" then
+        return "0"
+    end
+
+    local result = "0"
+    local zeroes = ""
+
+    for index = #right, 1, -1 do
+        local digit = tonumber(right:sub(index, index))
+        local partial = mul_small(left, digit)
+
+        if partial ~= "0" then
+            partial = partial .. zeroes
+            result = add_abs(result, partial)
+        end
+
+        zeroes = zeroes .. "0"
+    end
+
+    return strip_zeroes(result)
+end
+
+
 function M.add(left, right)
     left = M.normalize(left)
     right = M.normalize(right)
@@ -258,6 +285,26 @@ function M.add(left, right)
     return signed_decimal(
         right_sign,
         sub_abs(right_abs, left_abs)
+    )
+end
+
+
+function M.multiply(left, right)
+    left = M.normalize(left)
+    right = M.normalize(right)
+
+    if not left or not right then
+        return nil
+    end
+
+    local left_sign, left_abs = split_sign(left)
+    local right_sign, right_abs = split_sign(right)
+
+    local sign = left_sign == right_sign and 1 or -1
+
+    return signed_decimal(
+        sign,
+        mul_abs(left_abs, right_abs)
     )
 end
 
