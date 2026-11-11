@@ -1,0 +1,156 @@
+-- tests/asm_effective_address_smoke.lua
+-- Parser-backed x86-64 effective-address evaluation regression.
+-- nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+
+local function run()
+    dofile("tests/test_runtime.lua").use_working_tree()
+
+    local source = {
+        "bits 64",
+        "mov rbp, 0x1000",
+        "mov rcx, 3",
+        "mov rax, [rbp + rcx*4 - 8]",
+        "mov rdx, [rbp + r8*2]",
+        "mov rbx, [abs 0x1234]",
+        "lea rsi, [rel msg]",
+        "mov rax, 0xFFFFFFFFFFFFFFFF",
+        "mov rbx, [rax + 1]",
+        "mov rax, 0x1000",
+        "mov rbx, [eax + 4]",
+    }
+
+    local buffer = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(buffer, 0, -1, false, source)
+    vim.bo[buffer].filetype = "asm"
+
+    local ok, parser = pcall(vim.treesitter.get_parser, buffer, "asm")
+    assert(ok and parser, "ASM Tree-sitter parser unavailable: " .. tostring(parser))
+    local tree = assert(parser:parse()[1], "ASM parser produced no tree")
+    local root = tree:root()
+
+    local adapter = require("tracker_hud.adapters.asm.init")
+    local registry = require("tracker_hud.adapters.registry")
+    local registered, register_err = registry.register(adapter)
+    assert(registered, "cannot register ASM adapter: " .. tostring(register_err))
+    local configured, config_err =
+        registry.configure_adapter_for_buffer("asm", buffer, {})
+    assert(configured, "cannot configure ASM adapter: " .. tostring(config_err))
+
+    local engine = require("tracker_hud.context_engine")
+
+    local function one(line_number)
+        local facts = engine.discover_memory_source_operands(
+            buffer,
+            root,
+            adapter,
+            line_number
+        )
+
+        assert(#facts == 1,
+            "expected one memory operand on line " .. tostring(line_number))
+
+        return facts[1]
+    end
+
+    local computed = one(4)
+    assert(computed.effective_address.status == "known"
+        and computed.effective_address.value == "4100"
+        and computed.effective_address.bits == 64
+        and computed.effective_address.wrapped == false
+        and computed.effective_address.components.base.value == "4096"
+        and computed.effective_address.components.index.value == "3"
+        and computed.effective_address.components.scale == "4"
+        and computed.effective_address.components.displacement == "-8"
+        and computed.metadata.effective_address_status == "known"
+        and computed.metadata.effective_address_value == "4100"
+        and computed.metadata.execution_status == "not_observed",
+        "known base/index/scale/displacement must evaluate before the memory instruction")
+    print("PASS ASM effective address: proven pre-instruction state evaluates exactly")
+
+    local unresolved = one(5)
+    assert(unresolved.effective_address.status == "unknown"
+        and unresolved.effective_address.reason == "index register unresolved"
+        and unresolved.effective_address.details.register == "r8"
+        and unresolved.metadata.effective_address_value == nil
+        and unresolved.metadata.execution_status == "not_observed",
+        "unknown index register must prevent effective-address fabrication")
+    print("PASS ASM effective address: unknown register fails closed")
+
+    local absolute = one(6)
+    assert(absolute.effective_address.status == "known"
+        and absolute.effective_address.value == "4660"
+        and absolute.effective_address.bits == 64,
+        "absolute numeric memory expression must evaluate exactly")
+    print("PASS ASM effective address: absolute numeric address evaluates")
+
+    local symbolic = one(7)
+    assert(symbolic.effective_address.status == "unknown"
+        and symbolic.effective_address.reason == "symbol address unresolved"
+        and symbolic.effective_address.details.symbol == "msg"
+        and symbolic.metadata.execution_status == "not_observed",
+        "REL symbol must remain unresolved without symbol-address model")
+    print("PASS ASM effective address: symbolic REL address stays unresolved")
+
+    local wrapped = one(9)
+    assert(wrapped.effective_address.status == "known"
+        and wrapped.effective_address.value == "0"
+        and wrapped.effective_address.wrapped == true
+        and wrapped.effective_address.components.exact
+            == "18446744073709551616",
+        "64-bit address arithmetic must wrap only at target-width boundary")
+    print("PASS ASM effective address: 64-bit address wrap is explicit")
+
+    local alias = one(11)
+    assert(alias.effective_address.status == "known"
+        and alias.effective_address.value == "4100"
+        and alias.effective_address.components.base.name == "eax"
+        and alias.effective_address.components.base.value == "4096",
+        "effective address must reuse canonical-to-alias register projection")
+    print("PASS ASM effective address: alias-aware base register read")
+
+    vim.api.nvim_set_current_buf(buffer)
+    vim.api.nvim_win_set_cursor(0, { 9, 0 })
+
+    local context = require("tracker_hud.context")
+        .get_cursor_context(buffer, {})
+
+    local saw_computed = false
+    local saw_unknown = false
+    local saw_absolute = false
+    local saw_symbolic = false
+    local saw_wrapped = false
+
+    for _, fact in ipairs(context.source_memory_operands or {}) do
+        if fact.source_line == 4 then
+            saw_computed = fact.effective_address.value == "4100"
+        elseif fact.source_line == 5 then
+            saw_unknown = fact.effective_address.status == "unknown"
+        elseif fact.source_line == 6 then
+            saw_absolute = fact.effective_address.value == "4660"
+        elseif fact.source_line == 7 then
+            saw_symbolic = fact.effective_address.status == "unknown"
+        elseif fact.source_line == 9 then
+            saw_wrapped = fact.effective_address.value == "0"
+        end
+
+        assert(fact.metadata.execution_status == "not_observed",
+            "known effective address must not become execution proof")
+    end
+
+    assert(saw_computed
+        and saw_unknown
+        and saw_absolute
+        and saw_symbolic
+        and saw_wrapped,
+        "normal context must preserve per-source effective-address certainty")
+    print("PASS ASM effective address: context preserves source-time address certainty")
+
+    print("PASS Tracker_HUD ASM effective-address smoke")
+end
+
+local ok, err = pcall(run)
+if not ok then
+    io.stderr:write("FAIL ASM effective-address smoke: "
+        .. tostring(err) .. "\n")
+    error(err)
+end
