@@ -3454,3 +3454,67 @@ If the normalized-memory regression still fails after this isolation, treat it
 as a real parser defect and inspect the now-current module path/state.
 
 Do not weaken structural-memory assertions.
+
+
+## Structural-memory parser repair: size prefix outside ptr node (2026-11-11)
+
+ERIDU confirmed the working-tree runtime isolation fix.
+
+After isolation:
+
+- `rel msg` correctly became symbol `msg`;
+- `operand.memory.normalized` existed;
+- the remaining failure was the first structured-memory assertion.
+
+Static parser review showed the most likely boundary: Tree-sitter's `ptr` node can begin
+at the opening bracket, leaving NASM size qualifiers such as `qword` immediately
+to the left of the pointer node instead of inside `operand.text`.
+
+The parser previously only called:
+
+```lua
+parse_memory_prefix(operand_text, memory_spec)
+```
+
+which cannot see a qualifier that is outside the ptr node.
+
+The parser now falls back to the source buffer when no size was found inside the
+node. It inspects only the text immediately before the ptr node within the current
+comma-separated operand segment and accepts the final word only if it is a declared
+memory size prefix.
+
+Example:
+
+```asm
+mov rax, qword [rbp + rcx*4 - 0x10]
+```
+
+can now recover:
+
+```text
+memory_size_prefix = qword
+memory_size_bits   = 64
+```
+
+without changing the structural address parser.
+
+The parser-backed regression now reports the line-2 fields separately:
+
+```text
+line 2 memory size
+line 2 base register
+line 2 index register
+line 2 scale
+line 2 displacement
+```
+
+so any remaining defect identifies the exact structural field.
+
+Targeted ERIDU gate:
+
+```bat
+git pull --ff-only
+
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+```
