@@ -34,6 +34,12 @@ local function run()
         registry.configure_adapter_for_buffer("asm", buffer, {})
     assert(configured, "cannot configure ASM adapter: " .. tostring(config_err))
 
+    assert(adapter.metadata
+        and adapter.metadata.architecture == "x86-64"
+        and adapter.metadata.bits == 64,
+        "configured ASM adapter must expose active architecture metadata")
+    print("PASS ASM effective address: active architecture width is available")
+
     local engine = require("tracker_hud.context_engine")
 
     local function one(line_number)
