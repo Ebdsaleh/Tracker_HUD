@@ -3,7 +3,7 @@
 -- nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
 
 local function run()
-    vim.opt.runtimepath:prepend(vim.fn.getcwd())
+    dofile("tests/test_runtime.lua").use_working_tree()
 
     local source = {
         "bits 64",
