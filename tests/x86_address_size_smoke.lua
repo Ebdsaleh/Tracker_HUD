@@ -133,6 +133,34 @@ local function run()
     assert(saw_eax, "Inspect did not expose EAX address component")
     print("PASS x86 address size: Inspect reuses 32-bit address semantics")
 
+    vim.api.nvim_set_current_buf(buffer)
+    vim.api.nvim_win_set_cursor(0, { 8, 0 })
+
+    local context = require("tracker_hud.context")
+        .get_cursor_context(buffer, {})
+
+    local by_line = {}
+
+    for _, fact in ipairs(context.source_memory_operands or {}) do
+        by_line[fact.source_line] = fact
+    end
+
+    assert(by_line[4]
+        and by_line[4].address.address_size_bits == 32
+        and by_line[4].effective_address.bits == 32
+        and by_line[4].effective_address.value == "32"
+        and by_line[5]
+        and by_line[5].address.address_size_bits == 64
+        and by_line[5].effective_address.bits == 64
+        and by_line[6]
+        and by_line[6].address.address_size_status == "unknown"
+        and by_line[7]
+        and by_line[7].address.address_size_status == "unknown"
+        and by_line[8]
+        and by_line[8].address.address_size_source == "default",
+        "normal context must preserve each source operand's address-size semantics")
+    print("PASS x86 address size: context preserves source-time address widths")
+
     print("PASS Tracker_HUD x86 address-size smoke")
 end
 
