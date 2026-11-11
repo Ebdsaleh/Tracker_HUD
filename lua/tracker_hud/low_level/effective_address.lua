@@ -94,6 +94,15 @@ function M.evaluate(address, opts)
         })
     end
 
+    if address.address_size_status ~= nil
+        and address.address_size_status ~= "known"
+    then
+        return unknown("address size unresolved", {
+            reason = address.address_size_reason,
+            details = address.address_size_details,
+        })
+    end
+
     if address.address_mode == "relative" then
         return unknown("relative address basis unresolved", {
             symbol = address.symbol and address.symbol.name or nil,
@@ -176,7 +185,8 @@ function M.evaluate(address, opts)
         return unknown("effective address arithmetic failed")
     end
 
-    local bits = opts.bits
+    local bits = address.address_size_bits
+        or opts.bits
     local final_value = exact
     local wrapped = false
 
