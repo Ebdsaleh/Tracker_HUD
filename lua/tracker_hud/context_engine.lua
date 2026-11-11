@@ -11,6 +11,7 @@ local low_level_inference = require("tracker_hud.low_level.inference")
 local integer_value = require("tracker_hud.low_level.integer_value")
 local integer_operand = require("tracker_hud.low_level.integer_operand")
 local memory_access = require("tracker_hud.low_level.memory_access")
+local effective_address = require("tracker_hud.low_level.effective_address")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -3542,12 +3543,127 @@ local function get_memory_operand_role(
 end
 
 
+local function register_fact_map_from_list(facts)
+    local result = {}
+
+    for _, fact in ipairs(facts or {}) do
+        if core.is_table(fact)
+            and core.is_non_empty_string(fact.name)
+        then
+            result[fact.name:lower()] = fact
+
+            local canonical = fact.metadata
+                and fact.metadata.canonical_name
+
+            if core.is_non_empty_string(canonical) then
+                result[canonical:lower()] = fact
+            end
+        end
+    end
+
+    return result
+end
+
+
+local function evaluate_memory_address_before_instruction(
+    bufnr,
+    root_node,
+    adapter,
+    instruction,
+    address
+)
+    if not bufnr
+        or not root_node
+        or not core.is_table(adapter)
+        or not core.is_table(instruction)
+        or not core.is_table(address)
+    then
+        return {
+            status = "unknown",
+            value = nil,
+            reason = "evaluation context unavailable",
+        }
+    end
+
+    local line = instruction.source_start_line
+        or instruction.source_line
+    local column = instruction.source_start_column
+        or instruction.source_column
+        or 0
+
+    if not core.is_number(line) then
+        return {
+            status = "unknown",
+            value = nil,
+            reason = "instruction position unavailable",
+        }
+    end
+
+    local facts = M.collect_register_effects(
+        {
+            cursor = {
+                line = line,
+                column = column + 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = bufnr,
+            root_node = root_node,
+            limit_position = {
+                line = line,
+                column = column,
+            },
+        }
+    )
+
+    local facts_by_register = register_fact_map_from_list(
+        facts
+    )
+
+    local bits = adapter.metadata
+        and adapter.metadata.bits
+        or nil
+
+    return effective_address.evaluate(address, {
+        bits = bits,
+        resolve_register = function(register_name)
+            local fact = get_register_fact_for_read(
+                facts_by_register,
+                adapter,
+                register_name
+            )
+
+            if not register_fact_is_resolved(fact) then
+                return nil, {
+                    status = fact
+                        and (
+                            fact.metadata
+                            and fact.metadata.partial_value
+                            and "partial"
+                            or "unknown"
+                        )
+                        or "unknown",
+                    fact = fact,
+                }
+            end
+
+            return fact.value, {
+                status = "known",
+                fact = fact,
+            }
+        end,
+    })
+end
+
+
 local function build_memory_source_operand(
     adapter,
     instruction,
     operand,
     operand_index,
-    effect_specs
+    effect_specs,
+    evaluation
 )
     if not core.is_table(instruction)
         or not core.is_table(operand)
@@ -3593,6 +3709,7 @@ local function build_memory_source_operand(
         source_end_column = operand.source_end_column,
 
         address = operand.memory.normalized,
+        effective_address = evaluation,
 
         metadata = {
             observation = "source memory operand only",
@@ -3605,6 +3722,21 @@ local function build_memory_source_operand(
             effective_address = "unknown",
             runtime_address = "unknown",
             execution_status = "not_observed",
+            effective_address_status = evaluation
+                and evaluation.status
+                or "unknown",
+            effective_address_value = evaluation
+                and evaluation.value
+                or nil,
+            effective_address_reason = evaluation
+                and evaluation.reason
+                or nil,
+            effective_address_bits = evaluation
+                and evaluation.bits
+                or nil,
+            effective_address_wrapped = evaluation
+                and evaluation.wrapped
+                or false,
         },
     }
 end
@@ -3707,13 +3839,25 @@ local function collect_memory_source_operands_where(
                     for operand_index, operand in ipairs(
                         instruction.operands or {}
                     ) do
+                        local evaluation =
+                            evaluate_memory_address_before_instruction(
+                                bufnr,
+                                root_node,
+                                adapter,
+                                instruction,
+                                operand.memory
+                                    and operand.memory.normalized
+                                    or nil
+                            )
+
                         local memory_operand =
                             build_memory_source_operand(
                                 adapter,
                                 instruction,
                                 operand,
                                 operand_index,
-                                matching_specs
+                                matching_specs,
+                                evaluation
                             )
 
                         if memory_operand then
