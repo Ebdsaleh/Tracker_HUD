@@ -1355,6 +1355,91 @@ local function validate_presentation(presentation)
 end
 
 
+local function validate_memory_accesses(memory_accesses)
+    if memory_accesses == nil then
+        return true, nil
+    end
+
+    if not core.is_table(memory_accesses) then
+        return false,
+            "adapter.memory_accesses must be a table when provided"
+    end
+
+    local valid_access = {
+        read = true,
+        write = true,
+        read_write = true,
+        address_only = true,
+        unknown = true,
+    }
+
+    for mnemonic, rules in pairs(memory_accesses) do
+        local path = "adapter.memory_accesses[" .. tostring(mnemonic) .. "]"
+
+        if not core.is_non_empty_string(mnemonic) then
+            return false,
+                "adapter.memory_accesses keys must be non-empty strings"
+        end
+
+        if not core.is_table(rules) or #rules == 0 then
+            return path_error(
+                path,
+                "must be a non-empty array of rules"
+            )
+        end
+
+        local seen_operand_indexes = {}
+
+        for index, rule in ipairs(rules) do
+            local rule_path = path .. "[" .. tostring(index) .. "]"
+
+            if not core.is_table(rule) then
+                return path_error(rule_path, "must be a table")
+            end
+
+            if not core.is_number(rule.operand_index)
+                or rule.operand_index < 1
+                or rule.operand_index ~= math.floor(rule.operand_index)
+            then
+                return path_error(
+                    rule_path .. ".operand_index",
+                    "must be a positive integer"
+                )
+            end
+
+            if seen_operand_indexes[rule.operand_index] then
+                return path_error(
+                    rule_path .. ".operand_index",
+                    "duplicates an earlier rule for this mnemonic"
+                )
+            end
+
+            seen_operand_indexes[rule.operand_index] = true
+
+            if rule.operand_kind ~= nil
+                and not core.is_non_empty_string(rule.operand_kind)
+            then
+                return path_error(
+                    rule_path .. ".operand_kind",
+                    "must be a non-empty string when provided"
+                )
+            end
+
+            if not core.is_non_empty_string(rule.access)
+                or not valid_access[rule.access]
+            then
+                return path_error(
+                    rule_path .. ".access",
+                    "must be one of read, write, read_write, address_only, unknown"
+                )
+            end
+        end
+    end
+
+    return true, nil
+end
+
+
 local function validate_instruction_parser(instruction_parser)
     if instruction_parser == nil then
         return true, nil
@@ -1474,6 +1559,12 @@ function M.validate_adapter(adapter)
     end
 
     ok, err = validate_instruction_parser(adapter.instruction_parser)
+
+    if not ok then
+        return false, err
+    end
+
+    ok, err = validate_memory_accesses(adapter.memory_accesses)
 
     if not ok then
         return false, err
