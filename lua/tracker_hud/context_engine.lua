@@ -3484,6 +3484,167 @@ local function build_memory_component_occurrences(
 end
 
 
+local function get_memory_operand_role(
+    effect_specs,
+    operand_index
+)
+    local role = nil
+
+    for _, effect_spec in ipairs(effect_specs or {}) do
+        local operand_spec = get_effect_operand_spec(
+            effect_spec,
+            operand_index
+        )
+
+        if core.is_table(operand_spec)
+            and core.is_non_empty_string(operand_spec.role)
+        then
+            role = role or operand_spec.role
+        end
+    end
+
+    return role
+end
+
+
+local function build_memory_source_operand(
+    instruction,
+    operand,
+    operand_index,
+    effect_specs
+)
+    if not core.is_table(instruction)
+        or not core.is_table(operand)
+        or operand.kind ~= "memory"
+        or not core.is_table(operand.memory)
+        or not core.is_table(operand.memory.normalized)
+    then
+        return nil
+    end
+
+    local role = get_memory_operand_role(
+        effect_specs,
+        operand_index
+    )
+
+    return {
+        id = table.concat({
+            "memory-operand",
+            tostring(operand.source_line or instruction.source_line or "?"),
+            tostring(operand.source_start_column or operand.source_column or "?"),
+            tostring(operand_index),
+        }, ":"),
+        kind = "memory_operand",
+        text = operand.text,
+        role = role,
+        operand_index = operand_index,
+
+        source_line = operand.source_line,
+        source_column = operand.source_column,
+        source_start_line = operand.source_start_line,
+        source_start_column = operand.source_start_column,
+        source_end_line = operand.source_end_line,
+        source_end_column = operand.source_end_column,
+
+        address = operand.memory.normalized,
+
+        metadata = {
+            observation = "source memory operand only",
+            mnemonic = instruction.mnemonic,
+            operand_role = role,
+            effective_address = "unknown",
+            runtime_address = "unknown",
+        },
+    }
+end
+
+
+function M.discover_memory_source_operands(
+    bufnr,
+    root_node,
+    adapter,
+    line_number
+)
+    if not bufnr
+        or not root_node
+        or not core.is_table(adapter)
+        or not core.is_table(adapter.register_effects)
+        or not core.is_number(line_number)
+    then
+        return {}
+    end
+
+    local effect_index = get_register_effect_index(adapter)
+    local result = {}
+    local seen_nodes = {}
+
+    for node_type, _ in pairs(effect_index.node_types) do
+        for _, node in ipairs(
+            collect_nodes_by_type(root_node, node_type)
+        ) do
+            local start_row,
+                start_column,
+                end_row,
+                end_column = node:range()
+
+            if start_row + 1 == line_number then
+                local node_key = table.concat({
+                    node:type(),
+                    tostring(start_row),
+                    tostring(start_column),
+                    tostring(end_row),
+                    tostring(end_column),
+                }, ":")
+
+                if not seen_nodes[node_key] then
+                    seen_nodes[node_key] = true
+
+                    local instruction, matching_specs =
+                        get_matching_register_effect_specs(
+                            effect_index,
+                            adapter,
+                            node,
+                            bufnr
+                        )
+
+                    if instruction then
+                        for operand_index, operand in ipairs(
+                            instruction.operands or {}
+                        ) do
+                            local memory_operand =
+                                build_memory_source_operand(
+                                    instruction,
+                                    operand,
+                                    operand_index,
+                                    matching_specs
+                                )
+
+                            if memory_operand then
+                                table.insert(result, memory_operand)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    table.sort(result, function(left, right)
+        local left_column = left.source_start_column or 0
+        local right_column = right.source_start_column or 0
+
+        if left_column == right_column then
+            return (left.operand_index or 0)
+                < (right.operand_index or 0)
+        end
+
+        return left_column < right_column
+    end)
+
+    return result
+end
+
+
 function M.discover_register_source_occurrences(
     bufnr,
     root_node,
