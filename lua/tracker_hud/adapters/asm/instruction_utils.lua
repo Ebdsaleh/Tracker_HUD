@@ -403,6 +403,58 @@ local function parse_memory_prefix(text, memory_spec)
 end
 
 
+local function parse_memory_prefix_from_source_context(
+    bufnr,
+    source_line,
+    source_start_column,
+    memory_spec
+)
+    if not bufnr
+        or type(source_line) ~= "number"
+        or type(source_start_column) ~= "number"
+        or type(memory_spec) ~= "table"
+        or type(memory_spec.size_prefixes) ~= "table"
+    then
+        return nil
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(
+        bufnr,
+        source_line - 1,
+        source_line,
+        false
+    )
+
+    local line = lines and lines[1]
+    if type(line) ~= "string" then
+        return nil
+    end
+
+    -- source_start_column is zero-based. Keep only text before the ptr node,
+    -- then restrict lookup to the current comma-separated operand segment.
+    local before = line:sub(1, source_start_column)
+    local segment = before:match("([^,]+)$") or before
+    local prefix = segment:match("([%a_][%w_]*)%s*$")
+
+    if not prefix then
+        return nil
+    end
+
+    prefix = prefix:lower()
+
+    local size_spec = memory_spec.size_prefixes[prefix]
+    if type(size_spec) ~= "table" then
+        return nil
+    end
+
+    return {
+        prefix = prefix,
+        bits = size_spec.bits,
+        label = size_spec.label or prefix,
+    }
+end
+
+
 local function token_kind(token, register_index)
     if type(token) ~= "string" or token == "" then
         return nil
@@ -772,6 +824,15 @@ local function analyze_memory_operand(
         operand_text,
         memory_spec
     )
+
+    if not size then
+        size = parse_memory_prefix_from_source_context(
+            bufnr,
+            source_start_line,
+            source_start_column,
+            memory_spec
+        )
+    end
 
     local memory = {
         kind = memory_spec.kind or "memory",
