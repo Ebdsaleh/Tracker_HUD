@@ -32,6 +32,35 @@ assert(not ok
     "empty address-mode kind must fail at adapter contract")
 print("PASS memory contract: invalid address mode is rejected")
 
+local bad_address_default = fresh_adapter()
+memory_spec(bad_address_default).address_size_policy.default_bits = 16
+local default_ok, default_err = contract.validate_adapter(bad_address_default)
+assert(not default_ok
+    and tostring(default_err):find("address_size_policy.default_bits", 1, true),
+    "address-size default outside allowed widths must fail at adapter contract")
+print("PASS memory contract: invalid address-size default is rejected")
+
+local bad_address_map = fresh_adapter()
+memory_spec(bad_address_map).address_size_policy.register_width_map[32] = 16
+local map_ok, map_err = contract.validate_adapter(bad_address_map)
+assert(not map_ok
+    and tostring(map_err):find("register_width_map[32]", 1, true),
+    "address-size register map outside allowed widths must fail")
+print("PASS memory contract: invalid address-size register map is rejected")
+
+local duplicate_address_width = fresh_adapter()
+memory_spec(duplicate_address_width).address_size_policy.allowed_bits = {
+    32,
+    64,
+    64,
+}
+local duplicate_width_ok, duplicate_width_err =
+    contract.validate_adapter(duplicate_address_width)
+assert(not duplicate_width_ok
+    and tostring(duplicate_width_err):find("allowed_bits", 1, true),
+    "duplicate address-size width must fail at adapter contract")
+print("PASS memory contract: duplicate address-size width is rejected")
+
 local bad_size = fresh_adapter()
 memory_spec(bad_size).size_prefixes.qword.bits = 0
 local size_ok, size_err = contract.validate_adapter(bad_size)
