@@ -31,6 +31,7 @@ local function run()
     assert(configured, "cannot configure ASM adapter: " .. tostring(config_err))
 
     local instruction_utils = require("tracker_hud.adapters.asm.instruction_utils")
+    local engine = require("tracker_hud.context_engine")
 
     local function instruction_on(line_number)
         local found
@@ -81,6 +82,25 @@ local function run()
         "frame-pointer display role must not replace structural base role")
     print("PASS ASM memory structure: base/index/scale/displacement + qword size")
 
+    local discovered_load = engine.discover_memory_source_operands(
+        buffer,
+        root,
+        adapter,
+        2
+    )
+    assert(#discovered_load == 1,
+        "context memory discovery must return one line-2 operand")
+    assert(discovered_load[1].kind == "memory_operand"
+        and discovered_load[1].operand_index == 2
+        and discovered_load[1].address.base.name == "rbp"
+        and discovered_load[1].address.index.name == "rcx"
+        and discovered_load[1].address.scale.value == "4"
+        and discovered_load[1].address.displacement.value == "-16"
+        and discovered_load[1].metadata.effective_address == "unknown"
+        and discovered_load[1].metadata.runtime_address == "unknown",
+        "first-class context memory fact changed")
+    print("PASS ASM memory structure: context exposes normalized source memory operand")
+
     local store = parse_line(3)
     local store_address = assert(
         store.operands[1]
@@ -109,6 +129,17 @@ local function run()
         "REL symbol must be separated from address-mode syntax")
     print("PASS ASM memory structure: REL mode separated from symbol")
 
+    local discovered_relative = engine.discover_memory_source_operands(
+        buffer,
+        root,
+        adapter,
+        4
+    )
+    assert(#discovered_relative == 1
+        and discovered_relative[1].address.address_mode == "relative"
+        and discovered_relative[1].address.symbol.name == "msg",
+        "context memory discovery lost REL/symbol separation")
+
     local absolute = parse_line(5)
     local absolute_address = assert(
         absolute.operands[2]
@@ -121,6 +152,47 @@ local function run()
         and absolute_address.displacement.value == "4660",
         "ABS numeric address must preserve exact displacement")
     print("PASS ASM memory structure: ABS mode + exact hexadecimal displacement")
+
+    local register_occurrences =
+        engine.discover_register_source_occurrences(
+            buffer,
+            root,
+            adapter,
+            2
+        )
+
+    local saw_structured_metadata = false
+    local saw_base_component = false
+
+    for _, occurrence in ipairs(register_occurrences) do
+        local metadata = occurrence.metadata or {}
+
+        if metadata.memory_address_structured then
+            local address = metadata.memory_address_structured
+            assert(address.base and address.base.name == "rbp"
+                and address.index and address.index.name == "rcx"
+                and address.scale and address.scale.value == "4"
+                and address.displacement
+                and address.displacement.value == "-16",
+                "existing Inspect metadata disagrees with normalized memory structure")
+            saw_structured_metadata = true
+        end
+
+        if occurrence.kind == "memory_component"
+            and occurrence.text == "rbp"
+        then
+            assert(metadata.address_role_id == "base_register"
+                and metadata.address_display_role_id == "frame pointer base",
+                "memory component must keep structural and display roles separate")
+            saw_base_component = true
+        end
+    end
+
+    assert(saw_structured_metadata,
+        "register occurrence metadata did not expose normalized memory address")
+    assert(saw_base_component,
+        "register occurrence metadata did not expose structural base role")
+    print("PASS ASM memory structure: Inspect metadata reuses normalized address")
 
     print("PASS Tracker_HUD ASM normalized memory structure smoke")
 end
