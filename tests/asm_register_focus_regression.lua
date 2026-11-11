@@ -7,7 +7,7 @@
 -- Does not edit the sample, source files, Neovim settings or user workspace.
 
 local function run()
-    vim.opt.runtimepath:prepend(vim.fn.getcwd())
+    dofile("tests/test_runtime.lua").use_working_tree()
 
     local sample = "samples/asm/x86_64/memory_operand_validation.asm"
     local lines = vim.fn.readfile(sample)
