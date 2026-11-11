@@ -72,6 +72,32 @@ local function run()
         "LEA must classify its memory syntax as address_only")
     print("PASS ASM memory access: LEA is address_only")
 
+    local focus = engine.discover_register_source_occurrences(
+        buffer,
+        root,
+        adapter,
+        4
+    )
+    local saw_symbol_component = false
+
+    for _, occurrence in ipairs(focus or {}) do
+        if occurrence.kind == "memory_component"
+            and occurrence.text == "msg"
+        then
+            local metadata = occurrence.metadata or {}
+
+            assert(metadata.memory_access_intent == "address_only"
+                and metadata.memory_access_declared == true
+                and metadata.memory_execution_status == "not_observed",
+                "Inspect memory metadata must reuse normalized access intent")
+            saw_symbol_component = true
+        end
+    end
+
+    assert(saw_symbol_component,
+        "LEA symbol memory component missing from source occurrences")
+    print("PASS ASM memory access: Inspect reuses address-only intent")
+
     local unknown = one(5)
     assert(unknown.access == "unknown"
         and unknown.metadata.access_intent == "unknown"
