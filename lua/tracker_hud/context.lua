@@ -466,6 +466,19 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
         }
     )
 
+    -- ASM source memory operands are syntax-derived address structures.
+    -- Keep them separate from Heap/Events: seeing [base + index*scale + disp]
+    -- proves source structure, not that an access executed or an address exists.
+    if adapter.name == "asm" then
+        context.source_memory_operands =
+            context_engine.collect_memory_source_operands(
+                bufnr,
+                root_node,
+                adapter,
+                context.cursor and context.cursor.line
+            )
+    end
+
     -- C/C++ source-observed memory operations. Only events that begin ON
     -- or BEFORE the cursor are visited. This records allocation/release
     -- expression sites, not successful allocations or ownership proofs.
