@@ -4,7 +4,7 @@
 -- nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 
 local function run()
-    vim.opt.runtimepath:prepend(vim.fn.getcwd())
+    dofile("tests/test_runtime.lua").use_working_tree()
 
     local source = {
         "bits 64",
