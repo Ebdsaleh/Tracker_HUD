@@ -3554,6 +3554,8 @@ local function build_memory_source_operand(
             tostring(operand_index),
         }, ":"),
         kind = "memory_operand",
+        category = "memory",
+        source = "asm_source_memory",
         text = operand.text,
         role = role,
         operand_index = operand_index,
