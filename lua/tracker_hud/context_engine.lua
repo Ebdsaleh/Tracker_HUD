@@ -3719,7 +3719,9 @@ local function build_memory_source_operand(
             access_declared = access_metadata.declared,
             access_ambiguous = access_metadata.ambiguous,
             access_rule_count = access_metadata.rule_count,
-            effective_address = "unknown",
+            effective_address = evaluation
+                and evaluation.value
+                or "unknown",
             runtime_address = "unknown",
             execution_status = "not_observed",
             effective_address_status = evaluation
