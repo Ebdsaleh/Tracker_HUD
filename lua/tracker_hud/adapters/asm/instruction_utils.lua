@@ -10,6 +10,7 @@
 
 local treesitter_utils = require("tracker_hud.treesitter_utils")
 local memory_address = require("tracker_hud.low_level.memory_address")
+local address_size = require("tracker_hud.low_level.address_size")
 
 local M = {}
 
@@ -309,6 +310,47 @@ local function build_register_alias_index(adapter)
     end
 
     return index
+end
+
+
+local function get_register_bits(adapter, register_name)
+    if type(adapter) ~= "table"
+        or type(register_name) ~= "string"
+    then
+        return nil
+    end
+
+    local normalized = register_name:lower()
+    local alias_index = adapter.register_alias_index
+
+    if type(alias_index) == "table" then
+        local entry = alias_index[normalized]
+
+        if type(entry) == "table"
+            and type(entry.alias) == "table"
+            and type(entry.alias.bits) == "number"
+        then
+            return entry.alias.bits
+        end
+    end
+
+    local static_registers = adapter.registers
+        and adapter.registers.static
+        or nil
+
+    if type(static_registers) == "table" then
+        for _, register in ipairs(static_registers) do
+            if type(register) == "table"
+                and type(register.name) == "string"
+                and register.name:lower() == normalized
+                and type(register.bits) == "number"
+            then
+                return register.bits
+            end
+        end
+    end
+
+    return nil
 end
 
 
@@ -834,6 +876,17 @@ local function analyze_memory_operand(
         )
     end
 
+    local resolved_address_size = address_size.resolve(
+        memory_spec.address_size_policy,
+        components,
+        function(register_name)
+            return get_register_bits(
+                adapter,
+                register_name
+            )
+        end
+    )
+
     local memory = {
         kind = memory_spec.kind or "memory",
         container_kind = memory_spec.container_kind or "memory",
@@ -845,6 +898,7 @@ local function analyze_memory_operand(
         source_line = source_start_line,
         address_mode = address_mode or "default",
         address_mode_token = address_mode_token,
+        address_size = resolved_address_size,
         size = size,
         components = components,
     }
