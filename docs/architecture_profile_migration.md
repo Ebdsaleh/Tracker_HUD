@@ -2938,3 +2938,400 @@ nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa
 If `-u NONE` cannot see the installed ASM parser, that is an environment
 limitation rather than a semantic failure; the normal-config repeatability line
 is still the required product gate.
+
+
+## Accepted stability gate: canonical alias reads (2026-11-11)
+
+**Accepted on ERIDU at `f51c19f`.**
+
+The canonical-to-alias repair passed in both normal Neovim and `-u NONE`.
+
+Confirmed:
+
+```text
+PASS x86 alias read: EAX projects known canonical low dword
+PASS x86 alias read: repeated collection is deterministic
+PASS x86 alias read: AX projects known canonical low word
+PASS x86 alias read: AH projects known canonical high byte
+PASS x86 alias read: AL projects known canonical low byte
+PASS x86 alias read: partial canonical certainty feeds proven alias reads
+PASS Tracker_HUD x86 canonical-to-alias read smoke
+```
+
+The full source-immediate interpretation smoke also passed through RAX/EAX/AX/AL
+and the out-of-range imm32 fail-closed case.
+
+The alias-read stability concern is therefore closed.
+
+## Foundational memory tranche: normalized structural operands (2026-11-11)
+
+**Status: pushed on `main`, pending ERIDU acceptance.**
+
+ASM memory expressions previously exposed useful token components to source-focus
+logic, but their primary semantic representation was still the raw source
+string plus presentation-oriented component labels.
+
+This tranche introduces one normalized, architecture-neutral memory-address
+shape.
+
+### New normalized address model
+
+Created:
+
+`lua/tracker_hud/low_level/memory_address.lua`
+
+The version-1 normalized shape exposes:
+
+```text
+base
+index
+scale
+displacement
+symbol
+address_mode
+memory_size_bits
+terms
+source
+```
+
+alongside:
+
+```text
+kind
+container_kind
+address_kind
+address_text
+memory_size_prefix
+memory_size_label
+```
+
+The model deliberately records:
+
+```text
+effective_address = unknown
+runtime_address   = unknown
+```
+
+Source structure is not execution proof.
+
+### Structural role vs display role
+
+Existing x86 presentation overrides remain useful:
+
+```text
+rbp -> frame pointer base
+rsp -> stack pointer base
+rip -> instruction pointer relative base
+```
+
+Those display roles no longer replace the semantic role.
+
+Memory components now retain both:
+
+```text
+structural_role
+role / display_role
+```
+
+For example:
+
+```text
+rbp
+
+structural_role = base_register
+display_role    = frame pointer base
+```
+
+Existing HUD wording can remain unchanged while inference gets a stable role ID.
+
+### Structural identity is not runtime value
+
+For register and symbol components, the normalized model knows identity only.
+
+Examples:
+
+```text
+base.name = rbp
+base.identity_known = true
+base.value_status = not_evaluated
+
+symbol.name = msg
+symbol.identity_known = true
+symbol.value_status = not_evaluated
+```
+
+They do not claim a resolved runtime value/address.
+
+Only exact integer components such as scale/displacement carry numeric
+resolution in this tranche.
+
+### Exact displacement parsing
+
+Scale/displacement values reuse the exact integer foundation.
+
+Examples:
+
+```text
+4       -> 4
+-0x10   -> -16
+0b1000  -> 8
+```
+
+Memory parsing now recognizes binary integer tokens as well as decimal/hex.
+
+### Declarative address modes
+
+The generic ASM memory parser can now consume adapter-declared address-mode
+tokens.
+
+The x86-64 profile currently declares NASM-style:
+
+```text
+rel -> relative
+abs -> absolute
+```
+
+Therefore:
+
+```asm
+[rel msg]
+```
+
+normalizes as:
+
+```text
+address_mode       = relative
+address_mode_token = rel
+symbol.name        = msg
+```
+
+rather than treating `rel msg` as one symbol string.
+
+Likewise:
+
+```asm
+[abs 0x1234]
+```
+
+keeps:
+
+```text
+address_mode = absolute
+displacement = 4660
+```
+
+### Parser integration
+
+`adapters/asm/instruction_utils.lua` now attaches:
+
+```text
+operand.memory.normalized
+```
+
+for parsed memory operands.
+
+The existing raw memory fields/components remain available for compatibility.
+
+### First-class context source facts
+
+`context_engine.lua` now exposes:
+
+```text
+discover_memory_source_operands(...)
+collect_memory_source_operands(...)
+```
+
+The discovery path is syntax-first. It scans instruction syntax directly and
+does not require complete register-effect coverage merely to expose a memory
+operand.
+
+Effect rules, when available, may enrich the source fact with operand-role
+metadata.
+
+A memory source fact contains:
+
+```text
+kind     = memory_operand
+category = memory
+source   = asm_source_memory
+address  = normalized address structure
+```
+
+and exact source ranges.
+
+### ON/PAST context lifecycle
+
+For ASM, normal context construction now attaches:
+
+```text
+context.source_memory_operands
+```
+
+containing only operands ON or BEFORE the cursor source line.
+
+Future memory syntax must not leak backward.
+
+These source operands remain separate from Heap/Events. Seeing an address
+expression does not prove an access executed, an allocation happened, or a
+runtime address exists.
+
+### Existing Inspect metadata reuses the same structure
+
+The existing source-occurrence path now exposes:
+
+```text
+memory_address_structured
+memory_address_mode
+memory_base_register
+memory_index_register
+memory_scale
+memory_displacement
+memory_symbol
+```
+
+from the same normalized address object.
+
+Memory component metadata now uses the stable structural ID for:
+
+```text
+address_role_id
+```
+
+while retaining the old presentation-specific role in:
+
+```text
+address_display_role_id
+```
+
+This avoids a parallel parser/model for Inspect.
+
+### Ambiguity
+
+If multiple components compete for a singular convenience field such as
+`base`, the first parsed component is retained, all terms remain preserved,
+and:
+
+```text
+metadata.ambiguous.base = true
+```
+
+is set.
+
+The normalizer does not silently overwrite conflicting structure.
+
+### Adapter Contract protection
+
+`adapters/contract.lua` now validates memory declarations when an adapter
+provides them.
+
+Checked fields include:
+
+- memory kind/container/address-kind strings;
+- open/close brackets;
+- address modes;
+- size-prefix bit widths/labels;
+- component-role declarations;
+- register-role overrides.
+
+Adapters that declare no memory semantics remain unaffected.
+
+### New regressions
+
+`tests/memory_address_smoke.lua`
+
+Pins:
+
+- structural base/index/scale/displacement;
+- exact negative hexadecimal displacement;
+- memory size;
+- structural vs display roles;
+- identity vs runtime-value certainty;
+- relative mode + symbol separation;
+- ambiguity handling;
+- no invented runtime address.
+
+`tests/asm_memory_structure_smoke.lua`
+
+Parser-backed coverage includes:
+
+- `qword [rbp + rcx*4 - 0x10]`;
+- `[rsp + 8]`;
+- `[rel msg]`;
+- `[abs 0x1234]`;
+- binary displacement;
+- first-class context discovery;
+- normalized Inspect metadata;
+- structural/display component-role separation;
+- ON/PAST context visibility;
+- separation from runtime Events.
+
+`tests/memory_adapter_contract_smoke.lua`
+
+Pins rejection of malformed:
+
+- address modes;
+- size widths;
+- brackets;
+- component roles;
+- register-role overrides.
+
+### Deliberate boundary: no effective-address evaluation yet
+
+This tranche does NOT compute:
+
+```text
+base_value + index_value * scale + displacement
+```
+
+even if some register values are currently known.
+
+It also does not yet claim load/store execution or runtime memory contents.
+
+The foundation is:
+
+```text
+trustworthy structural address representation first
+```
+
+before adding memory-access or effective-address semantics.
+
+### ERIDU gate
+
+```bat
+git status --short
+git pull --ff-only
+git log -15 --oneline
+
+nvim --headless -u NONE -c "luafile tests/memory_address_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/presentation_modes_smoke.lua" -c "qa!"
+```
+
+### Next foundational step after green
+
+Keep memory semantics layered.
+
+The next likely tranche should describe **memory access intent** separately from
+address structure:
+
+```text
+read
+write
+read_write
+address_only
+unknown
+```
+
+That will allow MOV/LEA/atomic/string instructions to state what they do with a
+normalized address without pretending memory contents are already modeled.
+
+Only after access intent is reliable should effective-address calculation reuse
+known register state and exact displacement arithmetic.
