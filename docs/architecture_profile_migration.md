@@ -4253,3 +4253,529 @@ expanding effective-address evaluation further.
 
 After address-size semantics, a separate symbol/instruction-position model can
 unlock RIP-relative and REL symbol evaluation without guessing.
+
+
+## Accepted effective-address gate (2026-11-11)
+
+The certainty-aware effective-address tranche is accepted green on ERIDU.
+
+Confirmed:
+
+~~~
+PASS exact integer: canonical decimal signs and zeroes
+PASS exact integer: 64-bit hexadecimal literals remain exact
+PASS exact integer: 64-bit binary literals remain exact
+PASS exact integer: signed addition does not use Lua float precision
+PASS exact integer: exact negation
+PASS exact integer: safe-number boundary is explicit
+PASS exact integer: invalid and unsafe numeric inputs stay unresolved
+PASS exact integer: stack depth keeps safe-number boundary
+PASS integer value: exact wide multiplication
+PASS Tracker_HUD exact integer value smoke
+~~~
+
+Pure effective-address evaluation passed:
+
+~~~
+PASS effective address: exact base/index/scale/displacement evaluation
+PASS effective address: exact wide arithmetic remains lossless
+PASS effective address: target-width wrapping is explicit
+PASS effective address: unresolved register fails closed
+PASS effective address: symbolic address remains unresolved
+PASS effective address: relative numeric basis remains unresolved
+PASS effective address: ambiguous structure fails closed
+PASS effective address: scale without index is rejected
+PASS effective address: displacement-only address evaluates
+PASS Tracker_HUD effective-address smoke
+~~~
+
+Parser-backed x86 evaluation also passed:
+
+~~~
+PASS ASM effective address: active architecture width is available
+PASS ASM effective address: proven pre-instruction state evaluates exactly
+PASS ASM effective address: Inspect reuses evaluated address certainty
+PASS ASM effective address: unknown register fails closed
+PASS ASM effective address: absolute numeric address evaluates
+PASS ASM effective address: symbolic REL address stays unresolved
+PASS ASM effective address: Inspect preserves unresolved REL basis
+PASS ASM effective address: 64-bit address wrap is explicit
+PASS ASM effective address: self-referential LEA uses pre-instruction state
+PASS ASM effective address: context preserves source-time address certainty
+PASS Tracker_HUD ASM effective-address smoke
+~~~
+
+All memory-access, structural-memory, register-focus, alias-read, Adapter Contract,
+and normalized-fact regressions remained green.
+
+## Foundational memory tranche: explicit address-size semantics (2026-11-11)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+The previous effective-address implementation correctly used architecture width
+as an initial fallback, but x86-64 requires a more precise distinction:
+
+~~~
+architecture width
+address size
+operand size
+memory data width
+~~~
+
+These are separate semantic axes.
+
+In 64-bit mode, the default effective address size is 64 bits, while 32-bit
+addressing is also valid via address-size override / 32-bit address-register
+forms.
+
+This tranche makes address size explicit in the normalized memory model.
+
+### Architecture-neutral address-size resolver
+
+Created:
+
+~~~
+lua/tracker_hud/low_level/address_size.lua
+~~~
+
+The resolver consumes:
+
+~~~
+adapter-owned address-size policy
+parsed address components
+register-width resolver
+optional explicit source prefix
+~~~
+
+It knows no x86 register names.
+
+Normalized result:
+
+~~~
+status
+bits
+source
+reason
+details
+~~~
+
+Known sources currently include:
+
+~~~
+default
+register_width
+explicit_prefix
+~~~
+
+### x86-64 address-size policy
+
+The x86 memory declaration now owns:
+
+~~~
+address_size_policy = {
+    default_bits = 64,
+    allowed_bits = { 32, 64 },
+
+    register_width_map = {
+        [32] = 32,
+        [64] = 64,
+    },
+
+    prefixes = {
+        a32 = 32,
+        a64 = 64,
+    },
+}
+~~~
+
+Therefore:
+
+~~~
+[rax + rcx*4]
+-> address size 64
+
+[eax + ecx*4]
+-> address size 32
+
+[abs 0x1234]
+-> default address size 64
+~~~
+
+Mixed address-register widths fail closed:
+
+~~~
+[rax + ecx*4]
+-> unknown
+-> mixed address register widths
+~~~
+
+Unsupported address-register widths also fail closed:
+
+~~~
+[ax]
+-> unknown
+-> unsupported address register width
+~~~
+
+The long-mode policy deliberately allows only 32- and 64-bit address sizes.
+
+### Data width remains independent
+
+Memory data size is still represented by:
+
+~~~
+memory_size_bits
+memory_size_prefix
+memory_size_label
+~~~
+
+Address arithmetic size is now represented independently by:
+
+~~~
+address_size_bits
+address_size_status
+address_size_source
+address_size_reason
+address_size_details
+~~~
+
+Example:
+
+~~~
+qword [eax + ecx*8 + 0x20]
+
+memory_size_bits  = 64
+address_size_bits = 32
+~~~
+
+The instruction may access a 64-bit data value while computing the address in
+32-bit address space.
+
+### Parser integration
+
+Updated:
+
+~~~
+lua/tracker_hud/adapters/asm/instruction_utils.lua
+~~~
+
+The parser resolves address size after structural memory components have been
+identified.
+
+Register widths are obtained from:
+
+~~~
+adapter.register_alias_index
+~~~
+
+with a static-register fallback when a register declares bits directly.
+
+The resolved address-size object is attached before memory normalization.
+
+### Explicit A32/A64 support
+
+The generic address-size resolver supports explicit source prefixes.
+
+The x86 policy declares:
+
+~~~
+A32 -> 32
+A64 -> 64
+~~~
+
+The parser scans source context for adapter-declared address-size prefixes.
+
+Consistent explicit prefix:
+
+~~~
+A32 + 32-bit address registers
+-> known 32-bit address size
+~~~
+
+Conflicting explicit prefix/register width:
+
+~~~
+A32 + 64-bit address register
+-> unknown
+-> address-size prefix conflicts with registers
+~~~
+
+Conflicting explicit prefixes fail closed:
+
+~~~
+A32 + A64
+-> unknown
+-> conflicting explicit address-size prefixes
+~~~
+
+The pure resolver and Adapter Contract pin this behavior.
+
+The first parser-backed ERIDU gate deliberately focuses on register-driven
+32/64-bit addressing because the installed Tree-sitter grammar's exact prefix
+node shape has not yet been independently probed. A dedicated grammar-probe
+test can be added after this main tranche is accepted.
+
+### Normalized memory model
+
+Updated:
+
+~~~
+lua/tracker_hud/low_level/memory_address.lua
+~~~
+
+The normalized address now retains:
+
+~~~
+address_size_bits
+address_size_status
+address_size_source
+address_size_reason
+address_size_details
+~~~
+
+These fields are independent from memory data width.
+
+### Effective-address width selection
+
+Updated:
+
+~~~
+lua/tracker_hud/low_level/effective_address.lua
+~~~
+
+If normalized address-size certainty exists and is not known, effective-address
+evaluation fails closed:
+
+~~~
+status = unknown
+reason = address size unresolved
+~~~
+
+When address size is known, the evaluator uses:
+
+~~~
+address.address_size_bits
+~~~
+
+in preference to the architecture-width fallback.
+
+Thus:
+
+~~~
+EAX address arithmetic
+-> wraps at 2^32
+
+RAX address arithmetic
+-> wraps at 2^64
+~~~
+
+### Parser-backed exact 32-bit wrap case
+
+The new x86 regression uses:
+
+~~~
+mov rax, 0x00000000FFFFFFF0
+mov rcx, 2
+mov rbx, qword [eax + ecx*8 + 0x20]
+~~~
+
+Source register projections:
+
+~~~
+eax = 4294967280
+ecx = 2
+~~~
+
+Exact mathematical result:
+
+~~~
+4294967280 + 2*8 + 32
+= 4294967328
+~~~
+
+32-bit address result:
+
+~~~
+32
+~~~
+
+while:
+
+~~~
+memory_size_bits = 64
+address_size_bits = 32
+~~~
+
+The corresponding 64-bit register form:
+
+~~~
+qword [rax + rcx*8 + 0x20]
+~~~
+
+keeps:
+
+~~~
+effective_address = 4294967328
+address_size_bits = 64
+wrapped = false
+~~~
+
+### Inspect/source metadata
+
+Inspect memory metadata now exposes:
+
+~~~
+memory_address_size_bits
+memory_address_size_status
+memory_address_size_source
+memory_address_size_reason
+~~~
+
+First-class source memory facts expose:
+
+~~~
+metadata.address_size_bits
+metadata.address_size_status
+metadata.address_size_source
+metadata.address_size_reason
+~~~
+
+The effective-address metadata continues to report its actual evaluation width:
+
+~~~
+memory_effective_address_bits
+effective_address_bits
+~~~
+
+### Context lifecycle
+
+The new x86 address-size regression pins that:
+
+~~~
+context.source_memory_operands
+~~~
+
+preserves each historical memory operand's own source-time address width.
+
+A later 64-bit form must not retroactively change an earlier 32-bit form, and
+vice versa.
+
+### Adapter Contract protection
+
+Memory declaration validation now protects:
+
+~~~
+address_size_policy.default_bits
+address_size_policy.allowed_bits
+address_size_policy.register_width_map
+address_size_policy.prefixes
+~~~
+
+The contract rejects:
+
+- non-positive or fractional widths;
+- an empty allowed-width set;
+- duplicate allowed widths;
+- a default width outside allowed widths;
+- register-width mappings to undeclared address widths;
+- explicit prefixes mapped to undeclared address widths.
+
+### New regressions
+
+tests/address_size_smoke.lua pins:
+
+- default address width;
+- 64-bit register addressing;
+- 32-bit register addressing;
+- explicit address-size prefix;
+- explicit prefix/register conflict;
+- conflicting explicit prefixes;
+- mixed 32/64-bit address registers;
+- unsupported 16-bit address registers;
+- unknown register width.
+
+tests/x86_address_size_smoke.lua pins parser-backed x86 behavior:
+
+- qword data width with 32-bit address width;
+- exact EAX/ECX alias projection;
+- 32-bit effective-address wrap;
+- 64-bit register-address counterpart;
+- mixed 32/64-bit fail-closed behavior;
+- unsupported AX address form fail-closed behavior;
+- register-free default 64-bit address size;
+- Inspect reuse;
+- context lifecycle.
+
+tests/memory_address_smoke.lua now explicitly pins:
+
+~~~
+memory_size_bits = 64
+address_size_bits = 32
+~~~
+
+as independent fields.
+
+tests/effective_address_smoke.lua now pins:
+
+- normalized address width overrides architecture fallback width;
+- unresolved normalized address width fails closed.
+
+tests/memory_adapter_contract_smoke.lua now pins malformed address-size policies
+and prefixes.
+
+### Deliberate boundaries
+
+This tranche does NOT yet model:
+
+~~~
+numeric RIP / next-instruction position
+linker or symbol addresses
+EIP/RIP-relative target calculation
+segment-base contribution
+FS/GS base
+actual instruction encoding bytes
+runtime process memory
+~~~
+
+It also does not yet claim parser-backed A32/A64 prefix syntax until ERIDU's
+installed Tree-sitter grammar shape has been probed separately.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -18 --oneline
+
+nvim --headless -u NONE -c "luafile tests/address_size_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_address_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/effective_address_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_adapter_contract_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/x86_address_size_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_access_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_read_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/normalized_fact_contract_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after green
+
+First, run a tiny parser-shape probe for explicit NASM A32/A64 instruction
+prefixes and promote them into parser-backed regression coverage if the grammar
+exposes the memory instruction cleanly.
+
+After that, the next major memory foundation should be instruction-position and
+symbol-address truth:
+
+~~~
+next RIP / instruction basis
+RIP-relative addressing
+REL symbols
+known symbol/link addresses when available
+~~~
+
+That layer must remain separate from runtime memory contents and execution.
