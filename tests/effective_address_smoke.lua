@@ -81,6 +81,43 @@ assert(wrapped.status == "known"
     "64-bit effective address must wrap only when requested")
 print("PASS effective address: target-width wrapping is explicit")
 
+local normalized_width = evaluator.evaluate({
+    address_size_status = "known",
+    address_size_bits = 32,
+    base = component("eax", "base_register"),
+    displacement = component(nil, "displacement", "1"),
+    metadata = { ambiguous = {} },
+}, {
+    bits = 64,
+    resolve_register = function()
+        return "4294967295"
+    end,
+})
+assert(normalized_width.status == "known"
+    and normalized_width.bits == 32
+    and normalized_width.value == "0"
+    and normalized_width.wrapped == true,
+    "normalized address width must override architecture fallback width")
+print("PASS effective address: normalized address width overrides architecture width")
+
+local unresolved_size = evaluator.evaluate({
+    address_size_status = "unknown",
+    address_size_reason = "mixed address register widths",
+    address_size_details = {},
+    base = component("rax", "base_register"),
+    metadata = { ambiguous = {} },
+}, {
+    bits = 64,
+    resolve_register = function()
+        return "1"
+    end,
+})
+assert(unresolved_size.status == "unknown"
+    and unresolved_size.reason == "address size unresolved"
+    and unresolved_size.details.reason == "mixed address register widths",
+    "unresolved normalized address size must fail closed")
+print("PASS effective address: unresolved normalized address width fails closed")
+
 local unresolved = evaluator.evaluate(address, {
     bits = 64,
     resolve_register = function(name)
