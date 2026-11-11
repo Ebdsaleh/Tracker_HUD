@@ -94,6 +94,13 @@ function M.evaluate(address, opts)
         })
     end
 
+    if address.address_mode == "relative" then
+        return unknown("relative address basis unresolved", {
+            symbol = address.symbol and address.symbol.name or nil,
+            address_mode = address.address_mode,
+        })
+    end
+
     if address.symbol ~= nil then
         return unknown("symbol address unresolved", {
             symbol = address.symbol.name,
