@@ -497,6 +497,68 @@ local function parse_memory_prefix_from_source_context(
 end
 
 
+local function parse_address_size_prefix_from_source_context(
+    bufnr,
+    source_line,
+    source_start_column,
+    memory_spec
+)
+    local policy = type(memory_spec) == "table"
+        and memory_spec.address_size_policy
+        or nil
+    local prefixes = type(policy) == "table"
+        and policy.prefixes
+        or nil
+
+    if not bufnr
+        or type(source_line) ~= "number"
+        or type(source_start_column) ~= "number"
+        or type(prefixes) ~= "table"
+    then
+        return nil
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(
+        bufnr,
+        source_line - 1,
+        source_line,
+        false
+    )
+
+    local line = lines and lines[1]
+    if type(line) ~= "string" then
+        return nil
+    end
+
+    local before = line:sub(1, source_start_column)
+    local found
+
+    for word in before:gmatch("[%a_][%w_]*") do
+        local normalized = word:lower()
+        local bits = prefixes[normalized]
+
+        if type(bits) == "number" then
+            if found and found.bits ~= bits then
+                return {
+                    error = "conflicting explicit address-size prefixes",
+                    prefixes = {
+                        found.prefix,
+                        normalized,
+                    },
+                }
+            end
+
+            found = {
+                prefix = normalized,
+                bits = bits,
+            }
+        end
+    end
+
+    return found
+end
+
+
 local function token_kind(token, register_index)
     if type(token) ~= "string" or token == "" then
         return nil
@@ -876,6 +938,14 @@ local function analyze_memory_operand(
         )
     end
 
+    local address_size_prefix =
+        parse_address_size_prefix_from_source_context(
+            bufnr,
+            source_start_line,
+            source_start_column,
+            memory_spec
+        )
+
     local resolved_address_size = address_size.resolve(
         memory_spec.address_size_policy,
         components,
@@ -884,7 +954,21 @@ local function analyze_memory_operand(
                 adapter,
                 register_name
             )
-        end
+        end,
+        {
+            explicit_bits = address_size_prefix
+                and address_size_prefix.bits
+                or nil,
+            explicit_prefix = address_size_prefix
+                and address_size_prefix.prefix
+                or nil,
+            explicit_error = address_size_prefix
+                and address_size_prefix.error
+                or nil,
+            explicit_prefixes = address_size_prefix
+                and address_size_prefix.prefixes
+                or nil,
+        }
     )
 
     local memory = {
