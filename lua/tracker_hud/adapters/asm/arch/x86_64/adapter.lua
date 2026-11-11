@@ -646,6 +646,10 @@ M.scope_members = {
 
 M.register_effects = require("tracker_hud.adapters.asm.arch.x86_64.register_effects")
 
+M.memory_accesses = require(
+    "tracker_hud.adapters.asm.arch.x86_64.memory_accesses"
+)
+
 
 M.stack_effects = require(
     "tracker_hud.adapters.asm.arch.x86_64.stack_effects"
