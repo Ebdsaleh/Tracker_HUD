@@ -753,6 +753,7 @@ local function apply_variant(variant)
 
     -- Keep architecture as an alias for older code paths and HUD metadata.
     M.architecture = M.active_variant_name
+    M.metadata = variant.metadata or {}
 
     -- Comments
     M.comments = variant.comments or {}
