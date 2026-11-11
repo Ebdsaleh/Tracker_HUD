@@ -91,4 +91,12 @@ assert(unsafe_numeric_push
     "unsafe numeric stack-depth values must not bypass the safety boundary")
 print("PASS exact integer: stack depth keeps safe-number boundary")
 
+assert(integer.multiply("3", "4") == "12"
+    and integer.multiply("-3", "4") == "-12"
+    and integer.multiply("-3", "-4") == "12"
+    and integer.multiply("18446744073709551615", "4")
+        == "73786976294838206460",
+    "exact multiplication must preserve sign and wide integer precision")
+print("PASS integer value: exact wide multiplication")
+
 print("PASS Tracker_HUD exact integer value smoke")
