@@ -81,6 +81,9 @@ local function run()
         "line 2 normalized memory address missing")
 
     expect_equal(load_address.memory_size_bits, 64, "line 2 memory size")
+    expect_equal(load_address.address_size_status, "known", "line 2 address-size status")
+    expect_equal(load_address.address_size_bits, 64, "line 2 address size")
+    expect_equal(load_address.address_size_source, "register_width", "line 2 address-size source")
     expect_equal(
         load_address.base and load_address.base.name,
         "rbp",
@@ -172,9 +175,12 @@ local function run()
     )
     assert(absolute_address.address_mode == "absolute"
         and absolute_address.address_mode_token == "abs"
+        and absolute_address.address_size_status == "known"
+        and absolute_address.address_size_bits == 64
+        and absolute_address.address_size_source == "default"
         and absolute_address.displacement
         and absolute_address.displacement.value == "4660",
-        "ABS numeric address must preserve exact displacement")
+        "ABS numeric address must preserve exact displacement/default address size")
     print("PASS ASM memory structure: ABS mode + exact hexadecimal displacement")
 
     local binary = parse_line(6)
