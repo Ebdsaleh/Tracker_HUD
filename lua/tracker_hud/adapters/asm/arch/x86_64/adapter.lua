@@ -364,6 +364,10 @@ M.construct_specs = {
                         [32] = 32,
                         [64] = 64,
                     },
+                    prefixes = {
+                        a32 = 32,
+                        a64 = 64,
+                    },
                 },
 
                 brackets = {
