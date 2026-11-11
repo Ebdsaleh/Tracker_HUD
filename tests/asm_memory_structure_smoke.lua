@@ -225,10 +225,18 @@ local function run()
         and context.source_memory_operands[3].address.symbol.name == "msg",
         "cursor context lost normalized REL structure")
     for _, fact in ipairs(context.source_memory_operands) do
-        assert(fact.source_line <= 4,
-            "future memory operand leaked before its source line")
+        assert(fact.source_line <= 4
+            and fact.category == "memory"
+            and fact.source == "asm_source_memory",
+            "visible memory source fact identity/visibility changed")
+    end
+
+    for _, event in ipairs(context.events or {}) do
+        assert(event.kind ~= "memory_source_observation",
+            "ASM source address syntax must not masquerade as a runtime memory event")
     end
     print("PASS ASM memory structure: context obeys ON/PAST visibility")
+    print("PASS ASM memory structure: source operands stay separate from runtime events")
 
     print("PASS Tracker_HUD ASM normalized memory structure smoke")
 end
