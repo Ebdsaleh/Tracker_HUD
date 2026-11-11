@@ -58,6 +58,12 @@ function M.resolve(policy, components, resolve_register_bits, opts)
         return unknown("address-size policy unavailable")
     end
 
+    if opts.explicit_error then
+        return unknown(opts.explicit_error, {
+            prefixes = opts.explicit_prefixes,
+        })
+    end
+
     local observed = {}
     local observed_by_bits = {}
 
