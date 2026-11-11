@@ -354,6 +354,18 @@ M.construct_specs = {
                     },
                 },
 
+                address_size_policy = {
+                    default_bits = 64,
+                    allowed_bits = {
+                        32,
+                        64,
+                    },
+                    register_width_map = {
+                        [32] = 32,
+                        [64] = 64,
+                    },
+                },
+
                 brackets = {
                     open = "[",
                     close = "]",
