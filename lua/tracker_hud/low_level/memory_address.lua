@@ -52,17 +52,22 @@ local function normalize_component(component)
     then
         normalized.value = integer_value.normalize(component.text)
         normalized.resolved = normalized.value ~= nil
+        normalized.value_status = normalized.resolved
+            and "known"
+            or "unknown"
     elseif component.kind == "register"
         or structural_role == "base_register"
         or structural_role == "index_register"
     then
         normalized.name = component.text:lower()
-        normalized.resolved = true
+        normalized.identity_known = true
+        normalized.value_status = "not_evaluated"
     elseif structural_role == "symbol"
         or component.kind == "symbol"
     then
         normalized.name = component.text
-        normalized.resolved = true
+        normalized.identity_known = true
+        normalized.value_status = "not_evaluated"
     end
 
     return normalized
