@@ -1093,6 +1093,240 @@ local function append_operand(
 end
 
 
+local function get_address_size_prefix_bits(
+    adapter,
+    token
+)
+    if type(adapter) ~= "table"
+        or type(adapter.construct_specs) ~= "table"
+        or type(token) ~= "string"
+        or token == ""
+    then
+        return nil, false
+    end
+
+    local normalized = token:lower()
+    local found_bits = nil
+    local found = false
+
+    for _, construct in pairs(adapter.construct_specs) do
+        local operand_spec = type(construct) == "table"
+            and construct.operand
+            or nil
+        local memory_spec = type(operand_spec) == "table"
+            and operand_spec.memory
+            or nil
+        local policy = type(memory_spec) == "table"
+            and memory_spec.address_size_policy
+            or nil
+        local prefixes = type(policy) == "table"
+            and policy.prefixes
+            or nil
+        local bits = type(prefixes) == "table"
+            and prefixes[normalized]
+            or nil
+
+        if type(bits) == "number" then
+            if found_bits ~= nil
+                and found_bits ~= bits
+            then
+                return nil, false
+            end
+
+            found_bits = bits
+            found = true
+        end
+    end
+
+    return found_bits, found
+end
+
+
+local function node_source_range(node)
+    if not node then
+        return nil
+    end
+
+    local start_row,
+        start_column,
+        end_row,
+        end_column = node:range()
+
+    return {
+        source_line = start_row + 1,
+        source_column = start_column,
+
+        source_start_line = start_row + 1,
+        source_start_column = start_column,
+
+        source_end_line = end_row + 1,
+        source_end_column = end_column,
+    }
+end
+
+
+local function recover_address_prefixed_instruction(
+    bufnr,
+    instruction_node,
+    prefix_node,
+    adapter
+)
+    local prefix = node_text(
+        bufnr,
+        prefix_node
+    )
+
+    if not prefix then
+        return nil
+    end
+
+    local prefix_bits, is_prefix =
+        get_address_size_prefix_bits(
+            adapter,
+            prefix
+        )
+
+    if not is_prefix then
+        return nil
+    end
+
+    local semantic_node = nil
+    local recovered_operand_nodes = {}
+
+    for child in instruction_node:iter_children() do
+        if child:type() == "ERROR" then
+            for error_child in child:iter_children() do
+                local construct = get_construct_spec(
+                    adapter,
+                    error_child:type()
+                )
+
+                if type(construct) == "table" then
+                    if not semantic_node then
+                        semantic_node = error_child
+                    elseif type(construct.operand) == "table" then
+                        table.insert(
+                            recovered_operand_nodes,
+                            error_child
+                        )
+                    end
+                end
+            end
+        end
+    end
+
+    if not semantic_node then
+        return nil
+    end
+
+    local semantic_mnemonic =
+        node_text(
+            bufnr,
+            semantic_node
+        )
+
+    if not semantic_mnemonic then
+        return nil
+    end
+
+    return {
+        mnemonic = semantic_mnemonic:lower(),
+        mnemonic_node = semantic_node,
+        mnemonic_range = node_source_range(
+            semantic_node
+        ),
+
+        prefixes = {
+            {
+                kind = "address_size",
+                text = prefix:lower(),
+                bits = prefix_bits,
+                source = "adapter",
+                range = node_source_range(
+                    prefix_node
+                ),
+            },
+        },
+
+        operand_nodes = recovered_operand_nodes,
+    }
+end
+
+
+local function merge_operands(
+    primary,
+    recovered,
+    bufnr,
+    adapter
+)
+    local result = {}
+    local seen = {}
+
+    local function append_value(operand)
+        if type(operand) ~= "table" then
+            return
+        end
+
+        local key = table.concat({
+            tostring(operand.text or ""),
+            tostring(operand.kind or ""),
+            tostring(operand.node_type or ""),
+            tostring(operand.source_start_line or operand.source_line or ""),
+            tostring(operand.source_start_column or operand.source_column or ""),
+        }, "|")
+
+        if seen[key] then
+            return
+        end
+
+        seen[key] = true
+        table.insert(result, operand)
+    end
+
+    for _, operand in ipairs(primary or {}) do
+        append_value(operand)
+    end
+
+    for _, node in ipairs(recovered or {}) do
+        append_value(
+            classify_operand(
+                bufnr,
+                node,
+                adapter
+            )
+        )
+    end
+
+    table.sort(result, function(left, right)
+        local left_line =
+            left.source_start_line
+            or left.source_line
+            or 0
+        local right_line =
+            right.source_start_line
+            or right.source_line
+            or 0
+
+        if left_line ~= right_line then
+            return left_line < right_line
+        end
+
+        local left_column =
+            left.source_start_column
+            or left.source_column
+            or 0
+        local right_column =
+            right.source_start_column
+            or right.source_column
+            or 0
+
+        return left_column < right_column
+    end)
+
+    return result
+end
+
+
 local function get_mnemonic_node(
     instruction_node,
     instruction_spec
@@ -1254,24 +1488,23 @@ function M.parse_instruction(
         return nil
     end
 
-    local mnemonic_range = nil
+    local mnemonic_range =
+        node_source_range(
+            mnemonic_node
+        )
 
-    if mnemonic_node then
-        local start_row,
-            start_column,
-            end_row,
-            end_column = mnemonic_node:range()
+    local prefix_recovery =
+        recover_address_prefixed_instruction(
+            bufnr,
+            instruction_node,
+            mnemonic_node,
+            adapter
+        )
 
-        mnemonic_range = {
-            source_line = start_row + 1,
-            source_column = start_column,
-
-            source_start_line = start_row + 1,
-            source_start_column = start_column,
-
-            source_end_line = end_row + 1,
-            source_end_column = end_column,
-        }
+    if prefix_recovery then
+        mnemonic = prefix_recovery.mnemonic
+        mnemonic_node = prefix_recovery.mnemonic_node
+        mnemonic_range = prefix_recovery.mnemonic_range
     end
 
     local operands = collect_declared_operands(
@@ -1290,6 +1523,15 @@ function M.parse_instruction(
         )
     end
 
+    if prefix_recovery then
+        operands = merge_operands(
+            operands,
+            prefix_recovery.operand_nodes,
+            bufnr,
+            adapter
+        )
+    end
+
     local start_row,
         start_column,
         end_row,
@@ -1298,6 +1540,9 @@ function M.parse_instruction(
     return {
         mnemonic = mnemonic:lower(),
         mnemonic_range = mnemonic_range,
+        prefixes = prefix_recovery
+            and prefix_recovery.prefixes
+            or {},
 
         operands = operands,
 
