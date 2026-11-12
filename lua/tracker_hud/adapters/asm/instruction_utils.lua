@@ -965,12 +965,14 @@ local function analyze_memory_operand(
     adapter,
     operand_text,
     source_start_line,
-    source_start_column
+    source_start_column,
+    memory_spec_override
 )
-    local memory_spec = get_memory_operand_spec(
-        node,
-        adapter
-    )
+    local memory_spec = memory_spec_override
+        or get_memory_operand_spec(
+            node,
+            adapter
+        )
 
     if type(memory_spec) ~= "table"
         or type(operand_text) ~= "string"
@@ -1362,11 +1364,139 @@ local function recover_address_prefixed_instruction(
 end
 
 
+local function get_declared_memory_construct(
+    adapter
+)
+    if type(adapter) ~= "table"
+        or type(adapter.construct_specs) ~= "table"
+    then
+        return nil, nil
+    end
+
+    for node_type, construct in pairs(
+        adapter.construct_specs
+    ) do
+        local operand_spec = type(construct) == "table"
+            and construct.operand
+            or nil
+        local memory_spec = type(operand_spec) == "table"
+            and operand_spec.memory
+            or nil
+
+        if type(memory_spec) == "table"
+            and (
+                operand_spec.kind == "memory"
+                or memory_spec.kind == "memory"
+            )
+        then
+            return node_type, memory_spec
+        end
+    end
+
+    return nil, nil
+end
+
+
+local function recover_prefixed_memory_operand_from_source(
+    bufnr,
+    instruction_node,
+    adapter
+)
+    if not bufnr
+        or not instruction_node
+        or type(adapter) ~= "table"
+    then
+        return nil
+    end
+
+    local node_type, memory_spec =
+        get_declared_memory_construct(
+            adapter
+        )
+
+    if not node_type or not memory_spec then
+        return nil
+    end
+
+    local start_row,
+        start_column,
+        end_row,
+        end_column = instruction_node:range()
+
+    if start_row ~= end_row then
+        return nil
+    end
+
+    local text, memory_start_column =
+        recover_bracketed_memory_source(
+            bufnr,
+            start_row + 1,
+            start_column,
+            memory_spec
+        )
+
+    if not text
+        or type(memory_start_column) ~= "number"
+    then
+        return nil
+    end
+
+    local memory = analyze_memory_operand(
+        bufnr,
+        nil,
+        adapter,
+        text,
+        start_row + 1,
+        memory_start_column,
+        memory_spec
+    )
+
+    if not memory then
+        return nil
+    end
+
+    return {
+        text = text,
+        kind = "memory",
+        node_type = node_type,
+
+        source_line = start_row + 1,
+        source_column = memory_start_column,
+
+        source_start_line = start_row + 1,
+        source_start_column = memory_start_column,
+        source_end_line = start_row + 1,
+        source_end_column = memory_start_column + #text,
+
+        memory = memory,
+
+        metadata = {
+            recovered_from_source = true,
+            recovery_reason = "prefixed instruction memory node unavailable",
+        },
+    }
+end
+
+
+local function has_memory_operand(operands)
+    for _, operand in ipairs(operands or {}) do
+        if type(operand) == "table"
+            and operand.kind == "memory"
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
 local function merge_operands(
     primary,
     recovered,
     bufnr,
-    adapter
+    adapter,
+    synthetic
 )
     local result = {}
     local seen = {}
@@ -1405,6 +1535,8 @@ local function merge_operands(
             )
         )
     end
+
+    append_value(synthetic)
 
     table.sort(result, function(left, right)
         local left_line =
@@ -1633,11 +1765,23 @@ function M.parse_instruction(
     end
 
     if prefix_recovery then
+        local synthetic_memory = nil
+
+        if not has_memory_operand(operands) then
+            synthetic_memory =
+                recover_prefixed_memory_operand_from_source(
+                    bufnr,
+                    instruction_node,
+                    adapter
+                )
+        end
+
         operands = merge_operands(
             operands,
             prefix_recovery.operand_nodes,
             bufnr,
-            adapter
+            adapter,
+            synthetic_memory
         )
     end
 
