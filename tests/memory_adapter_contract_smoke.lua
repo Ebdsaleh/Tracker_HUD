@@ -32,6 +32,36 @@ assert(not ok
     "empty address-mode kind must fail at adapter contract")
 print("PASS memory contract: invalid address mode is rejected")
 
+local bad_symbol_kinds = fresh_adapter()
+memory_spec(bad_symbol_kinds).symbol_resolution.member_kinds = {}
+local symbol_kinds_ok, symbol_kinds_err =
+    contract.validate_adapter(bad_symbol_kinds)
+assert(not symbol_kinds_ok
+    and tostring(symbol_kinds_err):find("symbol_resolution.member_kinds", 1, true),
+    "empty symbol member-kind policy must fail")
+print("PASS memory contract: empty symbol member kinds are rejected")
+
+local duplicate_symbol_kind = fresh_adapter()
+memory_spec(duplicate_symbol_kind).symbol_resolution.member_kinds = {
+    "label",
+    "label",
+}
+local duplicate_symbol_ok, duplicate_symbol_err =
+    contract.validate_adapter(duplicate_symbol_kind)
+assert(not duplicate_symbol_ok
+    and tostring(duplicate_symbol_err):find("member_kinds", 1, true),
+    "duplicate symbol member kind must fail")
+print("PASS memory contract: duplicate symbol member kind is rejected")
+
+local bad_forward_policy = fresh_adapter()
+memory_spec(bad_forward_policy).symbol_resolution.allow_forward = "yes"
+local forward_ok, forward_err =
+    contract.validate_adapter(bad_forward_policy)
+assert(not forward_ok
+    and tostring(forward_err):find("allow_forward", 1, true),
+    "non-boolean forward-reference policy must fail")
+print("PASS memory contract: invalid forward-reference policy is rejected")
+
 local bad_address_default = fresh_adapter()
 memory_spec(bad_address_default).address_size_policy.default_bits = 16
 local default_ok, default_err = contract.validate_adapter(bad_address_default)
