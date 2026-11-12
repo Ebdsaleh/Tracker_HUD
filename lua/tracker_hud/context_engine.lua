@@ -12,6 +12,8 @@ local integer_value = require("tracker_hud.low_level.integer_value")
 local integer_operand = require("tracker_hud.low_level.integer_operand")
 local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
+local source_symbol = require("tracker_hud.low_level.source_symbol")
+local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -3696,13 +3698,108 @@ local function append_effective_address_metadata(
 end
 
 
+local function get_memory_symbol_resolution_policy(
+    adapter,
+    operand
+)
+    if not core.is_table(adapter)
+        or not core.is_table(operand)
+        or not core.is_non_empty_string(operand.node_type)
+    then
+        return nil
+    end
+
+    local construct_specs = adapter.construct_specs
+    local construct = core.is_table(construct_specs)
+        and construct_specs[operand.node_type]
+        or nil
+    local operand_spec = core.is_table(construct)
+        and construct.operand
+        or nil
+    local memory_spec = core.is_table(operand_spec)
+        and operand_spec.memory
+        or nil
+
+    return core.is_table(memory_spec)
+        and memory_spec.symbol_resolution
+        or nil
+end
+
+
+local function resolve_memory_symbol_identity(
+    members,
+    adapter,
+    operand
+)
+    if not core.is_table(operand)
+        or not core.is_table(operand.memory)
+        or not core.is_table(operand.memory.normalized)
+        or not core.is_table(operand.memory.normalized.symbol)
+    then
+        return nil
+    end
+
+    local symbol = operand.memory.normalized.symbol
+    local policy = get_memory_symbol_resolution_policy(
+        adapter,
+        operand
+    ) or {}
+
+    return source_symbol.resolve(
+        members,
+        symbol.name,
+        {
+            member_kinds = policy.member_kinds,
+            allow_forward = policy.allow_forward == true,
+            case_sensitive = policy.case_sensitive ~= false,
+            reference_line = operand.source_line,
+        }
+    )
+end
+
+
+local function append_source_symbol_metadata(
+    metadata,
+    identity
+)
+    if not core.is_table(metadata)
+        or not core.is_table(identity)
+    then
+        return
+    end
+
+    metadata.source_symbol_status = identity.status
+    metadata.source_symbol_name = identity.name
+    metadata.source_symbol_kind = identity.kind
+    metadata.source_symbol_member_id = identity.member_id
+    metadata.source_symbol_line = identity.source_line
+    metadata.source_symbol_start_column =
+        identity.source_start_column
+    metadata.source_symbol_end_line =
+        identity.source_end_line
+    metadata.source_symbol_end_column =
+        identity.source_end_column
+    metadata.source_symbol_forward_reference =
+        identity.forward_reference
+    metadata.source_symbol_reason = identity.reason
+
+    metadata.symbol_machine_address_status =
+        identity.machine_address_status
+    metadata.symbol_machine_address =
+        identity.machine_address
+    metadata.symbol_machine_address_reason =
+        identity.machine_address_reason
+end
+
+
 local function build_memory_source_operand(
     adapter,
     instruction,
     operand,
     operand_index,
     effect_specs,
-    evaluation
+    evaluation,
+    symbol_identity
 )
     if not core.is_table(instruction)
         or not core.is_table(operand)
@@ -3749,6 +3846,7 @@ local function build_memory_source_operand(
 
         address = operand.memory.normalized,
         effective_address = evaluation,
+        symbol_identity = symbol_identity,
 
         metadata = {
             observation = "source memory operand only",
@@ -3771,6 +3869,11 @@ local function build_memory_source_operand(
         fact.metadata,
         evaluation,
         "effective_address"
+    )
+
+    append_source_symbol_metadata(
+        fact.metadata,
+        symbol_identity
     )
 
     return fact
@@ -3809,6 +3912,11 @@ local function collect_memory_source_operands_where(
 
     local result = {}
     local seen_nodes = {}
+    local source_members = scope_members.collect(
+        bufnr,
+        root_node,
+        adapter
+    )
 
     for _, node in ipairs(
         collect_nodes_by_type(root_node, instruction_node_type)
@@ -3892,6 +4000,13 @@ local function collect_memory_source_operands_where(
                                 )
                         end
 
+                        local symbol_identity =
+                            resolve_memory_symbol_identity(
+                                source_members,
+                                adapter,
+                                operand
+                            )
+
                         local memory_operand =
                             build_memory_source_operand(
                                 adapter,
@@ -3899,7 +4014,8 @@ local function collect_memory_source_operands_where(
                                 operand,
                                 operand_index,
                                 matching_specs,
-                                evaluation
+                                evaluation,
+                                symbol_identity
                             )
 
                         if memory_operand then
