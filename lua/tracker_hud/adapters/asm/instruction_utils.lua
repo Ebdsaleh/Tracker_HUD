@@ -864,6 +864,101 @@ local function parse_address_mode(
 end
 
 
+local function recover_bracketed_memory_source(
+    bufnr,
+    source_line,
+    source_start_column,
+    memory_spec
+)
+    if not bufnr
+        or type(source_line) ~= "number"
+        or type(source_start_column) ~= "number"
+        or type(memory_spec) ~= "table"
+        or type(memory_spec.brackets) ~= "table"
+    then
+        return nil, nil
+    end
+
+    local open = memory_spec.brackets.open
+    local close = memory_spec.brackets.close
+
+    if type(open) ~= "string"
+        or open == ""
+        or type(close) ~= "string"
+        or close == ""
+    then
+        return nil, nil
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(
+        bufnr,
+        source_line - 1,
+        source_line,
+        false
+    )
+
+    local line = lines and lines[1]
+    if type(line) ~= "string" then
+        return nil, nil
+    end
+
+    local search_start = math.max(
+        1,
+        math.floor(source_start_column) + 1
+    )
+
+    local open_start = line:find(
+        open,
+        search_start,
+        true
+    )
+
+    if not open_start then
+        local cursor = 1
+        local last_open = nil
+
+        while true do
+            local found = line:find(
+                open,
+                cursor,
+                true
+            )
+
+            if not found or found > search_start then
+                break
+            end
+
+            last_open = found
+            cursor = found + #open
+        end
+
+        open_start = last_open
+    end
+
+    if not open_start then
+        return nil, nil
+    end
+
+    local close_start = line:find(
+        close,
+        open_start + #open,
+        true
+    )
+
+    if not close_start then
+        return nil, nil
+    end
+
+    local close_end = close_start + #close - 1
+
+    return line:sub(
+        open_start,
+        close_end
+    ),
+        open_start - 1
+end
+
+
 local function analyze_memory_operand(
     bufnr,
     node,
@@ -883,11 +978,25 @@ local function analyze_memory_operand(
         return nil
     end
 
+    local analysis_text,
+        analysis_start_column =
+        recover_bracketed_memory_source(
+            bufnr,
+            source_start_line,
+            source_start_column,
+            memory_spec
+        )
+
+    analysis_text = analysis_text or operand_text
+    analysis_start_column =
+        analysis_start_column
+        or source_start_column
+
     local open_start,
         open_end,
         close_start,
         close_end = find_first_bracket_pair(
-            operand_text,
+            analysis_text,
             memory_spec
         )
 
@@ -895,7 +1004,7 @@ local function analyze_memory_operand(
         return nil
     end
 
-    local address_text = operand_text:sub(
+    local address_text = analysis_text:sub(
         open_end + 1,
         close_start - 1
     )
@@ -903,7 +1012,7 @@ local function analyze_memory_operand(
     local trimmed_address,
         trimmed_address_column = trim_with_offsets(
             address_text,
-            source_start_column + open_end
+            analysis_start_column + open_end
         )
 
     local address_mode_token,
