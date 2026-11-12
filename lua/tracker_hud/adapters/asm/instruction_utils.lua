@@ -1765,24 +1765,26 @@ function M.parse_instruction(
     end
 
     if prefix_recovery then
-        local synthetic_memory = nil
+        operands = merge_operands(
+            operands,
+            prefix_recovery.operand_nodes,
+            bufnr,
+            adapter
+        )
 
         if not has_memory_operand(operands) then
-            synthetic_memory =
+            operands = merge_operands(
+                operands,
+                nil,
+                bufnr,
+                adapter,
                 recover_prefixed_memory_operand_from_source(
                     bufnr,
                     instruction_node,
                     adapter
                 )
+            )
         end
-
-        operands = merge_operands(
-            operands,
-            prefix_recovery.operand_nodes,
-            bufnr,
-            adapter,
-            synthetic_memory
-        )
     end
 
     local start_row,
