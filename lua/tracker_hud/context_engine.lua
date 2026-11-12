@@ -4114,6 +4114,11 @@ function M.discover_register_source_occurrences(
     local effect_index = get_register_effect_index(adapter)
     local occurrences = {}
     local seen_nodes = {}
+    local source_members = scope_members.collect(
+        bufnr,
+        root_node,
+        adapter
+    )
 
     for node_type, _ in pairs(effect_index.node_types) do
         for _, node in ipairs(
@@ -4167,6 +4172,7 @@ function M.discover_register_source_occurrences(
                             instruction.operands or {}
                         ) do
                             local evaluation
+                            local symbol_identity
 
                             if operand.kind == "memory"
                                 and core.is_table(operand.memory)
@@ -4181,6 +4187,13 @@ function M.discover_register_source_occurrences(
                                         adapter,
                                         instruction,
                                         operand.memory.normalized
+                                    )
+
+                                symbol_identity =
+                                    resolve_memory_symbol_identity(
+                                        source_members,
+                                        adapter,
+                                        operand
                                     )
                             end
 
@@ -4198,6 +4211,11 @@ function M.discover_register_source_occurrences(
                                     operand_occurrence.metadata,
                                     evaluation,
                                     "memory_effective_address"
+                                )
+
+                                append_source_symbol_metadata(
+                                    operand_occurrence.metadata,
+                                    symbol_identity
                                 )
 
                                 table.insert(
@@ -4219,6 +4237,11 @@ function M.discover_register_source_occurrences(
                                     component_occurrence.metadata,
                                     evaluation,
                                     "memory_effective_address"
+                                )
+
+                                append_source_symbol_metadata(
+                                    component_occurrence.metadata,
+                                    symbol_identity
                                 )
 
                                 table.insert(
