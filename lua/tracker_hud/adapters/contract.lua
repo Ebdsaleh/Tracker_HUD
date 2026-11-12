@@ -533,6 +533,65 @@ local function validate_memory_operand_spec(memory, path)
         end
     end
 
+    if memory.symbol_resolution ~= nil then
+        local policy = memory.symbol_resolution
+        local policy_path = path .. ".symbol_resolution"
+
+        if not core.is_table(policy) then
+            return path_error(policy_path, "must be a table")
+        end
+
+        if not core.is_table(policy.member_kinds)
+            or #policy.member_kinds == 0
+        then
+            return path_error(
+                policy_path .. ".member_kinds",
+                "must be a non-empty array"
+            )
+        end
+
+        local seen_kinds = {}
+
+        for index, kind in ipairs(policy.member_kinds) do
+            if not core.is_non_empty_string(kind) then
+                return path_error(
+                    policy_path
+                        .. ".member_kinds["
+                        .. tostring(index)
+                        .. "]",
+                    "must be a non-empty string"
+                )
+            end
+
+            if seen_kinds[kind] then
+                return path_error(
+                    policy_path .. ".member_kinds",
+                    "must not contain duplicate kinds"
+                )
+            end
+
+            seen_kinds[kind] = true
+        end
+
+        if policy.allow_forward ~= nil
+            and type(policy.allow_forward) ~= "boolean"
+        then
+            return path_error(
+                policy_path .. ".allow_forward",
+                "must be boolean when provided"
+            )
+        end
+
+        if policy.case_sensitive ~= nil
+            and type(policy.case_sensitive) ~= "boolean"
+        then
+            return path_error(
+                policy_path .. ".case_sensitive",
+                "must be boolean when provided"
+            )
+        end
+    end
+
     if memory.address_size_policy ~= nil then
         local policy = memory.address_size_policy
         local policy_path = path .. ".address_size_policy"
