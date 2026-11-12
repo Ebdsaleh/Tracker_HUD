@@ -116,15 +116,44 @@ local function run()
         2
     )
 
-    assert(#no_provider == 1
-        and no_provider[1].machine_addresses == nil
-        and no_provider[1].symbol_identity
-        and no_provider[1].symbol_identity.status == "known"
-        and no_provider[1].metadata.symbol_machine_address_status == "unknown"
-        and no_provider[1].effective_address.status == "unknown"
-        and no_provider[1].effective_address.reason
-            == "relative address basis unresolved",
-        "no-provider path must preserve pre-provider REL behavior")
+    local function expect_equal(actual, expected, label)
+        assert(actual == expected,
+            label
+                .. ": expected "
+                .. tostring(expected)
+                .. ", got "
+                .. tostring(actual))
+    end
+
+    expect_equal(#no_provider, 1,
+        "no-provider memory fact count")
+
+    local no_provider_fact = no_provider[1]
+
+    assert(no_provider_fact.machine_addresses == nil,
+        "no-provider machine_addresses must stay nil")
+    assert(no_provider_fact.symbol_identity,
+        "no-provider source symbol identity missing")
+    expect_equal(
+        no_provider_fact.symbol_identity.status,
+        "known",
+        "no-provider source symbol status"
+    )
+    expect_equal(
+        no_provider_fact.metadata.symbol_machine_address_status,
+        "unknown",
+        "no-provider symbol machine-address status"
+    )
+    expect_equal(
+        no_provider_fact.effective_address.status,
+        "unknown",
+        "no-provider effective-address status"
+    )
+    expect_equal(
+        no_provider_fact.effective_address.reason,
+        "relative address basis unresolved",
+        "no-provider effective-address reason"
+    )
     print("PASS ASM machine address: no providers preserve existing REL behavior")
 
     local with_provider = engine.discover_memory_source_operands(
