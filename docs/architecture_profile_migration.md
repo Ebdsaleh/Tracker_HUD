@@ -5516,3 +5516,67 @@ address-size / machine-width distinction
 Missing or conflicting evidence must remain unknown.
 
 No source line, source column, or syntax order may substitute for machine-address evidence.
+
+## A32 + REL cross-feature repair (2026-11-12)
+
+ERIDU exposed one failure in the new machine-address evidence smoke while all previously accepted regressions remained green.
+
+Failure:
+
+~~~
+FAIL ASM machine-address evidence smoke:
+no-provider path must preserve pre-provider REL behavior
+~~~
+
+The failing fixture combined:
+
+~~~
+a32 lea rsi, [rel msg]
+~~~
+
+This exercises two independent parser-recovery layers at once:
+
+- address-size prefix recovery from Tree-sitter ERROR structure;
+- relative-memory syntax normalization.
+
+To make the memory parser robust at this boundary, `instruction_utils.lua` now recovers the bracketed source slice directly from the source buffer using the adapter-declared bracket syntax before normalizing address mode/components.
+
+This remains parser/source work. Presentation code still does not reparse memory syntax.
+
+The Tree-sitter node text remains the fallback if source recovery is unavailable.
+
+New regression:
+
+~~~
+tests/asm_address_prefix_relative_smoke.lua
+~~~
+
+It pins:
+
+- semantic A32 LEA recovery;
+- REL mode/token preservation;
+- symbol `msg` preservation;
+- explicit 32-bit address size;
+- forward source-symbol identity;
+- no machine-address evidence without providers;
+- effective address staying `relative address basis unresolved`.
+
+The machine-address evidence smoke now reports each no-provider invariant separately instead of one compound assertion, so any remaining mismatch identifies the exact field.
+
+Repair commits:
+
+~~~
+59e5663 fix(asm): recover bracketed memory syntax from source
+7f712f2 test(asm): pin A32 REL source recovery
+1662026 test(memory): isolate no-provider REL diagnostics
+~~~
+
+Targeted ERIDU rerun:
+
+~~~
+nvim --headless -c "luafile tests/asm_address_prefix_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_machine_address_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_address_prefix_semantics_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+~~~
