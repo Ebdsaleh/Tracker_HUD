@@ -3813,12 +3813,12 @@ local function resolve_memory_machine_addresses(
         return nil
     end
 
-    local bits = address.address_size_bits
-        or (
+    local bits = (
             adapter
             and adapter.metadata
             and adapter.metadata.bits
         )
+        or address.address_size_bits
         or nil
 
     local common = {
