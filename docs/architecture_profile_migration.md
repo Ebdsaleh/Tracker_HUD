@@ -5298,3 +5298,221 @@ nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
 Wire machine-address providers into memory-source evaluation as explicit optional evidence. REL/RIP-relative source facts should be able to query symbol and next-instruction addresses through the provider contract. Only proven provider results may enter relative-address arithmetic.
 
 Preserve distinct states: source symbol identity known while machine address unknown; symbol machine address known while next-IP unknown; and both known. No source line or syntax position may fill a missing machine address.
+
+## Accepted prefix-recovery + machine-address provider gate (2026-11-12)
+
+The A32/A64 semantic recovery and pure machine-address provider contract are accepted green on ERIDU.
+
+Confirmed:
+
+~~~
+PASS machine address: source location is not an address
+PASS machine address: exact 64-bit provider value + provenance
+PASS machine address: agreeing providers corroborate
+PASS machine address: conflicting providers fail closed
+PASS machine address: provider failure stays separate from known evidence
+PASS machine address: out-of-width provider value is rejected
+PASS machine address: unsafe numeric provider value is rejected
+PASS machine address: duplicate provider IDs are rejected
+PASS machine address: invalid symbol query fails closed
+PASS machine address: source-line pseudo-address kind is rejected
+PASS Tracker_HUD machine-address provider smoke
+~~~
+
+Parser-backed A32/A64 semantic recovery also passed:
+
+~~~
+PASS ASM address prefix: A32 recovers MOV + destination operand
+PASS ASM address prefix: A64 preserves MOV operand order
+PASS ASM address prefix: A32 recovers LEA semantics
+PASS ASM address prefix: recovered MOV source is read
+PASS ASM address prefix: recovered MOV destination is write
+PASS ASM address prefix: recovered LEA is address_only
+PASS Tracker_HUD ASM address-prefix semantics smoke
+~~~
+
+The diagnostic probe now reports semantic `mov` with both operands while retaining explicit 32/64-bit address-size metadata.
+
+All source-symbol, address-size, memory-access, and effective-address regressions remained green.
+
+## Foundational memory tranche: machine-address evidence plumbing (2026-11-12)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+The provider contract is now threaded into ASM source-memory discovery as optional evidence.
+
+Existing behavior is preserved when no providers are configured.
+
+### Runtime provider entry point
+
+`context.get_cursor_context(bufnr, config)` now accepts optional:
+
+~~~
+config.machine_address_providers
+~~~
+
+The ASM adapter ignores this unrelated config field during target configuration. Provider closures remain runtime evidence objects and are not copied into adapter architecture state.
+
+Direct context-engine entry points also accept optional provider options:
+
+~~~
+discover_memory_source_operands(..., opts)
+collect_memory_source_operands(..., opts)
+discover_register_source_occurrences(..., opts)
+~~~
+
+where:
+
+~~~
+opts.machine_address_providers
+~~~
+
+is forwarded to the generic machine-address provider aggregator.
+
+### Evidence queried per memory operand
+
+When providers exist, source-memory discovery may query:
+
+~~~
+instruction
+next_instruction
+symbol
+~~~
+
+`next_instruction` is queried only for relative/RIP/EIP-based memory forms.
+
+`symbol` is queried only when the normalized memory address contains a symbol.
+
+### Machine-address width remains separate from memory address size
+
+An audit caught an important distinction before acceptance:
+
+~~~
+A32 memory address size = 32 bits
+x86-64 instruction/symbol machine-address domain = 64 bits
+~~~
+
+Provider evidence therefore uses the active architecture machine-address width (`adapter.metadata.bits`) in preference to the operand's `address_size_bits`.
+
+This means an A32 operand may carry a provider-known 64-bit instruction or symbol address above `0xFFFFFFFF` without truncation or rejection.
+
+The later relative-address arithmetic layer will decide how machine-address evidence combines with 32-bit effective-address semantics.
+
+### First-class source-memory facts
+
+When provider evidence exists, source-memory facts now carry:
+
+~~~
+machine_addresses = {
+    instruction = <provider aggregate>,
+    next_instruction = <provider aggregate when relevant>,
+    symbol = <provider aggregate when relevant>,
+}
+~~~
+
+Flattened metadata exposes status/value/reason/bits for:
+
+~~~
+instruction_machine_address
+next_instruction_machine_address
+symbol_machine_address
+~~~
+
+The nested evidence retains full provider provenance and conflict evidence.
+
+### Source identity and machine address remain independent
+
+A source label may be known while its machine address is unknown.
+
+A machine-address provider may also know an external/linker symbol even when no source declaration exists in the current buffer.
+
+Both cases are valid and pinned separately.
+
+### Inspect reuse
+
+Register/source occurrence metadata receives the same machine-address evidence as first-class memory facts.
+
+Inspect does not perform a separate provider lookup model.
+
+### Effective-address behavior deliberately unchanged
+
+Even when provider evidence proves:
+
+~~~
+symbol machine address = known
+next-instruction address = known
+~~~
+
+REL/RIP effective address still remains:
+
+~~~
+status = unknown
+reason = relative address basis unresolved
+~~~
+
+in this tranche.
+
+This is deliberate. Provider evidence plumbing is accepted independently before introducing relative-address arithmetic.
+
+### New parser-backed regression
+
+Created:
+
+~~~
+tests/asm_machine_address_evidence_smoke.lua
+~~~
+
+Fixture includes:
+
+~~~
+a32 lea rsi, [rel msg]
+lea rdi, [rel external]
+msg:
+~~~
+
+It pins:
+
+- no-provider behavior remains unchanged;
+- source label identity and provider machine addresses remain separate;
+- A32 address size remains 32 while machine-address evidence remains 64-bit;
+- provider addresses above 2^32 survive exactly;
+- external symbols may be provider-known without a source declaration;
+- Inspect reuses provider evidence;
+- normal context forwards provider evidence;
+- execution status remains `not_observed`;
+- REL effective address is not resolved prematurely.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -10 --oneline
+
+nvim --headless -c "luafile tests/asm_machine_address_evidence_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/machine_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_address_prefix_semantics_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_address_size_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after green
+
+Add a separate relative-address evaluator that consumes machine-address evidence.
+
+For a symbolic REL/RIP form, it should preserve at least:
+
+~~~
+symbol target address
+next-instruction basis
+exact relative displacement
+final effective target
+provider provenance
+address-size / machine-width distinction
+~~~
+
+Missing or conflicting evidence must remain unknown.
+
+No source line, source column, or syntax order may substitute for machine-address evidence.
