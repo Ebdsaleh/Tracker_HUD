@@ -58,16 +58,34 @@ local function run()
 
     visit(root)
 
-    assert(parsed
-        and parsed.mnemonic == "lea"
-        and #parsed.prefixes == 1
-        and parsed.prefixes[1].text == "a32"
-        and parsed.prefixes[1].bits == 32
-        and #parsed.operands == 2
-        and parsed.operands[1].kind == "register"
-        and parsed.operands[1].text == "rsi"
-        and parsed.operands[2].kind == "memory",
-        "A32 REL instruction must recover semantic LEA operands")
+    local function expect_equal(actual, expected, label)
+        assert(actual == expected,
+            label
+                .. ": expected "
+                .. tostring(expected)
+                .. ", got "
+                .. tostring(actual))
+    end
+
+    assert(parsed,
+        "A32 REL instruction did not parse")
+
+    expect_equal(parsed.mnemonic, "lea",
+        "A32 REL semantic mnemonic")
+    expect_equal(#parsed.prefixes, 1,
+        "A32 REL prefix count")
+    expect_equal(parsed.prefixes[1].text, "a32",
+        "A32 REL prefix text")
+    expect_equal(parsed.prefixes[1].bits, 32,
+        "A32 REL prefix bits")
+    expect_equal(#parsed.operands, 2,
+        "A32 REL operand count")
+    expect_equal(parsed.operands[1].kind, "register",
+        "A32 REL operand 1 kind")
+    expect_equal(parsed.operands[1].text, "rsi",
+        "A32 REL operand 1 text")
+    expect_equal(parsed.operands[2].kind, "memory",
+        "A32 REL operand 2 kind")
     print("PASS ASM A32 REL: semantic LEA + operands recovered")
 
     local address = parsed.operands[2].memory
