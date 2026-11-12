@@ -4779,3 +4779,397 @@ known symbol/link addresses when available
 ~~~
 
 That layer must remain separate from runtime memory contents and execution.
+
+
+## Accepted address-size semantics gate (2026-11-12)
+
+The explicit x86 address-size tranche is accepted green on ERIDU.
+
+The first parser-backed run failed only because the user's local Neovim/plugin copy
+had not yet been synchronized with the freshly pulled repository. After syncing,
+the same test passed completely.
+
+Confirmed pure address-size, normalized-memory, effective-address, and Adapter
+Contract regressions:
+
+~~~
+PASS address size: register-free address uses default width
+PASS address size: 64-bit register addressing
+PASS address size: 32-bit register addressing
+PASS address size: explicit prefix selects address width
+PASS address size: explicit prefix/register conflict fails closed
+PASS address size: conflicting explicit prefixes fail closed
+PASS address size: mixed register widths fail closed
+PASS address size: unsupported register width fails closed
+PASS address size: unknown register width fails closed
+PASS Tracker_HUD address-size smoke
+~~~
+
+Parser-backed x86 acceptance:
+
+~~~
+PASS x86 address size: qword data with 32-bit effective address
+PASS x86 address size: 64-bit register addressing remains 64-bit
+PASS x86 address size: mixed address register widths fail closed
+PASS x86 address size: unsupported 16-bit address form fails closed
+PASS x86 address size: register-free address uses 64-bit default
+PASS x86 address size: Inspect reuses 32-bit address semantics
+PASS x86 address size: context preserves source-time address widths
+PASS Tracker_HUD x86 address-size smoke
+~~~
+
+All effective-address, memory-access, structural-memory, alias-read, Adapter
+Contract, and normalized-fact regressions remained green.
+
+## ASM parser probe: explicit A32/A64 source prefixes (2026-11-12)
+
+**Status: pushed on main, pending ERIDU observation.**
+
+Created:
+
+~~~
+tests/asm_address_prefix_probe.lua
+~~~
+
+This is intentionally a diagnostic parser-shape probe rather than a semantic
+acceptance test.
+
+Fixture:
+
+~~~
+bits 64
+a32 mov rbx, [eax + 4]
+a64 mov rbx, [rax + 4]
+~~~
+
+The probe prints:
+
+- the complete Tree-sitter node tree with source ranges/text;
+- every instruction node the installed grammar exposes;
+- Tracker_HUD's parsed mnemonic/operand list;
+- normalized memory address-size status/bits/source/reason;
+- parsed base/displacement.
+
+It deliberately does NOT assert a guessed Tree-sitter prefix node shape.
+
+The only structural assertion is that at least one instruction node is present.
+
+This output will determine whether the existing source-context prefix scanner is
+already sufficient or whether the parser boundary needs adaptation for the
+installed grammar.
+
+## Foundational memory tranche: source-symbol identity (2026-11-12)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+The previous memory model could parse:
+
+~~~
+[rel msg]
+~~~
+
+into:
+
+~~~
+address_mode = relative
+symbol = msg
+~~~
+
+but it did not yet prove whether msg corresponded to a source declaration.
+
+This tranche adds source declaration identity while keeping numeric machine
+addresses unresolved.
+
+### Architecture-neutral source-symbol resolver
+
+Created:
+
+~~~
+lua/tracker_hud/low_level/source_symbol.lua
+~~~
+
+Inputs:
+
+~~~
+scope/source members
+symbol name
+resolution policy
+reference source line
+~~~
+
+Outputs are either known source identity or unknown certainty.
+
+Known identity includes:
+
+~~~
+status = known
+name
+kind
+member_id
+source_line
+source_start_column
+source_end_line
+source_end_column
+forward_reference
+machine_address_status = unknown
+machine_address = nil
+machine_address_reason = machine address unavailable
+~~~
+
+The resolver does NOT assign:
+
+- assembler offsets;
+- linker addresses;
+- load addresses;
+- runtime addresses.
+
+### Forward references are policy-controlled
+
+Generic Tracker_HUD symbol resolution for many source languages prefers
+definitions that appear before references.
+
+That rule cannot be reused blindly for assembly because forward labels are legal.
+
+The x86 ASM memory declaration therefore now owns:
+
+~~~
+symbol_resolution = {
+    member_kinds = {
+        "label",
+    },
+    allow_forward = true,
+    case_sensitive = true,
+}
+~~~
+
+Thus:
+
+~~~
+lea rsi, [rel msg]
+...
+msg:
+~~~
+
+can resolve msg to the later source label declaration without inventing a
+machine address.
+
+### Ambiguity remains fail-closed
+
+If multiple allowed source declarations match the same symbol name, the resolver
+returns:
+
+~~~
+status = unknown
+reason = source symbol declaration ambiguous
+candidates = ...
+~~~
+
+It never silently chooses one.
+
+Missing source symbols remain:
+
+~~~
+status = unknown
+reason = source symbol declaration not found
+~~~
+
+### Existing scope-member discovery is reused
+
+The new layer reuses:
+
+~~~
+tracker_hud.scope_members
+~~~
+
+for label discovery.
+
+It does NOT create a second Tree-sitter label walker.
+
+The context engine collects the adapter's source members and passes them to the
+generic source-symbol resolver.
+
+### Memory source facts
+
+First-class ASM source memory facts now expose:
+
+~~~
+symbol_identity
+~~~
+
+and metadata:
+
+~~~
+source_symbol_status
+source_symbol_name
+source_symbol_kind
+source_symbol_member_id
+source_symbol_line
+source_symbol_start_column
+source_symbol_end_line
+source_symbol_end_column
+source_symbol_forward_reference
+source_symbol_reason
+
+symbol_machine_address_status
+symbol_machine_address
+symbol_machine_address_reason
+~~~
+
+For a known source label, machine-address fields still remain unknown.
+
+### Inspect/source occurrence reuse
+
+Register/source occurrence discovery now resolves the same source-symbol identity
+once per memory operand and attaches it to operand/component metadata.
+
+Thus selecting:
+
+~~~
+msg
+~~~
+
+inside:
+
+~~~
+[rel msg]
+~~~
+
+can show the source declaration identity from the same model as the memory fact.
+
+### Adapter Contract protection
+
+Memory declaration validation now protects optional:
+
+~~~
+symbol_resolution
+~~~
+
+Required:
+
+~~~
+member_kinds = non-empty array
+~~~
+
+Optional booleans:
+
+~~~
+allow_forward
+case_sensitive
+~~~
+
+The contract rejects:
+
+- empty member-kind lists;
+- empty kind names;
+- duplicate member kinds;
+- non-boolean forward-reference policy;
+- non-boolean case-sensitivity policy.
+
+### Pure regression
+
+Created:
+
+~~~
+tests/source_symbol_smoke.lua
+~~~
+
+Pins:
+
+- forward label identity;
+- explicit forward-reference policy;
+- duplicate declaration ambiguity;
+- case-sensitive matching;
+- opt-in case-insensitive matching;
+- missing declaration behavior;
+- machine address remaining unknown.
+
+### Parser-backed regression
+
+Created:
+
+~~~
+tests/asm_source_symbol_smoke.lua
+~~~
+
+Fixture:
+
+~~~
+bits 64
+lea rsi, [rel msg]
+lea rdi, [rel missing]
+msg:
+mov rax, rax
+~~~
+
+Pins:
+
+- existing scope-member discovery exposes label msg;
+- line 2 resolves msg as a known forward label;
+- source declaration line is 4;
+- machine address remains unknown;
+- effective address remains unknown because the REL basis is unavailable;
+- missing remains unresolved;
+- Inspect reuses source-label identity;
+- normal context preserves source-symbol certainty.
+
+### Deliberate boundary
+
+Source declaration identity is NOT machine-address truth.
+
+Even after:
+
+~~~
+symbol_identity.status = known
+symbol_identity.source_line = 4
+~~~
+
+Tracker_HUD must still report:
+
+~~~
+machine_address_status = unknown
+effective_address = unknown
+~~~
+
+until a separate machine-address/instruction-position provider can prove the
+numeric target.
+
+### ERIDU gate
+
+Pull first, then run:
+
+~~~
+git status --short
+git pull --ff-only
+git log -14 --oneline
+
+nvim --headless -u NONE -c "luafile tests/source_symbol_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_adapter_contract_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_address_prefix_probe.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/x86_address_size_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after this gate
+
+Use the A32/A64 probe output to adapt only the parser boundary if needed, then
+promote explicit prefixes into parser-backed semantic regression coverage.
+
+The next major foundation is a machine-address provider contract:
+
+~~~
+instruction machine address / next-IP basis
+symbol machine address
+provenance of those addresses
+certainty / unknown reasons
+~~~
+
+That provider must be separate from source line numbers.
+
+A source line number must never be treated as a machine code address.
+
+Once known machine addresses exist, RIP-relative / REL effective-address
+evaluation can consume them without guessing.
