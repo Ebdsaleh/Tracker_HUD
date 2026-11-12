@@ -5580,3 +5580,35 @@ nvim --headless -c "luafile tests/asm_address_prefix_semantics_smoke.lua" -c "qa
 nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
 ~~~
+
+### Second-stage A32 + REL repair: missing memory operand
+
+The first repair recovered bracket syntax only after a memory operand already existed.
+
+ERIDU proved the malformed A32+REL Tree-sitter shape can omit the memory operand from `parsed.operands` entirely:
+
+~~~
+A32 REL semantic test failed before memory normalization
+machine-address evidence fact count = 0
+~~~
+
+The instruction parser now has an adapter-driven fallback for prefixed instructions:
+
+1. merge normal Tree-sitter operands and ERROR-recovered operands;
+2. if no memory operand exists, locate the adapter-declared memory construct;
+3. recover the physical bracketed source expression from the instruction line;
+4. synthesize a memory operand with the declared memory node type/spec;
+5. run it through the existing `analyze_memory_operand()` normalizer;
+6. merge/sort it by source position.
+
+No hard-coded x86 `ptr` node name is used.
+
+The fallback runs only for address-prefixed instruction recovery and only when no memory operand is already present.
+
+Additional commits:
+
+~~~
+873286a fix(asm): synthesize missing prefixed memory operand
+a9f7c1b fix(asm): avoid duplicate recovered memory operands
+bcdfa7d test(asm): isolate A32 REL parser diagnostics
+~~~
