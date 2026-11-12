@@ -7,7 +7,7 @@ local function run()
 
     local source = {
         "bits 64",
-        "lea rsi, [rel msg]",
+        "a32 lea rsi, [rel msg]",
         "lea rdi, [rel external]",
         "msg:",
         "mov rax, rax",
@@ -42,7 +42,7 @@ local function run()
                 if query.source_line == 2 then
                     return {
                         status = "known",
-                        value = "0x400100",
+                        value = "0x100000100",
                         provenance = {
                             source = "fixture listing",
                             record = "line2",
@@ -62,7 +62,7 @@ local function run()
                 if query.source_line == 2 then
                     return {
                         status = "known",
-                        value = "0x400107",
+                        value = "0x100000107",
                         provenance = {
                             source = "fixture listing",
                             record = "line2-next",
@@ -82,7 +82,7 @@ local function run()
                 if query.name == "msg" then
                     return {
                         status = "known",
-                        value = "0x401000",
+                        value = "0x100001000",
                         provenance = {
                             source = "fixture symbols",
                             record = "msg",
@@ -147,26 +147,33 @@ local function run()
 
     assert(evidence
         and evidence.instruction.status == "known"
-        and evidence.instruction.value == "4194560"
+        and evidence.instruction.value == "4294967552"
+        and evidence.instruction.bits == 64
         and evidence.next_instruction.status == "known"
-        and evidence.next_instruction.value == "4194567"
+        and evidence.next_instruction.value == "4294967559"
+        and evidence.next_instruction.bits == 64
         and evidence.symbol.status == "known"
-        and evidence.symbol.value == "4198400"
+        and evidence.symbol.value == "4294971392"
+        and evidence.symbol.bits == 64
         and evidence.symbol.provenance[1].provider_id == "fixture-listing"
         and evidence.symbol.provenance[1].provider_kind == "assembler_listing"
         and evidence.symbol.provenance[1].source == "fixture symbols"
         and fact.metadata.instruction_machine_address_status == "known"
-        and fact.metadata.instruction_machine_address_value == "4194560"
+        and fact.address.address_size_bits == 32
+        and fact.metadata.instruction_machine_address_value == "4294967552"
+        and fact.metadata.instruction_machine_address_bits == 64
         and fact.metadata.next_instruction_machine_address_status == "known"
-        and fact.metadata.next_instruction_machine_address_value == "4194567"
+        and fact.metadata.next_instruction_machine_address_value == "4294967559"
+        and fact.metadata.next_instruction_machine_address_bits == 64
         and fact.metadata.symbol_machine_address_status == "known"
-        and fact.metadata.symbol_machine_address_value == "4198400"
+        and fact.metadata.symbol_machine_address_value == "4294971392"
+        and fact.metadata.symbol_machine_address_bits == 64
         and fact.symbol_identity.status == "known"
         and fact.symbol_identity.source_line == 4
         and fact.effective_address.status == "unknown"
         and fact.effective_address.reason == "relative address basis unresolved",
         "provider evidence must attach without prematurely resolving REL address")
-    print("PASS ASM machine address: source label + provider addresses stay separate")
+    print("PASS ASM machine address: A32 source keeps 64-bit machine-address evidence")
 
     local external = engine.discover_memory_source_operands(
         buffer,
@@ -216,9 +223,12 @@ local function run()
             assert(metadata.source_symbol_status == "known"
                 and metadata.source_symbol_line == 4
                 and metadata.symbol_machine_address_status == "known"
-                and metadata.symbol_machine_address_value == "4198400"
+                and metadata.memory_address_size_bits == 32
+                and metadata.symbol_machine_address_value == "4294971392"
+                and metadata.symbol_machine_address_bits == 64
                 and metadata.next_instruction_machine_address_status == "known"
-                and metadata.next_instruction_machine_address_value == "4194567"
+                and metadata.next_instruction_machine_address_value == "4294967559"
+                and metadata.next_instruction_machine_address_bits == 64
                 and metadata.memory_effective_address_status == "unknown",
                 "Inspect must reuse provider evidence without resolving REL early")
             saw_symbol = true
@@ -250,8 +260,11 @@ local function run()
 
     assert(by_line[2]
         and by_line[2].machine_addresses
-        and by_line[2].machine_addresses.symbol.value == "4198400"
-        and by_line[2].machine_addresses.next_instruction.value == "4194567"
+        and by_line[2].address.address_size_bits == 32
+        and by_line[2].machine_addresses.symbol.value == "4294971392"
+        and by_line[2].machine_addresses.symbol.bits == 64
+        and by_line[2].machine_addresses.next_instruction.value == "4294967559"
+        and by_line[2].machine_addresses.next_instruction.bits == 64
         and by_line[3]
         and by_line[3].machine_addresses
         and by_line[3].machine_addresses.symbol.value == "5242880"
