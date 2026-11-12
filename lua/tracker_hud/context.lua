@@ -475,7 +475,11 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
                 bufnr,
                 root_node,
                 adapter,
-                context.cursor and context.cursor.line
+                context.cursor and context.cursor.line,
+                {
+                    machine_address_providers =
+                        config.machine_address_providers,
+                }
             )
     end
 
