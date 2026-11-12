@@ -5173,3 +5173,128 @@ A source line number must never be treated as a machine code address.
 
 Once known machine addresses exist, RIP-relative / REL effective-address
 evaluation can consume them without guessing.
+
+## Accepted source-symbol identity gate (2026-11-12)
+
+The source-symbol identity tranche is accepted green on ERIDU after the local Neovim/plugin copy was synchronized with the freshly pulled repository.
+
+Confirmed parser-backed results:
+
+~~~
+PASS ASM source symbol: label declaration discovered
+PASS ASM source symbol: forward REL label identity resolves
+PASS ASM source symbol: missing label fails closed
+PASS ASM source symbol: Inspect reuses source-label identity
+PASS ASM source symbol: context preserves source identity certainty
+PASS Tracker_HUD ASM source-symbol identity smoke
+~~~
+
+The generic source-symbol and memory Adapter Contract tests also passed. Effective-address, address-size, and structural-memory regressions remained green.
+
+## Observed ERIDU Tree-sitter shape for NASM A32/A64 (2026-11-12)
+
+The diagnostic probe established the installed grammar's exact behavior.
+
+For `a32 mov rbx, [eax + 4]`, Tree-sitter produces:
+
+~~~
+instruction
+  word  a32
+  ERROR
+    ident mov
+    ident rbx
+    ,
+  ptr [eax + 4]
+~~~
+
+A64 has the same shape. Before repair, Tracker_HUD therefore parsed the prefix as the mnemonic and lost the register operand trapped in ERROR, while address-size normalization itself was already correct (`32`/`64`, source `explicit_prefix`).
+
+## ASM parser repair: recover semantic instruction after address-size prefix (2026-11-12)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+Updated `lua/tracker_hud/adapters/asm/instruction_utils.lua`.
+
+When the grammar-selected mnemonic is an adapter-declared address-size prefix, the parser now:
+
+1. preserves the prefix as explicit instruction metadata;
+2. inspects direct ERROR-node children;
+3. uses the first adapter-recognized construct child as the semantic mnemonic;
+4. recovers later adapter-recognized ERROR children as operands;
+5. merges them with normally parsed operands;
+6. sorts operands by source position.
+
+For the observed ERIDU tree, this becomes semantic mnemonic `mov`, prefix metadata `a32`, and operands `rbx`, `[eax + 4]` in correct source order.
+
+This matters because merely renaming A32 to MOV would leave memory as operand 1 and could invert MOV access intent.
+
+Created `tests/asm_address_prefix_semantics_smoke.lua` covering:
+
+~~~
+a32 mov rbx, [eax + 4]
+a64 mov [rax + 8], rbx
+a32 lea rsi, [eax + 12]
+~~~
+
+It pins mnemonic recovery, prefix metadata, lost-register recovery, operand ordering, explicit address size, MOV read/write intent, and LEA address-only intent.
+
+## Foundational machine-address provider contract (2026-11-12)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+Created `lua/tracker_hud/low_level/machine_address.lua`.
+
+This layer defines how future machine-address evidence is supplied and combined. Source locations, labels, and syntax may be provider query keys only; they never become addresses by themselves.
+
+Supported query kinds:
+
+~~~
+instruction
+next_instruction
+symbol
+~~~
+
+A symbol query requires a name. There is intentionally no `source_line` machine-address query kind.
+
+A provider is a runtime object with `id`, `kind`, and `resolve(query)`. A known result supplies an explicit exact address value plus optional width/provenance.
+
+Machine addresses use the exact integer foundation. Unsafe Lua numeric values are rejected. Out-of-width provider values are rejected rather than wrapped.
+
+Provider aggregation semantics:
+
+~~~
+no known provider -> unknown / machine address unavailable
+agreeing known providers -> known with combined provenance
+conflicting known providers -> unknown / machine address conflict
+provider failure -> retained as evidence, does not erase independent known evidence
+duplicate provider IDs -> fail closed
+~~~
+
+Critical invariant: a query containing `source_line = 4096` with no provider evidence remains unknown; source line 4096 never becomes machine address 4096.
+
+Created `tests/machine_address_smoke.lua` pinning source-position safety, exact 64-bit values, provenance, corroboration, conflicts, provider failures, width rejection, unsafe-number rejection, duplicate IDs, invalid symbol queries, and rejection of a source-line pseudo-address query kind.
+
+This provider layer is not yet wired into context, REL, or RIP-relative effective-address evaluation.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/machine_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_address_prefix_semantics_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_address_prefix_probe.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_address_size_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_access_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+~~~
+
+### Next foundational step after green
+
+Wire machine-address providers into memory-source evaluation as explicit optional evidence. REL/RIP-relative source facts should be able to query symbol and next-instruction addresses through the provider contract. Only proven provider results may enter relative-address arithmetic.
+
+Preserve distinct states: source symbol identity known while machine address unknown; symbol machine address known while next-IP unknown; and both known. No source line or syntax position may fill a missing machine address.
