@@ -70,6 +70,27 @@ local function run()
     assert(parsed,
         "A32 REL instruction did not parse")
 
+    local operand_shape = {}
+
+    for index, operand in ipairs(parsed.operands or {}) do
+        operand_shape[#operand_shape + 1] =
+            tostring(index)
+            .. ":"
+            .. tostring(operand.kind)
+            .. ":"
+            .. tostring(operand.text)
+    end
+
+    print(
+        "A32 REL parsed shape: mnemonic="
+            .. tostring(parsed.mnemonic)
+            .. " prefixes="
+            .. tostring(#(parsed.prefixes or {}))
+            .. " operands=["
+            .. table.concat(operand_shape, " | ")
+            .. "]"
+    )
+
     expect_equal(parsed.mnemonic, "lea",
         "A32 REL semantic mnemonic")
     expect_equal(#parsed.prefixes, 1,
