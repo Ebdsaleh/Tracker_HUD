@@ -354,6 +354,14 @@ M.construct_specs = {
                     },
                 },
 
+                symbol_resolution = {
+                    member_kinds = {
+                        "label",
+                    },
+                    allow_forward = true,
+                    case_sensitive = true,
+                },
+
                 address_size_policy = {
                     default_bits = 64,
                     allowed_bits = {
