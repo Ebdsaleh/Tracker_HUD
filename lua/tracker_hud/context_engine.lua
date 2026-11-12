@@ -13,6 +13,7 @@ local integer_operand = require("tracker_hud.low_level.integer_operand")
 local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
 local source_symbol = require("tracker_hud.low_level.source_symbol")
+local machine_address = require("tracker_hud.low_level.machine_address")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3792,6 +3793,161 @@ local function append_source_symbol_metadata(
 end
 
 
+local function has_machine_address_providers(providers)
+    return type(providers) == "table"
+        and #providers > 0
+end
+
+
+local function resolve_memory_machine_addresses(
+    providers,
+    adapter,
+    instruction,
+    address,
+    symbol_identity
+)
+    if not has_machine_address_providers(providers)
+        or not core.is_table(instruction)
+        or not core.is_table(address)
+    then
+        return nil
+    end
+
+    local bits = address.address_size_bits
+        or (
+            adapter
+            and adapter.metadata
+            and adapter.metadata.bits
+        )
+        or nil
+
+    local common = {
+        source_line = instruction.source_start_line
+            or instruction.source_line,
+        source_column = instruction.source_start_column
+            or instruction.source_column,
+        mnemonic = instruction.mnemonic,
+    }
+
+    local result = {
+        instruction = machine_address.resolve(
+            providers,
+            {
+                kind = "instruction",
+                source_line = common.source_line,
+                source_column = common.source_column,
+                mnemonic = common.mnemonic,
+            },
+            {
+                bits = bits,
+            }
+        ),
+    }
+
+    local needs_next_instruction =
+        address.address_mode == "relative"
+        or (
+            address.base
+            and (
+                address.base.name == "rip"
+                or address.base.name == "eip"
+            )
+        )
+
+    if needs_next_instruction then
+        result.next_instruction = machine_address.resolve(
+            providers,
+            {
+                kind = "next_instruction",
+                source_line = common.source_line,
+                source_column = common.source_column,
+                mnemonic = common.mnemonic,
+            },
+            {
+                bits = bits,
+            }
+        )
+    end
+
+    if address.symbol
+        and core.is_non_empty_string(address.symbol.name)
+    then
+        result.symbol = machine_address.resolve(
+            providers,
+            {
+                kind = "symbol",
+                name = address.symbol.name,
+                source_line = common.source_line,
+                source_column = common.source_column,
+                source_symbol_member_id =
+                    symbol_identity
+                    and symbol_identity.member_id
+                    or nil,
+                source_symbol_line =
+                    symbol_identity
+                    and symbol_identity.source_line
+                    or nil,
+            },
+            {
+                bits = bits,
+            }
+        )
+    end
+
+    return result
+end
+
+
+local function append_one_machine_address_metadata(
+    metadata,
+    prefix,
+    evidence
+)
+    if not core.is_table(metadata)
+        or not core.is_non_empty_string(prefix)
+        or not core.is_table(evidence)
+    then
+        return
+    end
+
+    metadata[prefix .. "_status"] = evidence.status
+    metadata[prefix] = evidence.value or "unknown"
+    metadata[prefix .. "_value"] = evidence.value
+    metadata[prefix .. "_reason"] = evidence.reason
+    metadata[prefix .. "_bits"] = evidence.bits
+end
+
+
+local function append_machine_address_metadata(
+    metadata,
+    evidence
+)
+    if not core.is_table(metadata)
+        or not core.is_table(evidence)
+    then
+        return
+    end
+
+    append_one_machine_address_metadata(
+        metadata,
+        "instruction_machine_address",
+        evidence.instruction
+    )
+
+    append_one_machine_address_metadata(
+        metadata,
+        "next_instruction_machine_address",
+        evidence.next_instruction
+    )
+
+    append_one_machine_address_metadata(
+        metadata,
+        "symbol_machine_address",
+        evidence.symbol
+    )
+end
+
+
 local function build_memory_source_operand(
     adapter,
     instruction,
@@ -3799,7 +3955,8 @@ local function build_memory_source_operand(
     operand_index,
     effect_specs,
     evaluation,
-    symbol_identity
+    symbol_identity,
+    machine_addresses
 )
     if not core.is_table(instruction)
         or not core.is_table(operand)
@@ -3847,6 +4004,7 @@ local function build_memory_source_operand(
         address = operand.memory.normalized,
         effective_address = evaluation,
         symbol_identity = symbol_identity,
+        machine_addresses = machine_addresses,
 
         metadata = {
             observation = "source memory operand only",
@@ -3876,6 +4034,11 @@ local function build_memory_source_operand(
         symbol_identity
     )
 
+    append_machine_address_metadata(
+        fact.metadata,
+        machine_addresses
+    )
+
     return fact
 end
 
@@ -3884,8 +4047,10 @@ local function collect_memory_source_operands_where(
     bufnr,
     root_node,
     adapter,
-    line_predicate
+    line_predicate,
+    opts
 )
+    opts = opts or {}
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
@@ -4007,6 +4172,17 @@ local function collect_memory_source_operands_where(
                                 operand
                             )
 
+                        local machine_addresses =
+                            resolve_memory_machine_addresses(
+                                opts.machine_address_providers,
+                                adapter,
+                                instruction,
+                                operand.memory
+                                    and operand.memory.normalized
+                                    or nil,
+                                symbol_identity
+                            )
+
                         local memory_operand =
                             build_memory_source_operand(
                                 adapter,
@@ -4015,7 +4191,8 @@ local function collect_memory_source_operands_where(
                                 operand_index,
                                 matching_specs,
                                 evaluation,
-                                symbol_identity
+                                symbol_identity,
+                                machine_addresses
                             )
 
                         if memory_operand then
@@ -4054,7 +4231,8 @@ function M.discover_memory_source_operands(
     bufnr,
     root_node,
     adapter,
-    line_number
+    line_number,
+    opts
 )
     if not core.is_number(line_number) then
         return {}
@@ -4068,7 +4246,8 @@ function M.discover_memory_source_operands(
         adapter,
         function(source_line)
             return source_line == exact_line
-        end
+        end,
+        opts
     )
 end
 
@@ -4077,7 +4256,8 @@ function M.collect_memory_source_operands(
     bufnr,
     root_node,
     adapter,
-    cursor_line
+    cursor_line,
+    opts
 )
     if not core.is_number(cursor_line) then
         return {}
@@ -4091,7 +4271,8 @@ function M.collect_memory_source_operands(
         adapter,
         function(source_line)
             return source_line <= visible_line
-        end
+        end,
+        opts
     )
 end
 
@@ -4100,8 +4281,10 @@ function M.discover_register_source_occurrences(
     bufnr,
     root_node,
     adapter,
-    line_number
+    line_number,
+    opts
 )
+    opts = opts or {}
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
@@ -4173,6 +4356,7 @@ function M.discover_register_source_occurrences(
                         ) do
                             local evaluation
                             local symbol_identity
+                            local machine_addresses
 
                             if operand.kind == "memory"
                                 and core.is_table(operand.memory)
@@ -4195,6 +4379,15 @@ function M.discover_register_source_occurrences(
                                         adapter,
                                         operand
                                     )
+
+                                machine_addresses =
+                                    resolve_memory_machine_addresses(
+                                        opts.machine_address_providers,
+                                        adapter,
+                                        instruction,
+                                        operand.memory.normalized,
+                                        symbol_identity
+                                    )
                             end
 
                             local operand_occurrence =
@@ -4216,6 +4409,11 @@ function M.discover_register_source_occurrences(
                                 append_source_symbol_metadata(
                                     operand_occurrence.metadata,
                                     symbol_identity
+                                )
+
+                                append_machine_address_metadata(
+                                    operand_occurrence.metadata,
+                                    machine_addresses
                                 )
 
                                 table.insert(
@@ -4242,6 +4440,11 @@ function M.discover_register_source_occurrences(
                                 append_source_symbol_metadata(
                                     component_occurrence.metadata,
                                     symbol_identity
+                                )
+
+                                append_machine_address_metadata(
+                                    component_occurrence.metadata,
+                                    machine_addresses
                                 )
 
                                 table.insert(
