@@ -9,7 +9,6 @@ local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local integer_value = require("tracker_hud.low_level.integer_value")
-local integer_operand = require("tracker_hud.low_level.integer_operand")
 local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
 local relative_address = require("tracker_hud.low_level.relative_address")
@@ -40,6 +39,7 @@ local construct_parser = require("tracker_hud.constructs.parser")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_state_read = require("tracker_hud.low_level.register_state_read")
+local register_value_policy = require("tracker_hud.low_level.register_value_policy")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
@@ -309,121 +309,20 @@ local get_register_value_width =
     register_state_read.get_value_width
 
 
-local function apply_register_value_width_policy(
-    adapter,
-    target_register,
-    effect,
-    value,
-    resolved
-)
-    local policy = core.is_table(effect)
-        and effect.value_width_policy
-        or nil
+local apply_register_value_width_policy =
+    register_value_policy.apply_width_policy
 
-    if policy == nil then
-        return value, resolved, nil
-    end
+local parse_numeric_value =
+    register_value_policy.parse_numeric_value
 
-    local metadata = {
-        value_width_policy = policy,
-        pre_width_write_value = value,
-    }
+local build_integer_operand_metadata =
+    register_value_policy.build_integer_operand_metadata
 
-    if resolved == false or value == nil then
-        return value, resolved, metadata
-    end
+local interpret_integer_operand_value =
+    register_value_policy.interpret_integer_operand
 
-    if policy ~= "wrap_unsigned_target" then
-        metadata.value_width_error = "unsupported policy"
-        return nil, false, metadata
-    end
-
-    local bits = get_register_value_width(
-        adapter,
-        target_register
-    )
-
-    metadata.value_width_bits = bits
-
-    if not bits then
-        metadata.value_width_error = "target width unavailable"
-        return nil, false, metadata
-    end
-
-    local wrapped = integer_value.wrap_unsigned(
-        value,
-        bits
-    )
-
-    if wrapped == nil then
-        metadata.value_width_error = "value is not an exact integer"
-        return nil, false, metadata
-    end
-
-    local normalized = integer_value.normalize(value)
-    metadata.value_wrapped = normalized ~= wrapped
-
-    return wrapped, true, metadata
-end
-
-
-
-local function parse_numeric_value(value)
-    return integer_value.normalize(value)
-end
-
-
-local function build_integer_operand_metadata(metadata)
-    if not core.is_table(metadata) then
-        return nil
-    end
-
-    return {
-        source_integer_interpretation = metadata.interpretation,
-        source_integer_bits = metadata.bits,
-        source_integer_bits_source = metadata.bits_source,
-        source_integer_max_bits = metadata.max_bits,
-        source_integer_min_bits = metadata.min_bits,
-        source_integer_raw_value = metadata.raw_value,
-        source_integer_value = metadata.value,
-        source_integer_error = metadata.error,
-    }
-end
-
-
-local function interpret_integer_operand_value(
-    adapter,
-    target_register,
-    value,
-    policy
-)
-    if not core.is_table(policy) then
-        local normalized = parse_numeric_value(value)
-
-        return normalized,
-            normalized ~= nil,
-            nil
-    end
-
-    local interpreted, metadata = integer_operand.interpret(
-        value,
-        policy,
-        {
-            target_bits = get_register_value_width(
-                adapter,
-                target_register
-            ),
-        }
-    )
-
-    return interpreted,
-        interpreted ~= nil,
-        build_integer_operand_metadata(metadata)
-end
-
-local function parse_numeric_number(value)
-    return integer_value.to_safe_number(value)
-end
+local parse_numeric_number =
+    register_value_policy.parse_numeric_number
 
 
 local register_fact_is_resolved =
