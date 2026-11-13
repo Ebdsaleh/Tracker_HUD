@@ -24,6 +24,7 @@ local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
+local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3463,36 +3464,23 @@ end
 
 
 local function get_stack_effect_index(adapter)
-    if not core.is_table(adapter) then
-        return build_stack_effect_index(nil)
-    end
+    return stack_effect_index.get(
+        adapter,
+        {
+            get_node_type = function(effect_spec)
+                if not core.is_table(effect_spec) then
+                    return nil
+                end
 
-    local stack_effects =
-        adapter.stack_effects
-
-    if not core.is_table(stack_effects) then
-        return build_stack_effect_index(nil)
-    end
-
-    local cached =
-        stack_effect_index_cache[
-            stack_effects
-        ]
-
-    if cached then
-        return cached
-    end
-
-    local index =
-        build_stack_effect_index(
-            stack_effects
-        )
-
-    stack_effect_index_cache[
-        stack_effects
-    ] = index
-
-    return index
+                return get_syntax_node_type(
+                    effect_spec
+                )
+                    or effect_spec.node_type
+            end,
+            get_mnemonic =
+                get_stack_effect_mnemonic,
+        }
+    )
 end
 
 
