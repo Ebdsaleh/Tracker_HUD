@@ -6642,3 +6642,101 @@ Confirmed:
 
 The central boundary inference, stack inference and register reducers remain
 unchanged.
+
+
+## Context-engine split tranche 14 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/boundary_effect_collection.lua
+~~~
+
+This module owns boundary-effect collection orchestration only:
+
+- indexed node-type traversal;
+- cursor-line visibility filtering;
+- duplicate Tree-sitter range suppression;
+- stable source ordering;
+- representative-rule parsing dispatch;
+- mnemonic bucket selection;
+- read-context callback sequencing;
+- phase-context assembly for read/write phases;
+- effect-application callback dispatch.
+
+It does **not** own instruction parsing, register collection, boundary matching,
+boundary inference, or fact construction.
+
+New pure regression:
+
+~~~
+tests/boundary_effect_collection_smoke.lua
+~~~
+
+## Context-engine split tranche 15 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/stack_effect_collection.lua
+~~~
+
+This module owns stack-effect collection orchestration only:
+
+- ordered union of stack-effect and register-effect instruction node types;
+- duplicate range suppression across both indexes;
+- cursor-line visibility filtering;
+- stable source ordering;
+- stack-first representative-rule precedence;
+- stack-state preparation callback sequencing;
+- stack-effect dispatch;
+- carried register-state callback dispatch.
+
+It deliberately does **not** own stack inference, operand matching, value
+resolution, register semantics, or fact construction.
+
+The existing stack-path register-update callback shape is preserved exactly in
+this refactor. Any semantic correction to that legacy-looking call belongs in
+a separate, explicitly tested change.
+
+New pure regression:
+
+~~~
+tests/stack_effect_collection_smoke.lua
+~~~
+
+## Ten-commit relay boundary after tranches 14 and 15
+
+This relay stops after exactly ten atomic commits on top of accepted
+`e51dc62`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_effect_collection_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_index_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
