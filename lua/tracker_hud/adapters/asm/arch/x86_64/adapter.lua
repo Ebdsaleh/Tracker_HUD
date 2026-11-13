@@ -368,10 +368,6 @@ M.construct_specs = {
                             basis = "next_instruction",
                             result_width = "address_size",
                         },
-                        eip = {
-                            basis = "next_instruction",
-                            result_width = "address_size",
-                        },
                     },
                 },
 
@@ -384,6 +380,9 @@ M.construct_specs = {
                     register_width_map = {
                         [32] = 32,
                         [64] = 64,
+                    },
+                    explicit_prefix_register_exceptions = {
+                        rip = true,
                     },
                     prefixes = {
                         a32 = 32,
