@@ -238,6 +238,95 @@ local function append_selected_memory_details(children, register, metadata)
         "address components",
         metadata.memory_address_components
     )
+
+    append_metadata_detail(
+        children,
+        register,
+        "effective-target",
+        "effective target",
+        metadata.memory_effective_address_value
+            or metadata.memory_effective_address
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "effective-target-status",
+        "target certainty",
+        metadata.memory_effective_address_status
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "effective-target-bits",
+        "target width",
+        metadata.memory_effective_address_bits
+            and (
+                tostring(metadata.memory_effective_address_bits)
+                .. "-bit"
+            )
+            or nil
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "effective-target-reason",
+        "target reason",
+        metadata.memory_effective_address_reason
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "source-symbol",
+        "source symbol",
+        metadata.source_symbol_name
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "source-symbol-status",
+        "source symbol certainty",
+        metadata.source_symbol_status
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "symbol-machine-address",
+        "symbol machine address",
+        metadata.symbol_machine_address_value
+            or metadata.symbol_machine_address
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "symbol-machine-address-status",
+        "symbol machine address certainty",
+        metadata.symbol_machine_address_status
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "next-instruction-address",
+        "next instruction address",
+        metadata.next_instruction_machine_address_value
+            or metadata.next_instruction_machine_address
+    )
+
+    append_metadata_detail(
+        children,
+        register,
+        "execution-status",
+        "execution status",
+        metadata.memory_execution_status
+            or metadata.execution_status
+    )
 end
 
 
