@@ -6740,3 +6740,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 14 and 15 (2026-11-13)
+
+ERIDU accepted both collection-orchestration slices green.
+
+Confirmed:
+
+- boundary-effect collection preserves indexed traversal, visibility,
+  deduplication, source ordering, read-context sequencing, effect dispatch and
+  phase contexts;
+- stack-effect collection preserves stack/register union traversal,
+  cross-index deduplication, source ordering, carried-state sequencing and
+  stack dispatch;
+- the extracted boundary/stack indexes remain green;
+- register-effect and instruction-event indexing/collection remain green;
+- parser-backed register focus, normalized memory structure, effective-address
+  evaluation, RIP / A32 RIP / REL handling, Inspect target certainty and
+  adapter contracts remain green.
+
+The next tranche adds dedicated parser-backed boundary/stack fixtures before
+changing any stack/register interaction semantics.
