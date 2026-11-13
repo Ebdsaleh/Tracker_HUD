@@ -1213,14 +1213,17 @@ local function get_address_size_prefix_bits(
         or type(token) ~= "string"
         or token == ""
     then
-        return nil, false
+        return nil, false, nil, nil
     end
 
     local normalized = token:lower()
     local found_bits = nil
     local found = false
+    local found_node_type = nil
+    local found_memory_spec = nil
+    local memory_spec_ambiguous = false
 
-    for _, construct in pairs(adapter.construct_specs) do
+    for node_type, construct in pairs(adapter.construct_specs) do
         local operand_spec = type(construct) == "table"
             and construct.operand
             or nil
@@ -1241,7 +1244,16 @@ local function get_address_size_prefix_bits(
             if found_bits ~= nil
                 and found_bits ~= bits
             then
-                return nil, false
+                return nil, false, nil, nil
+            end
+
+            if found_memory_spec
+                and found_memory_spec ~= memory_spec
+            then
+                memory_spec_ambiguous = true
+            elseif not found_memory_spec then
+                found_node_type = node_type
+                found_memory_spec = memory_spec
             end
 
             found_bits = bits
@@ -1249,7 +1261,15 @@ local function get_address_size_prefix_bits(
         end
     end
 
-    return found_bits, found
+    if memory_spec_ambiguous then
+        found_node_type = nil
+        found_memory_spec = nil
+    end
+
+    return found_bits,
+        found,
+        found_node_type,
+        found_memory_spec
 end
 
 
@@ -1390,7 +1410,9 @@ local function classify_source_operand(
     bufnr,
     source_line,
     segment,
-    adapter
+    adapter,
+    prefix_memory_node_type,
+    prefix_memory_spec
 )
     if type(segment) ~= "table"
         or type(segment.text) ~= "string"
@@ -1400,10 +1422,15 @@ local function classify_source_operand(
 
     local text = segment.text
     local start_column = segment.source_start_column or 0
-    local node_type, memory_spec =
-        get_declared_memory_construct(
-            adapter
-        )
+    local node_type = prefix_memory_node_type
+    local memory_spec = prefix_memory_spec
+
+    if type(memory_spec) ~= "table" then
+        node_type, memory_spec =
+            get_declared_memory_construct(
+                adapter
+            )
+    end
 
     if memory_spec
         and find_first_bracket_pair(
@@ -1481,7 +1508,9 @@ local function recover_prefixed_instruction_from_source(
     prefix,
     prefix_bits,
     prefix_node,
-    adapter
+    adapter,
+    prefix_memory_node_type,
+    prefix_memory_spec
 )
     if not bufnr
         or not instruction_node
@@ -1567,7 +1596,9 @@ local function recover_prefixed_instruction_from_source(
             bufnr,
             start_row + 1,
             segment,
-            adapter
+            adapter,
+            prefix_memory_node_type,
+            prefix_memory_spec
         )
 
         if operand then
@@ -1622,7 +1653,10 @@ local function recover_address_prefixed_instruction(
         return nil
     end
 
-    local prefix_bits, is_prefix =
+    local prefix_bits,
+        is_prefix,
+        prefix_memory_node_type,
+        prefix_memory_spec =
         get_address_size_prefix_bits(
             adapter,
             prefix
@@ -1639,7 +1673,9 @@ local function recover_address_prefixed_instruction(
             prefix,
             prefix_bits,
             prefix_node,
-            adapter
+            adapter,
+            prefix_memory_node_type,
+            prefix_memory_spec
         )
 
     if source_recovery then
