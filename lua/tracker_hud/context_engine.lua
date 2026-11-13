@@ -25,6 +25,7 @@ local register_effect_collection = require("tracker_hud.low_level.register_effec
 local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
+local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -2944,6 +2945,70 @@ local function apply_boundary_effect(
     if fact then
         table.insert(facts, fact)
     end
+end
+
+
+local function collect_boundary_effects_with_module(
+    context,
+    adapter,
+    opts,
+    effect_index
+)
+    opts = opts or {}
+
+    return boundary_effect_collection.collect({
+        context = context,
+        effect_index = effect_index,
+
+        collect_nodes = function(node_type)
+            return collect_nodes_by_type(
+                opts.root_node,
+                node_type
+            )
+        end,
+
+        parse_instruction = function(
+            node,
+            representative_effect_spec
+        )
+            return collect_instruction_operands(
+                adapter,
+                node,
+                opts.bufnr,
+                representative_effect_spec
+            )
+        end,
+
+        normalize_mnemonic =
+            normalize_mnemonic,
+
+        collect_read_context = function(
+            instruction
+        )
+            return collect_registers_before_instruction(
+                context,
+                adapter,
+                opts,
+                instruction
+            )
+        end,
+
+        apply_effect = function(
+            facts,
+            instruction,
+            effect_spec,
+            phase_contexts
+        )
+            apply_boundary_effect(
+                facts,
+                context,
+                adapter,
+                instruction,
+                effect_spec,
+                phase_contexts
+            )
+        end,
+    })
 end
 
 
