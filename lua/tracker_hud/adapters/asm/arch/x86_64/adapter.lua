@@ -362,6 +362,19 @@ M.construct_specs = {
                     case_sensitive = true,
                 },
 
+                instruction_relative = {
+                    bases = {
+                        rip = {
+                            basis = "next_instruction",
+                            result_width = "address_size",
+                        },
+                        eip = {
+                            basis = "next_instruction",
+                            result_width = "address_size",
+                        },
+                    },
+                },
+
                 address_size_policy = {
                     default_bits = 64,
                     allowed_bits = {
