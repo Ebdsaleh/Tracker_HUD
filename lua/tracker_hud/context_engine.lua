@@ -14,6 +14,7 @@ local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
 local relative_address = require("tracker_hud.low_level.relative_address")
 local memory_source_evidence = require("tracker_hud.low_level.memory_source_evidence")
+local memory_source_fact = require("tracker_hud.low_level.memory_source_fact")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3686,101 +3687,6 @@ local function evaluate_memory_address_before_instruction(
 end
 
 
-local function build_memory_source_operand(
-    adapter,
-    instruction,
-    operand,
-    operand_index,
-    effect_specs,
-    evaluation,
-    symbol_identity,
-    machine_addresses
-)
-    if not core.is_table(instruction)
-        or not core.is_table(operand)
-        or operand.kind ~= "memory"
-        or not core.is_table(operand.memory)
-        or not core.is_table(operand.memory.normalized)
-    then
-        return nil
-    end
-
-    local role = get_memory_operand_role(
-        effect_specs,
-        operand_index
-    )
-
-    local access, access_metadata = memory_access.resolve(
-        adapter and adapter.memory_accesses,
-        instruction.mnemonic,
-        operand_index,
-        operand
-    )
-
-    local fact = {
-        id = table.concat({
-            "memory-operand",
-            tostring(operand.source_line or instruction.source_line or "?"),
-            tostring(operand.source_start_column or operand.source_column or "?"),
-            tostring(operand_index),
-        }, ":"),
-        kind = "memory_operand",
-        category = "memory",
-        source = "asm_source_memory",
-        text = operand.text,
-        role = role,
-        access = access,
-        operand_index = operand_index,
-
-        source_line = operand.source_line,
-        source_column = operand.source_column,
-        source_start_line = operand.source_start_line,
-        source_start_column = operand.source_start_column,
-        source_end_line = operand.source_end_line,
-        source_end_column = operand.source_end_column,
-
-        address = operand.memory.normalized,
-        effective_address = evaluation,
-        symbol_identity = symbol_identity,
-        machine_addresses = machine_addresses,
-
-        metadata = {
-            observation = "source memory operand only",
-            mnemonic = instruction.mnemonic,
-            operand_role = role,
-            access_intent = access,
-            access_declared = access_metadata.declared,
-            access_ambiguous = access_metadata.ambiguous,
-            access_rule_count = access_metadata.rule_count,
-            address_size_bits = operand.memory.normalized.address_size_bits,
-            address_size_status = operand.memory.normalized.address_size_status,
-            address_size_source = operand.memory.normalized.address_size_source,
-            address_size_reason = operand.memory.normalized.address_size_reason,
-            runtime_address = "unknown",
-            execution_status = "not_observed",
-        },
-    }
-
-    memory_source_evidence.append_effective_address_metadata(
-        fact.metadata,
-        evaluation,
-        "effective_address"
-    )
-
-    memory_source_evidence.append_source_symbol_metadata(
-        fact.metadata,
-        symbol_identity
-    )
-
-    memory_source_evidence.append_machine_address_metadata(
-        fact.metadata,
-        machine_addresses
-    )
-
-    return fact
-end
-
-
 local function collect_memory_source_operands_where(
     bufnr,
     root_node,
@@ -3930,17 +3836,31 @@ local function collect_memory_source_operands_where(
                                 )
                         end
 
-                        local memory_operand =
-                            build_memory_source_operand(
-                                adapter,
-                                instruction,
-                                operand,
+                        local role = get_memory_operand_role(
+                            matching_specs,
+                            operand_index
+                        )
+
+                        local access, access_metadata =
+                            memory_access.resolve(
+                                adapter and adapter.memory_accesses,
+                                instruction.mnemonic,
                                 operand_index,
-                                matching_specs,
-                                evaluation,
-                                symbol_identity,
-                                machine_addresses
+                                operand
                             )
+
+                        local memory_operand =
+                            memory_source_fact.new({
+                                instruction = instruction,
+                                operand = operand,
+                                operand_index = operand_index,
+                                role = role,
+                                access = access,
+                                access_metadata = access_metadata,
+                                evaluation = evaluation,
+                                symbol_identity = symbol_identity,
+                                machine_addresses = machine_addresses,
+                            })
 
                         if memory_operand then
                             table.insert(result, memory_operand)
