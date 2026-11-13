@@ -20,6 +20,7 @@ local register_source_occurrence = require("tracker_hud.low_level.register_sourc
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
 local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
+local line_summary = require("tracker_hud.low_level.line_summary")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -362,23 +363,7 @@ end
 
 
 function M.resolve_line_summary_options(config)
-    local line_summary = core.is_table(config)
-        and config.line_summary
-        or nil
-
-    if not core.is_table(line_summary) then
-        line_summary = {}
-    end
-
-    local enabled = line_summary.enabled ~= false
-
-    return {
-        enabled = enabled,
-        show_before_instruction = enabled
-            and line_summary.show_before_instruction == true,
-        show_after_instruction = enabled
-            and line_summary.show_after_instruction ~= false,
-    }
+    return line_summary.resolve_options(config)
 end
 
 
@@ -387,46 +372,22 @@ function M.classify_instruction_cursor_position(
     instruction_end_column,
     source_column
 )
-    local start_column = tonumber(instruction_start_column)
-    local end_column = tonumber(instruction_end_column)
-    local column = tonumber(source_column)
-
-    if not start_column or not end_column or not column then
-        return nil
-    end
-
-    if column < start_column then
-        return "before_instruction"
-    end
-
-    if column >= end_column then
-        return "after_instruction"
-    end
-
-    return "inside_instruction"
+    return line_summary.classify_instruction_position(
+        instruction_start_column,
+        instruction_end_column,
+        source_column
+    )
 end
 
 
-function M.line_summary_allows_position(config, position)
-    if position == "inside_instruction" then
-        return true
-    end
-
-    local options = M.resolve_line_summary_options(config)
-
-    if options.enabled ~= true then
-        return false
-    end
-
-    if position == "before_instruction" then
-        return options.show_before_instruction == true
-    end
-
-    if position == "after_instruction" then
-        return options.show_after_instruction == true
-    end
-
-    return false
+function M.line_summary_allows_position(
+    config,
+    position
+)
+    return line_summary.allows_position(
+        config,
+        position
+    )
 end
 
 
