@@ -6461,3 +6461,57 @@ nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 8 and 9 (2026-11-13)
+
+ERIDU accepted both ownership slices green.
+
+Confirmed:
+
+- `tests/register_source_metadata_smoke.lua` passes independently;
+- `tests/line_summary_smoke.lua` passes independently;
+- register effect indexing/source collection/source occurrences remain green;
+- normalized memory structure remains green;
+- real parser-backed register focus remains green;
+- effective-address evaluation remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- Inspect target certainty/cache behavior remains green.
+
+## Context-engine split tranche 10 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_collection.lua
+~~~
+
+This module owns only register-effect instruction-node selection:
+
+- iterating indexed instruction node types;
+- source visibility filtering against cursor position;
+- explicit `limit_position`, `stop_before`, and `before_position`
+  precedence;
+- one-based cursor column to zero-based Tree-sitter column conversion;
+- line-summary before/inside/after policy reuse;
+- duplicate node-range suppression;
+- stable source-line/source-column ordering.
+
+It deliberately does **not** parse instructions, select effect specs, prepare
+instruction inference state, apply register effects, reduce alias families, or
+emit register facts.
+
+`context_engine.lua` still owns the complete register-state reducer and now
+receives the same ordered node entries from this module.
+
+New pure regression:
+
+~~~
+tests/register_effect_collection_smoke.lua
+~~~
+
+It pins node-type traversal, visibility, deduplication, source ordering,
+cursor-column conversion, explicit limit precedence, the `stop_before` alias,
+and incomplete-dependency fail-closed behavior.
