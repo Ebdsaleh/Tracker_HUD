@@ -280,6 +280,132 @@ assert(a32_rip.status == "known"
     "A32 RIP-relative target must truncate and zero-extend the computed address")
 print("PASS relative address: A32 RIP result obeys 32-bit address size")
 
+local rip_symbol = evaluator.evaluate({
+    address_mode = "default",
+    address_size_status = "known",
+    address_size_bits = 64,
+    base = {
+        name = "rip",
+    },
+    symbol = {
+        name = "msg",
+    },
+    displacement = {
+        text = "8",
+        value = "8",
+    },
+    metadata = {
+        ambiguous = {},
+    },
+}, {
+    next_instruction = {
+        status = "known",
+        value = "0x100000107",
+        bits = 64,
+    },
+    symbol = {
+        status = "known",
+        value = "0x100001000",
+        bits = 64,
+    },
+}, {
+    bits = 64,
+    instruction_relative_policy =
+        instruction_relative_policy,
+})
+
+assert(rip_symbol.status == "known"
+    and rip_symbol.value == "4294971400"
+    and rip_symbol.bits == 64
+    and rip_symbol.wrapped == false
+    and rip_symbol.components.symbol.name == "msg"
+    and rip_symbol.components.symbol.value == "4294971392"
+    and rip_symbol.components.symbol.mode == "target"
+    and rip_symbol.components.source_displacement == "8"
+    and rip_symbol.components.relative_delta == "3841"
+    and rip_symbol.components.exact_target == "4294971400",
+    "RIP-relative symbol must use provider symbol address as target evidence")
+print("PASS relative address: RIP symbol + addend resolves from target evidence")
+
+local a32_rip_symbol = evaluator.evaluate({
+    address_mode = "default",
+    address_size_status = "known",
+    address_size_bits = 32,
+    base = {
+        name = "rip",
+    },
+    symbol = {
+        name = "msg",
+    },
+    displacement = {
+        text = "8",
+        value = "8",
+    },
+    metadata = {
+        ambiguous = {},
+    },
+}, {
+    next_instruction = {
+        status = "known",
+        value = "0x100000107",
+        bits = 64,
+    },
+    symbol = {
+        status = "known",
+        value = "0x100001000",
+        bits = 64,
+    },
+}, {
+    bits = 64,
+    instruction_relative_policy =
+        instruction_relative_policy,
+})
+
+assert(a32_rip_symbol.status == "known"
+    and a32_rip_symbol.value == "4104"
+    and a32_rip_symbol.bits == 32
+    and a32_rip_symbol.wrapped == true
+    and a32_rip_symbol.components.symbol.value == "4294971392"
+    and a32_rip_symbol.components.relative_delta == "3841"
+    and a32_rip_symbol.components.exact_target == "4294971400",
+    "A32 RIP-relative symbol must preserve 64-bit evidence before 32-bit result truncation")
+print("PASS relative address: A32 RIP symbol target truncates after exact arithmetic")
+
+local rip_symbol_missing = evaluator.evaluate({
+    address_mode = "default",
+    address_size_status = "known",
+    address_size_bits = 64,
+    base = {
+        name = "rip",
+    },
+    symbol = {
+        name = "msg",
+    },
+    metadata = {
+        ambiguous = {},
+    },
+}, {
+    next_instruction = {
+        status = "known",
+        value = "0x100000107",
+        bits = 64,
+    },
+    symbol = {
+        status = "unknown",
+        reason = "symbol absent from map",
+    },
+}, {
+    bits = 64,
+    instruction_relative_policy =
+        instruction_relative_policy,
+})
+
+assert(rip_symbol_missing.status == "unknown"
+    and rip_symbol_missing.reason
+        == "symbol machine address unresolved",
+    "RIP-relative symbol must fail closed without provider symbol evidence")
+print("PASS relative address: RIP symbol without machine target fails closed")
+
 local rip_without_provider = evaluator.evaluate(
     rip_address,
     nil,
