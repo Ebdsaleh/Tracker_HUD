@@ -50,6 +50,16 @@ local function run()
         "cannot configure ASM adapter: "
             .. tostring(config_err))
 
+    assert(adapter.register_alias_index
+        and adapter.register_alias_index.rip
+        and adapter.register_alias_index.rip.alias
+        and adapter.register_alias_index.rip.alias.bits == 64
+        and adapter.register_alias_index.eip
+        and adapter.register_alias_index.eip.alias
+        and adapter.register_alias_index.eip.alias.bits == 32,
+        "x86 architecture profile must expose RIP/EIP widths")
+    print("PASS ASM instruction-relative: architecture exposes RIP/EIP widths")
+
     local provider = {
         id = "instruction-relative-fixture",
         kind = "assembler_listing",
