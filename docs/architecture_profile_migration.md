@@ -5656,3 +5656,97 @@ New commits:
 396cf55 fix(asm): reconstruct prefixed instructions from source
 a26ee48 fix(asm): keep source recovery helpers in local scope
 ~~~
+
+
+## Accepted REL / RIP / Inspect machine-target campaign (2026-11-13)
+
+ERIDU has accepted the complete source-memory machine-target campaign through
+HUD Inspect presentation.
+
+Confirmed green parser-backed behavior includes:
+
+- explicit NASM `REL symbol` target resolution from provider evidence;
+- A32 source address size remaining distinct from the 64-bit machine-address
+  evidence domain;
+- adapter-owned RIP-relative basis policy using the next instruction address;
+- A32 RIP-relative final-address truncation after exact arithmetic;
+- RIP-relative symbol + numeric addend composition;
+- source-label identity remaining independent from linker/provider address
+  evidence;
+- external provider-known symbols remaining valid without a source declaration;
+- Inspect reusing the same effective-target and provider evidence as source
+  memory facts;
+- provider-aware Inspect source-index invalidation, so an unchanged source line
+  is recompiled when the configured provider set changes;
+- visible Registers Inspect details separating effective-target certainty,
+  symbol identity certainty, symbol machine-address certainty, address width /
+  wrapping, and runtime observation;
+- `execution_status = not_observed` remaining unchanged when a target becomes
+  numerically known.
+
+The acceptance gates remained green for address-size semantics, alias
+read/write state, source-symbol resolution, effective-address evaluation,
+machine-address provider validation, register source focus, and architecture
+register roles.
+
+No source line or source column is treated as a machine address.
+
+## Context-engine split tranche 1 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+The validation coverage is now sufficient to begin the roadmap's refactor-only
+split of `context_engine.lua`.
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/memory_source_evidence.lua
+~~~
+
+This module now owns the previously local evidence helpers for:
+
+- adapter memory symbol-resolution policy;
+- adapter instruction-relative memory policy;
+- source-symbol identity resolution;
+- optional instruction / next-instruction / symbol machine-address provider
+  aggregation;
+- flattened effective-address metadata;
+- flattened source-symbol metadata;
+- flattened machine-address metadata.
+
+`context_engine.lua` still owns orchestration, Tree-sitter instruction
+collection, register-state replay, effective-address register lookup, operand
+role matching, and its existing public API.
+
+This is intentionally a mechanical ownership extraction. There is no intended
+semantic or HUD behavior change.
+
+New pure regression:
+
+~~~
+tests/memory_source_evidence_smoke.lua
+~~~
+
+It pins source-symbol policy, instruction-relative policy, exact 64-bit provider
+evidence, no-provider behavior, source identity keys carried into symbol
+provider queries, and the flattened metadata contract.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/memory_source_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_machine_address_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+~~~
+
+If this tranche is green, continue splitting `context_engine.lua` only in
+small refactor-only slices with public APIs and semantic tests unchanged.
