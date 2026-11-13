@@ -6817,3 +6817,97 @@ Confirmed:
   and adapter-contract regressions remain green.
 
 Accepted baseline: `4343f62`.
+
+
+## Context-engine split tranche 16 — generic effect matching (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/effect_match.lua
+~~~
+
+This module owns only architecture-neutral effect matching:
+
+- operand text/value normalization;
+- matching alternate operand values;
+- operand kind checks;
+- effect operand-list matching;
+- simple operand-equality conditions.
+
+The ASM stack matcher remains separate because it has an architecture-aware
+compatibility rule for register-shaped operands that may arrive symbol-like.
+
+New regressions:
+
+~~~
+tests/effect_match_smoke.lua
+tests/asm_effect_match_smoke.lua
+~~~
+
+The parser-backed test proves a real x86-64 `mov rax, 42` still selects the
+register/immediate effect through `context_engine.collect_register_effects()`.
+
+## Context-engine split tranche 17 — instruction source fallback (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/instruction_source.lua
+~~~
+
+This module owns language-neutral instruction-source infrastructure:
+
+- source-text normalization;
+- fallback operand-kind inference;
+- ancestor/descendant register-shape detection;
+- fallback operand construction with source ranges;
+- fallback mnemonic/operand reconstruction;
+- recursive node collection by Tree-sitter node type.
+
+Adapter-specific instruction parsing still receives first refusal through the
+context adapter. The public low-level collection APIs remain unchanged.
+
+New pure regression:
+
+~~~
+tests/instruction_source_smoke.lua
+~~~
+
+## Ten-commit relay boundary after tranches 16 and 17
+
+This relay stops after exactly ten commits on top of accepted `4343f62`.
+No central register fact construction, alias reduction, partial-mask logic or
+register-effect state application moved in this relay.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/effect_match_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effect_match_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_source_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
