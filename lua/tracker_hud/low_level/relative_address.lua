@@ -1,13 +1,12 @@
 -- lua/tracker_hud/low_level/relative_address.lua
 --
--- Certainty-aware explicit relative-address evaluation.
+-- Certainty-aware instruction-relative address evaluation.
 --
 -- This layer consumes only normalized source structure plus proven machine-
 -- address evidence. Source locations are never treated as addresses.
 --
--- Version 1 intentionally resolves explicit relative symbols only. Register-
--- based instruction-relative forms (for example RIP/EIP bases) remain a
--- separate adapter-policy tranche.
+-- Architecture adapters declare register-based instruction-relative forms.
+-- Explicit source modes such as REL remain architecture-neutral syntax facts.
 
 local integer_value = require("tracker_hud.low_level.integer_value")
 
@@ -76,26 +75,128 @@ local function evidence_bits(evidence)
     return nil
 end
 
-function M.evaluate(address, machine_addresses, opts)
+local function get_instruction_relative_base(address, policy)
+    if type(address) ~= "table"
+        or type(address.base) ~= "table"
+        or type(address.base.name) ~= "string"
+        or address.base.name == ""
+        or type(policy) ~= "table"
+        or type(policy.bases) ~= "table"
+    then
+        return nil, nil
+    end
+
+    local name = address.base.name:lower()
+    local base_spec = policy.bases[name]
+
+    if type(base_spec) ~= "table" then
+        return nil, nil
+    end
+
+    return address.base, base_spec
+end
+
+local function source_displacement(address)
+    if address.displacement == nil then
+        return "0", nil
+    end
+
+    local value = integer_value.normalize(
+        address.displacement.value
+    )
+
+    if not value then
+        return nil, unknown(
+            "relative displacement unresolved",
+            {
+                text = address.displacement.text,
+            }
+        )
+    end
+
+    return value, nil
+end
+
+local function wrap_target(exact_target, bits)
+    if bits == nil then
+        return exact_target, false, nil
+    end
+
+    local value = integer_value.wrap_unsigned(
+        exact_target,
+        bits
+    )
+
+    if not value then
+        return nil, false, unknown(
+            "machine address width invalid",
+            {
+                bits = bits,
+                exact = exact_target,
+            }
+        )
+    end
+
+    return value, value ~= exact_target, nil
+end
+
+local function result_bits_for_base(
+    address,
+    basis_bits,
+    opts,
+    base_spec
+)
+    local width = base_spec.result_width
+
+    if width == "address_size" then
+        return address.address_size_bits
+            or opts.bits
+            or basis_bits
+    end
+
+    if width == "machine" or width == nil then
+        return basis_bits
+            or opts.bits
+            or address.address_size_bits
+    end
+
+    if type(width) == "number" then
+        return width
+    end
+
+    return nil
+end
+
+function M.requires_next_instruction(address, opts)
     opts = opts or {}
 
     if type(address) ~= "table" then
-        return unknown("address structure unavailable")
+        return false
     end
 
-    local ambiguous = ambiguous_fields(address)
-    if ambiguous then
-        return unknown("address structure ambiguous", {
-            fields = ambiguous,
-        })
+    if address.address_mode == "relative" then
+        return true
     end
 
-    if address.address_mode ~= "relative" then
-        return unknown("address is not explicit relative", {
-            address_mode = address.address_mode,
-        })
+    local _, base_spec =
+        get_instruction_relative_base(
+            address,
+            opts.instruction_relative_policy
+        )
+
+    if not base_spec then
+        return false
     end
 
+    return (base_spec.basis or "next_instruction")
+        == "next_instruction"
+end
+
+local function evaluate_explicit_relative(
+    address,
+    machine_addresses,
+    opts
+)
     if type(address.symbol) ~= "table"
         or type(address.symbol.name) ~= "string"
         or address.symbol.name == ""
@@ -106,8 +207,9 @@ function M.evaluate(address, machine_addresses, opts)
     end
 
     if type(machine_addresses) ~= "table" then
-        return unknown("machine-address evidence unavailable", {
+        return unknown("relative address basis unresolved", {
             symbol = address.symbol.name,
+            address_mode = address.address_mode,
         })
     end
 
@@ -167,23 +269,11 @@ function M.evaluate(address, machine_addresses, opts)
         })
     end
 
-    local bits = symbol_bits
-        or basis_bits
-        or opts.bits
+    local displacement, displacement_error =
+        source_displacement(address)
 
-    local source_displacement = "0"
-
-    if address.displacement ~= nil then
-        source_displacement =
-            integer_value.normalize(
-                address.displacement.value
-            )
-
-        if not source_displacement then
-            return unknown("relative displacement unresolved", {
-                text = address.displacement.text,
-            })
-        end
+    if displacement_error then
+        return displacement_error
     end
 
     if address.base ~= nil
@@ -202,30 +292,26 @@ function M.evaluate(address, machine_addresses, opts)
 
     local exact_target = integer_value.add(
         symbol_value,
-        source_displacement
+        displacement
     )
 
     if not exact_target then
         return unknown("relative target arithmetic failed")
     end
 
-    local target_value = exact_target
-    local wrapped = false
+    local bits = symbol_bits
+        or basis_bits
+        or opts.bits
 
-    if bits ~= nil then
-        target_value = integer_value.wrap_unsigned(
+    local target_value,
+        wrapped,
+        wrap_error = wrap_target(
             exact_target,
             bits
         )
 
-        if not target_value then
-            return unknown("machine address width invalid", {
-                bits = bits,
-                exact = exact_target,
-            })
-        end
-
-        wrapped = target_value ~= exact_target
+    if wrap_error then
+        return wrap_error
     end
 
     local relative_delta = integer_value.add(
@@ -251,12 +337,189 @@ function M.evaluate(address, machine_addresses, opts)
                 value = symbol_value,
                 bits = symbol_bits,
             },
-            source_displacement = source_displacement,
+            source_displacement = displacement,
             relative_delta = relative_delta,
             exact_target = exact_target,
         },
         wrapped
     )
+end
+
+local function evaluate_register_relative(
+    address,
+    machine_addresses,
+    opts,
+    base,
+    base_spec
+)
+    if (base_spec.basis or "next_instruction")
+        ~= "next_instruction"
+    then
+        return unknown(
+            "unsupported instruction-relative basis",
+            {
+                base = base.name,
+                basis = base_spec.basis,
+            }
+        )
+    end
+
+    if type(machine_addresses) ~= "table" then
+        return unknown("relative address basis unresolved", {
+            base = base.name,
+        })
+    end
+
+    local next_instruction =
+        machine_addresses.next_instruction
+    local basis_value =
+        exact_evidence(next_instruction)
+
+    if not basis_value then
+        return unknown(
+            "next-instruction machine address unresolved",
+            {
+                base = base.name,
+                evidence_status = type(next_instruction) == "table"
+                    and next_instruction.status
+                    or nil,
+                evidence_reason = type(next_instruction) == "table"
+                    and next_instruction.reason
+                    or nil,
+            }
+        )
+    end
+
+    if address.symbol ~= nil then
+        return unknown(
+            "instruction-relative symbol component unsupported",
+            {
+                base = base.name,
+                symbol = address.symbol.name,
+            }
+        )
+    end
+
+    if address.index ~= nil
+        or address.scale ~= nil
+    then
+        return unknown(
+            "instruction-relative index components unsupported",
+            {
+                base = base.name,
+                has_index = address.index ~= nil,
+                has_scale = address.scale ~= nil,
+            }
+        )
+    end
+
+    local displacement, displacement_error =
+        source_displacement(address)
+
+    if displacement_error then
+        return displacement_error
+    end
+
+    local exact_target = integer_value.add(
+        basis_value,
+        displacement
+    )
+
+    if not exact_target then
+        return unknown("relative target arithmetic failed")
+    end
+
+    local basis_bits =
+        evidence_bits(next_instruction)
+    local bits = result_bits_for_base(
+        address,
+        basis_bits,
+        opts,
+        base_spec
+    )
+
+    local target_value,
+        wrapped,
+        wrap_error = wrap_target(
+            exact_target,
+            bits
+        )
+
+    if wrap_error then
+        return wrap_error
+    end
+
+    return known(
+        target_value,
+        bits,
+        {
+            basis = {
+                kind = "next_instruction",
+                value = basis_value,
+                bits = basis_bits,
+            },
+            base = {
+                name = base.name,
+                result_width = base_spec.result_width,
+            },
+            source_displacement = displacement,
+            relative_delta = displacement,
+            exact_target = exact_target,
+        },
+        wrapped
+    )
+end
+
+function M.evaluate(address, machine_addresses, opts)
+    opts = opts or {}
+
+    if type(address) ~= "table" then
+        return unknown("address structure unavailable")
+    end
+
+    local ambiguous = ambiguous_fields(address)
+    if ambiguous then
+        return unknown("address structure ambiguous", {
+            fields = ambiguous,
+        })
+    end
+
+    if address.address_size_status ~= nil
+        and address.address_size_status ~= "known"
+    then
+        return unknown("address size unresolved", {
+            reason = address.address_size_reason,
+            details = address.address_size_details,
+        })
+    end
+
+    if address.address_mode == "relative" then
+        return evaluate_explicit_relative(
+            address,
+            machine_addresses,
+            opts
+        )
+    end
+
+    local base, base_spec =
+        get_instruction_relative_base(
+            address,
+            opts.instruction_relative_policy
+        )
+
+    if base_spec then
+        return evaluate_register_relative(
+            address,
+            machine_addresses,
+            opts,
+            base,
+            base_spec
+        )
+    end
+
+    return unknown("address is not explicit relative", {
+        address_mode = address.address_mode,
+    })
 end
 
 return M
