@@ -6536,3 +6536,91 @@ Confirmed:
 The production implementation required no corrective change; the two RED checks
 were caused by over-constrained test expectations and were corrected in
 `ea8d1c6` and `785dd47`.
+
+
+## Context-engine split tranche 12 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/boundary_effect_index.lua
+~~~
+
+This module owns only boundary-effect rule indexing:
+
+- weak-key caching keyed by the adapter's `boundary_effects` table;
+- node-type indexing;
+- normalized mnemonic buckets;
+- support for legacy flat and mnemonic-indexed adapter data;
+- preservation of the first representative rule used to guide parsing.
+
+`context_engine.lua` still owns boundary mnemonic interpretation, instruction
+parsing, boundary read/write/not-preserved inference, phase-context assembly,
+effect matching and boundary fact construction.
+
+New pure regression:
+
+~~~
+tests/boundary_effect_index_smoke.lua
+~~~
+
+## Context-engine split tranche 13 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/stack_effect_index.lua
+~~~
+
+This module owns only stack-effect rule indexing:
+
+- weak-key caching keyed by the adapter's `stack_effects` table;
+- node-type indexing;
+- normalized mnemonic buckets;
+- support for legacy flat and mnemonic-indexed adapter data;
+- preservation of the first representative rule used to guide parsing.
+
+`context_engine.lua` still owns stack mnemonic interpretation, stack operand
+matching, instruction-state preparation, stack inference, register-state
+interaction and stack fact construction.
+
+New pure regression:
+
+~~~
+tests/stack_effect_index_smoke.lua
+~~~
+
+## Ten-commit relay boundary after tranches 12 and 13
+
+This relay stops after exactly ten atomic commits on top of accepted
+`785dd47`. No central register reducer, stack reducer or boundary inference
+semantics moved in this relay.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_effect_index_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
