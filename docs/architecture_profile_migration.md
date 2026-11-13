@@ -7304,3 +7304,115 @@ Confirmed:
   and adapter contracts remain green.
 
 Accepted baseline: `8fc4fef`.
+
+
+## Context-engine split tranche 24 — construct parse orchestration (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/constructs/parser.lua
+~~~
+
+This module owns only construct match/parse orchestration over already-extracted
+helpers:
+
+- node-type matching against `adapter.construct_specs`;
+- construct-spec lookup;
+- source range lookup;
+- signature/name resolution;
+- branch display-label selection;
+- canonical construct assembly.
+
+Construct validation, source identity, branch presentation, context primitives
+and contract semantics remain in their existing modules. The public
+`context_engine.match_node` and `context_engine.parse_node` names remain
+direct delegates.
+
+New regressions:
+
+~~~
+tests/construct_parser_smoke.lua
+tests/context_engine_construct_parser_smoke.lua
+~~~
+
+## Context-engine split tranche 25 — register-state read policy (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_state_read.lua
+~~~
+
+This module is read-only and owns:
+
+- static-register lookup;
+- register-fact map lookup;
+- architecture alias lookup;
+- canonical-to-alias value projection;
+- canonical state-key resolution;
+- register-value width lookup;
+- resolved-fact classification.
+
+It does not mutate register state, construct facts, apply effects, update alias
+families or perform writes. `make_register_fact()` and
+`apply_register_effect()` remain in `context_engine.lua`; their existing
+local helper names now delegate to this read-policy module.
+
+New regressions:
+
+~~~
+tests/register_state_read_smoke.lua
+tests/asm_register_state_read_smoke.lua
+~~~
+
+The parser-backed ASM test proves a real `mov rax, 42` state projects through
+the `eax` alias with canonical key `rax`, width 32 for `eax` and width 64
+for `rax`.
+
+## Ten-commit relay boundary after tranches 24 and 25
+
+This relay stops after exactly ten commits on top of accepted `8fc4fef`.
+The central register write reducer, partial-mask application, stack/boundary
+inference, memory evaluation and fact construction have not moved.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/construct_parser_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_engine_construct_parser_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_state_read_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_read_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/construct_spec_validation_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/construct_source_identity_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_primitives_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/branch_presentation_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_parser_dispatch_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effect_match_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_source_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
