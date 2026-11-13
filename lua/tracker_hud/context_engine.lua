@@ -28,6 +28,7 @@ local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
+local effect_match = require("tracker_hud.low_level.effect_match")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -1223,155 +1224,11 @@ local function collect_nodes_by_type(node, node_type, result)
 end
 
 
-local function normalize_operand_value(value)
-    if type(value) ~= "string" then
-        return nil
-    end
+local operands_match_effect =
+    effect_match.operands_match_effect
 
-    value = value:lower()
-    value = value:gsub("^%s+", "")
-    value = value:gsub("%s+$", "")
-    value = value:gsub("^%%", "")
-
-    return value
-end
-
-local function collect_operand_values(operand)
-    local values = {}
-
-    if type(operand) ~= "table" then
-        return values
-    end
-
-    local candidate_fields = {
-        "value",
-        "text",
-        "name",
-        "raw",
-        "display",
-        "source",
-        "register",
-    }
-
-    for _, field in ipairs(candidate_fields) do
-        local normalized = normalize_operand_value(operand[field])
-
-        if normalized ~= nil and normalized ~= "" then
-            values[normalized] = true
-        end
-    end
-
-    return values
-end
-
-local function operand_value_matches(operand, expected_value)
-    if expected_value == nil then
-        return true
-    end
-
-    local operand_values = collect_operand_values(operand)
-
-    if type(expected_value) == "string" then
-        local normalized_expected = normalize_operand_value(expected_value)
-
-        if normalized_expected == nil then
-            return true
-        end
-
-        return operand_values[normalized_expected] == true
-    end
-
-    if type(expected_value) == "table" then
-        for _, candidate in ipairs(expected_value) do
-            local normalized_candidate = normalize_operand_value(candidate)
-
-            if normalized_candidate ~= nil and operand_values[normalized_candidate] == true then
-                return true
-            end
-        end
-
-        return false
-    end
-
-    return true
-end
-
-
-local function operand_matches_spec(operand, operand_spec)
-    if type(operand) ~= "table" or type(operand_spec) ~= "table" then
-        return false
-    end
-
-    if not operand_value_matches(operand, operand_spec.value) then
-        return false
-    end
-
-    if not operand_value_matches(operand, operand_spec.values) then
-        return false
-    end
-
-    if type(operand_spec.kind) == "string"
-        and operand.kind ~= operand_spec.kind
-    then
-        return false
-    end
-
-    return true
-end
-
-
-local function operands_match_effect(instruction, effect_spec)
-    if type(instruction) ~= "table" or type(effect_spec) ~= "table" then
-        return false
-    end
-
-    for _, operand_spec in ipairs(effect_spec.operands or {}) do
-        local index = tonumber(operand_spec.index)
-
-        if not index then
-            return false
-        end
-
-        local operand = instruction.operands and instruction.operands[index]
-
-        if not operand_matches_spec(operand, operand_spec) then
-            return false
-        end
-    end
-
-    return true
-end
-
-
-local function condition_matches(instruction, condition_spec)
-    if type(condition_spec) ~= "table" then
-        return true
-    end
-
-    local operands_equal = condition_spec.operands_equal
-
-    if type(operands_equal) == "table" then
-        local left_index = tonumber(operands_equal[1])
-        local right_index = tonumber(operands_equal[2])
-
-        if not left_index or not right_index then
-            return false
-        end
-
-        local left = instruction.operands and instruction.operands[left_index]
-        local right = instruction.operands and instruction.operands[right_index]
-
-        if not left or not right then
-            return false
-        end
-
-        if tostring(left.text or ""):lower() ~= tostring(right.text or ""):lower() then
-            return false
-        end
-    end
-
-    return true
-end
+local condition_matches =
+    effect_match.condition_matches
 
 
 local function get_static_register_spec(adapter, name)
