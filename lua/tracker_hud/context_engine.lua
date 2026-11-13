@@ -33,6 +33,7 @@ local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
 local syntax_spec = require("tracker_hud.syntax_spec")
 local context_primitives = require("tracker_hud.constructs.context_primitives")
+local branch_presentation = require("tracker_hud.constructs.branch_presentation")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -290,182 +291,20 @@ function M.line_summary_allows_compiled_line_position(
 end
 
 
-function M.format_branch_display_label(start_line, base_label, alternative_label, alternative_line, grouped)
-    if grouped then
-        return "([" .. start_line .. "] "
-            .. base_label
-            .. " : "
-            .. alternative_label
-            .. " ["
-            .. alternative_line
-            .. "])"
-    end
-    
-    return "[" .. start_line .. "] "
-        .. base_label
-        .. " : "
-        .. alternative_label
-        .. " ["
-        .. alternative_line
-        .. "]"
-end
+M.format_branch_display_label =
+    branch_presentation.format_display_label
 
+M.node_matches_branch_alternative =
+    branch_presentation.node_matches_alternative
 
+M.get_node_alternatives =
+    branch_presentation.get_node_alternatives
 
-function M.node_matches_branch_alternative(node, spec)
-    if not node or not core.is_table(spec) then
-        return false
-    end
+M.get_branch_alternative_label =
+    branch_presentation.get_alternative_label
 
-    local branch_spec = spec.branch or {}
-    local alternatives = branch_spec.alternatives or {}
-    local node_type = node:type()
-
-    for _, alternative_spec in ipairs(alternatives) do
-        if core.is_table(alternative_spec) then
-            local alternative_node_type =
-                get_syntax_node_type(
-                    alternative_spec
-                )
-
-            if core.is_non_empty_string(
-                alternative_node_type
-            ) and node_type == alternative_node_type
-            then
-                return true
-            end
-
-            --
-            -- Temporary compatibility for pre-syntax adapters.
-            --
-            if type(alternative_spec.node_match)
-                == "string"
-                and node_type:match(
-                    alternative_spec.node_match
-                )
-            then
-                return true
-            end
-        end
-    end
-
-    return false
-end
-
-
-function M.get_node_alternatives(node, spec)
-    local alternatives = {}
-
-    if not node then
-        return alternatives
-    end
-
-    local alternative_field =
-        get_syntax_field(
-            spec,
-            "alternative"
-        )
-        or "alternative"
-
-    local ok, field_nodes = pcall(function()
-        return node:field(
-            alternative_field
-        )
-    end)
-
-    if ok and field_nodes then
-        for _, alternative in ipairs(field_nodes) do
-            table.insert(alternatives, alternative)
-        end
-    end
-
-    for i = 0, node:named_child_count() - 1 do
-        local child = node:named_child(i)
-
-        if M.node_matches_branch_alternative(child, spec) then
-            table.insert(alternatives, child)
-        end
-    end
-
-    return alternatives
-end
-
-
-function M.get_branch_alternative_label(alternative_node, spec)
-    if not alternative_node or not core.is_table(spec) then
-        return nil
-    end
-
-    local branch_spec = spec.branch or {}
-    local alternatives = branch_spec.alternatives or {}
-    local alternative_type = alternative_node:type()
-
-    for _, alternative_spec in ipairs(alternatives) do
-        if core.is_table(alternative_spec)
-            and type(alternative_spec.label) == "string"
-        then
-            local alternative_node_type =
-                get_syntax_node_type(
-                    alternative_spec
-                )
-
-            if core.is_non_empty_string(
-                alternative_node_type
-            ) and alternative_type
-                == alternative_node_type
-            then
-                return alternative_spec.label
-            end
-
-            --
-            -- Temporary compatibility for pre-syntax adapters.
-            --
-            if type(alternative_spec.node_match)
-                == "string"
-                and alternative_type:match(
-                    alternative_spec.node_match
-                )
-            then
-                return alternative_spec.label
-            end
-        end
-    end
-
-    return nil
-end
-
-
-function M.build_branch_display_label(node, spec)
-    local start_line = M.get_first_node_line(node)
-    local construct_spec = spec.construct or {}
-    local base_label = construct_spec.label or "Branch"
-
-    if not start_line then
-        return base_label
-    end
-
-    local cursor = M.get_cursor_position()
-    local alternatives = M.get_node_alternatives(node, spec)
-    local branch_spec = spec.branch or {}
-    local grouped = branch_spec.grouped == true
-
-    for _, alternative in ipairs(alternatives) do
-        if M.position_in_node(cursor.row, cursor.col, alternative) then
-            local alternative_line = M.get_first_node_line(alternative) or start_line
-            local label = M.get_branch_alternative_label(alternative, spec) or "Alternative"
-
-            return M.format_branch_display_label(
-                start_line,
-                base_label,
-                label,
-                alternative_line,
-                grouped
-            )
-        end
-    end
-
-    return "[" .. start_line .. "] " .. base_label
-end
+M.build_branch_display_label =
+    branch_presentation.build_display_label
 
 
 M.position_in_node =
