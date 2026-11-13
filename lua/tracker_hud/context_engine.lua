@@ -21,6 +21,7 @@ local register_source_collection = require("tracker_hud.low_level.register_sourc
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
 local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local line_summary = require("tracker_hud.low_level.line_summary")
+local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -2144,6 +2145,43 @@ local function apply_register_effect(
             }
         end
     end
+end
+
+
+local function collect_register_effect_nodes(
+    context,
+    root_node,
+    effect_index,
+    opts
+)
+    opts = opts or {}
+
+    return register_effect_collection.collect({
+        context = context,
+        config = opts.config,
+        node_types = effect_index
+            and effect_index.node_types
+            or {},
+        limit_position = opts.limit_position,
+        stop_before = opts.stop_before,
+        before_position = opts.before_position,
+
+        collect_nodes = function(node_type)
+            return collect_nodes_by_type(
+                root_node,
+                node_type
+            )
+        end,
+
+        normalize_position =
+            low_level_inference.normalize_position,
+        position_is_before =
+            low_level_inference.position_is_before,
+        classify_position =
+            M.classify_instruction_cursor_position,
+        allows_position =
+            M.line_summary_allows_position,
+    })
 end
 
 
