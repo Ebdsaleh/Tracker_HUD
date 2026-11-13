@@ -6911,3 +6911,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 16 and 17 (2026-11-13)
+
+ERIDU accepted the generic effect-matching and instruction-source fallback
+tranches green.
+
+Confirmed:
+
+- generic operand normalization, value alternatives, kind matching, effect
+  operand matching and equality conditions preserve their contracts;
+- real x86-64 `mov rax, 42` still selects the register/immediate rule through
+  `context_engine.collect_register_effects()`;
+- instruction fallback parsing preserves mnemonic/operand reconstruction,
+  operand kinds, source ranges and recursive Tree-sitter traversal;
+- adapter-specific instruction parsing still has first refusal;
+- stack push/pop, carried-register stack inference, pop-depth precedence,
+  syscall boundary inference, instruction events, register focus, memory
+  structure, effective addresses, instruction-relative addressing, Inspect and
+  adapter contracts remain green.
+
+Accepted baseline: `e52dcc4`.
