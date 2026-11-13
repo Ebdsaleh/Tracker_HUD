@@ -658,14 +658,18 @@ function M.make_effect_fact(adapter, instruction, effect_spec, instruction_state
     local depth_delta = instruction_state and instruction_state.stack_depth_delta
 
     if core.is_table(stack_value) then
-        depth_before = stack_value.stack_depth_before
-            or stack_value.stack_read_depth_before
+        -- A value that was pushed and later popped carries both its original
+        -- push transition and its newer stack-read transition. When building
+        -- a pop/read fact, prefer the read transition so the fact describes
+        -- the instruction being rendered rather than the value's origin.
+        depth_before = stack_value.stack_read_depth_before
+            or stack_value.stack_depth_before
             or depth_before
-        depth_after = stack_value.stack_depth_after
-            or stack_value.stack_read_depth_after
+        depth_after = stack_value.stack_read_depth_after
+            or stack_value.stack_depth_after
             or depth_after
-        depth_delta = stack_value.stack_depth_delta
-            or stack_value.stack_read_depth_delta
+        depth_delta = stack_value.stack_read_depth_delta
+            or stack_value.stack_depth_delta
             or depth_delta
     elseif core.is_table(read_state) then
         depth_before = read_state.stack_depth_before or depth_before
