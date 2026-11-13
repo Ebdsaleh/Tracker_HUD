@@ -22,6 +22,7 @@ local register_effect_index = require("tracker_hud.low_level.register_effect_ind
 local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
+local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3312,36 +3313,23 @@ end
 
 
 local function get_instruction_event_index(adapter)
-    if not core.is_table(adapter) then
-        return build_instruction_event_index(nil)
-    end
+    return instruction_event_index.get(
+        adapter,
+        {
+            get_node_type = function(event_spec)
+                if not core.is_table(event_spec) then
+                    return nil
+                end
 
-    local instruction_events =
-        adapter.instruction_events
-
-    if not core.is_table(instruction_events) then
-        return build_instruction_event_index(nil)
-    end
-
-    local cached =
-        instruction_event_index_cache[
-            instruction_events
-        ]
-
-    if cached then
-        return cached
-    end
-
-    local index =
-        build_instruction_event_index(
-            instruction_events
-        )
-
-    instruction_event_index_cache[
-        instruction_events
-    ] = index
-
-    return index
+                return get_syntax_node_type(
+                    event_spec
+                )
+                    or event_spec.node_type
+            end,
+            get_mnemonic =
+                get_instruction_event_mnemonic,
+        }
+    )
 end
 
 
