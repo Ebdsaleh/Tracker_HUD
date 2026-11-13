@@ -32,7 +32,6 @@ local control_infer = require("tracker_hud.low_level.control_infer")
 
 local M = {}
 
-local instruction_event_index_cache = setmetatable({}, { __mode = "k" })
 local boundary_effect_index_cache = setmetatable({}, { __mode = "k" })
 local stack_effect_index_cache = setmetatable({}, { __mode = "k" })
 
@@ -3195,16 +3194,6 @@ function M.collect_boundary_effects(context, adapter, opts)
 end
 
 
-local function get_instruction_event_node_type(event_spec)
-    if not core.is_table(event_spec) then
-        return nil
-    end
-
-    return get_syntax_node_type(event_spec)
-        or event_spec.node_type
-end
-
-
 local function get_instruction_event_mnemonic(
     event_spec,
     fallback_mnemonic
@@ -3218,97 +3207,6 @@ local function get_instruction_event_mnemonic(
         or event_spec.mnemonic
         or fallback_mnemonic
     )
-end
-
-
-local function add_instruction_event_to_index(
-    index,
-    event_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(index)
-        or not core.is_table(event_spec)
-    then
-        return
-    end
-
-    local node_type =
-        get_instruction_event_node_type(
-            event_spec
-        )
-
-    local mnemonic =
-        get_instruction_event_mnemonic(
-            event_spec,
-            fallback_mnemonic
-        )
-
-    if not core.is_non_empty_string(node_type)
-        or not mnemonic
-    then
-        return
-    end
-
-    index.node_types[node_type] = true
-    index.by_node_type[node_type] =
-        index.by_node_type[node_type] or {}
-
-    local node_bucket =
-        index.by_node_type[node_type]
-
-    node_bucket[mnemonic] =
-        node_bucket[mnemonic] or {}
-
-    table.insert(
-        node_bucket[mnemonic],
-        event_spec
-    )
-
-    node_bucket.__first =
-        node_bucket.__first or event_spec
-end
-
-
-local function build_instruction_event_index(
-    instruction_events
-)
-    local index = {
-        node_types = {},
-        by_node_type = {},
-    }
-
-    if not core.is_table(instruction_events) then
-        return index
-    end
-
-    -- Remaining legacy flat event specs.
-    for _, event_spec in ipairs(
-        instruction_events
-    ) do
-        add_instruction_event_to_index(
-            index,
-            event_spec
-        )
-    end
-
-    -- Tree-sitter-first mnemonic-indexed event specs.
-    for mnemonic, rules in pairs(
-        instruction_events
-    ) do
-        if type(mnemonic) == "string"
-            and core.is_table(rules)
-        then
-            for _, event_spec in ipairs(rules) do
-                add_instruction_event_to_index(
-                    index,
-                    event_spec,
-                    mnemonic
-                )
-            end
-        end
-    end
-
-    return index
 end
 
 
@@ -3337,26 +3235,14 @@ local function instruction_event_matches(
     instruction,
     event_spec
 )
-    if not core.is_table(instruction)
-        or not core.is_table(event_spec)
-    then
-        return false
-    end
-
-    local expected_mnemonic =
-        get_instruction_event_mnemonic(
-            event_spec
-        )
-
-    if expected_mnemonic
-        and normalize_mnemonic(
-            instruction.mnemonic
-        ) ~= expected_mnemonic
-    then
-        return false
-    end
-
-    return true
+    return instruction_event_index.matches(
+        instruction,
+        event_spec,
+        {
+            get_mnemonic =
+                get_instruction_event_mnemonic,
+        }
+    )
 end
 
 
