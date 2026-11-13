@@ -12,6 +12,7 @@ local integer_value = require("tracker_hud.low_level.integer_value")
 local integer_operand = require("tracker_hud.low_level.integer_operand")
 local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
+local relative_address = require("tracker_hud.low_level.relative_address")
 local source_symbol = require("tracker_hud.low_level.source_symbol")
 local machine_address = require("tracker_hud.low_level.machine_address")
 local scope_members = require("tracker_hud.scope_members")
@@ -3577,7 +3578,8 @@ local function evaluate_memory_address_before_instruction(
     root_node,
     adapter,
     instruction,
-    address
+    address,
+    machine_addresses
 )
     if not bufnr
         or not root_node
@@ -3604,6 +3606,20 @@ local function evaluate_memory_address_before_instruction(
             value = nil,
             reason = "instruction position unavailable",
         }
+    end
+
+    if address.address_mode == "relative"
+        and core.is_table(machine_addresses)
+    then
+        return relative_address.evaluate(
+            address,
+            machine_addresses,
+            {
+                bits = adapter.metadata
+                    and adapter.metadata.bits
+                    or nil,
+            }
+        )
     end
 
     local facts = M.collect_register_effects(
@@ -4147,24 +4163,6 @@ local function collect_memory_source_operands_where(
                     for operand_index, operand in ipairs(
                         instruction.operands or {}
                     ) do
-                        local evaluation
-
-                        if operand.kind == "memory"
-                            and core.is_table(operand.memory)
-                            and core.is_table(
-                                operand.memory.normalized
-                            )
-                        then
-                            evaluation =
-                                evaluate_memory_address_before_instruction(
-                                    bufnr,
-                                    root_node,
-                                    adapter,
-                                    instruction,
-                                    operand.memory.normalized
-                                )
-                        end
-
                         local symbol_identity =
                             resolve_memory_symbol_identity(
                                 source_members,
@@ -4182,6 +4180,25 @@ local function collect_memory_source_operands_where(
                                     or nil,
                                 symbol_identity
                             )
+
+                        local evaluation
+
+                        if operand.kind == "memory"
+                            and core.is_table(operand.memory)
+                            and core.is_table(
+                                operand.memory.normalized
+                            )
+                        then
+                            evaluation =
+                                evaluate_memory_address_before_instruction(
+                                    bufnr,
+                                    root_node,
+                                    adapter,
+                                    instruction,
+                                    operand.memory.normalized,
+                                    machine_addresses
+                                )
+                        end
 
                         local memory_operand =
                             build_memory_source_operand(
@@ -4364,15 +4381,6 @@ function M.discover_register_source_occurrences(
                                     operand.memory.normalized
                                 )
                             then
-                                evaluation =
-                                    evaluate_memory_address_before_instruction(
-                                        bufnr,
-                                        root_node,
-                                        adapter,
-                                        instruction,
-                                        operand.memory.normalized
-                                    )
-
                                 symbol_identity =
                                     resolve_memory_symbol_identity(
                                         source_members,
@@ -4387,6 +4395,16 @@ function M.discover_register_source_occurrences(
                                         instruction,
                                         operand.memory.normalized,
                                         symbol_identity
+                                    )
+
+                                evaluation =
+                                    evaluate_memory_address_before_instruction(
+                                        bufnr,
+                                        root_node,
+                                        adapter,
+                                        instruction,
+                                        operand.memory.normalized,
+                                        machine_addresses
                                     )
                             end
 
