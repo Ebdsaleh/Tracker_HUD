@@ -3836,31 +3836,40 @@ local function collect_memory_source_operands_where(
                                 )
                         end
 
-                        local role = get_memory_operand_role(
-                            matching_specs,
-                            operand_index
-                        )
+                        local memory_operand = nil
 
-                        local access, access_metadata =
-                            memory_access.resolve(
-                                adapter and adapter.memory_accesses,
-                                instruction.mnemonic,
-                                operand_index,
-                                operand
+                        if operand.kind == "memory"
+                            and core.is_table(operand.memory)
+                            and core.is_table(
+                                operand.memory.normalized
+                            )
+                        then
+                            local role = get_memory_operand_role(
+                                matching_specs,
+                                operand_index
                             )
 
-                        local memory_operand =
-                            memory_source_fact.new({
-                                instruction = instruction,
-                                operand = operand,
-                                operand_index = operand_index,
-                                role = role,
-                                access = access,
-                                access_metadata = access_metadata,
-                                evaluation = evaluation,
-                                symbol_identity = symbol_identity,
-                                machine_addresses = machine_addresses,
-                            })
+                            local access, access_metadata =
+                                memory_access.resolve(
+                                    adapter and adapter.memory_accesses,
+                                    instruction.mnemonic,
+                                    operand_index,
+                                    operand
+                                )
+
+                            memory_operand =
+                                memory_source_fact.new({
+                                    instruction = instruction,
+                                    operand = operand,
+                                    operand_index = operand_index,
+                                    role = role,
+                                    access = access,
+                                    access_metadata = access_metadata,
+                                    evaluation = evaluation,
+                                    symbol_identity = symbol_identity,
+                                    machine_addresses = machine_addresses,
+                                })
+                        end
 
                         if memory_operand then
                             table.insert(result, memory_operand)
