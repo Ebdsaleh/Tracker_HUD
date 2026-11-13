@@ -643,17 +643,6 @@ M.register_families = {
         alias_order = { "zmm31", "ymm31", "xmm31" },
     },
 
-    rip = {
-        canonical = "rip",
-        bits = 64,
-        kind = "instruction_pointer",
-        role = "instruction pointer",
-        aliases = {
-            rip = { name = "rip", bits = 64, offset = 0 },
-            eip = { name = "eip", bits = 32, offset = 0 },
-        },
-        alias_order = { "rip", "eip" },
-    },
 }
 
 
@@ -678,7 +667,7 @@ M.registers = {
         -- Special registers
         { name = "rsp", kind = "stack_pointer", role = "stack pointer", family = "rsp" },
         { name = "rbp", kind = "base_pointer", role = "base pointer", family = "rbp" },
-        { name = "rip", kind = "instruction_pointer", role = "instruction pointer", family = "rip" },
+        { name = "rip", bits = 64, kind = "instruction_pointer", role = "instruction pointer" },
         { name = "rflags", kind = "flags", role = "status/control flags" },
 
         -- Vector registers
