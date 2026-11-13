@@ -2209,83 +2209,16 @@ function M.collect_register_effects(context, adapter, opts)
             or opts.before_position
     )
 
-    local effect_index = get_register_effect_index(adapter)
+    local effect_index =
+        get_register_effect_index(adapter)
 
-    local nodes = {}
-    local seen_nodes = {}
-
-    for node_type, _ in pairs(effect_index.node_types) do
-        for _, node in ipairs(collect_nodes_by_type(root_node, node_type)) do
-            local start_row, start_column, end_row, end_column = node:range()
-            local node_line = start_row + 1
-
-            local should_collect = false
-
-            if limit_position then
-                should_collect = low_level_inference.position_is_before(
-                    {
-                        line = node_line,
-                        column = start_column,
-                    },
-                    limit_position
-                )
-            elseif not cursor_line or node_line < cursor_line then
-                should_collect = true
-            elseif node_line == cursor_line then
-                local cursor_column = context
-                    and context.cursor
-                    and context.cursor.column
-
-                if core.is_number(cursor_column) then
-                    cursor_column = math.max(
-                        0,
-                        cursor_column - 1
-                    )
-                end
-
-                local cursor_position =
-                    M.classify_instruction_cursor_position(
-                        start_column,
-                        end_column,
-                        cursor_column
-                    )
-
-                should_collect =
-                    M.line_summary_allows_position(
-                        opts.config,
-                        cursor_position
-                    )
-            end
-
-            if should_collect then
-                local key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
-
-                if not seen_nodes[key] then
-                    seen_nodes[key] = true
-
-                    table.insert(nodes, {
-                        node = node,
-                        line = node_line,
-                        column = start_column,
-                    })
-                end
-            end
-        end
-    end
-
-    table.sort(nodes, function(left, right)
-        if left.line == right.line then
-            return left.column < right.column
-        end
-
-        return left.line < right.line
-    end)
+    local nodes =
+        collect_register_effect_nodes(
+            context,
+            root_node,
+            effect_index,
+            opts
+        )
 
     local facts_by_register = {}
     local family_state = {}
