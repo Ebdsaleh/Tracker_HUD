@@ -5750,3 +5750,86 @@ nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
 
 If this tranche is green, continue splitting `context_engine.lua` only in
 small refactor-only slices with public APIs and semantic tests unchanged.
+
+
+## Accepted context-engine split tranche 1 (2026-11-13)
+
+ERIDU accepted the first refactor-only split green.
+
+Confirmed:
+
+- `tests/memory_source_evidence_smoke.lua` passes independently;
+- Inspect provider-cache refresh remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- source-symbol identity remains green;
+- machine-address evidence remains green;
+- effective-address evaluation remains green;
+- register source-occurrence focus remains green.
+
+The extraction therefore changed ownership without changing the accepted
+source-memory semantics.
+
+## Context-engine split tranche 2 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/memory_source_fact.lua
+~~~
+
+This module owns normalized source-memory fact construction after the context
+engine has already decided:
+
+- which instruction/operand is visible;
+- the semantic operand role;
+- memory access intent;
+- effective-address evaluation;
+- source-symbol identity;
+- machine-address evidence.
+
+The stable fact shape is preserved, including:
+
+- `kind = memory_operand`;
+- source range and operand identity;
+- normalized address structure;
+- nested effective-address / symbol / machine evidence;
+- access-intent metadata;
+- address-size metadata;
+- `runtime_address = unknown`;
+- `execution_status = not_observed`;
+- flattened certainty metadata supplied by
+  `memory_source_evidence.lua`.
+
+`context_engine.lua` still owns effect matching, memory-access rule
+resolution, register-state replay and the public collection APIs.
+
+The call site intentionally preserves the original evaluation order:
+non-memory or unnormalized operands are rejected before memory-role/access
+lookups are performed.
+
+New pure regression:
+
+~~~
+tests/memory_source_fact_smoke.lua
+~~~
+
+It pins fact identity, role/access metadata, source range, nested evidence,
+flattened certainty metadata, and exclusion of non-memory / unnormalized
+operands.
+
+### ERIDU gate
+
+~~~
+nvim --headless -u NONE -c "luafile tests/memory_source_fact_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_machine_address_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+~~~
+
+Do not take the next ownership slice until this one is accepted green.
