@@ -6624,3 +6624,21 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 12 and 13 (2026-11-13)
+
+ERIDU accepted both extracted index perimeters green.
+
+Confirmed:
+
+- boundary-effect indexing preserves flat/keyed rules, representative rules and cache identity;
+- stack-effect indexing preserves flat/keyed rules, representative rules and cache identity;
+- register-effect collection/indexing remain green;
+- instruction-event indexing and parser-backed call/ret event collection remain green;
+- register focus, normalized memory structure, effective-address evaluation,
+  RIP / A32 RIP / REL handling, Inspect target certainty and adapter contracts
+  remain green.
+
+The central boundary inference, stack inference and register reducers remain
+unchanged.
