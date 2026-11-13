@@ -247,6 +247,7 @@ local function run()
         ["effective target: 4294971400"] = true,
         ["target certainty: known"] = true,
         ["target width: 64-bit"] = true,
+        ["target wrapped: false"] = true,
         ["source symbol: msg"] = true,
         ["source symbol certainty: known"] = true,
         ["symbol machine address: 4294971392"] = true,
