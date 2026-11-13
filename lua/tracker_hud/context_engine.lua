@@ -29,6 +29,7 @@ local boundary_effect_collection = require("tracker_hud.low_level.boundary_effec
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local effect_match = require("tracker_hud.low_level.effect_match")
+local instruction_source = require("tracker_hud.low_level.instruction_source")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -1041,6 +1042,16 @@ function M.validate_construct_spec(
     end
 
     return true, nil
+end
+
+
+local function instruction_source_options()
+    return {
+        parse_with_adapter =
+            parse_instruction_with_adapter,
+        get_node_text =
+            ts_utils.get_node_text,
+    }
 end
 
 
