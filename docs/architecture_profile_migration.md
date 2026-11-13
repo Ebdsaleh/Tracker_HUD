@@ -7060,3 +7060,100 @@ Confirmed:
   addressing, Inspect and adapter contracts remain green.
 
 Accepted baseline: `dee5dfe`.
+
+
+## Context-engine split tranche 20 — construct context primitives (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/constructs/context_primitives.lua
+~~~
+
+This module owns structural context mechanics only:
+
+- zero/one-based cursor coordinate helpers;
+- global and unavailable context defaults;
+- node containment checks;
+- node type and source-line/range helpers;
+- scope-entry construction from parsed constructs;
+- outermost-to-innermost scope-path assembly.
+
+`context_engine.lua` keeps the same public API names as direct delegates.
+
+New regressions:
+
+~~~
+tests/context_primitives_smoke.lua
+tests/context_engine_primitives_smoke.lua
+~~~
+
+## Context-engine split tranche 21 — branch presentation policy (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/constructs/branch_presentation.lua
+~~~
+
+This module owns branch presentation only:
+
+- syntax-declared alternative matching;
+- legacy `node_match` compatibility;
+- syntax-field and named-child alternative discovery;
+- alternative-label lookup;
+- grouped/non-grouped display formatting;
+- cursor-selected branch display labels.
+
+Construct parsing, validation, scope semantics and language-specific behavior
+remain outside this module. `context_engine.lua` keeps its existing public
+branch helper names as delegates.
+
+New regressions:
+
+~~~
+tests/branch_presentation_smoke.lua
+tests/context_engine_branch_smoke.lua
+~~~
+
+## Ten-commit relay boundary after tranches 20 and 21
+
+This relay stops after exactly ten commits on top of accepted `dee5dfe`.
+No register reducer, alias/mask logic, stack inference, boundary inference,
+memory evaluation or fact construction moved in this relay.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/context_primitives_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_engine_primitives_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/branch_presentation_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_engine_branch_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/syntax_spec_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_parser_dispatch_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effect_match_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_source_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
