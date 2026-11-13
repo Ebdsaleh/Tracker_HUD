@@ -17,6 +17,7 @@ local memory_source_evidence = require("tracker_hud.low_level.memory_source_evid
 local memory_source_collection = require("tracker_hud.low_level.memory_source_collection")
 local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
+local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3141,6 +3142,7 @@ function M.discover_register_source_occurrences(
     opts
 )
     opts = opts or {}
+
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
@@ -3150,181 +3152,58 @@ function M.discover_register_source_occurrences(
         return {}
     end
 
-    local effect_index = get_register_effect_index(adapter)
-    local occurrences = {}
-    local seen_nodes = {}
-    local source_members = scope_members.collect(
-        bufnr,
-        root_node,
-        adapter
-    )
+    local effect_index =
+        get_register_effect_index(adapter)
 
-    for node_type, _ in pairs(effect_index.node_types) do
-        for _, node in ipairs(
-            collect_nodes_by_type(root_node, node_type)
-        ) do
-            local start_row,
-                start_column,
-                end_row,
-                end_column = node:range()
+    local source_members =
+        scope_members.collect(
+            bufnr,
+            root_node,
+            adapter
+        )
 
-            if start_row + 1 == line_number then
-                local node_key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
+    return register_source_collection.collect({
+        adapter = adapter,
+        line_number = line_number,
+        node_types = effect_index.node_types,
+        source_members = source_members,
+        machine_address_providers =
+            opts.machine_address_providers,
 
-                if not seen_nodes[node_key] then
-                    seen_nodes[node_key] = true
+        collect_nodes = function(node_type)
+            return collect_nodes_by_type(
+                root_node,
+                node_type
+            )
+        end,
 
-                    local instruction, matching_specs =
-                        get_matching_register_effect_specs(
-                            effect_index,
-                            adapter,
-                            node,
-                            bufnr
-                        )
+        parse_and_match = function(node)
+            return get_matching_register_effect_specs(
+                effect_index,
+                adapter,
+                node,
+                bufnr
+            )
+        end,
 
-                    -- Source occurrences are syntax, not semantic effects.
-                    -- Matching rules enrich roles and state transitions, but
-                    -- the absence of a matching rule must not hide registers
-                    -- that Tree-sitter has already identified.
-                    if instruction then
-                        local mnemonic_occurrence =
-                            register_source_occurrence.build_mnemonic(
-                                adapter,
-                                instruction,
-                                matching_specs
-                            )
-
-                        if mnemonic_occurrence then
-                            table.insert(
-                                occurrences,
-                                mnemonic_occurrence
-                            )
-                        end
-
-                        for operand_index, operand in ipairs(
-                            instruction.operands or {}
-                        ) do
-                            local evaluation
-                            local symbol_identity
-                            local machine_addresses
-
-                            if operand.kind == "memory"
-                                and core.is_table(operand.memory)
-                                and core.is_table(
-                                    operand.memory.normalized
-                                )
-                            then
-                                symbol_identity =
-                                    memory_source_evidence.resolve_symbol_identity(
-                                        source_members,
-                                        adapter,
-                                        operand
-                                    )
-
-                                local instruction_relative_policy =
-                                    memory_source_evidence.get_instruction_relative_policy(
-                                        adapter,
-                                        operand
-                                    )
-
-                                machine_addresses =
-                                    memory_source_evidence.resolve_machine_addresses(
-                                        opts.machine_address_providers,
-                                        adapter,
-                                        instruction,
-                                        operand.memory.normalized,
-                                        symbol_identity,
-                                        instruction_relative_policy
-                                    )
-
-                                evaluation =
-                                    evaluate_memory_address_before_instruction(
-                                        bufnr,
-                                        root_node,
-                                        adapter,
-                                        instruction,
-                                        operand.memory.normalized,
-                                        machine_addresses,
-                                        instruction_relative_policy
-                                    )
-                            end
-
-                            local operand_occurrence =
-                                register_source_occurrence.build_operand(
-                                    adapter,
-                                    instruction,
-                                    operand,
-                                    operand_index,
-                                    matching_specs
-                                )
-
-                            if operand_occurrence then
-                                memory_source_evidence.append_effective_address_metadata(
-                                    operand_occurrence.metadata,
-                                    evaluation,
-                                    "memory_effective_address"
-                                )
-
-                                memory_source_evidence.append_source_symbol_metadata(
-                                    operand_occurrence.metadata,
-                                    symbol_identity
-                                )
-
-                                memory_source_evidence.append_machine_address_metadata(
-                                    operand_occurrence.metadata,
-                                    machine_addresses
-                                )
-
-                                table.insert(
-                                    occurrences,
-                                    operand_occurrence
-                                )
-                            end
-
-                            for _, component_occurrence in ipairs(
-                                register_source_occurrence.build_memory_components(
-                                    adapter,
-                                    instruction,
-                                    operand,
-                                    operand_index,
-                                    matching_specs
-                                )
-                            ) do
-                                memory_source_evidence.append_effective_address_metadata(
-                                    component_occurrence.metadata,
-                                    evaluation,
-                                    "memory_effective_address"
-                                )
-
-                                memory_source_evidence.append_source_symbol_metadata(
-                                    component_occurrence.metadata,
-                                    symbol_identity
-                                )
-
-                                memory_source_evidence.append_machine_address_metadata(
-                                    component_occurrence.metadata,
-                                    machine_addresses
-                                )
-
-                                table.insert(
-                                    occurrences,
-                                    component_occurrence
-                                )
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return occurrences
+        evaluate_address = function(
+            instruction,
+            address,
+            machine_addresses,
+            instruction_relative_policy
+        )
+            return
+                evaluate_memory_address_before_instruction(
+                    bufnr,
+                    root_node,
+                    adapter,
+                    instruction,
+                    address,
+                    machine_addresses,
+                    instruction_relative_policy
+                )
+        end,
+    })
 end
 
 
