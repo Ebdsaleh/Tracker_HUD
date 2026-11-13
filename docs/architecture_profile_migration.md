@@ -6374,3 +6374,90 @@ tests/register_source_metadata_smoke.lua
 It pins source-index precedence, operand/stack/register source fields,
 normalized memory metadata reuse, merge semantics and invalid-input
 fail-closed behavior.
+
+
+## Context-engine split tranche 9 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/line_summary.lua
+~~~
+
+This module owns the pure line-summary/cursor-position policy that was
+previously implemented inside `context_engine.lua`:
+
+- resolving line-summary visibility options;
+- classifying a source column as before/inside/after an instruction;
+- deciding whether a position is visible under the configured policy;
+- deriving an instruction span from compiled source occurrences;
+- classifying and filtering compiled-line positions.
+
+The public `context_engine` API is unchanged. These existing functions remain
+available and now delegate to the extracted module:
+
+~~~
+resolve_line_summary_options(...)
+classify_instruction_cursor_position(...)
+line_summary_allows_position(...)
+get_compiled_line_instruction_range(...)
+classify_compiled_line_cursor_position(...)
+line_summary_allows_compiled_line_position(...)
+~~~
+
+The extraction is intentionally pure: it owns no Tree-sitter traversal,
+instruction parsing, register-state inference or HUD rendering.
+
+New pure regression:
+
+~~~
+tests/line_summary_smoke.lua
+~~~
+
+It pins:
+
+- default visibility options;
+- disabled and explicit visibility options;
+- exact before/inside/after instruction boundaries;
+- the rule that inside-instruction focus remains visible;
+- compiled-line range aggregation;
+- metadata instruction-range precedence over occurrence fallback ranges;
+- compiled-line visibility policy;
+- invalid-input fail-closed behavior.
+
+## Ten-commit relay boundary (2026-11-13)
+
+This relay intentionally stops after ten atomic commits on top of accepted
+`e64347a`. The commits cover two refactor-only ownership slices:
+
+1. tranche 8: register source-metadata construction;
+2. tranche 9: line-summary/cursor-position policy.
+
+No central register reducer or instruction semantic rule was moved in this
+relay.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_source_metadata_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/line_summary_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_occurrence_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/operand_metadata_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
