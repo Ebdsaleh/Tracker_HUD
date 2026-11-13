@@ -91,35 +91,6 @@ local function run()
             .. "]"
     )
 
-    local operand2 = parsed.operands
-        and parsed.operands[2]
-        or nil
-    local diagnostic = operand2
-        and operand2.metadata
-        and operand2.metadata.memory_recovery_diagnostic
-        or nil
-
-    if diagnostic then
-        print(
-            "A32 REL recovery diagnostic: memory_spec="
-                .. tostring(diagnostic.memory_spec_available)
-                .. " prefix_memory_spec="
-                .. tostring(diagnostic.prefix_memory_spec_available)
-                .. " node_type="
-                .. tostring(diagnostic.node_type)
-                .. " bracket_match="
-                .. tostring(diagnostic.bracket_match)
-                .. " analysis="
-                .. tostring(diagnostic.analysis_available)
-                .. " brackets="
-                .. tostring(diagnostic.bracket_open)
-                .. "/"
-                .. tostring(diagnostic.bracket_close)
-                .. " source_column="
-                .. tostring(diagnostic.source_start_column)
-        )
-    end
-
     expect_equal(parsed.mnemonic, "lea",
         "A32 REL semantic mnemonic")
     expect_equal(#parsed.prefixes, 1,
