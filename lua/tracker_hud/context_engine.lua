@@ -3220,140 +3220,20 @@ function M.collect_instruction_events(context, adapter, opts)
         or not root_node
         or not core.is_table(context)
         or not core.is_table(adapter)
-        or not core.is_table(adapter.instruction_events)
+        or not core.is_table(
+            adapter.instruction_events
+        )
     then
         return {}
     end
 
-    local cursor_line = context
-        and context.cursor
-        and context.cursor.line
-
-    local event_index =
+    return collect_instruction_events_with_module(
+        context,
+        adapter,
+        opts,
         get_instruction_event_index(adapter)
-
-    local nodes = {}
-    local seen_nodes = {}
-
-    -- Discover each relevant Tree-sitter node once per node type.
-    for node_type, _ in pairs(
-        event_index.node_types
-    ) do
-        for _, node in ipairs(
-            collect_nodes_by_type(
-                root_node,
-                node_type
-            )
-        ) do
-            local start_row,
-                start_column,
-                end_row,
-                end_column = node:range()
-
-            local node_line = start_row + 1
-
-            if not cursor_line
-                or node_line <= cursor_line
-            then
-                local key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
-
-                if not seen_nodes[key] then
-                    seen_nodes[key] = true
-
-                    table.insert(nodes, {
-                        node = node,
-                        line = node_line,
-                        column = start_column,
-                    })
-                end
-            end
-        end
-    end
-
-    table.sort(nodes, function(left, right)
-        if left.line == right.line then
-            return left.column < right.column
-        end
-
-        return left.line < right.line
-    end)
-
-    local facts = {}
-
-    for _, entry in ipairs(nodes) do
-        local node_type = entry.node:type()
-        local node_bucket =
-            event_index.by_node_type[node_type]
-
-        if node_bucket then
-            local representative_event_spec =
-                node_bucket.__first
-
-            local instruction =
-                collect_instruction_operands(
-                    adapter,
-                    entry.node,
-                    bufnr,
-                    representative_event_spec
-                )
-
-            local mnemonic = instruction
-                and normalize_mnemonic(
-                    instruction.mnemonic
-                )
-
-            local event_specs = mnemonic
-                and node_bucket[mnemonic]
-                or nil
-
-            for _, event_spec in ipairs(
-                event_specs or {}
-            ) do
-                apply_instruction_event(
-                    facts,
-                    context,
-                    adapter,
-                    instruction,
-                    event_spec
-                )
-            end
-        end
-    end
-
-    table.sort(facts, function(left, right)
-        local left_line = left.source_line
-        local right_line = right.source_line
-
-        if left_line and right_line then
-            if left_line == right_line then
-                return tostring(left.name or "")
-                    < tostring(right.name or "")
-            end
-
-            return left_line < right_line
-        end
-
-        if left_line then
-            return true
-        end
-
-        if right_line then
-            return false
-        end
-
-        return tostring(left.name or "")
-            < tostring(right.name or "")
-    end)
-
-    return facts
+    )
 end
-
 
 
 local function get_stack_effect_mnemonic(
