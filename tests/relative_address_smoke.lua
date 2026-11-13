@@ -186,10 +186,6 @@ local instruction_relative_policy = {
             basis = "next_instruction",
             result_width = "address_size",
         },
-        eip = {
-            basis = "next_instruction",
-            result_width = "address_size",
-        },
     },
 }
 
@@ -247,12 +243,12 @@ assert(rip.status == "known"
     "RIP-relative target must use proven next-instruction basis")
 print("PASS relative address: RIP + displacement resolves exactly")
 
-local eip = evaluator.evaluate({
+local a32_rip = evaluator.evaluate({
     address_mode = "default",
     address_size_status = "known",
     address_size_bits = 32,
     base = {
-        name = "eip",
+        name = "rip",
     },
     displacement = {
         text = "16",
@@ -273,16 +269,16 @@ local eip = evaluator.evaluate({
         instruction_relative_policy,
 })
 
-assert(eip.status == "known"
-    and eip.value == "48"
-    and eip.bits == 32
-    and eip.wrapped == true
-    and eip.components.base.name == "eip"
-    and eip.components.basis.value == "4294967328"
-    and eip.components.source_displacement == "16"
-    and eip.components.exact_target == "4294967344",
-    "EIP-relative target must apply adapter-declared address-size result width")
-print("PASS relative address: EIP result obeys 32-bit address size")
+assert(a32_rip.status == "known"
+    and a32_rip.value == "48"
+    and a32_rip.bits == 32
+    and a32_rip.wrapped == true
+    and a32_rip.components.base.name == "rip"
+    and a32_rip.components.basis.value == "4294967328"
+    and a32_rip.components.source_displacement == "16"
+    and a32_rip.components.exact_target == "4294967344",
+    "A32 RIP-relative target must truncate and zero-extend the computed address")
+print("PASS relative address: A32 RIP result obeys 32-bit address size")
 
 local rip_without_provider = evaluator.evaluate(
     rip_address,
