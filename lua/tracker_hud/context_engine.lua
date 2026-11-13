@@ -3465,6 +3465,9 @@ local function collect_stack_effects_with_module(
 )
     opts = opts or {}
 
+    local carried_family_state = {}
+    local carried_latest_state_facts = {}
+
     return stack_effect_collection.collect({
         context = context,
         stack_effect_index = stack_index,
@@ -3542,9 +3545,6 @@ local function collect_stack_effects_with_module(
             )
         end,
 
-        -- Preserve the existing stack-path register update call shape exactly.
-        -- Any semantic correction belongs in a separate, explicitly tested
-        -- change rather than this ownership refactor.
         apply_register_effect = function(
             facts_by_register,
             instruction,
@@ -3553,6 +3553,8 @@ local function collect_stack_effects_with_module(
         )
             apply_register_effect(
                 facts_by_register,
+                carried_family_state,
+                carried_latest_state_facts,
                 adapter,
                 instruction,
                 effect_spec,
