@@ -5925,3 +5925,91 @@ nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
 ~~~
 
 Do not take the fourth ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranche 3 (2026-11-13)
+
+ERIDU accepted the third refactor-only split green.
+
+Confirmed:
+
+- `tests/memory_source_collection_smoke.lua` passes independently;
+- source-memory fact and evidence module regressions remain green;
+- Inspect target certainty/cache behavior remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- machine-address evidence and source-symbol identity remain green;
+- effective-address evaluation remains green;
+- register source-occurrence focus remains green.
+
+The extracted collection orchestration therefore preserves line filtering,
+node-range deduplication, memory-only callback behavior, source ordering and
+the injected semantic decisions supplied by `context_engine.lua`.
+
+## Context-engine split tranche 4 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/operand_metadata.lua
+~~~
+
+This module owns descriptive source-operand metadata formatting that was
+previously local to `context_engine.lua`:
+
+- operand role labels;
+- operand kind labels, including `integer -> immediate`;
+- value-source labels;
+- memory-size labels;
+- normalized memory operand metadata;
+- focused memory-component metadata.
+
+This is descriptive metadata only. It does not parse source, evaluate an
+address, match instruction semantics, infer a register value, or claim runtime
+execution.
+
+All previous context-engine call sites now use the shared module. No local
+compatibility wrappers remain.
+
+The stable memory metadata contract remains unchanged, including:
+
+- containing operand text/kind;
+- memory address text/kind;
+- memory size prefix and bit width;
+- normalized address mode and address-size certainty;
+- base/index/scale/displacement/symbol fields;
+- ordered component summaries;
+- focused token kind;
+- structural/display address roles;
+- source-value labels.
+
+New pure regression:
+
+~~~
+tests/operand_metadata_smoke.lua
+~~~
+
+It pins exact role/kind wording, memory-size formatting, normalized address
+metadata, component-summary ordering, focused component metadata and
+fail-closed behavior for invalid inputs.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/operand_metadata_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_fact_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+~~~
+
+Do not take the fifth ownership slice until this gate is accepted green.
