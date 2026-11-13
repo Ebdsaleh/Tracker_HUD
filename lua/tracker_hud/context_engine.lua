@@ -15,6 +15,7 @@ local effective_address = require("tracker_hud.low_level.effective_address")
 local relative_address = require("tracker_hud.low_level.relative_address")
 local memory_source_evidence = require("tracker_hud.low_level.memory_source_evidence")
 local memory_source_collection = require("tracker_hud.low_level.memory_source_collection")
+local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -1853,28 +1854,6 @@ local function get_effect_operand_spec(effect_spec, operand_index)
 end
 
 
-local function format_operand_role_label(role)
-    if not core.is_non_empty_string(role) then
-        return nil
-    end
-
-    return role:gsub("_", " ")
-end
-
-
-local function get_operand_kind_label(kind)
-    if not core.is_non_empty_string(kind) then
-        return nil
-    end
-
-    if kind == "integer" then
-        return "immediate"
-    end
-
-    return kind:gsub("_", " ")
-end
-
-
 local function get_source_operand_index(effect)
     if not core.is_table(effect) then
         return nil
@@ -1884,133 +1863,6 @@ local function get_source_operand_index(effect)
         or tonumber(effect.value_from_register_operand)
         or tonumber(effect.value_delta_operand)
         or tonumber(effect.size_operand)
-end
-
-
-local function build_value_source_label(operand)
-    if not core.is_table(operand)
-        or not core.is_non_empty_string(operand.text)
-    then
-        return nil
-    end
-
-    local kind_label = get_operand_kind_label(operand.kind)
-
-    if core.is_non_empty_string(kind_label) then
-        return kind_label .. " " .. operand.text
-    end
-
-    return operand.text
-end
-
-
-local function build_memory_size_label(size)
-    if not core.is_table(size) then
-        return nil
-    end
-
-    local label = size.label or size.prefix
-
-    if size.bits then
-        return tostring(label or "memory")
-            .. " ("
-            .. tostring(size.bits)
-            .. "-bit)"
-    end
-
-    return label
-end
-
-
-local function append_memory_operand_metadata(metadata, operand)
-    if not core.is_table(metadata)
-        or not core.is_table(operand)
-        or not core.is_table(operand.memory)
-    then
-        return
-    end
-
-    local memory = operand.memory
-
-    metadata.containing_operand = operand.text
-    metadata.containing_operand_kind = "memory"
-    metadata.containing_operand_kind_label = "memory operand"
-    metadata.memory_address = memory.address_text
-    metadata.memory_address_kind = memory.address_kind
-    metadata.memory_size = build_memory_size_label(memory.size)
-
-    if core.is_table(memory.size) then
-        metadata.memory_size_bits = memory.size.bits
-        metadata.memory_size_prefix = memory.size.prefix
-    end
-
-    if core.is_table(memory.normalized) then
-        local address = memory.normalized
-
-        metadata.memory_address_structured = address
-        metadata.memory_address_mode = address.address_mode
-        metadata.memory_address_size_bits = address.address_size_bits
-        metadata.memory_address_size_status = address.address_size_status
-        metadata.memory_address_size_source = address.address_size_source
-        metadata.memory_address_size_reason = address.address_size_reason
-        metadata.memory_base_register =
-            address.base and address.base.name or nil
-        metadata.memory_index_register =
-            address.index and address.index.name or nil
-        metadata.memory_scale =
-            address.scale and address.scale.value or nil
-        metadata.memory_displacement =
-            address.displacement and address.displacement.value or nil
-        metadata.memory_symbol =
-            address.symbol and address.symbol.name or nil
-    end
-
-    local component_labels = {}
-
-    for _, component in ipairs(memory.components or {}) do
-        if core.is_table(component)
-            and core.is_non_empty_string(component.text)
-        then
-            table.insert(
-                component_labels,
-                tostring(component.role_label or component.role or "component")
-                    .. ": "
-                    .. component.text
-            )
-        end
-    end
-
-    if #component_labels > 0 then
-        metadata.memory_address_components = table.concat(
-            component_labels,
-            ", "
-        )
-    end
-end
-
-
-local function append_memory_component_metadata(metadata, operand, component)
-    if not core.is_table(metadata)
-        or not core.is_table(component)
-    then
-        return
-    end
-
-    append_memory_operand_metadata(metadata, operand)
-
-    metadata.focused_token = component.text
-    metadata.focused_token_kind = get_operand_kind_label(component.kind)
-    metadata.address_role = component.role_label
-        or format_operand_role_label(component.role)
-    metadata.address_role_id = component.structural_role
-        or component.role
-    metadata.address_display_role_id = component.role
-
-    if core.is_non_empty_string(operand and operand.text) then
-        metadata.value_source = build_value_source_label(operand)
-        metadata.value_source_text = operand.text
-        metadata.value_source_kind = get_operand_kind_label(operand.kind)
-    end
 end
 
 
@@ -2073,9 +1925,9 @@ local function build_source_operand_metadata(effect_spec, instruction, effect, i
             source_index
         ) or {}
 
-        local kind_label = get_operand_kind_label(source_operand.kind)
-        local role_label = format_operand_role_label(operand_spec.role)
-        local value_source = build_value_source_label(source_operand)
+        local kind_label = operand_metadata.kind_label(source_operand.kind)
+        local role_label = operand_metadata.format_role_label(operand_spec.role)
+        local value_source = operand_metadata.value_source_label(source_operand)
 
         metadata.source_operand_index = source_index
         metadata.source_operand = source_operand.text
@@ -2095,7 +1947,7 @@ local function build_source_operand_metadata(effect_spec, instruction, effect, i
         metadata.source_operand_end_line = source_operand.source_end_line
         metadata.source_operand_end_column = source_operand.source_end_column
 
-        append_memory_operand_metadata(metadata, source_operand)
+        operand_metadata.append_memory_operand(metadata, source_operand)
 
         return metadata
     end
@@ -3172,7 +3024,7 @@ end
 
 
 local function build_source_written_role(instruction, operand)
-    local kind_label = get_operand_kind_label(
+    local kind_label = operand_metadata.kind_label(
         core.is_table(operand) and operand.kind or nil
     ) or "source"
 
@@ -3209,9 +3061,9 @@ local function build_operand_occurrence_metadata(
 
     if core.is_table(operand) then
         metadata.operand_kind = operand.kind
-        metadata.operand_kind_label = get_operand_kind_label(operand.kind)
+        metadata.operand_kind_label = operand_metadata.kind_label(operand.kind)
         metadata.operand_role = operand_role
-        metadata.operand_role_label = format_operand_role_label(operand_role)
+        metadata.operand_role_label = operand_metadata.format_role_label(operand_role)
         metadata.operand_index = operand_index
     end
 
@@ -3222,14 +3074,14 @@ local function build_operand_occurrence_metadata(
         metadata.source_operand = operand.text
         metadata.source_operand_text = operand.text
         metadata.source_operand_kind = operand.kind
-        metadata.source_kind = get_operand_kind_label(operand.kind)
+        metadata.source_kind = operand_metadata.kind_label(operand.kind)
         metadata.source_operand_role = operand_role
-        metadata.source_role = format_operand_role_label(operand_role)
-        metadata.value_source = build_value_source_label(operand)
-        metadata.value_source_kind = get_operand_kind_label(operand.kind)
+        metadata.source_role = operand_metadata.format_role_label(operand_role)
+        metadata.value_source = operand_metadata.value_source_label(operand)
+        metadata.value_source_kind = operand_metadata.kind_label(operand.kind)
         metadata.value_source_text = operand.text
 
-        append_memory_operand_metadata(metadata, operand)
+        operand_metadata.append_memory_operand(metadata, operand)
 
         if operand.kind == "memory" then
             local access, access_metadata = memory_access.resolve(
@@ -3416,7 +3268,7 @@ local function build_memory_component_occurrence(
 
         if component_register_id then
             target_roles[component_register_id] = component.role_label
-                or format_operand_role_label(component.role)
+                or operand_metadata.format_role_label(component.role)
                 or "address component"
         end
     end
@@ -3472,7 +3324,7 @@ local function build_memory_component_occurrence(
         target_roles
     )
 
-    append_memory_component_metadata(
+    operand_metadata.append_memory_component(
         metadata,
         operand,
         component
