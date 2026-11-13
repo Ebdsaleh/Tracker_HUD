@@ -199,10 +199,16 @@ local function run()
         and fact.metadata.symbol_machine_address_bits == 64
         and fact.symbol_identity.status == "known"
         and fact.symbol_identity.source_line == 4
-        and fact.effective_address.status == "unknown"
-        and fact.effective_address.reason == "relative address basis unresolved",
-        "provider evidence must attach without prematurely resolving REL address")
-    print("PASS ASM machine address: A32 source keeps 64-bit machine-address evidence")
+        and fact.effective_address.status == "known"
+        and fact.effective_address.value == "4294971392"
+        and fact.effective_address.bits == 64
+        and fact.effective_address.components.basis.value == "4294967559"
+        and fact.effective_address.components.relative_delta == "3833"
+        and fact.metadata.effective_address_status == "known"
+        and fact.metadata.effective_address_value == "4294971392"
+        and fact.metadata.effective_address_bits == 64,
+        "provider evidence must prove the REL target in machine-address width")
+    print("PASS ASM machine address: A32 REL resolves 64-bit machine target")
 
     local external = engine.discover_memory_source_operands(
         buffer,
@@ -225,9 +231,13 @@ local function run()
         and external[1].machine_addresses.symbol.status == "known"
         and external[1].machine_addresses.symbol.value == "5242880"
         and external[1].metadata.symbol_machine_address_status == "known"
-        and external[1].metadata.symbol_machine_address_value == "5242880",
-        "provider-known external symbol must not require a source declaration")
-    print("PASS ASM machine address: external symbol address can be provider-known")
+        and external[1].metadata.symbol_machine_address_value == "5242880"
+        and external[1].effective_address.status == "known"
+        and external[1].effective_address.value == "5242880"
+        and external[1].effective_address.bits == 64
+        and external[1].effective_address.components.relative_delta == "1048057",
+        "provider-known external symbol must resolve without a source declaration")
+    print("PASS ASM machine address: provider-known external REL target resolves")
 
     local focus = engine.discover_register_source_occurrences(
         buffer,
@@ -258,8 +268,10 @@ local function run()
                 and metadata.next_instruction_machine_address_status == "known"
                 and metadata.next_instruction_machine_address_value == "4294967559"
                 and metadata.next_instruction_machine_address_bits == 64
-                and metadata.memory_effective_address_status == "unknown",
-                "Inspect must reuse provider evidence without resolving REL early")
+                and metadata.memory_effective_address_status == "known"
+                and metadata.memory_effective_address_value == "4294971392"
+                and metadata.memory_effective_address_bits == 64,
+                "Inspect must reuse the proven REL target")
             saw_symbol = true
         end
     end
@@ -294,12 +306,17 @@ local function run()
         and by_line[2].machine_addresses.symbol.bits == 64
         and by_line[2].machine_addresses.next_instruction.value == "4294967559"
         and by_line[2].machine_addresses.next_instruction.bits == 64
+        and by_line[2].effective_address.status == "known"
+        and by_line[2].effective_address.value == "4294971392"
+        and by_line[2].effective_address.bits == 64
         and by_line[3]
         and by_line[3].machine_addresses
         and by_line[3].machine_addresses.symbol.value == "5242880"
+        and by_line[3].effective_address.status == "known"
+        and by_line[3].effective_address.value == "5242880"
         and by_line[2].metadata.execution_status == "not_observed"
         and by_line[3].metadata.execution_status == "not_observed",
-        "normal context must forward provider evidence without execution claims")
+        "normal context must forward proven REL targets without execution claims")
     print("PASS ASM machine address: context forwards provider evidence")
 
     print("PASS Tracker_HUD ASM machine-address evidence smoke")
