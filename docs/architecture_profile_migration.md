@@ -5833,3 +5833,95 @@ nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
 ~~~
 
 Do not take the next ownership slice until this one is accepted green.
+
+
+## Accepted context-engine split tranche 2 (2026-11-13)
+
+ERIDU accepted the second refactor-only split green.
+
+Confirmed:
+
+- `tests/memory_source_fact_smoke.lua` passes independently;
+- `tests/memory_source_evidence_smoke.lua` remains green;
+- Inspect target certainty/cache behavior remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- machine-address evidence and source-symbol identity remain green;
+- effective-address evaluation remains green;
+- register source-occurrence focus remains green.
+
+The extracted source-memory fact constructor therefore preserves the accepted
+fact shape and certainty semantics.
+
+## Context-engine split tranche 3 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/memory_source_collection.lua
+~~~
+
+This module now owns source-memory collection mechanics:
+
+- source-line filtering;
+- duplicate Tree-sitter node-range suppression;
+- per-operand evidence assembly through the already-extracted evidence module;
+- normalized fact construction through `memory_source_fact.lua`;
+- stable result ordering by source line, source column and operand index.
+
+It deliberately does **not** own language/parser or instruction semantics.
+
+`context_engine.lua` still injects callbacks for:
+
+- instruction parsing;
+- register-effect rule matching;
+- pre-instruction effective-address evaluation / register replay;
+- memory operand semantic role;
+- memory access intent.
+
+The public APIs remain unchanged:
+
+~~~
+discover_memory_source_operands(...)
+collect_memory_source_operands(...)
+~~~
+
+The extraction preserves the original work ordering: a source line is filtered
+and a duplicate node range is suppressed before parsing; only normalized memory
+operands reach address evaluation, role lookup and access resolution.
+
+New pure regression:
+
+~~~
+tests/memory_source_collection_smoke.lua
+~~~
+
+It pins:
+
+- line filtering before parsing;
+- duplicate node suppression before parsing;
+- memory-only semantic callbacks;
+- stable source ordering;
+- preservation of injected semantic results;
+- fail-closed behavior when required collector dependencies are absent.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/memory_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_fact_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_machine_address_evidence_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_source_symbol_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+~~~
+
+Do not take the fourth ownership slice until this gate is accepted green.
