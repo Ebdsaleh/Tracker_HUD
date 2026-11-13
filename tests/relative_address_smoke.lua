@@ -180,4 +180,124 @@ assert(non_relative.status == "unknown"
     "relative evaluator must not consume non-relative addresses")
 print("PASS relative address: non-relative address stays outside this evaluator")
 
+local instruction_relative_policy = {
+    bases = {
+        rip = {
+            basis = "next_instruction",
+            result_width = "address_size",
+        },
+        eip = {
+            basis = "next_instruction",
+            result_width = "address_size",
+        },
+    },
+}
+
+local rip_address = {
+    address_mode = "default",
+    address_size_status = "known",
+    address_size_bits = 64,
+    base = {
+        name = "rip",
+    },
+    displacement = {
+        text = "16",
+        value = "16",
+    },
+    metadata = {
+        ambiguous = {},
+    },
+}
+
+assert(evaluator.requires_next_instruction(
+        rip_address,
+        {
+            instruction_relative_policy =
+                instruction_relative_policy,
+        }
+    ) == true,
+    "adapter-declared RIP base must request next-instruction evidence")
+print("PASS relative address: adapter policy requests RIP basis evidence")
+
+local rip = evaluator.evaluate(
+    rip_address,
+    {
+        next_instruction = {
+            status = "known",
+            value = "0x100000107",
+            bits = 64,
+        },
+    },
+    {
+        bits = 64,
+        instruction_relative_policy =
+            instruction_relative_policy,
+    }
+)
+
+assert(rip.status == "known"
+    and rip.value == "4294967575"
+    and rip.bits == 64
+    and rip.wrapped == false
+    and rip.components.base.name == "rip"
+    and rip.components.basis.value == "4294967559"
+    and rip.components.source_displacement == "16"
+    and rip.components.relative_delta == "16"
+    and rip.components.exact_target == "4294967575",
+    "RIP-relative target must use proven next-instruction basis")
+print("PASS relative address: RIP + displacement resolves exactly")
+
+local eip = evaluator.evaluate({
+    address_mode = "default",
+    address_size_status = "known",
+    address_size_bits = 32,
+    base = {
+        name = "eip",
+    },
+    displacement = {
+        text = "16",
+        value = "16",
+    },
+    metadata = {
+        ambiguous = {},
+    },
+}, {
+    next_instruction = {
+        status = "known",
+        value = "0x100000020",
+        bits = 64,
+    },
+}, {
+    bits = 64,
+    instruction_relative_policy =
+        instruction_relative_policy,
+})
+
+assert(eip.status == "known"
+    and eip.value == "48"
+    and eip.bits == 32
+    and eip.wrapped == true
+    and eip.components.base.name == "eip"
+    and eip.components.basis.value == "4294967328"
+    and eip.components.source_displacement == "16"
+    and eip.components.exact_target == "4294967344",
+    "EIP-relative target must apply adapter-declared address-size result width")
+print("PASS relative address: EIP result obeys 32-bit address size")
+
+local rip_without_provider = evaluator.evaluate(
+    rip_address,
+    nil,
+    {
+        bits = 64,
+        instruction_relative_policy =
+            instruction_relative_policy,
+    }
+)
+
+assert(rip_without_provider.status == "unknown"
+    and rip_without_provider.reason
+        == "relative address basis unresolved",
+    "RIP-relative source must fail closed without machine-address evidence")
+print("PASS relative address: RIP without provider fails closed")
+
 print("PASS Tracker_HUD relative-address smoke")
