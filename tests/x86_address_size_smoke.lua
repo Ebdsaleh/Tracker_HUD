@@ -14,6 +14,7 @@ local function run()
         "mov rbx, [rax + ecx*4]",
         "mov rbx, [ax]",
         "mov rbx, [abs 0x1234]",
+        "a32 lea eax, [rip + 16]",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -105,6 +106,18 @@ local function run()
         "register-free address must use x86-64 default address size")
     print("PASS x86 address size: register-free address uses 64-bit default")
 
+    local a32_rip = one(9)
+    assert(a32_rip.address.base
+        and a32_rip.address.base.name == "rip"
+        and a32_rip.address.address_size_status == "known"
+        and a32_rip.address.address_size_bits == 32
+        and a32_rip.address.address_size_source == "explicit_prefix"
+        and a32_rip.effective_address.status == "unknown"
+        and a32_rip.effective_address.reason
+            == "relative address basis unresolved",
+        "A32 must be allowed to override RIP-relative effective-address width")
+    print("PASS x86 address size: A32 RIP-relative width is explicit 32-bit")
+
     local focus = engine.discover_register_source_occurrences(
         buffer,
         root,
@@ -134,7 +147,7 @@ local function run()
     print("PASS x86 address size: Inspect reuses 32-bit address semantics")
 
     vim.api.nvim_set_current_buf(buffer)
-    vim.api.nvim_win_set_cursor(0, { 8, 0 })
+    vim.api.nvim_win_set_cursor(0, { 9, 0 })
 
     local context = require("tracker_hud.context")
         .get_cursor_context(buffer, {})
@@ -157,7 +170,11 @@ local function run()
         and by_line[7]
         and by_line[7].address.address_size_status == "unknown"
         and by_line[8]
-        and by_line[8].address.address_size_source == "default",
+        and by_line[8].address.address_size_source == "default"
+        and by_line[9]
+        and by_line[9].address.address_size_bits == 32
+        and by_line[9].address.address_size_source == "explicit_prefix"
+        and by_line[9].effective_address.status == "unknown",
         "normal context must preserve each source operand's address-size semantics")
     print("PASS x86 address size: context preserves source-time address widths")
 
