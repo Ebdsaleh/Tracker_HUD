@@ -6313,3 +6313,64 @@ nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
 ~~~
 
 Do not take the eighth ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranche 7 (2026-11-13)
+
+ERIDU accepted the seventh refactor-only split green.
+
+Confirmed:
+
+- `tests/register_effect_index_smoke.lua` passes independently;
+- register source collection and occurrence construction remain green;
+- shared operand metadata remains green;
+- real parser-backed register focus remains green;
+- effective-address evaluation remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- Inspect target certainty/cache behavior remains green.
+
+The extracted register-effect index therefore preserves both adapter rule
+formats, cache identity, representative parser rules and delegated
+operand/condition matching.
+
+## Context-engine split tranche 8 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_source_metadata.lua
+~~~
+
+This module now owns descriptive source metadata attached to register-effect
+facts:
+
+- locating an operand spec by index;
+- selecting the effect's source operand index;
+- describing explicit source operands;
+- describing stack-top sources;
+- describing implicit register sources;
+- reusing normalized memory operand metadata;
+- merging non-nil source metadata into a target metadata table.
+
+It deliberately does **not** own:
+
+- instruction parsing;
+- register value resolution;
+- stack-state inference;
+- effect application;
+- canonical register-state reduction.
+
+The context engine now delegates the live register-fact source metadata path to
+this module. The previous local helper implementations have been removed.
+
+New pure regression:
+
+~~~
+tests/register_source_metadata_smoke.lua
+~~~
+
+It pins source-index precedence, operand/stack/register source fields,
+normalized memory metadata reuse, merge semantics and invalid-input
+fail-closed behavior.
