@@ -6013,3 +6013,111 @@ nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
 ~~~
 
 Do not take the fifth ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranche 4 (2026-11-13)
+
+ERIDU accepted the fourth refactor-only split green.
+
+Confirmed:
+
+- `tests/operand_metadata_smoke.lua` passes every exact formatting/structure
+  assertion;
+- source-memory collection/fact/evidence regressions remain green;
+- normalized ASM memory structure remains green;
+- Inspect target certainty/cache behavior remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- effective-address evaluation remains green;
+- register source-occurrence focus remains green.
+
+The shared operand-metadata module therefore preserves the descriptive contract
+used by register facts and Inspect without changing source/runtime semantics.
+
+## Context-engine split tranche 5 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_source_occurrence.lua
+~~~
+
+This module now owns construction of the live Registers Inspect source
+occurrences after `context_engine.lua` has already parsed an instruction and
+matched its semantic effect specs:
+
+- register-name canonicalization for occurrence target IDs;
+- occurrence-role normalization;
+- mnemonic occurrence construction;
+- register/memory operand occurrence construction;
+- memory-component occurrence construction;
+- target-state IDs and per-target source/destination/address roles;
+- source-memory access-intent metadata reuse.
+
+It does **not** parse Tree-sitter nodes, match instruction effect rules, replay
+register state, evaluate addresses, or render HUD rows.
+
+`context_engine.lua` still owns:
+
+- instruction parsing;
+- semantic effect matching and conditions;
+- source-line/node selection;
+- pre-instruction register-state replay;
+- effective-address evaluation;
+- provider/source-symbol evidence attachment;
+- public occurrence discovery API.
+
+The existing live call path now delegates:
+
+~~~
+build mnemonic occurrence
+build operand occurrence
+build memory component occurrences
+~~~
+
+to the extracted module.
+
+Two pre-existing local helpers in the old occurrence area are currently unused:
+`get_register_operand_occurrence_role` and `build_source_written_role`.
+They were deliberately **not** removed in this tranche so dead-code cleanup is
+not mixed with behavior-preserving ownership extraction.
+
+New pure regression:
+
+~~~
+tests/register_source_occurrence_smoke.lua
+~~~
+
+It pins:
+
+- alias canonicalization, including `eax -> register:rax`;
+- semantic role normalization;
+- mnemonic operation targets;
+- destination operand focus;
+- source memory operand -> affected state targets;
+- memory component own address-register target plus affected state targets;
+- memory access intent remaining source-only / `not_observed`;
+- syntax-only register focus surviving even when no semantic effect rule
+  matches;
+- invalid input fail-closed behavior.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_source_occurrence_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/operand_metadata_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_fact_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+~~~
+
+Do not take the sixth ownership slice until this gate is accepted green.
