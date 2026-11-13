@@ -2770,6 +2770,36 @@ local function get_register_inspect_adapter_signature(adapter)
 end
 
 
+local function get_machine_address_provider_signature(config)
+    local providers = type(config) == "table"
+        and config.machine_address_providers
+        or nil
+
+    if type(providers) ~= "table"
+        or #providers == 0
+    then
+        return "<none>"
+    end
+
+    local parts = {}
+
+    for index, provider in ipairs(providers) do
+        if type(provider) ~= "table" then
+            parts[#parts + 1] =
+                "provider#" .. tostring(index) .. ":<invalid>"
+        else
+            parts[#parts + 1] = table.concat({
+                tostring(provider.id or ("provider#" .. tostring(index))),
+                tostring(provider.kind or "machine_address"),
+                tostring(provider.resolve),
+            }, ":")
+        end
+    end
+
+    return table.concat(parts, "|")
+end
+
+
 local function get_register_inspect_line(request)
     local bufnr = tonumber(request.bufnr)
     local line_number = tonumber(request.line)
@@ -2793,6 +2823,10 @@ local function get_register_inspect_line(request)
     local signature = get_register_inspect_adapter_signature(
         adapter
     )
+    local provider_signature =
+        get_machine_address_provider_signature(
+            request.config
+        )
 
     local cached = source_index.get_line(
         bufnr,
@@ -2802,6 +2836,8 @@ local function get_register_inspect_line(request)
 
     if type(cached) == "table"
         and cached.adapter_signature == signature
+        and cached.machine_address_provider_signature
+            == provider_signature
         and source_index.line_is_current(
             bufnr,
             line_number,
@@ -2815,7 +2851,11 @@ local function get_register_inspect_line(request)
     end
 
     if type(cached) == "table"
-        and cached.adapter_signature ~= signature
+        and (
+            cached.adapter_signature ~= signature
+            or cached.machine_address_provider_signature
+                ~= provider_signature
+        )
     then
         source_index.invalidate_line(
             bufnr,
@@ -2850,7 +2890,13 @@ local function get_register_inspect_line(request)
                     bufnr,
                     root_node,
                     adapter,
-                    line_number
+                    line_number,
+                    {
+                        machine_address_providers =
+                            type(request.config) == "table"
+                            and request.config.machine_address_providers
+                            or nil,
+                    }
                 )
 
             local compiled =
@@ -2859,6 +2905,8 @@ local function get_register_inspect_line(request)
                 )
 
             compiled.adapter_signature = signature
+            compiled.machine_address_provider_signature =
+                provider_signature
 
             return compiled
         end
