@@ -65,6 +65,8 @@ function M.collect(opts)
 
     if not core.is_table(opts.adapter)
         or not core.is_number(opts.line_number)
+        or not core.is_table(opts.node_types)
+        or type(opts.collect_nodes) ~= "function"
         or type(opts.parse_and_match) ~= "function"
         or type(opts.evaluate_address) ~= "function"
     then
@@ -75,26 +77,34 @@ function M.collect(opts)
     local occurrences = {}
     local seen_nodes = {}
 
-    for _, node in ipairs(opts.nodes or {}) do
-        local key, source_line = node_key(node)
+    for node_type, _ in pairs(
+        opts.node_types
+    ) do
+        for _, node in ipairs(
+            opts.collect_nodes(node_type)
+                or {}
+        ) do
+            local key, source_line =
+                node_key(node)
 
-        if key
-            and source_line == opts.line_number
-            and not seen_nodes[key]
-        then
-            seen_nodes[key] = true
+            if key
+                and source_line == opts.line_number
+                and not seen_nodes[key]
+            then
+                seen_nodes[key] = true
 
-            local instruction,
+                local instruction,
+                    matching_specs =
+                    opts.parse_and_match(node)
+
                 matching_specs =
-                opts.parse_and_match(node)
+                    matching_specs or {}
 
-            matching_specs =
-                matching_specs or {}
-
-            -- Source occurrences are syntax, not semantic effects. Matching
-            -- rules enrich roles and state transitions, but their absence must
-            -- not hide syntax that the parser has already identified.
-            if instruction then
+                -- Source occurrences are syntax, not semantic effects.
+                -- Matching rules enrich roles and state transitions, but
+                -- their absence must not hide syntax already identified by
+                -- the parser.
+                if instruction then
                 local mnemonic_occurrence =
                     register_source_occurrence.build_mnemonic(
                         adapter,
@@ -197,6 +207,7 @@ function M.collect(opts)
                             occurrences,
                             component_occurrence
                         )
+                    end
                     end
                 end
             end
