@@ -39,6 +39,7 @@ local construct_source_identity = require("tracker_hud.constructs.source_identit
 local construct_parser = require("tracker_hud.constructs.parser")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
+local register_state_read = require("tracker_hud.low_level.register_state_read")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
@@ -289,139 +290,23 @@ local condition_matches =
     effect_match.condition_matches
 
 
-local function get_static_register_spec(adapter, name)
-    if not core.is_table(adapter) or type(name) ~= "string" then
-        return nil
-    end
+local get_static_register_spec =
+    register_state_read.get_static_spec
 
-    local normalized = name:lower()
+local get_register_fact_from_map =
+    register_state_read.get_fact
 
-    for _, register_spec in ipairs((adapter.registers and adapter.registers.static) or {}) do
-        if type(register_spec) == "table"
-            and type(register_spec.name) == "string"
-            and register_spec.name:lower() == normalized
-        then
-            return register_spec
-        end
-    end
+local resolve_register_alias =
+    register_state_read.resolve_alias
 
-    return nil
-end
+local get_register_fact_for_read =
+    register_state_read.get_fact_for_read
 
+local register_state_key =
+    register_state_read.state_key
 
-local function get_register_fact_from_map(facts_by_register, register_name)
-    if not core.is_table(facts_by_register)
-        or not core.is_non_empty_string(register_name)
-    then
-        return nil
-    end
-
-    return facts_by_register[register_name:lower()]
-end
-
-local function resolve_register_alias(adapter, register_name)
-    if not core.is_table(adapter)
-        or not core.is_non_empty_string(register_name)
-        or not core.is_table(adapter.register_alias_index)
-    then
-        return nil
-    end
-
-    return adapter.register_alias_index[register_name:lower()]
-end
-
-
-local function get_register_fact_for_read(
-    facts_by_register,
-    adapter,
-    register_name
-)
-    local direct = get_register_fact_from_map(
-        facts_by_register,
-        register_name
-    )
-
-    if core.is_table(direct)
-        and direct.value ~= nil
-        and direct.resolved ~= false
-    then
-        return direct
-    end
-
-    local alias_resolution = resolve_register_alias(
-        adapter,
-        register_name
-    )
-
-    if not alias_resolution
-        or not core.is_table(alias_resolution.alias)
-        or not core.is_non_empty_string(alias_resolution.canonical)
-    then
-        return direct
-    end
-
-    local canonical_name = alias_resolution.canonical:lower()
-
-    if canonical_name == tostring(register_name):lower() then
-        return direct
-    end
-
-    local canonical_fact = get_register_fact_from_map(
-        facts_by_register,
-        canonical_name
-    )
-
-    if not core.is_table(canonical_fact) then
-        return direct
-    end
-
-    local projected = register_value_mask.read_alias_value(
-        canonical_fact,
-        alias_resolution.alias
-    )
-
-    if projected == nil then
-        return direct
-    end
-
-    return {
-        name = tostring(register_name):lower(),
-        value = projected,
-        resolved = true,
-        metadata = canonical_fact.metadata,
-    }
-end
-
-local function register_state_key(adapter, register_name)
-    local resolved = resolve_register_alias(adapter, register_name)
-    if resolved and core.is_non_empty_string(resolved.canonical) then
-        return resolved.canonical:lower()
-    end
-
-    return core.is_non_empty_string(register_name)
-        and register_name:lower()
-        or nil
-end
-
-
-local function get_register_value_width(adapter, register_name)
-    local resolved = resolve_register_alias(adapter, register_name)
-
-    if resolved
-        and core.is_table(resolved.alias)
-        and core.is_number(resolved.alias.bits)
-    then
-        return resolved.alias.bits
-    end
-
-    local static_spec = get_static_register_spec(adapter, register_name)
-
-    if static_spec and core.is_number(static_spec.bits) then
-        return static_spec.bits
-    end
-
-    return nil
-end
+local get_register_value_width =
+    register_state_read.get_value_width
 
 
 local function apply_register_value_width_policy(
@@ -541,11 +426,8 @@ local function parse_numeric_number(value)
 end
 
 
-local function register_fact_is_resolved(fact)
-    return core.is_table(fact)
-        and fact.value ~= nil
-        and fact.resolved ~= false
-end
+local register_fact_is_resolved =
+    register_state_read.fact_is_resolved
 
 
 local function prepare_register_instruction_inference_state(
