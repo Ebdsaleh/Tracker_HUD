@@ -6933,3 +6933,108 @@ Confirmed:
   adapter contracts remain green.
 
 Accepted baseline: `e52dcc4`.
+
+
+## Context-engine split tranche 18 — adapter syntax-spec access (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/syntax_spec.lua
+~~~
+
+This module owns read-only access to adapter syntax declarations:
+
+- syntax table lookup;
+- Tree-sitter node type lookup;
+- syntax field lookup for string and structured field declarations;
+- syntax field text/value lookup;
+- syntax-token lookup, including the temporary legacy token fallback;
+- mnemonic normalization.
+
+`context_engine.lua` now aliases these helpers from the module. Construct,
+register, boundary, instruction-event and stack rule consumers keep their
+existing call sites and behavior.
+
+New regressions:
+
+~~~
+tests/syntax_spec_smoke.lua
+tests/asm_syntax_spec_smoke.lua
+~~~
+
+The ASM test validates the accessor contract against bundled x86-64 mov, push
+and syscall rules.
+
+## Context-engine split tranche 19 — adapter instruction-parser dispatch (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/instruction_parser_dispatch.lua
+~~~
+
+This module owns only adapter-declared instruction-parser loading and dispatch:
+
+- parser configuration validation;
+- safe module loading;
+- default `parse_instruction` function selection;
+- custom parser function-name selection;
+- exact forwarding of `bufnr`, source node, effect spec and adapter.
+
+Parser semantics remain in the adapter parser module. Fallback source parsing
+remains in `low_level/instruction_source.lua`.
+
+New regressions:
+
+~~~
+tests/instruction_parser_dispatch_smoke.lua
+tests/asm_instruction_parser_dispatch_smoke.lua
+~~~
+
+The parser-backed ASM test proves the real instruction parser still produces
+`mov rax, 42` with register/integer operand semantics.
+
+## Ten-commit relay boundary after tranches 18 and 19
+
+This relay stops after exactly ten commits on top of accepted `e52dcc4`.
+No register reducer, alias reduction, value masking, stack inference, boundary
+inference or fact construction moved in this relay.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/syntax_spec_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/asm_syntax_spec_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/instruction_parser_dispatch_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_parser_dispatch_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/effect_match_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effect_match_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_source_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
