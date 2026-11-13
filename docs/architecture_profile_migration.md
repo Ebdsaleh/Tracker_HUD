@@ -7157,3 +7157,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 20 and 21 (2026-11-13)
+
+ERIDU accepted the construct context-primitives and branch-presentation tranches
+green.
+
+Confirmed:
+
+- cursor coordinate conventions, node identity/ranges/containment, scope-entry
+  construction, scope ordering and global/unavailable context defaults remain
+  intact;
+- context_engine preserves the public construct-context delegate surface;
+- syntax and legacy branch-alternative matching, field/named-child discovery,
+  branch labels, grouped formatting and cursor-selected presentation remain
+  intact;
+- syntax access, real ASM parser dispatch, effect matching, source fallback,
+  stack inference, carried register state, pop-depth precedence, syscall
+  boundary inference, register focus, memory/effective-address evidence,
+  instruction-relative addressing, Inspect and adapter contracts remain green.
+
+Accepted baseline: `0411c80`.
