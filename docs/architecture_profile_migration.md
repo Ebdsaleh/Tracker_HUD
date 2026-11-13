@@ -7439,3 +7439,128 @@ Confirmed:
   and adapter contracts remain green.
 
 Accepted baseline: `7f7dc39`.
+
+
+## Context-engine split tranche 26 — register value policy (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_value_policy.lua
+~~~
+
+This module owns pure register-value transformation policy only:
+
+- target-width modular wrapping;
+- width-policy metadata;
+- exact numeric normalization;
+- safe-number conversion;
+- source integer interpretation through declarative integer-operand policy;
+- source integer metadata shaping.
+
+It does not mutate register state, apply alias writes, construct register facts
+or dispatch effects. `context_engine.lua` keeps delta arithmetic itself and
+now delegates the width/immediate policy helpers.
+
+New regressions:
+
+~~~
+tests/register_value_policy_smoke.lua
+tests/asm_register_value_policy_smoke.lua
+~~~
+
+The parser-backed ASM test proves:
+
+- `mov al, 0xFF; inc al` wraps at 8 bits;
+- `add rax, 0xFFFFFFFF` still sign-interprets the immediate as signed imm32
+  and wraps the final target-width result.
+
+## Context-engine split tranche 27 — register effect processing orchestration (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_processing.lua
+~~~
+
+This module owns only the ordered processing loop over already-collected
+register-effect instruction nodes:
+
+- temporary register/family/latest-fact state containers;
+- one low-level inference state shared across instructions;
+- representative-rule parse dispatch;
+- mnemonic bucket selection;
+- instruction-state preparation callback sequencing;
+- effect application callback sequencing;
+- final fact-list callback dispatch.
+
+Register semantics remain in injected callbacks. In particular,
+`make_register_fact()`, `apply_register_effect()`,
+`register_value_mask.apply_alias_write()`, value resolution and alias-family
+mutation remain outside this module.
+
+New regressions:
+
+~~~
+tests/register_effect_processing_smoke.lua
+tests/asm_register_effect_processing_smoke.lua
+~~~
+
+The parser-backed ASM test proves:
+
+~~~
+mov rax, 41
+inc rax
+~~~
+
+still reduces to one latest canonical RAX fact with value 42 and effect
+`inc_register`.
+
+## Ten-commit relay boundary after tranches 26 and 27
+
+This relay stops after exactly ten commits on top of accepted `7f7dc39`.
+The central register write reducer, alias-mask write semantics, memory
+evaluation, stack/boundary inference and fact construction have not moved.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_value_policy_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_value_policy_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_state_read_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_read_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/construct_parser_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/construct_spec_validation_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/construct_source_identity_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/x86_width_wrap_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
