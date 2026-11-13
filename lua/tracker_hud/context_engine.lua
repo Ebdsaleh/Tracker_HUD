@@ -18,6 +18,7 @@ local memory_source_collection = require("tracker_hud.low_level.memory_source_co
 local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
+local register_effect_index = require("tracker_hud.low_level.register_effect_index")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -27,7 +28,6 @@ local control_infer = require("tracker_hud.low_level.control_infer")
 
 local M = {}
 
-local register_effect_index_cache = setmetatable({}, { __mode = "k" })
 local instruction_event_index_cache = setmetatable({}, { __mode = "k" })
 local boundary_effect_index_cache = setmetatable({}, { __mode = "k" })
 local stack_effect_index_cache = setmetatable({}, { __mode = "k" })
@@ -132,16 +132,6 @@ local function normalize_mnemonic(mnemonic)
 end
 
 
-local function get_register_effect_node_type(effect_spec)
-    if not core.is_table(effect_spec) then
-        return nil
-    end
-
-    return get_syntax_node_type(effect_spec)
-        or effect_spec.node_type
-end
-
-
 local function get_register_effect_mnemonic(
     effect_spec,
     fallback_mnemonic
@@ -158,130 +148,24 @@ local function get_register_effect_mnemonic(
 end
 
 
-local function add_register_effect_to_index(
-    index,
-    effect_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(index)
-        or not core.is_table(effect_spec)
-    then
-        return
-    end
-
-    local node_type =
-        get_register_effect_node_type(
-            effect_spec
-        )
-
-    local mnemonic =
-        get_register_effect_mnemonic(
-            effect_spec,
-            fallback_mnemonic
-        )
-
-    if not core.is_non_empty_string(node_type)
-        or not mnemonic
-    then
-        return
-    end
-
-    index.node_types[node_type] = true
-    index.by_node_type[node_type] =
-        index.by_node_type[node_type] or {}
-
-    local node_bucket =
-        index.by_node_type[node_type]
-
-    node_bucket[mnemonic] =
-        node_bucket[mnemonic] or {}
-
-    table.insert(
-        node_bucket[mnemonic],
-        effect_spec
-    )
-
-    node_bucket.__first =
-        node_bucket.__first or effect_spec
-end
-
-
-local function build_register_effect_index(register_effects)
-    local index = {
-        node_types = {},
-        by_node_type = {},
-    }
-
-    if not core.is_table(register_effects) then
-        return index
-    end
-
-    -- Current/legacy format:
-    --
-    -- {
-    --     {
-    --         node_type = "instruction",
-    --         mnemonic = "mov",
-    --         ...
-    --     },
-    -- }
-    for _, effect_spec in ipairs(register_effects) do
-        add_register_effect_to_index(index, effect_spec)
-    end
-
-    -- Tree-sitter-first mnemonic-indexed format:
-    --
-    -- {
-    --     mov = {
-    --         {
-    --             syntax = {
-    --                 node_type = "instruction",
-    --                 fields = {
-    --                     kind = {
-    --                         field = "kind",
-    --                         node_type = "word",
-    --                         text = "mov",
-    --                     },
-    --                 },
-    --             },
-    --             ...
-    --         },
-    --     },
-    -- }
-    for mnemonic, rules in pairs(register_effects) do
-        if type(mnemonic) == "string" and core.is_table(rules) then
-            for _, effect_spec in ipairs(rules) do
-                add_register_effect_to_index(index, effect_spec, mnemonic)
-            end
-        end
-    end
-
-    return index
-end
-
-
 local function get_register_effect_index(adapter)
-    if not core.is_table(adapter) then
-        return build_register_effect_index(nil)
-    end
+    return register_effect_index.get(
+        adapter,
+        {
+            get_node_type = function(effect_spec)
+                if not core.is_table(effect_spec) then
+                    return nil
+                end
 
-    local register_effects = adapter.register_effects
-
-    if not core.is_table(register_effects) then
-        return build_register_effect_index(nil)
-    end
-
-    local cached = register_effect_index_cache[register_effects]
-
-    if cached then
-        return cached
-    end
-
-    local index = build_register_effect_index(register_effects)
-
-    register_effect_index_cache[register_effects] = index
-
-    return index
+                return get_syntax_node_type(
+                    effect_spec
+                )
+                    or effect_spec.node_type
+            end,
+            get_mnemonic =
+                get_register_effect_mnemonic,
+        }
+    )
 end
 
 
@@ -2707,51 +2591,27 @@ local function get_matching_register_effect_specs(
     instruction_node,
     bufnr
 )
-    if not instruction_node then
-        return nil, {}
-    end
-
-    local node_bucket = effect_index.by_node_type[
-        instruction_node:type()
-    ]
-
-    if not node_bucket then
-        return nil, {}
-    end
-
-    local instruction = collect_instruction_operands(
-        adapter,
+    return register_effect_index.match_node(
+        effect_index,
         instruction_node,
-        bufnr,
-        node_bucket.__first
-    )
-
-    if not core.is_table(instruction) then
-        return nil, {}
-    end
-
-    local mnemonic = normalize_mnemonic(
-        instruction.mnemonic
-    )
-
-    local candidates = mnemonic
-        and node_bucket[mnemonic]
-        or nil
-
-    local matching = {}
-
-    for _, effect_spec in ipairs(candidates or {}) do
-        if operands_match_effect(instruction, effect_spec)
-            and condition_matches(
-                instruction,
-                effect_spec.condition
+        {
+            parse_instruction = function(
+                node,
+                representative_effect_spec
             )
-        then
-            table.insert(matching, effect_spec)
-        end
-    end
-
-    return instruction, matching
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    bufnr,
+                    representative_effect_spec
+                )
+            end,
+            operands_match =
+                operands_match_effect,
+            condition_match =
+                condition_matches,
+        }
+    )
 end
 
 
