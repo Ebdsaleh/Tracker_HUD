@@ -30,6 +30,7 @@ local stack_effect_collection = require("tracker_hud.low_level.stack_effect_coll
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local effect_match = require("tracker_hud.low_level.effect_match")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
+local syntax_spec = require("tracker_hud.syntax_spec")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -41,103 +42,23 @@ local M = {}
 
 
 
-local function get_syntax(spec)
-    if not core.is_table(spec)
-        or not core.is_table(spec.syntax)
-    then
-        return {}
-    end
+local get_syntax =
+    syntax_spec.get
 
-    return spec.syntax
-end
+local get_syntax_node_type =
+    syntax_spec.get_node_type
 
+local get_syntax_field =
+    syntax_spec.get_field
 
-local function get_syntax_node_type(spec)
-    local syntax = get_syntax(spec)
+local get_syntax_field_text =
+    syntax_spec.get_field_text
 
-    if core.is_non_empty_string(
-        syntax.node_type
-    ) then
-        return syntax.node_type
-    end
+local get_syntax_tokens =
+    syntax_spec.get_tokens
 
-    return nil
-end
-
-
-local function get_syntax_field(spec, key)
-    local syntax = get_syntax(spec)
-    local fields = syntax.fields or {}
-    local field_name = fields[key]
-
-    if core.is_non_empty_string(
-        field_name
-    ) then
-        return field_name
-    end
-
-    if core.is_table(field_name)
-        and core.is_non_empty_string(
-            field_name.field
-        )
-    then
-        return field_name.field
-    end
-
-    return nil
-end
-
-
-
-local function get_syntax_field_text(spec, key)
-    local syntax = get_syntax(spec)
-    local fields = syntax.fields or {}
-    local field_spec = fields[key]
-
-    if not core.is_table(field_spec) then
-        return nil
-    end
-
-    if core.is_non_empty_string(field_spec.text) then
-        return field_spec.text
-    end
-
-    if core.is_non_empty_string(field_spec.value) then
-        return field_spec.value
-    end
-
-    return nil
-end
-
-
-local function get_syntax_tokens(spec)
-    local syntax = get_syntax(spec)
-
-    if core.is_table(syntax.tokens) then
-        return syntax.tokens
-    end
-
-    --
-    -- Temporary compatibility while bundled adapters are migrated.
-    --
-    if core.is_table(spec)
-        and core.is_table(spec.tokens)
-    then
-        return spec.tokens
-    end
-
-    return nil
-end
-
-
-
-local function normalize_mnemonic(mnemonic)
-    if not core.is_non_empty_string(mnemonic) then
-        return nil
-    end
-
-    return mnemonic:lower()
-end
+local normalize_mnemonic =
+    syntax_spec.normalize_mnemonic
 
 
 local function get_register_effect_mnemonic(
