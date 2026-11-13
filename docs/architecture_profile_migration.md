@@ -6762,3 +6762,38 @@ Confirmed:
 
 The next tranche adds dedicated parser-backed boundary/stack fixtures before
 changing any stack/register interaction semantics.
+
+
+## Stack carried-register semantic correction (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+Dedicated parser-backed coverage now distinguishes three layers:
+
+- `tests/asm_boundary_effects_smoke.lua` pins register-state resolution before
+  a syscall boundary;
+- `tests/asm_stack_effects_smoke.lua` pins baseline push/pop stack tracking;
+- `tests/asm_stack_register_carry_smoke.lua` pins register-state carry into a
+  later stack push.
+
+The stack collection adapter previously called `apply_register_effect()` with
+the legacy five-argument shape. The current reducer requires:
+
+~~~
+facts_by_register
+family_state
+latest_state_facts
+adapter
+instruction
+effect_spec
+instruction_state
+~~~
+
+The shifted call therefore left `effect_spec` nil and the reducer failed
+closed, preventing earlier register writes from feeding later stack-value
+resolution.
+
+The correction keeps persistent carried `family_state` and
+`latest_state_facts` tables for the stack scan and invokes the existing
+register reducer with its full signature. The register reducer itself is
+unchanged.
