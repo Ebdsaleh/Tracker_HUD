@@ -27,6 +27,7 @@ local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_ind
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
+local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3155,6 +3156,57 @@ local function apply_instruction_event(facts, context, adapter, instruction, eve
     if fact then
         table.insert(facts, fact)
     end
+end
+
+
+local function collect_instruction_events_with_module(
+    context,
+    adapter,
+    opts,
+    event_index
+)
+    opts = opts or {}
+
+    return instruction_event_collection.collect({
+        context = context,
+        event_index = event_index,
+
+        collect_nodes = function(node_type)
+            return collect_nodes_by_type(
+                opts.root_node,
+                node_type
+            )
+        end,
+
+        parse_instruction = function(
+            node,
+            representative_event_spec
+        )
+            return collect_instruction_operands(
+                adapter,
+                node,
+                opts.bufnr,
+                representative_event_spec
+            )
+        end,
+
+        normalize_mnemonic =
+            normalize_mnemonic,
+
+        apply_event = function(
+            facts,
+            instruction,
+            event_spec
+        )
+            apply_instruction_event(
+                facts,
+                context,
+                adapter,
+                instruction,
+                event_spec
+            )
+        end,
+    })
 end
 
 
