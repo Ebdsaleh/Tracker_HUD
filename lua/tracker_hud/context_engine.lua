@@ -14,7 +14,7 @@ local memory_access = require("tracker_hud.low_level.memory_access")
 local effective_address = require("tracker_hud.low_level.effective_address")
 local relative_address = require("tracker_hud.low_level.relative_address")
 local memory_source_evidence = require("tracker_hud.low_level.memory_source_evidence")
-local memory_source_fact = require("tracker_hud.low_level.memory_source_fact")
+local memory_source_collection = require("tracker_hud.low_level.memory_source_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3695,6 +3695,7 @@ local function collect_memory_source_operands_where(
     opts
 )
     opts = opts or {}
+
     if not bufnr
         or not root_node
         or not core.is_table(adapter)
@@ -3703,203 +3704,138 @@ local function collect_memory_source_operands_where(
         return {}
     end
 
-    local instruction_spec = core.is_table(adapter.construct_specs)
+    local instruction_spec =
+        core.is_table(adapter.construct_specs)
         and adapter.construct_specs.instruction
         or nil
-    local syntax = core.is_table(instruction_spec)
+    local syntax =
+        core.is_table(instruction_spec)
         and instruction_spec.syntax
         or nil
     local instruction_node_type =
         core.is_table(syntax)
-        and core.is_non_empty_string(syntax.node_type)
+        and core.is_non_empty_string(
+            syntax.node_type
+        )
         and syntax.node_type
         or "instruction"
 
-    local effect_index = core.is_table(adapter.register_effects)
+    local effect_index =
+        core.is_table(adapter.register_effects)
         and get_register_effect_index(adapter)
         or nil
 
-    local result = {}
-    local seen_nodes = {}
     local source_members = scope_members.collect(
         bufnr,
         root_node,
         adapter
     )
 
-    for _, node in ipairs(
-        collect_nodes_by_type(root_node, instruction_node_type)
-    ) do
-        local start_row,
-            start_column,
-            end_row,
-            end_column = node:range()
+    return memory_source_collection.collect({
+        nodes = collect_nodes_by_type(
+            root_node,
+            instruction_node_type
+        ),
+        adapter = adapter,
+        source_members = source_members,
+        line_predicate = line_predicate,
+        machine_address_providers =
+            opts.machine_address_providers,
 
-        local source_line = start_row + 1
+        parse_instruction = function(node)
+            return collect_instruction_operands(
+                adapter,
+                node,
+                bufnr,
+                nil
+            )
+        end,
 
-        if line_predicate(source_line) then
-            local node_key = table.concat({
-                node:type(),
-                tostring(start_row),
-                tostring(start_column),
-                tostring(end_row),
-                tostring(end_column),
-            }, ":")
+        match_effects = function(
+            node,
+            instruction
+        )
+            local matching_specs = {}
 
-            if not seen_nodes[node_key] then
-                seen_nodes[node_key] = true
+            if not instruction
+                or not effect_index
+            then
+                return matching_specs
+            end
 
-                local instruction = collect_instruction_operands(
-                    adapter,
-                    node,
-                    bufnr,
-                    nil
+            local node_bucket =
+                effect_index.by_node_type[
+                    node:type()
+                ]
+
+            local mnemonic =
+                normalize_mnemonic(
+                    instruction.mnemonic
                 )
 
-                local matching_specs = {}
+            local candidates =
+                node_bucket
+                and mnemonic
+                and node_bucket[mnemonic]
+                or nil
 
-                if instruction and effect_index then
-                    local node_bucket = effect_index.by_node_type[
-                        node:type()
-                    ]
-
-                    local mnemonic = normalize_mnemonic(
-                        instruction.mnemonic
+            for _, effect_spec in ipairs(
+                candidates or {}
+            ) do
+                if operands_match_effect(
+                    instruction,
+                    effect_spec
+                )
+                    and condition_matches(
+                        instruction,
+                        effect_spec.condition
                     )
-
-                    local candidates = node_bucket
-                        and mnemonic
-                        and node_bucket[mnemonic]
-                        or nil
-
-                    for _, effect_spec in ipairs(candidates or {}) do
-                        if operands_match_effect(instruction, effect_spec)
-                            and condition_matches(
-                                instruction,
-                                effect_spec.condition
-                            )
-                        then
-                            table.insert(
-                                matching_specs,
-                                effect_spec
-                            )
-                        end
-                    end
-                end
-
-                if instruction then
-                    for operand_index, operand in ipairs(
-                        instruction.operands or {}
-                    ) do
-                        local symbol_identity =
-                            memory_source_evidence.resolve_symbol_identity(
-                                source_members,
-                                adapter,
-                                operand
-                            )
-
-                        local instruction_relative_policy =
-                            memory_source_evidence.get_instruction_relative_policy(
-                                adapter,
-                                operand
-                            )
-
-                        local machine_addresses =
-                            memory_source_evidence.resolve_machine_addresses(
-                                opts.machine_address_providers,
-                                adapter,
-                                instruction,
-                                operand.memory
-                                    and operand.memory.normalized
-                                    or nil,
-                                symbol_identity,
-                                instruction_relative_policy
-                            )
-
-                        local evaluation
-
-                        if operand.kind == "memory"
-                            and core.is_table(operand.memory)
-                            and core.is_table(
-                                operand.memory.normalized
-                            )
-                        then
-                            evaluation =
-                                evaluate_memory_address_before_instruction(
-                                    bufnr,
-                                    root_node,
-                                    adapter,
-                                    instruction,
-                                    operand.memory.normalized,
-                                    machine_addresses,
-                                    instruction_relative_policy
-                                )
-                        end
-
-                        local memory_operand = nil
-
-                        if operand.kind == "memory"
-                            and core.is_table(operand.memory)
-                            and core.is_table(
-                                operand.memory.normalized
-                            )
-                        then
-                            local role = get_memory_operand_role(
-                                matching_specs,
-                                operand_index
-                            )
-
-                            local access, access_metadata =
-                                memory_access.resolve(
-                                    adapter and adapter.memory_accesses,
-                                    instruction.mnemonic,
-                                    operand_index,
-                                    operand
-                                )
-
-                            memory_operand =
-                                memory_source_fact.new({
-                                    instruction = instruction,
-                                    operand = operand,
-                                    operand_index = operand_index,
-                                    role = role,
-                                    access = access,
-                                    access_metadata = access_metadata,
-                                    evaluation = evaluation,
-                                    symbol_identity = symbol_identity,
-                                    machine_addresses = machine_addresses,
-                                })
-                        end
-
-                        if memory_operand then
-                            table.insert(result, memory_operand)
-                        end
-                    end
+                then
+                    table.insert(
+                        matching_specs,
+                        effect_spec
+                    )
                 end
             end
-        end
-    end
 
-    table.sort(result, function(left, right)
-        local left_line = left.source_line or 0
-        local right_line = right.source_line or 0
+            return matching_specs
+        end,
 
-        if left_line ~= right_line then
-            return left_line < right_line
-        end
+        evaluate_address = function(
+            instruction,
+            address,
+            machine_addresses,
+            instruction_relative_policy
+        )
+            return
+                evaluate_memory_address_before_instruction(
+                    bufnr,
+                    root_node,
+                    adapter,
+                    instruction,
+                    address,
+                    machine_addresses,
+                    instruction_relative_policy
+                )
+        end,
 
-        local left_column = left.source_start_column or 0
-        local right_column = right.source_start_column or 0
+        get_operand_role =
+            get_memory_operand_role,
 
-        if left_column == right_column then
-            return (left.operand_index or 0)
-                < (right.operand_index or 0)
-        end
-
-        return left_column < right_column
-    end)
-
-    return result
+        resolve_access = function(
+            instruction,
+            operand_index,
+            operand
+        )
+            return memory_access.resolve(
+                adapter
+                    and adapter.memory_accesses,
+                instruction.mnemonic,
+                operand_index,
+                operand
+            )
+        end,
+    })
 end
 
 
