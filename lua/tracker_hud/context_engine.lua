@@ -21,6 +21,7 @@ local register_effect_index = require("tracker_hud.low_level.register_effect_ind
 local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
+local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
 local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
@@ -898,16 +899,6 @@ function M.collect_register_effects(context, adapter, opts)
         return {}
     end
 
-    local cursor_line = context
-        and context.cursor
-        and context.cursor.line
-
-    local limit_position = low_level_inference.normalize_position(
-        opts.limit_position
-            or opts.stop_before
-            or opts.before_position
-    )
-
     local effect_index =
         get_register_effect_index(adapter)
 
@@ -919,55 +910,66 @@ function M.collect_register_effects(context, adapter, opts)
             opts
         )
 
-    local facts_by_register = {}
-    local family_state = {}
-    local latest_state_facts = {}
-    local low_level_state = low_level_inference.new_state()
+    return register_effect_processing.process({
+        nodes = nodes,
+        effect_index = effect_index,
 
-    for _, entry in ipairs(nodes) do
-        local node_type = entry.node:type()
-        local node_bucket = effect_index.by_node_type[node_type]
-
-        if node_bucket then
-            local representative_effect_spec = node_bucket.__first
-
-            local instruction = collect_instruction_operands(
+        parse_instruction = function(
+            node,
+            representative_effect_spec
+        )
+            return collect_instruction_operands(
                 adapter,
-                entry.node,
+                node,
                 bufnr,
                 representative_effect_spec
             )
+        end,
 
-            local mnemonic = instruction
-                and normalize_mnemonic(instruction.mnemonic)
+        normalize_mnemonic =
+            normalize_mnemonic,
 
-            local effect_specs = mnemonic and node_bucket[mnemonic] or nil
+        new_low_level_state =
+            low_level_inference.new_state,
 
-            local instruction_state = prepare_register_instruction_inference_state(
+        prepare_instruction_state = function(
+            low_level_state,
+            facts_by_register,
+            instruction,
+            effect_specs
+        )
+            return prepare_register_instruction_inference_state(
                 low_level_state,
                 facts_by_register,
                 instruction,
                 effect_specs,
                 adapter
             )
+        end,
 
-            for _, effect_spec in ipairs(effect_specs or {}) do
-                apply_register_effect(
-                    facts_by_register,
-                    family_state,
-                    latest_state_facts,
-                    adapter,
-                    instruction,
-                    effect_spec,
-                    instruction_state
-                )
-            end
-        end
-    end
+        apply_effect = function(
+            facts_by_register,
+            family_state,
+            latest_state_facts,
+            instruction,
+            effect_spec,
+            instruction_state
+        )
+            return apply_register_effect(
+                facts_by_register,
+                family_state,
+                latest_state_facts,
+                adapter,
+                instruction,
+                effect_spec,
+                instruction_state
+            )
+        end,
 
-    return register_infer.to_fact_list(latest_state_facts)
+        to_fact_list =
+            register_infer.to_fact_list,
+    })
 end
-
 
 
 --
