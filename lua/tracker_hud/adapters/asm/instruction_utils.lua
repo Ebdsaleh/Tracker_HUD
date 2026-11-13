@@ -1276,6 +1276,303 @@ local function node_source_range(node)
 end
 
 
+local function split_source_operands(
+    text,
+    base_column
+)
+    local result = {}
+
+    if type(text) ~= "string" then
+        return result
+    end
+
+    local start_index = 1
+    local bracket_depth = 0
+    local paren_depth = 0
+    local brace_depth = 0
+    local quote = nil
+    local escaped = false
+
+    local function append_segment(last_index)
+        local raw = text:sub(start_index, last_index)
+        local trimmed, column = trim_with_offsets(
+            raw,
+            base_column + start_index - 1
+        )
+
+        if type(trimmed) == "string"
+            and trimmed ~= ""
+        then
+            result[#result + 1] = {
+                text = trimmed,
+                source_start_column = column,
+                source_end_column = column + #trimmed,
+            }
+        end
+    end
+
+    for index = 1, #text do
+        local ch = text:sub(index, index)
+
+        if quote then
+            if escaped then
+                escaped = false
+            elseif ch == "\\" then
+                escaped = true
+            elseif ch == quote then
+                quote = nil
+            end
+        elseif ch == "\"" or ch == "'" then
+            quote = ch
+        elseif ch == "[" then
+            bracket_depth = bracket_depth + 1
+        elseif ch == "]" and bracket_depth > 0 then
+            bracket_depth = bracket_depth - 1
+        elseif ch == "(" then
+            paren_depth = paren_depth + 1
+        elseif ch == ")" and paren_depth > 0 then
+            paren_depth = paren_depth - 1
+        elseif ch == "{" then
+            brace_depth = brace_depth + 1
+        elseif ch == "}" and brace_depth > 0 then
+            brace_depth = brace_depth - 1
+        elseif ch == ","
+            and bracket_depth == 0
+            and paren_depth == 0
+            and brace_depth == 0
+        then
+            append_segment(index - 1)
+            start_index = index + 1
+        end
+    end
+
+    append_segment(#text)
+
+    return result
+end
+
+
+local function classify_source_operand(
+    bufnr,
+    source_line,
+    segment,
+    adapter
+)
+    if type(segment) ~= "table"
+        or type(segment.text) ~= "string"
+    then
+        return nil
+    end
+
+    local text = segment.text
+    local start_column = segment.source_start_column or 0
+    local node_type, memory_spec =
+        get_declared_memory_construct(
+            adapter
+        )
+
+    if memory_spec
+        and find_first_bracket_pair(
+            text,
+            memory_spec
+        )
+    then
+        local memory = analyze_memory_operand(
+            bufnr,
+            nil,
+            adapter,
+            text,
+            source_line,
+            start_column,
+            memory_spec
+        )
+
+        if memory then
+            return {
+                text = text,
+                kind = "memory",
+                node_type = node_type,
+
+                source_line = source_line,
+                source_column = start_column,
+                source_start_line = source_line,
+                source_start_column = start_column,
+                source_end_line = source_line,
+                source_end_column = segment.source_end_column,
+
+                memory = memory,
+
+                metadata = {
+                    recovered_from_source = true,
+                    recovery_reason =
+                        "prefixed instruction source reconstruction",
+                },
+            }
+        end
+    end
+
+    local register_index =
+        build_register_alias_index(
+            adapter
+        )
+    local kind = token_kind(
+        text,
+        register_index
+    )
+
+    return {
+        text = text,
+        kind = kind or "unknown",
+        node_type = kind or "unknown",
+
+        source_line = source_line,
+        source_column = start_column,
+        source_start_line = source_line,
+        source_start_column = start_column,
+        source_end_line = source_line,
+        source_end_column = segment.source_end_column,
+
+        metadata = {
+            recovered_from_source = true,
+            recovery_reason =
+                "prefixed instruction source reconstruction",
+        },
+    }
+end
+
+
+local function recover_prefixed_instruction_from_source(
+    bufnr,
+    instruction_node,
+    prefix,
+    prefix_bits,
+    prefix_node,
+    adapter
+)
+    if not bufnr
+        or not instruction_node
+        or type(prefix) ~= "string"
+        or type(prefix_bits) ~= "number"
+    then
+        return nil
+    end
+
+    local start_row,
+        start_column,
+        end_row,
+        end_column = instruction_node:range()
+
+    if start_row ~= end_row then
+        return nil
+    end
+
+    local lines = vim.api.nvim_buf_get_lines(
+        bufnr,
+        start_row,
+        start_row + 1,
+        false
+    )
+    local line = lines and lines[1]
+
+    if type(line) ~= "string" then
+        return nil
+    end
+
+    local instruction_text = line:sub(
+        start_column + 1,
+        end_column
+    )
+
+    local prefix_pattern =
+        "^%s*"
+        .. vim.pesc(prefix)
+        .. "%s+([%a_][%w_]*)()"
+
+    local semantic_mnemonic,
+        after_mnemonic =
+        instruction_text:match(
+            prefix_pattern
+        )
+
+    if not semantic_mnemonic
+        or not after_mnemonic
+    then
+        return nil
+    end
+
+    local mnemonic_start =
+        instruction_text:find(
+            semantic_mnemonic,
+            1,
+            true
+        )
+
+    if not mnemonic_start then
+        return nil
+    end
+
+    local mnemonic_column =
+        start_column + mnemonic_start - 1
+
+    local operand_text =
+        instruction_text:sub(
+            after_mnemonic
+        )
+    local operand_base_column =
+        start_column + after_mnemonic - 1
+
+    local segments =
+        split_source_operands(
+            operand_text,
+            operand_base_column
+        )
+    local operands = {}
+
+    for _, segment in ipairs(segments) do
+        local operand = classify_source_operand(
+            bufnr,
+            start_row + 1,
+            segment,
+            adapter
+        )
+
+        if operand then
+            operands[#operands + 1] = operand
+        end
+    end
+
+    return {
+        mnemonic = semantic_mnemonic:lower(),
+        mnemonic_node = nil,
+        mnemonic_range = {
+            source_line = start_row + 1,
+            source_column = mnemonic_column,
+            source_start_line = start_row + 1,
+            source_start_column = mnemonic_column,
+            source_end_line = start_row + 1,
+            source_end_column =
+                mnemonic_column
+                + #semantic_mnemonic,
+        },
+
+        prefixes = {
+            {
+                kind = "address_size",
+                text = prefix:lower(),
+                bits = prefix_bits,
+                source = "adapter",
+                range = node_source_range(
+                    prefix_node
+                ),
+            },
+        },
+
+        operands = operands,
+        source_reconstructed = true,
+    }
+end
+
+
 local function recover_address_prefixed_instruction(
     bufnr,
     instruction_node,
@@ -1299,6 +1596,20 @@ local function recover_address_prefixed_instruction(
 
     if not is_prefix then
         return nil
+    end
+
+    local source_recovery =
+        recover_prefixed_instruction_from_source(
+            bufnr,
+            instruction_node,
+            prefix,
+            prefix_bits,
+            prefix_node,
+            adapter
+        )
+
+    if source_recovery then
+        return source_recovery
     end
 
     local semantic_node = nil
@@ -1360,9 +1671,9 @@ local function recover_address_prefixed_instruction(
         },
 
         operand_nodes = recovered_operand_nodes,
+        source_reconstructed = false,
     }
 end
-
 
 local function get_declared_memory_construct(
     adapter
@@ -1748,42 +2059,50 @@ function M.parse_instruction(
         mnemonic_range = prefix_recovery.mnemonic_range
     end
 
-    local operands = collect_declared_operands(
-        instruction_node,
-        instruction_spec,
-        bufnr,
-        adapter
-    )
+    local operands
 
-    if operands == nil then
-        operands = collect_legacy_operands(
+    if prefix_recovery
+        and prefix_recovery.source_reconstructed
+    then
+        operands = prefix_recovery.operands or {}
+    else
+        operands = collect_declared_operands(
             instruction_node,
-            bufnr,
-            adapter,
-            mnemonic_node
-        )
-    end
-
-    if prefix_recovery then
-        operands = merge_operands(
-            operands,
-            prefix_recovery.operand_nodes,
+            instruction_spec,
             bufnr,
             adapter
         )
 
-        if not has_memory_operand(operands) then
-            operands = merge_operands(
-                operands,
-                nil,
+        if operands == nil then
+            operands = collect_legacy_operands(
+                instruction_node,
                 bufnr,
                 adapter,
-                recover_prefixed_memory_operand_from_source(
-                    bufnr,
-                    instruction_node,
-                    adapter
-                )
+                mnemonic_node
             )
+        end
+
+        if prefix_recovery then
+            operands = merge_operands(
+                operands,
+                prefix_recovery.operand_nodes,
+                bufnr,
+                adapter
+            )
+
+            if not has_memory_operand(operands) then
+                operands = merge_operands(
+                    operands,
+                    nil,
+                    bufnr,
+                    adapter,
+                    recover_prefixed_memory_operand_from_source(
+                        bufnr,
+                        instruction_node,
+                        adapter
+                    )
+                )
+            end
         end
     end
 
