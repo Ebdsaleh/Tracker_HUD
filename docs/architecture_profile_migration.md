@@ -6121,3 +6121,99 @@ nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
 ~~~
 
 Do not take the sixth ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranche 5 (2026-11-13)
+
+ERIDU accepted the fifth refactor-only split green.
+
+Confirmed:
+
+- `tests/register_source_occurrence_smoke.lua` passes independently;
+- shared operand metadata remains green;
+- source-memory collection/fact regressions remain green;
+- real parser-backed register source focus remains green;
+- normalized memory structure remains green;
+- Inspect target certainty/cache behavior remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- effective-address evaluation remains green.
+
+The extracted occurrence builders therefore preserve canonical register target
+IDs, semantic/source roles, syntax-only focus, memory-component address roles
+and source-only memory execution semantics.
+
+## Context-engine split tranche 6 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_source_collection.lua
+~~~
+
+This module now owns Registers Inspect source-occurrence collection mechanics:
+
+- iterating adapter-declared instruction node types;
+- source-line filtering before parsing;
+- duplicate Tree-sitter node-range suppression before parsing;
+- invoking the already-extracted occurrence builders;
+- resolving source-symbol and optional machine-address evidence for normalized
+  memory operands;
+- attaching effective-address/source-symbol/machine-address certainty metadata
+  to both whole memory operands and individual memory components;
+- preserving syntax-only occurrences when semantic effect matching returns an
+  empty set.
+
+It deliberately does **not** own:
+
+- Tree-sitter instruction parsing;
+- semantic effect-rule matching;
+- effect conditions;
+- register-state replay;
+- effective-address evaluation;
+- public context-engine APIs.
+
+Those remain injected by `context_engine.lua`.
+
+The public API remains unchanged:
+
+~~~
+discover_register_source_occurrences(...)
+~~~
+
+New pure regression:
+
+~~~
+tests/register_source_collection_smoke.lua
+~~~
+
+It pins:
+
+- line filtering before parsing;
+- duplicate node-range suppression before parsing;
+- normalized-memory-only address evaluation;
+- occurrence ordering within parsed instructions;
+- effective-address evidence attachment to memory operands and components;
+- syntax-only register focus with no matching semantic effect rule;
+- fail-closed behavior when collector dependencies are incomplete.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_occurrence_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/operand_metadata_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/memory_source_collection_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+~~~
+
+Do not take the seventh ownership slice until this gate is accepted green.
