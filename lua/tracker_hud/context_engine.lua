@@ -3029,121 +3029,12 @@ function M.collect_boundary_effects(context, adapter, opts)
         return {}
     end
 
-    local cursor_line = context
-        and context.cursor
-        and context.cursor.line
-
-    local effect_index =
+    return collect_boundary_effects_with_module(
+        context,
+        adapter,
+        opts,
         get_boundary_effect_index(adapter)
-
-    local nodes = {}
-    local seen_nodes = {}
-
-    for node_type, _ in pairs(
-        effect_index.node_types
-    ) do
-        for _, node in ipairs(
-            collect_nodes_by_type(
-                root_node,
-                node_type
-            )
-        ) do
-            local start_row,
-                start_column,
-                end_row,
-                end_column = node:range()
-
-            local node_line = start_row + 1
-
-            if not cursor_line
-                or node_line <= cursor_line
-            then
-                local key = table.concat({
-                    node:type(),
-                    tostring(start_row),
-                    tostring(start_column),
-                    tostring(end_row),
-                    tostring(end_column),
-                }, ":")
-
-                if not seen_nodes[key] then
-                    seen_nodes[key] = true
-
-                    table.insert(nodes, {
-                        node = node,
-                        line = node_line,
-                        column = start_column,
-                    })
-                end
-            end
-        end
-    end
-
-    table.sort(nodes, function(left, right)
-        if left.line == right.line then
-            return left.column < right.column
-        end
-
-        return left.line < right.line
-    end)
-
-    local facts = {}
-    local low_level_state = low_level_inference.new_state()
-
-    for _, entry in ipairs(nodes) do
-        local node_type = entry.node:type()
-        local node_bucket =
-            effect_index.by_node_type[
-                node_type
-            ]
-
-        if node_bucket then
-            local representative_effect_spec =
-                node_bucket.__first
-
-            local instruction =
-                collect_instruction_operands(
-                    adapter,
-                    entry.node,
-                    bufnr,
-                    representative_effect_spec
-                )
-
-            local mnemonic = instruction
-                and normalize_mnemonic(
-                    instruction.mnemonic
-                )
-
-            local effect_specs = mnemonic
-                and node_bucket[mnemonic]
-                or nil
-
-            local read_context = collect_registers_before_instruction(
-                context,
-                adapter,
-                opts,
-                instruction
-            )
-
-            for _, effect_spec in ipairs(
-                effect_specs or {}
-            ) do
-                apply_boundary_effect(
-                    facts,
-                    context,
-                    adapter,
-                    instruction,
-                    effect_spec,
-                    {
-                        read_context = read_context,
-                        write_context = context,
-                    }
-                )
-            end
-        end
-    end
-
-    return facts
+    )
 end
 
 
