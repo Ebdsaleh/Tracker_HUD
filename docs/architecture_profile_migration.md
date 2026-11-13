@@ -7038,3 +7038,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 18 and 19 (2026-11-13)
+
+ERIDU accepted the syntax-spec and adapter instruction-parser dispatch tranches
+green.
+
+Confirmed:
+
+- syntax table, node-type, field, field text/value, token fallback and mnemonic
+  normalization contracts remain intact;
+- bundled x86-64 mov, push and syscall syntax rules still resolve correctly;
+- adapter instruction-parser dispatch preserves missing-config fail-closed
+  behavior, default/custom function selection and exact argument forwarding;
+- the real ASM parser still produces register/integer operand semantics for
+  `mov rax, 42`;
+- effect matching, source fallback, stack inference, carried register state,
+  pop-depth precedence, syscall boundary inference, instruction events,
+  register focus, memory/effective-address evidence, instruction-relative
+  addressing, Inspect and adapter contracts remain green.
+
+Accepted baseline: `dee5dfe`.
