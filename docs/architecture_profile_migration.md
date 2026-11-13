@@ -7282,3 +7282,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 22 and 23 (2026-11-13)
+
+ERIDU accepted the construct-spec validation and construct source-identity
+tranches green.
+
+Confirmed:
+
+- construct-spec lookup, syntax shape validation, marker/token validation,
+  legacy token fallback and canonical contract delegation remain intact;
+- construct source identity preserves first-line signatures, local-name
+  precedence, syntax-field names and canonical construct assembly;
+- the context_engine public validation and source-identity delegates remain
+  intact;
+- construct primitives, branch presentation, syntax access, ASM parser
+  dispatch, effect matching, instruction fallback, stack inference, carried
+  register state, pop-depth precedence, boundary inference, register focus,
+  memory/effective-address evidence, instruction-relative addressing, Inspect
+  and adapter contracts remain green.
+
+Accepted baseline: `8fc4fef`.
