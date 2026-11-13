@@ -30,6 +30,7 @@ local stack_effect_collection = require("tracker_hud.low_level.stack_effect_coll
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local effect_match = require("tracker_hud.low_level.effect_match")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
+local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
 local syntax_spec = require("tracker_hud.syntax_spec")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
@@ -98,33 +99,9 @@ local function get_register_effect_index(adapter)
 end
 
 
-local function parse_instruction_with_adapter(adapter, bufnr, node, effect_spec)
-    if type(adapter) ~= "table" or type(adapter.instruction_parser) ~= "table" then
-        return nil
-    end
+local parse_instruction_with_adapter =
+    instruction_parser_dispatch.parse
 
-    local parser_spec = adapter.instruction_parser
-    local module_name = parser_spec.module
-    local function_name = parser_spec.function_name or "parse_instruction"
-
-    if type(module_name) ~= "string" or module_name == "" then
-        return nil
-    end
-
-    local ok, parser_module = pcall(require, module_name)
-
-    if not ok or type(parser_module) ~= "table" then
-        return nil
-    end
-
-    local parser_fn = parser_module[function_name]
-
-    if type(parser_fn) ~= "function" then
-        return nil
-    end
-
-    return parser_fn(bufnr, node, effect_spec, adapter)
-end
 
 function M.make_global_context()
     return {
