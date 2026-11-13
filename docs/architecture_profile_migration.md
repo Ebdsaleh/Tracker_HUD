@@ -7416,3 +7416,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 24 and 25 (2026-11-13)
+
+ERIDU accepted the construct-parser and register-state read-policy tranches
+green.
+
+Confirmed:
+
+- construct node matching, source identity/range assembly, canonical payload
+  assembly and invalid/missing parse behavior remain intact;
+- context_engine preserves public construct parser delegates;
+- register static/fact lookup, alias resolution, canonical state keys,
+  canonical-to-alias projection, widths, resolved classification and direct
+  fact precedence remain intact;
+- real x86-64 `mov rax, 42` projects through `eax` as value 42 with
+  canonical key `rax`, width 32 for `eax` and width 64 for `rax`;
+- construct validation/identity, source fallback, stack inference, carried
+  register state, pop-depth precedence, boundary inference, register focus,
+  memory/effective-address evidence, instruction-relative addressing, Inspect
+  and adapter contracts remain green.
+
+Accepted baseline: `7f7dc39`.
