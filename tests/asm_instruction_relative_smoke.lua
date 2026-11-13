@@ -1,5 +1,5 @@
 -- tests/asm_instruction_relative_smoke.lua
--- Parser-backed RIP/EIP-relative machine-address evaluation regression.
+-- Parser-backed RIP-relative machine-address evaluation regression.
 -- nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
 
 local function run()
@@ -8,7 +8,7 @@ local function run()
     local source = {
         "bits 64",
         "lea rax, [rip + 16]",
-        "lea eax, [eip + 16]",
+        "a32 lea eax, [rip + 16]",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -50,16 +50,6 @@ local function run()
         "cannot configure ASM adapter: "
             .. tostring(config_err))
 
-    assert(adapter.register_alias_index
-        and adapter.register_alias_index.rip
-        and adapter.register_alias_index.rip.alias
-        and adapter.register_alias_index.rip.alias.bits == 64
-        and adapter.register_alias_index.eip
-        and adapter.register_alias_index.eip.alias
-        and adapter.register_alias_index.eip.alias.bits == 32,
-        "x86 architecture profile must expose RIP/EIP widths")
-    print("PASS ASM instruction-relative: architecture exposes RIP/EIP widths")
-
     local provider = {
         id = "instruction-relative-fixture",
         kind = "assembler_listing",
@@ -81,7 +71,7 @@ local function run()
                         value = "0x100000020",
                         provenance = {
                             source = "fixture listing",
-                            record = "eip-instruction",
+                            record = "a32-rip-instruction",
                         },
                     }
                 end
@@ -101,7 +91,7 @@ local function run()
                         value = "0x100000027",
                         provenance = {
                             source = "fixture listing",
-                            record = "eip-next",
+                            record = "a32-rip-next",
                         },
                     }
                 end
@@ -127,6 +117,7 @@ local function run()
     assert(#no_provider_rip == 1
         and no_provider_rip[1].address.base
         and no_provider_rip[1].address.base.name == "rip"
+        and no_provider_rip[1].address.address_size_status == "known"
         and no_provider_rip[1].address.address_size_bits == 64
         and no_provider_rip[1].machine_addresses == nil
         and no_provider_rip[1].effective_address.status == "unknown"
@@ -156,6 +147,7 @@ local function run()
         and rip_fact.address.base.name == "rip"
         and rip_fact.address.address_size_status == "known"
         and rip_fact.address.address_size_bits == 64
+        and rip_fact.address.address_size_source == "register_width"
         and rip_fact.machine_addresses
         and rip_fact.machine_addresses.next_instruction.status == "known"
         and rip_fact.machine_addresses.next_instruction.value
@@ -175,7 +167,7 @@ local function run()
         "RIP-relative fact must use proven next-instruction basis")
     print("PASS ASM instruction-relative: RIP target resolves from next instruction")
 
-    local no_provider_eip =
+    local no_provider_a32 =
         engine.discover_memory_source_operands(
             buffer,
             root,
@@ -183,17 +175,20 @@ local function run()
             3
         )
 
-    assert(#no_provider_eip == 1
-        and no_provider_eip[1].address.base
-        and no_provider_eip[1].address.base.name == "eip"
-        and no_provider_eip[1].address.address_size_bits == 32
-        and no_provider_eip[1].effective_address.status == "unknown"
-        and no_provider_eip[1].effective_address.reason
+    assert(#no_provider_a32 == 1
+        and no_provider_a32[1].address.base
+        and no_provider_a32[1].address.base.name == "rip"
+        and no_provider_a32[1].address.address_size_status == "known"
+        and no_provider_a32[1].address.address_size_bits == 32
+        and no_provider_a32[1].address.address_size_source
+            == "explicit_prefix"
+        and no_provider_a32[1].effective_address.status == "unknown"
+        and no_provider_a32[1].effective_address.reason
             == "relative address basis unresolved",
-        "EIP-relative source must preserve 32-bit address size and fail closed")
-    print("PASS ASM instruction-relative: EIP source preserves 32-bit width")
+        "A32 RIP-relative source must preserve explicit 32-bit address size")
+    print("PASS ASM instruction-relative: A32 RIP source preserves 32-bit width")
 
-    local eip = engine.discover_memory_source_operands(
+    local a32 = engine.discover_memory_source_operands(
         buffer,
         root,
         adapter,
@@ -205,33 +200,34 @@ local function run()
         }
     )
 
-    assert(#eip == 1,
-        "EIP line must expose one memory fact")
+    assert(#a32 == 1,
+        "A32 RIP line must expose one memory fact")
 
-    local eip_fact = eip[1]
+    local a32_fact = a32[1]
 
-    assert(eip_fact.address.base
-        and eip_fact.address.base.name == "eip"
-        and eip_fact.address.address_size_status == "known"
-        and eip_fact.address.address_size_bits == 32
-        and eip_fact.machine_addresses
-        and eip_fact.machine_addresses.next_instruction.status == "known"
-        and eip_fact.machine_addresses.next_instruction.value
+    assert(a32_fact.address.base
+        and a32_fact.address.base.name == "rip"
+        and a32_fact.address.address_size_status == "known"
+        and a32_fact.address.address_size_bits == 32
+        and a32_fact.address.address_size_source == "explicit_prefix"
+        and a32_fact.machine_addresses
+        and a32_fact.machine_addresses.next_instruction.status == "known"
+        and a32_fact.machine_addresses.next_instruction.value
             == "4294967335"
-        and eip_fact.machine_addresses.next_instruction.bits == 64
-        and eip_fact.effective_address.status == "known"
-        and eip_fact.effective_address.value == "55"
-        and eip_fact.effective_address.bits == 32
-        and eip_fact.effective_address.wrapped == true
-        and eip_fact.effective_address.components.base.name == "eip"
-        and eip_fact.effective_address.components.exact_target
+        and a32_fact.machine_addresses.next_instruction.bits == 64
+        and a32_fact.effective_address.status == "known"
+        and a32_fact.effective_address.value == "55"
+        and a32_fact.effective_address.bits == 32
+        and a32_fact.effective_address.wrapped == true
+        and a32_fact.effective_address.components.base.name == "rip"
+        and a32_fact.effective_address.components.exact_target
             == "4294967351"
-        and eip_fact.metadata.effective_address_value == "55"
-        and eip_fact.metadata.effective_address_bits == 32
-        and eip_fact.metadata.effective_address_wrapped == true
-        and eip_fact.metadata.execution_status == "not_observed",
-        "EIP-relative fact must truncate computed address to 32 bits")
-    print("PASS ASM instruction-relative: EIP target obeys address-size truncation")
+        and a32_fact.metadata.effective_address_value == "55"
+        and a32_fact.metadata.effective_address_bits == 32
+        and a32_fact.metadata.effective_address_wrapped == true
+        and a32_fact.metadata.execution_status == "not_observed",
+        "A32 RIP-relative fact must truncate computed address to 32 bits")
+    print("PASS ASM instruction-relative: A32 RIP target truncates to 32 bits")
 
     local rip_focus =
         engine.discover_register_source_occurrences(
