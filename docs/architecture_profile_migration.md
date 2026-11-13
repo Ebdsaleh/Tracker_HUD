@@ -6797,3 +6797,23 @@ The correction keeps persistent carried `family_state` and
 `latest_state_facts` tables for the stack scan and invokes the existing
 register reducer with its full signature. The register reducer itself is
 unchanged.
+
+
+## Accepted stack semantic fixes and instruction-event collection (2026-11-13)
+
+ERIDU accepted the parser-backed boundary/stack integration gate and both
+stack semantic corrections green.
+
+Confirmed:
+
+- known syscall boundary reads resolve from pre-instruction register state;
+- push/pop stack tracking preserves values and depth transitions;
+- carried register state now reaches later stack pushes;
+- pop facts now report the pop/read depth transition rather than the original
+  push transition;
+- instruction-event collection preserves indexed traversal, deduplication,
+  dispatch and final fact ordering;
+- the wider register focus, effective-address, instruction-relative, Inspect
+  and adapter-contract regressions remain green.
+
+Accepted baseline: `4343f62`.
