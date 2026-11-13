@@ -26,6 +26,7 @@ local instruction_event_index = require("tracker_hud.low_level.instruction_event
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
+local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -3452,6 +3453,113 @@ local function apply_stack_effect(facts, adapter, instruction, effect_spec, inst
     if fact then
         table.insert(facts, fact)
     end
+end
+
+
+local function collect_stack_effects_with_module(
+    context,
+    adapter,
+    opts,
+    stack_index,
+    register_index
+)
+    opts = opts or {}
+
+    return stack_effect_collection.collect({
+        context = context,
+        stack_effect_index = stack_index,
+        register_effect_index = register_index,
+
+        collect_nodes = function(node_type)
+            return collect_nodes_by_type(
+                opts.root_node,
+                node_type
+            )
+        end,
+
+        parse_instruction = function(
+            node,
+            representative_effect_spec
+        )
+            return collect_instruction_operands(
+                adapter,
+                node,
+                opts.bufnr,
+                representative_effect_spec
+            )
+        end,
+
+        normalize_mnemonic =
+            normalize_mnemonic,
+
+        new_state =
+            low_level_inference.new_state,
+
+        prepare_stack_state = function(
+            low_level_state,
+            facts_by_register,
+            instruction,
+            stack_effect_specs
+        )
+            return stack_infer.prepare_instruction_state(
+                low_level_state,
+                instruction,
+                stack_effect_specs,
+                {
+                    parse_numeric_value =
+                        parse_numeric_value,
+                    parse_numeric_number =
+                        parse_numeric_number,
+                    resolve_operand_value = function(
+                        operand
+                    )
+                        return register_infer.resolve_operand_value(
+                            facts_by_register,
+                            instruction,
+                            operand,
+                            {
+                                parse_numeric_value =
+                                    parse_numeric_value,
+                            }
+                        )
+                    end,
+                }
+            )
+        end,
+
+        apply_stack_effect = function(
+            facts,
+            instruction,
+            effect_spec,
+            instruction_state
+        )
+            apply_stack_effect(
+                facts,
+                adapter,
+                instruction,
+                effect_spec,
+                instruction_state
+            )
+        end,
+
+        -- Preserve the existing stack-path register update call shape exactly.
+        -- Any semantic correction belongs in a separate, explicitly tested
+        -- change rather than this ownership refactor.
+        apply_register_effect = function(
+            facts_by_register,
+            instruction,
+            effect_spec,
+            instruction_state
+        )
+            apply_register_effect(
+                facts_by_register,
+                adapter,
+                instruction,
+                effect_spec,
+                instruction_state
+            )
+        end,
+    })
 end
 
 
