@@ -6515,3 +6515,24 @@ tests/register_effect_collection_smoke.lua
 It pins node-type traversal, visibility, deduplication, source ordering,
 cursor-column conversion, explicit limit precedence, the `stop_before` alias,
 and incomplete-dependency fail-closed behavior.
+
+
+## Accepted context-engine split tranches 10 and 11 (2026-11-13)
+
+ERIDU accepted both ownership slices green after two narrow test corrections.
+
+Confirmed:
+
+- register-effect node collection preserves indexed-node traversal;
+- cursor visibility, deduplication and source ordering remain correct;
+- explicit limit-position and stop-before behavior remain correct;
+- instruction-event indexing preserves both adapter rule formats and cache identity;
+- parser-backed ASM call/ret instruction events still flow through
+  `context_engine.collect_instruction_events()`;
+- register focus, normalized memory structure, effective-address evaluation,
+  RIP / A32 RIP / REL handling, Inspect target certainty and adapter contracts
+  remained green in the wider gate.
+
+The production implementation required no corrective change; the two RED checks
+were caused by over-constrained test expectations and were corrected in
+`ea8d1c6` and `785dd47`.
