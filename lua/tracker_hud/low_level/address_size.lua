@@ -52,6 +52,21 @@ local function mapped_bits(policy, register_bits)
         or map[tostring(register_bits)]
 end
 
+local function explicit_prefix_register_exception(
+    policy,
+    register_name
+)
+    if type(register_name) ~= "string" then
+        return false
+    end
+
+    local exceptions =
+        policy.explicit_prefix_register_exceptions
+
+    return type(exceptions) == "table"
+        and exceptions[register_name:lower()] == true
+end
+
 function M.resolve(policy, components, resolve_register_bits, opts)
     opts = opts or {}
     if type(policy) ~= "table" then
@@ -144,12 +159,30 @@ function M.resolve(policy, components, resolve_register_bits, opts)
         if #unique_bits == 1
             and unique_bits[1] ~= explicit_bits
         then
-            return unknown("address-size prefix conflicts with registers", {
-                explicit_bits = explicit_bits,
-                register_bits = unique_bits[1],
-                prefix = opts.explicit_prefix,
-                registers = observed,
-            })
+            local conflicts = {}
+
+            for _, item in ipairs(observed) do
+                if item.address_bits ~= explicit_bits
+                    and not explicit_prefix_register_exception(
+                        policy,
+                        item.register
+                    )
+                then
+                    conflicts[#conflicts + 1] = item
+                end
+            end
+
+            if #conflicts > 0 then
+                return unknown(
+                    "address-size prefix conflicts with registers",
+                    {
+                        explicit_bits = explicit_bits,
+                        register_bits = unique_bits[1],
+                        prefix = opts.explicit_prefix,
+                        registers = conflicts,
+                    }
+                )
+            end
         end
 
         return known(explicit_bits, "explicit_prefix", {
