@@ -35,6 +35,7 @@ local syntax_spec = require("tracker_hud.syntax_spec")
 local context_primitives = require("tracker_hud.constructs.context_primitives")
 local branch_presentation = require("tracker_hud.constructs.branch_presentation")
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
+local construct_source_identity = require("tracker_hud.constructs.source_identity")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -107,114 +108,20 @@ M.make_unavailable_context =
     context_primitives.make_unavailable_context
 
 
-function M.get_first_line_text(node, bufnr)
-    local ok, node_text = pcall(vim.treesitter.get_node_text, node, bufnr)
+M.get_first_line_text =
+    construct_source_identity.get_first_line_text
 
-    if not ok or not node_text then
-        return nil
-    end
+M.build_signature =
+    construct_source_identity.build_signature
 
-    return node_text:match("([^\n]+)")
-end
+M.extract_name_from_signature =
+    construct_source_identity.extract_name_from_signature
 
+M.extract_name_from_syntax =
+    construct_source_identity.extract_name_from_syntax
 
-function M.build_signature(node, bufnr, spec)
-    if not core.is_table(spec) or not core.is_table(spec.signature) then
-        return nil
-    end
-
-    if spec.signature.strategy ~= "first_line" then
-        return nil
-    end
-
-    return M.get_first_line_text(node, bufnr)
-
-end
-
-
-function M.extract_name_from_signature(signature, spec)
-    if type(signature) ~= "string" then
-        return nil
-    end
-    
-    if not core.is_table(spec) or not core.is_table(spec.signature) then
-        return nil
-    end
-
-    local signature_spec = spec.signature
-
-    if type(signature_spec.local_name_pattern) == "string" then
-        local name = signature:match(signature_spec.local_name_pattern)
-
-        if name then
-            return name
-        end
-    end
-
-    if type(signature_spec.name_pattern) == "string" then
-        return signature:match(signature_spec.name_pattern)
-    end
-
-    return nil
-end
-
-
-function M.extract_name_from_syntax(
-    node,
-    bufnr,
-    spec
-)
-    if not node or not core.is_table(spec) then
-        return nil
-    end
-
-    local name_field =
-        get_syntax_field(
-            spec,
-            "name"
-        )
-
-    if not name_field then
-        return nil
-    end
-
-    local name_node =
-        require("tracker_hud.treesitter_utils")
-            .get_child_by_field_name(
-                node,
-                name_field
-            )
-
-    if not name_node then
-        return nil
-    end
-
-    return require("tracker_hud.treesitter_utils")
-        .get_node_text(
-            name_node,
-            bufnr
-        )
-end
-
-
-function M.build_construct(opts)
-    opts = opts or {}
-
-    local contract = require("tracker_hud.constructs.contract")
-
-    return contract.new_construct({
-        construct = opts.construct,
-        scope = opts.scope,
-        member = opts.member,
-        value = opts.value,
-
-        node_type = opts.node_type,
-        name = opts.name,
-        signature = opts.signature,
-        range = opts.range,
-        metadata = opts.metadata or {},
-    })
-end
+M.build_construct =
+    construct_source_identity.build_construct
 
 
 M.get_cursor_position =
