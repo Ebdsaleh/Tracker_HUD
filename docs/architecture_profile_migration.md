@@ -7179,3 +7179,106 @@ Confirmed:
   instruction-relative addressing, Inspect and adapter contracts remain green.
 
 Accepted baseline: `0411c80`.
+
+
+## Context-engine split tranche 22 — construct spec validation (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/constructs/spec_validation.lua
+~~~
+
+This module owns adapter construct-spec lookup and validation only:
+
+- construct-spec table/key validation;
+- syntax table and Tree-sitter node-type validation;
+- syntax fields/children/tokens/exclusions shape checks;
+- canonical construct/scope/member/value contract delegation;
+- marker required/optional validation;
+- syntax-token lookup including the legacy token fallback;
+- exact validation error strings used by callers/tests.
+
+`context_engine.get_construct_spec` and
+`context_engine.validate_construct_spec` remain public direct delegates.
+
+New regressions:
+
+~~~
+tests/construct_spec_validation_smoke.lua
+tests/context_engine_construct_validation_smoke.lua
+~~~
+
+## Context-engine split tranche 23 — construct source identity (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/constructs/source_identity.lua
+~~~
+
+This module owns construct source identity helpers only:
+
+- first-line source extraction;
+- first-line signature strategy;
+- local-name then general-name signature-pattern precedence;
+- syntax-field name extraction;
+- canonical construct assembly through `constructs.contract.new_construct`.
+
+`context_engine` keeps the same public helper names as direct delegates.
+`parse_node()` itself remains in `context_engine.lua` and continues to call
+those public helper names, so parse orchestration has not moved in this relay.
+
+New regressions:
+
+~~~
+tests/construct_source_identity_smoke.lua
+tests/context_engine_construct_identity_smoke.lua
+~~~
+
+## Ten-commit relay boundary after tranches 22 and 23
+
+This relay stops after exactly ten commits on top of accepted `0411c80`.
+Construct parse orchestration, register reduction, alias/mask logic, stack and
+boundary inference, memory evaluation and fact construction remain in their
+previous owners.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/construct_spec_validation_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_engine_construct_validation_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/construct_source_identity_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/context_engine_construct_identity_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/context_primitives_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/branch_presentation_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/syntax_spec_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_parser_dispatch_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effect_match_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_source_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
