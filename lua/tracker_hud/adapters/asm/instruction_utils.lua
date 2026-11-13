@@ -1276,6 +1276,40 @@ local function node_source_range(node)
 end
 
 
+local function get_declared_memory_construct(
+    adapter
+)
+    if type(adapter) ~= "table"
+        or type(adapter.construct_specs) ~= "table"
+    then
+        return nil, nil
+    end
+
+    for node_type, construct in pairs(
+        adapter.construct_specs
+    ) do
+        local operand_spec = type(construct) == "table"
+            and construct.operand
+            or nil
+        local memory_spec = type(operand_spec) == "table"
+            and operand_spec.memory
+            or nil
+
+        if type(memory_spec) == "table"
+            and (
+                operand_spec.kind == "memory"
+                or memory_spec.kind == "memory"
+            )
+        then
+            return node_type, memory_spec
+        end
+    end
+
+    return nil, nil
+end
+
+
+
 local function split_source_operands(
     text,
     base_column
@@ -1675,37 +1709,6 @@ local function recover_address_prefixed_instruction(
     }
 end
 
-local function get_declared_memory_construct(
-    adapter
-)
-    if type(adapter) ~= "table"
-        or type(adapter.construct_specs) ~= "table"
-    then
-        return nil, nil
-    end
-
-    for node_type, construct in pairs(
-        adapter.construct_specs
-    ) do
-        local operand_spec = type(construct) == "table"
-            and construct.operand
-            or nil
-        local memory_spec = type(operand_spec) == "table"
-            and operand_spec.memory
-            or nil
-
-        if type(memory_spec) == "table"
-            and (
-                operand_spec.kind == "memory"
-                or memory_spec.kind == "memory"
-            )
-        then
-            return node_type, memory_spec
-        end
-    end
-
-    return nil, nil
-end
 
 
 local function recover_prefixed_memory_operand_from_source(
