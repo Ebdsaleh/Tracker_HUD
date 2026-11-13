@@ -34,7 +34,6 @@ local control_infer = require("tracker_hud.low_level.control_infer")
 
 local M = {}
 
-local stack_effect_index_cache = setmetatable({}, { __mode = "k" })
 
 
 local function get_syntax(spec)
@@ -3348,16 +3347,6 @@ end
 
 
 
-local function get_stack_effect_node_type(effect_spec)
-    if not core.is_table(effect_spec) then
-        return nil
-    end
-
-    return get_syntax_node_type(effect_spec)
-        or effect_spec.node_type
-end
-
-
 local function get_stack_effect_mnemonic(
     effect_spec,
     fallback_mnemonic
@@ -3371,95 +3360,6 @@ local function get_stack_effect_mnemonic(
         or effect_spec.mnemonic
         or fallback_mnemonic
     )
-end
-
-
-local function add_stack_effect_to_index(
-    index,
-    effect_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(index)
-        or not core.is_table(effect_spec)
-    then
-        return
-    end
-
-    local node_type =
-        get_stack_effect_node_type(
-            effect_spec
-        )
-
-    local mnemonic =
-        get_stack_effect_mnemonic(
-            effect_spec,
-            fallback_mnemonic
-        )
-
-    if not core.is_non_empty_string(node_type)
-        or not mnemonic
-    then
-        return
-    end
-
-    index.node_types[node_type] = true
-    index.by_node_type[node_type] =
-        index.by_node_type[node_type] or {}
-
-    local node_bucket =
-        index.by_node_type[node_type]
-
-    node_bucket[mnemonic] =
-        node_bucket[mnemonic] or {}
-
-    table.insert(
-        node_bucket[mnemonic],
-        effect_spec
-    )
-
-    node_bucket.__first =
-        node_bucket.__first or effect_spec
-end
-
-
-local function build_stack_effect_index(stack_effects)
-    local index = {
-        node_types = {},
-        by_node_type = {},
-    }
-
-    if not core.is_table(stack_effects) then
-        return index
-    end
-
-    -- Temporary compatibility with old flat adapter data.
-    for _, effect_spec in ipairs(stack_effects) do
-        add_stack_effect_to_index(
-            index,
-            effect_spec
-        )
-    end
-
-    -- Tree-sitter-first mnemonic-indexed adapter data.
-    for mnemonic, effect_specs in pairs(
-        stack_effects
-    ) do
-        if type(mnemonic) == "string"
-            and core.is_table(effect_specs)
-        then
-            for _, effect_spec in ipairs(
-                effect_specs
-            ) do
-                add_stack_effect_to_index(
-                    index,
-                    effect_spec,
-                    mnemonic
-                )
-            end
-        end
-    end
-
-    return index
 end
 
 
