@@ -185,6 +185,7 @@ local instruction_relative_policy = {
         rip = {
             basis = "next_instruction",
             result_width = "address_size",
+            symbol_mode = "target",
         },
     },
 }
