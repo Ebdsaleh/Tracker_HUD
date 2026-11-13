@@ -19,6 +19,7 @@ local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
+local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -2244,14 +2245,14 @@ local function make_register_fact(
         metadata.partial_value = reduced_state.partial_value
     end
 
-    merge_source_metadata(
+    register_source_metadata.merge(
         metadata,
         source_integer_metadata
     )
 
-    merge_source_metadata(
+    register_source_metadata.merge(
         metadata,
-        build_source_operand_metadata(
+        register_source_metadata.build(
             effect_spec,
             instruction,
             effect,
@@ -2640,10 +2641,11 @@ local function get_memory_operand_role(
     local role = nil
 
     for _, effect_spec in ipairs(effect_specs or {}) do
-        local operand_spec = get_effect_operand_spec(
-            effect_spec,
-            operand_index
-        )
+        local operand_spec =
+            register_source_metadata.get_effect_operand_spec(
+                effect_spec,
+                operand_index
+            )
 
         if core.is_table(operand_spec)
             and core.is_non_empty_string(operand_spec.role)
