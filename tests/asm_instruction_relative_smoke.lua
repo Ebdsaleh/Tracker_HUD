@@ -9,6 +9,9 @@ local function run()
         "bits 64",
         "lea rax, [rip + 16]",
         "a32 lea eax, [rip + 16]",
+        "lea rbx, [rip + msg + 8]",
+        "a32 lea ebx, [rip + msg + 8]",
+        "msg:",
     }
 
     local buffer = vim.api.nvim_create_buf(false, true)
@@ -74,6 +77,24 @@ local function run()
                             record = "a32-rip-instruction",
                         },
                     }
+                elseif query.source_line == 4 then
+                    return {
+                        status = "known",
+                        value = "0x100000200",
+                        provenance = {
+                            source = "fixture listing",
+                            record = "rip-symbol-instruction",
+                        },
+                    }
+                elseif query.source_line == 5 then
+                    return {
+                        status = "known",
+                        value = "0x100000300",
+                        provenance = {
+                            source = "fixture listing",
+                            record = "a32-rip-symbol-instruction",
+                        },
+                    }
                 end
             elseif query.kind == "next_instruction" then
                 if query.source_line == 2 then
@@ -94,7 +115,36 @@ local function run()
                             record = "a32-rip-next",
                         },
                     }
+                elseif query.source_line == 4 then
+                    return {
+                        status = "known",
+                        value = "0x100000207",
+                        provenance = {
+                            source = "fixture listing",
+                            record = "rip-symbol-next",
+                        },
+                    }
+                elseif query.source_line == 5 then
+                    return {
+                        status = "known",
+                        value = "0x100000307",
+                        provenance = {
+                            source = "fixture listing",
+                            record = "a32-rip-symbol-next",
+                        },
+                    }
                 end
+            elseif query.kind == "symbol"
+                and query.name == "msg"
+            then
+                return {
+                    status = "known",
+                    value = "0x100001000",
+                    provenance = {
+                        source = "fixture symbols",
+                        record = "msg",
+                    },
+                }
             end
 
             return {
@@ -228,6 +278,92 @@ local function run()
         and a32_fact.metadata.execution_status == "not_observed",
         "A32 RIP-relative fact must truncate computed address to 32 bits")
     print("PASS ASM instruction-relative: A32 RIP target truncates to 32 bits")
+
+    local rip_symbol = engine.discover_memory_source_operands(
+        buffer,
+        root,
+        adapter,
+        4,
+        {
+            machine_address_providers = {
+                provider,
+            },
+        }
+    )
+
+    assert(#rip_symbol == 1,
+        "RIP symbol line must expose one memory fact")
+
+    local rip_symbol_fact = rip_symbol[1]
+
+    assert(rip_symbol_fact.address.base
+        and rip_symbol_fact.address.base.name == "rip"
+        and rip_symbol_fact.address.symbol
+        and rip_symbol_fact.address.symbol.name == "msg"
+        and rip_symbol_fact.address.displacement
+        and rip_symbol_fact.address.displacement.value == "8"
+        and rip_symbol_fact.symbol_identity
+        and rip_symbol_fact.symbol_identity.status == "known"
+        and rip_symbol_fact.symbol_identity.source_line == 6
+        and rip_symbol_fact.machine_addresses
+        and rip_symbol_fact.machine_addresses.next_instruction.value
+            == "4294967815"
+        and rip_symbol_fact.machine_addresses.symbol.value
+            == "4294971392"
+        and rip_symbol_fact.machine_addresses.symbol.bits == 64
+        and rip_symbol_fact.effective_address.status == "known"
+        and rip_symbol_fact.effective_address.value == "4294971400"
+        and rip_symbol_fact.effective_address.bits == 64
+        and rip_symbol_fact.effective_address.wrapped == false
+        and rip_symbol_fact.effective_address.components.symbol.value
+            == "4294971392"
+        and rip_symbol_fact.effective_address.components.symbol.mode
+            == "target"
+        and rip_symbol_fact.effective_address.components.relative_delta
+            == "3585"
+        and rip_symbol_fact.metadata.execution_status == "not_observed",
+        "RIP-relative symbol must resolve from provider target evidence")
+    print("PASS ASM instruction-relative: RIP symbol target + addend resolves")
+
+    local a32_rip_symbol =
+        engine.discover_memory_source_operands(
+            buffer,
+            root,
+            adapter,
+            5,
+            {
+                machine_address_providers = {
+                    provider,
+                },
+            }
+        )
+
+    assert(#a32_rip_symbol == 1,
+        "A32 RIP symbol line must expose one memory fact")
+
+    local a32_rip_symbol_fact = a32_rip_symbol[1]
+
+    assert(a32_rip_symbol_fact.address.base
+        and a32_rip_symbol_fact.address.base.name == "rip"
+        and a32_rip_symbol_fact.address.symbol
+        and a32_rip_symbol_fact.address.symbol.name == "msg"
+        and a32_rip_symbol_fact.address.address_size_bits == 32
+        and a32_rip_symbol_fact.address.address_size_source
+            == "explicit_prefix"
+        and a32_rip_symbol_fact.machine_addresses.symbol.value
+            == "4294971392"
+        and a32_rip_symbol_fact.machine_addresses.symbol.bits == 64
+        and a32_rip_symbol_fact.effective_address.status == "known"
+        and a32_rip_symbol_fact.effective_address.value == "4104"
+        and a32_rip_symbol_fact.effective_address.bits == 32
+        and a32_rip_symbol_fact.effective_address.wrapped == true
+        and a32_rip_symbol_fact.effective_address.components.exact_target
+            == "4294971400"
+        and a32_rip_symbol_fact.effective_address.components.relative_delta
+            == "3329"
+        and a32_rip_symbol_fact.metadata.execution_status == "not_observed",
+        "A32 RIP-relative symbol must truncate only after exact target arithmetic")
+    print("PASS ASM instruction-relative: A32 RIP symbol target truncates after composition")
 
     local rip_focus =
         engine.discover_register_source_occurrences(
