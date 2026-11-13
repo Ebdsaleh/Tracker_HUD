@@ -3579,7 +3579,8 @@ local function evaluate_memory_address_before_instruction(
     adapter,
     instruction,
     address,
-    machine_addresses
+    machine_addresses,
+    instruction_relative_policy
 )
     if not bufnr
         or not root_node
@@ -3608,8 +3609,13 @@ local function evaluate_memory_address_before_instruction(
         }
     end
 
-    if address.address_mode == "relative"
-        and core.is_table(machine_addresses)
+    if relative_address.requires_next_instruction(
+        address,
+        {
+            instruction_relative_policy =
+                instruction_relative_policy,
+        }
+    )
     then
         return relative_address.evaluate(
             address,
@@ -3618,6 +3624,8 @@ local function evaluate_memory_address_before_instruction(
                 bits = adapter.metadata
                     and adapter.metadata.bits
                     or nil,
+                instruction_relative_policy =
+                    instruction_relative_policy,
             }
         )
     end
@@ -3743,6 +3751,34 @@ local function get_memory_symbol_resolution_policy(
 end
 
 
+local function get_memory_instruction_relative_policy(
+    adapter,
+    operand
+)
+    if not core.is_table(adapter)
+        or not core.is_table(operand)
+        or not core.is_non_empty_string(operand.node_type)
+    then
+        return nil
+    end
+
+    local construct_specs = adapter.construct_specs
+    local construct = core.is_table(construct_specs)
+        and construct_specs[operand.node_type]
+        or nil
+    local operand_spec = core.is_table(construct)
+        and construct.operand
+        or nil
+    local memory_spec = core.is_table(operand_spec)
+        and operand_spec.memory
+        or nil
+
+    return core.is_table(memory_spec)
+        and memory_spec.instruction_relative
+        or nil
+end
+
+
 local function resolve_memory_symbol_identity(
     members,
     adapter,
@@ -3820,7 +3856,8 @@ local function resolve_memory_machine_addresses(
     adapter,
     instruction,
     address,
-    symbol_identity
+    symbol_identity,
+    instruction_relative_policy
 )
     if not has_machine_address_providers(providers)
         or not core.is_table(instruction)
@@ -3861,13 +3898,12 @@ local function resolve_memory_machine_addresses(
     }
 
     local needs_next_instruction =
-        address.address_mode == "relative"
-        or (
-            address.base
-            and (
-                address.base.name == "rip"
-                or address.base.name == "eip"
-            )
+        relative_address.requires_next_instruction(
+            address,
+            {
+                instruction_relative_policy =
+                    instruction_relative_policy,
+            }
         )
 
     if needs_next_instruction then
@@ -4170,6 +4206,12 @@ local function collect_memory_source_operands_where(
                                 operand
                             )
 
+                        local instruction_relative_policy =
+                            get_memory_instruction_relative_policy(
+                                adapter,
+                                operand
+                            )
+
                         local machine_addresses =
                             resolve_memory_machine_addresses(
                                 opts.machine_address_providers,
@@ -4178,7 +4220,8 @@ local function collect_memory_source_operands_where(
                                 operand.memory
                                     and operand.memory.normalized
                                     or nil,
-                                symbol_identity
+                                symbol_identity,
+                                instruction_relative_policy
                             )
 
                         local evaluation
@@ -4196,7 +4239,8 @@ local function collect_memory_source_operands_where(
                                     adapter,
                                     instruction,
                                     operand.memory.normalized,
-                                    machine_addresses
+                                    machine_addresses,
+                                    instruction_relative_policy
                                 )
                         end
 
@@ -4388,13 +4432,20 @@ function M.discover_register_source_occurrences(
                                         operand
                                     )
 
+                                local instruction_relative_policy =
+                                    get_memory_instruction_relative_policy(
+                                        adapter,
+                                        operand
+                                    )
+
                                 machine_addresses =
                                     resolve_memory_machine_addresses(
                                         opts.machine_address_providers,
                                         adapter,
                                         instruction,
                                         operand.memory.normalized,
-                                        symbol_identity
+                                        symbol_identity,
+                                        instruction_relative_policy
                                     )
 
                                 evaluation =
@@ -4404,7 +4455,8 @@ function M.discover_register_source_occurrences(
                                         adapter,
                                         instruction,
                                         operand.memory.normalized,
-                                        machine_addresses
+                                        machine_addresses,
+                                        instruction_relative_policy
                                     )
                             end
 
