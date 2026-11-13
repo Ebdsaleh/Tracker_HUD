@@ -56,8 +56,8 @@ assert(resolved.status == "known"
     "REL symbol must resolve from proven next-instruction and symbol addresses")
 print("PASS relative address: proven REL symbol target resolves exactly")
 
-assert(resolved.value ~= "4096"
-    and resolved.value > "4294967295",
+assert(resolved.value == "4294971392"
+    and resolved.bits == 64,
     "A32 source structure must not truncate the 64-bit machine target")
 print("PASS relative address: A32 source width stays separate from machine width")
 
