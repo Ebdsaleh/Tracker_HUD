@@ -5612,3 +5612,47 @@ Additional commits:
 a9f7c1b fix(asm): avoid duplicate recovered memory operands
 bcdfa7d test(asm): isolate A32 REL parser diagnostics
 ~~~
+
+### Definitive prefixed-instruction recovery strategy
+
+ERIDU exposed a second Tree-sitter shape for `a32 lea rsi, [rel msg]`:
+
+~~~
+mnemonic = a32
+prefixes = 0
+operands = lea, rsi, msg
+~~~
+
+This shape contains no usable ERROR subtree and no usable memory operand, so ERROR-node recovery cannot be the primary strategy.
+
+The parser now uses source reconstruction whenever the grammar-selected mnemonic itself is an adapter-declared address-size prefix.
+
+Source reconstruction:
+
+1. confirms the prefix through the adapter's `address_size_policy.prefixes`;
+2. reads the physical instruction source span;
+3. extracts the semantic mnemonic immediately after the prefix;
+4. splits operand source text on top-level commas while respecting brackets, parentheses, braces, and quoted strings;
+5. classifies register/integer/symbol operands through the adapter register index and normal token classifier;
+6. classifies bracketed operands through the adapter-declared memory construct;
+7. sends memory operands through the existing `analyze_memory_operand()` normalizer;
+8. returns the reconstructed semantic instruction directly.
+
+ERROR-node recovery remains only as a fallback if source reconstruction cannot be performed.
+
+This makes A32/A64 recovery independent of whether Tree-sitter chooses:
+
+~~~
+word + ERROR + ptr
+or
+word + flattened reg/ident-like children
+~~~
+
+while keeping the prefix and memory grammar adapter-owned.
+
+New commits:
+
+~~~
+396cf55 fix(asm): reconstruct prefixed instructions from source
+a26ee48 fix(asm): keep source recovery helpers in local scope
+~~~
