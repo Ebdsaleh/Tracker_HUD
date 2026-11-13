@@ -1568,6 +1568,54 @@ local function recover_prefixed_instruction_from_source(
         end_column
     )
 
+    -- A prefixed instruction can put tree-sitter into error recovery where
+    -- the instruction node stops immediately before a closing memory bracket.
+    -- Source-first recovery must repair that parser-owned range before
+    -- classifying operands; otherwise "[rel msg]" becomes "[rel msg" and is
+    -- necessarily classified as a symbol.
+    local brackets = type(prefix_memory_spec) == "table"
+        and prefix_memory_spec.brackets
+        or nil
+    local open_token = type(brackets) == "table"
+        and brackets.open
+        or nil
+    local close_token = type(brackets) == "table"
+        and brackets.close
+        or nil
+
+    if type(open_token) == "string"
+        and open_token ~= ""
+        and type(close_token) == "string"
+        and close_token ~= ""
+    then
+        local open_start = instruction_text:find(
+            open_token,
+            1,
+            true
+        )
+
+        if open_start
+            and not instruction_text:find(
+                close_token,
+                open_start + #open_token,
+                true
+            )
+        then
+            local close_start = line:find(
+                close_token,
+                end_column + 1,
+                true
+            )
+
+            if close_start then
+                instruction_text = line:sub(
+                    start_column + 1,
+                    close_start + #close_token - 1
+                )
+            end
+        end
+    end
+
     local prefix_pattern =
         "^%s*"
         .. vim.pesc(prefix)
