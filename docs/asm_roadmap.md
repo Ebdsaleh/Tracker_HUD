@@ -145,3 +145,45 @@ The safest next implementation tranche is:
 3. Split `context_engine.lua` once the validation samples give us a safety net.
 
 This keeps the project moving without risking another hidden loader breakage.
+
+
+## 2026-11-13 status update
+
+The memory-operand foundation has moved substantially beyond the original
+roadmap note.
+
+Accepted on ERIDU:
+
+- structured base/index/scale/displacement modeling;
+- explicit A32/A64 address-size semantics;
+- source-symbol identity with forward-label handling;
+- machine-address provider evidence;
+- explicit REL target evaluation;
+- RIP-relative next-instruction evaluation;
+- A32 RIP-relative truncation after exact arithmetic;
+- RIP-relative symbol + addend target composition;
+- Registers Inspect presentation of proven target certainty without implying
+  runtime execution;
+- provider-aware Inspect source-index invalidation.
+
+The remaining roadmap priority is therefore no longer "add RIP-relative
+addressing" as a missing operand-model feature. That foundation is accepted.
+
+The next structural priority is the existing item **Split
+`context_engine.lua`**. Start with mechanical, behavior-preserving
+extractions backed by the parser and low-level regression suite.
+
+First split tranche now on main, pending ERIDU acceptance:
+
+~~~
+lua/tracker_hud/low_level/memory_source_evidence.lua
+tests/memory_source_evidence_smoke.lua
+~~~
+
+It extracts source-symbol / machine-address / flattened certainty metadata
+plumbing from `context_engine.lua` without changing public APIs or intended
+HUD behavior.
+
+Do not combine this refactor with new instruction semantics. Keep each split
+small enough that the already-green memory, register-focus and Inspect gates
+can identify the exact ownership move that caused any regression.
