@@ -272,6 +272,14 @@ local function append_selected_memory_details(children, register, metadata)
     append_metadata_detail(
         children,
         register,
+        "effective-target-wrapped",
+        "target wrapped",
+        metadata.memory_effective_address_wrapped
+    )
+
+    append_metadata_detail(
+        children,
+        register,
         "effective-target-reason",
         "target reason",
         metadata.memory_effective_address_reason
