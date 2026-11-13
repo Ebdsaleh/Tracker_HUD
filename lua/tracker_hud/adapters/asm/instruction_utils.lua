@@ -1502,23 +1502,6 @@ local function classify_source_operand(
             recovered_from_source = true,
             recovery_reason =
                 "prefixed instruction source reconstruction",
-            memory_recovery_diagnostic = {
-                memory_spec_available = memory_spec_available,
-                prefix_memory_spec_available =
-                    type(prefix_memory_spec) == "table",
-                node_type = node_type,
-                bracket_match = bracket_start ~= nil,
-                analysis_available = memory ~= nil,
-                bracket_open = memory_spec_available
-                    and memory_spec.brackets
-                    and memory_spec.brackets.open
-                    or nil,
-                bracket_close = memory_spec_available
-                    and memory_spec.brackets
-                    and memory_spec.brackets.close
-                    or nil,
-                source_start_column = start_column,
-            },
         },
     }
 end
