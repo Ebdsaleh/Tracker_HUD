@@ -180,7 +180,10 @@ local nodes = collection.collect({
         },
     },
     config = {
-        allow_before = true,
+        -- The cursor is before same_hidden, so keep before-instruction
+        -- summaries disabled in this scenario. same_allowed remains inside
+        -- the instruction range and must still be collected.
+        allow_before = false,
         allow_after = false,
     },
     node_types = {
