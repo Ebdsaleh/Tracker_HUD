@@ -6217,3 +6217,100 @@ nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
 ~~~
 
 Do not take the seventh ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranche 6 (2026-11-13)
+
+ERIDU accepted the sixth refactor-only split green.
+
+Confirmed:
+
+- `tests/register_source_collection_smoke.lua` passes independently;
+- register source-occurrence construction remains green;
+- shared operand metadata remains green;
+- source-memory collection remains green;
+- real parser-backed register focus remains green;
+- normalized memory structure remains green;
+- Inspect target certainty/cache behavior remains green;
+- RIP / A32 RIP / REL evaluation remains green;
+- effective-address evaluation remains green.
+
+The extracted register source collector therefore preserves line filtering,
+node-range deduplication, normalized-memory evaluation boundaries, occurrence
+ordering, memory certainty attachment and syntax-only focus.
+
+## Context-engine split tranche 7 (2026-11-13)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_index.lua
+~~~
+
+This module owns register-effect rule indexing and candidate selection:
+
+- weak-key caching keyed by the adapter's `register_effects` table;
+- node-type indexing;
+- normalized mnemonic buckets;
+- support for both the current/legacy flat rule array and the newer
+  mnemonic-indexed adapter format;
+- preservation of the first representative rule used to guide instruction
+  parsing;
+- candidate selection after an instruction has been parsed;
+- delegation to the existing operand matcher and condition matcher.
+
+It deliberately does **not** own:
+
+- adapter syntax interpretation;
+- Tree-sitter instruction parsing;
+- operand-match semantics;
+- effect-condition semantics;
+- register-state replay;
+- register-effect application.
+
+`context_engine.lua` still supplies those semantics through wiring callbacks.
+
+The old context-local weak-key register-effect cache and index builder have
+been removed. The context engine keeps only small wiring functions that provide
+its existing syntax accessors/parser/match predicates to the extracted module.
+
+New pure regression:
+
+~~~
+tests/register_effect_index_smoke.lua
+~~~
+
+It pins:
+
+- legacy flat rule indexing;
+- mnemonic-indexed rule indexing;
+- mnemonic normalization;
+- invalid-rule filtering;
+- representative-rule preservation;
+- adapter index cache identity;
+- parse-once candidate matching;
+- continued delegation of operand and condition predicates;
+- fail-closed behavior for unknown node types, parse failures and incomplete
+  dependencies.
+
+### ERIDU gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -8 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_effect_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_occurrence_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/operand_metadata_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_infer_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+~~~
+
+Do not take the eighth ownership slice until this gate is accepted green.
