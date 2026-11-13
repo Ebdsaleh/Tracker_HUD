@@ -390,16 +390,6 @@ local function evaluate_register_relative(
         )
     end
 
-    if address.symbol ~= nil then
-        return unknown(
-            "instruction-relative symbol component unsupported",
-            {
-                base = base.name,
-                symbol = address.symbol.name,
-            }
-        )
-    end
-
     if address.index ~= nil
         or address.scale ~= nil
     then
@@ -420,17 +410,99 @@ local function evaluate_register_relative(
         return displacement_error
     end
 
-    local exact_target = integer_value.add(
-        basis_value,
-        displacement
-    )
-
-    if not exact_target then
-        return unknown("relative target arithmetic failed")
-    end
-
     local basis_bits =
         evidence_bits(next_instruction)
+    local exact_target = nil
+    local relative_delta = nil
+    local symbol_component = nil
+
+    if address.symbol ~= nil then
+        if base_spec.symbol_mode ~= "target" then
+            return unknown(
+                "instruction-relative symbol component unsupported",
+                {
+                    base = base.name,
+                    symbol = address.symbol.name,
+                }
+            )
+        end
+
+        local symbol_evidence =
+            machine_addresses.symbol
+        local symbol_value =
+            exact_evidence(symbol_evidence)
+
+        if not symbol_value then
+            return unknown(
+                "symbol machine address unresolved",
+                {
+                    base = base.name,
+                    symbol = address.symbol.name,
+                    evidence_status =
+                        type(symbol_evidence) == "table"
+                        and symbol_evidence.status
+                        or nil,
+                    evidence_reason =
+                        type(symbol_evidence) == "table"
+                        and symbol_evidence.reason
+                        or nil,
+                }
+            )
+        end
+
+        local symbol_bits =
+            evidence_bits(symbol_evidence)
+
+        if basis_bits ~= nil
+            and symbol_bits ~= nil
+            and basis_bits ~= symbol_bits
+        then
+            return unknown(
+                "machine address width mismatch",
+                {
+                    next_instruction_bits = basis_bits,
+                    symbol_bits = symbol_bits,
+                }
+            )
+        end
+
+        exact_target = integer_value.add(
+            symbol_value,
+            displacement
+        )
+
+        if not exact_target then
+            return unknown("relative target arithmetic failed")
+        end
+
+        relative_delta = integer_value.add(
+            exact_target,
+            integer_value.negate(basis_value)
+        )
+
+        if not relative_delta then
+            return unknown("relative delta arithmetic failed")
+        end
+
+        symbol_component = {
+            name = address.symbol.name,
+            value = symbol_value,
+            bits = symbol_bits,
+            mode = base_spec.symbol_mode,
+        }
+    else
+        exact_target = integer_value.add(
+            basis_value,
+            displacement
+        )
+
+        if not exact_target then
+            return unknown("relative target arithmetic failed")
+        end
+
+        relative_delta = displacement
+    end
+
     local bits = result_bits_for_base(
         address,
         basis_bits,
@@ -461,14 +533,17 @@ local function evaluate_register_relative(
             base = {
                 name = base.name,
                 result_width = base_spec.result_width,
+                symbol_mode = base_spec.symbol_mode,
             },
+            symbol = symbol_component,
             source_displacement = displacement,
-            relative_delta = displacement,
+            relative_delta = relative_delta,
             exact_target = exact_target,
         },
         wrapped
     )
 end
+
 
 function M.evaluate(address, machine_addresses, opts)
     opts = opts or {}
