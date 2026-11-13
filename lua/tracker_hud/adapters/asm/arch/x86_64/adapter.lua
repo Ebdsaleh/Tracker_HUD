@@ -367,6 +367,7 @@ M.construct_specs = {
                         rip = {
                             basis = "next_instruction",
                             result_width = "address_size",
+                            symbol_mode = "target",
                         },
                     },
                 },
