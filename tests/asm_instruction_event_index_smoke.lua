@@ -23,7 +23,6 @@ local function run()
             "call target",
             "ret",
             "target:",
-            "nop",
         }
     )
 
@@ -92,7 +91,7 @@ local function run()
         engine.collect_instruction_events(
             {
                 cursor = {
-                    line = 4,
+                    line = 3,
                     column = 1,
                 },
             },
@@ -105,7 +104,7 @@ local function run()
 
     assert(
         #facts == 2,
-        "expected call + ret events, got "
+        "expected call + ret events from focused sample, got "
             .. tostring(#facts)
     )
 
