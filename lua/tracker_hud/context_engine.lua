@@ -36,6 +36,7 @@ local context_primitives = require("tracker_hud.constructs.context_primitives")
 local branch_presentation = require("tracker_hud.constructs.branch_presentation")
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
 local construct_source_identity = require("tracker_hud.constructs.source_identity")
+local construct_parser = require("tracker_hud.constructs.parser")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
@@ -228,116 +229,11 @@ M.get_node_range =
     context_primitives.get_node_range
 
 
-function M.match_node(adapter, node)
-    if not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
-        return false
-    end
+M.match_node =
+    construct_parser.match_node
 
-    local node_type = M.get_node_type(node)
-
-    if not node_type then
-        return false
-    end
-
-    return adapter.construct_specs[node_type] ~= nil
-end
-
-
-
-function M.parse_node(adapter, node, bufnr)
-    if not core.is_table(adapter) then
-        return nil, "adapter must be a table"
-    end
-
-    if not core.is_table(adapter.construct_specs) then
-        return nil, "adapter.construct_specs must be a table"
-    end
-
-    local node_type = M.get_node_type(node)
-
-    local spec, spec_err = M.get_construct_spec(
-        adapter.construct_specs,
-        node_type
-    )
-
-    if not spec then
-        return nil, spec_err
-    end
-
-    local range = M.get_node_range(node)
-
-    if not range then
-        return nil, "could not get node range"
-    end
-
-    local construct_spec = spec.construct or {}
-
-    local signature = nil
-    local name = nil
-
-    if core.is_table(spec.signature) then
-        signature = M.build_signature(
-            node,
-            bufnr,
-            spec
-        )
-    end
-
-    --
-    -- Tree-sitter fields are authoritative for syntax identity.
-    -- Text-pattern parsing is only a fallback when the grammar does not
-    -- expose the requested field on this construct.
-    --
-    name = M.extract_name_from_syntax(
-        node,
-        bufnr,
-        spec
-    )
-
-    if not name and signature then
-        name = M.extract_name_from_signature(
-            signature,
-            spec
-        )
-    end
-
-    local label = construct_spec.label
-        or "<unknown>"
-
-    local display_label = nil
-
-    if core.is_table(spec.branch) then
-        display_label = M.build_branch_display_label(
-            node,
-            spec
-        )
-
-        label = display_label
-    end
-
-    local resolved_construct =
-        vim.deepcopy(construct_spec)
-
-    resolved_construct.label = label
-
-    return M.build_construct({
-        construct = resolved_construct,
-
-        scope = spec.scope,
-        member = spec.member,
-        value = spec.value,
-
-        node_type = node_type,
-        name = name,
-        signature = signature,
-        range = range,
-
-        metadata = {
-            adapter = adapter.name,
-            display_label = display_label,
-        },
-    })
-end
+M.parse_node =
+    construct_parser.parse_node
 
 
 M.get_construct_spec =
