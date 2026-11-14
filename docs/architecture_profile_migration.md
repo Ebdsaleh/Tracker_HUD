@@ -10105,3 +10105,34 @@ If GREEN, re-run the exact committed performance fixture and compare
 `context.configure` against the current 21.977 ms average / 48.294 ms max.
 
 If RED, stop and fix only this cache tranche.
+
+## Accepted adapter configuration cache tranche (2026-11-15)
+
+ERIDU accepted the adapter configuration cache tranche green at `9d08238`.
+
+Confirmed:
+
+- unchanged active buffer/config reuse proof passes;
+- changedtick invalidation and post-edit stabilization pass;
+- runtime config identity invalidation passes;
+- buffer-switch mutable-state ownership passes;
+- registry mutation invalidation passes;
+- failed configuration attempts are not cached;
+- real ASM target-state reuse passes;
+- ASM source directive edit invalidation passes;
+- ASM buffer-switch target ownership passes;
+- cumulative suite reports `143/143` GREEN;
+- `tracker_full.bat` reports full-gate GREEN.
+
+Accepted baseline: `9d08238`.
+
+The next authoritative step is to rerun the exact committed performance fixture
+and compare `context.configure` against the pre-cache baseline:
+
+~~~text
+avg=21.977 ms
+max=48.294 ms
+~~~
+
+No further optimization work should be accepted until that measurement is
+captured.
