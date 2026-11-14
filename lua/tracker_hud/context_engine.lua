@@ -240,6 +240,10 @@ local function collect_nodes_by_type(
 end
 
 
+local get_register_fact_for_read =
+    register_state_read.get_fact_for_read
+
+
 local parse_numeric_value =
     register_value_policy.parse_numeric_value
 
