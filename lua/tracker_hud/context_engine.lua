@@ -43,6 +43,7 @@ local register_value_policy = require("tracker_hud.low_level.register_value_poli
 local register_effect_value = require("tracker_hud.low_level.register_effect_value")
 local register_value_mask = require("tracker_hud.low_level.register_value_mask")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
+local stack_effect_match = require("tracker_hud.low_level.stack_effect_match")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
 local control_infer = require("tracker_hud.low_level.control_infer")
 
@@ -1776,71 +1777,14 @@ local function get_stack_effect_index(adapter)
 end
 
 
-local function stack_operand_value_matches(operand, operand_spec)
-    if type(operand_spec.value) ~= "string" then
-        return true
-    end
+local stack_operand_value_matches =
+    stack_effect_match.operand_value_matches
 
-    if not core.is_table(operand) or not core.is_non_empty_string(operand.text) then
-        return false
-    end
+local stack_operand_matches_spec =
+    stack_effect_match.operand_matches_spec
 
-    return operand.text:lower() == operand_spec.value:lower()
-end
-
-local function stack_operand_matches_spec(adapter, operand, operand_spec)
-    if not core.is_table(operand) or not core.is_table(operand_spec) then
-        return false
-    end
-
-    if type(operand_spec.kind) == "string"
-        and operand.kind ~= operand_spec.kind
-    then
-        -- ASM registers can sometimes appear as symbol-like words depending
-        -- on the exact instruction shape. Treat known architecture registers
-        -- as registers for stack-effect matching.
-        if operand_spec.kind == "register"
-            and core.is_non_empty_string(operand.text)
-            and get_static_register_spec(adapter, operand.text)
-        then
-            return true
-        end
-
-        return false
-    end
-
-    return true
-end
-
-
-local function stack_operands_match_effect(adapter, instruction, effect_spec)
-    if not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return false
-    end
-
-    for _, operand_spec in ipairs(effect_spec.operands or {}) do
-        local index = tonumber(operand_spec.index)
-
-        if not index then
-            return false
-        end
-
-        local operand = instruction.operands and instruction.operands[index]
-
-        if not stack_operand_matches_spec(adapter, operand, operand_spec) then
-            return false
-        end
-
-        if not stack_operand_value_matches(operand, operand_spec) then
-            return false
-        end
-    end
-
-    return true
-end
+local stack_operands_match_effect =
+    stack_effect_match.operands_match_effect
 
 
 local function make_stack_fact(adapter, instruction, effect_spec, instruction_state)
