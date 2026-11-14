@@ -468,6 +468,10 @@ local function attach_context_sections(
         phase
     )
 
+    -- Shared immutable register-effect source indexing for this refresh.
+    -- Consumers still own independent mutable reduction/replay state.
+    local register_source_cache = {}
+
     phase =
         profile_begin(
             profile_token,
@@ -521,6 +525,8 @@ local function attach_context_sections(
                 bufnr = bufnr,
                 root_node = root_node,
                 config = config,
+                register_source_cache =
+                    register_source_cache,
             }
         )
 
@@ -555,6 +561,8 @@ local function attach_context_sections(
                     bufnr = bufnr,
                     root_node = root_node,
                     config = config,
+                    register_source_cache =
+                        register_source_cache,
                     limit_position = {
                         line =
                             context.cursor.line,
@@ -606,6 +614,8 @@ local function attach_context_sections(
                 {
                     bufnr = bufnr,
                     root_node = root_node,
+                    register_source_cache =
+                        register_source_cache,
                 }
             )
 
@@ -660,6 +670,8 @@ local function attach_context_sections(
                         machine_address_providers =
                             config
                                 .machine_address_providers,
+                        register_source_cache =
+                            register_source_cache,
                     }
                 )
     end
