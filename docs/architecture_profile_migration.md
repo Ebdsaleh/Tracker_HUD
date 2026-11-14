@@ -8351,3 +8351,130 @@ Confirmed:
   boundary, instruction-event and adapter contracts remain green.
 
 Accepted baseline: `90f0bd5`.
+
+## Context-engine split tranche 38 — shared low-level rule syntax policy (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/rule_syntax.lua
+~~~
+
+This module owns the common read-only syntax policy shared by register,
+boundary, stack and instruction-event rule indexes:
+
+- Tree-sitter-first node-type lookup with legacy `node_type` fallback;
+- Tree-sitter-first `kind` mnemonic lookup with legacy/fallback mnemonic;
+- common mnemonic normalization;
+- index callback packaging.
+
+The four indexes remain separate owners of their own caches/buckets and semantic
+collection behavior.
+
+`context_engine.lua` no longer directly requires `syntax_spec` for these
+low-level rules and no longer carries four duplicate mnemonic/index-policy
+implementations.
+
+New regressions:
+
+~~~
+tests/rule_syntax_smoke.lua
+tests/asm_rule_syntax_smoke.lua
+~~~
+
+The ASM proof checks real x86-64 register, stack, boundary and instruction-event
+rules: `mov`, `push`, `syscall`, and `call`.
+
+## Context-engine split tranche 39 — shared register-effect selection (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_selection.lua
+~~~
+
+This module owns generic selection of register-effect candidates from an
+already-built register-effect index:
+
+- node-type bucket lookup;
+- normalized mnemonic bucket lookup;
+- generic operand matching;
+- generic condition matching;
+- representative-rule parser dispatch for node-based selection.
+
+Adapter parsing and mnemonic policy remain injected. Register-effect indexing,
+fact construction, publication and replay remain in their existing owners.
+
+Both register-source Inspect discovery and memory-source collection now use the
+same selection policy. `context_engine.lua` no longer directly requires
+`effect_match`.
+
+New regressions:
+
+~~~
+tests/register_effect_selection_smoke.lua
+tests/asm_register_effect_selection_smoke.lua
+~~~
+
+The parser-backed proof parses real `mov rax, 42` and requires exactly the
+`mov_register_immediate` rule to survive selection.
+
+## Static audit at pending head
+
+`context_engine.lua`: 1275 lines.
+
+Expected ownership markers:
+
+- exact `rule_syntax` require: 1
+- direct `syntax_spec` require: 0
+- exact `register_effect_selection` require: 1
+- direct `effect_match` require: 0
+- local register index definition: 1
+- local boundary index definition: 1
+- local instruction-event index definition: 1
+- local stack index definition: 1
+- local register-effect matching wrapper: 1
+
+The source-discovery collection wiring remains in `context_engine.lua`
+intentionally; this relay moves shared policy only.
+
+## Ten-commit relay boundary after tranches 38 and 39
+
+This relay stops after exactly ten commits on top of accepted `90f0bd5`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/rule_syntax_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/asm_rule_syntax_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_selection_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_selection_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay and re-audit the remaining source
+collection wiring before choosing the next ownership slice.
