@@ -10515,3 +10515,38 @@ total avg=60.236 ms max=128.527 ms
 
 The desired result is lower setup cost across multiple register-history
 consumers, not merely another source-memory-only improvement.
+
+## Accepted shared immutable register-source index tranche (2026-11-15)
+
+ERIDU accepted the shared register-source indexing tranche green at `a4f2ed9`.
+
+Confirmed:
+
+- prepared-source full reduction matches legacy full reduction;
+- prepared-source collection does not rescan the source tree;
+- independent replay sessions can reuse the same immutable prepared source;
+- one context refresh builds the prepared register source exactly once;
+- normal Registers and registers-before retain independent reductions;
+- boundary and source-memory retain independent replay sessions;
+- mutable replay/reduction state is not shared between consumers;
+- cumulative suite reports `147/147` GREEN;
+- `tracker_full.bat` reports full-gate GREEN.
+
+Accepted semantic baseline: `a4f2ed9`.
+
+The next authoritative step is a fresh run of the exact committed performance
+fixture before changing another subsystem.
+
+Primary comparison is against the mixed source-memory profile:
+
+~~~text
+context avg=49.316 ms
+source_memory avg=8.415 ms max=21.885 ms
+registers avg=5.213 ms max=15.810 ms
+registers_before avg=4.464 ms max=23.122 ms
+boundary avg=5.556 ms max=19.425 ms
+total avg=60.236 ms max=128.527 ms
+~~~
+
+The goal of this tranche is lower shared setup/indexing cost across register
+history consumers, not merely another source-memory-only reduction.
