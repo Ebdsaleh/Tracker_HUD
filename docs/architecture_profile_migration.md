@@ -8187,3 +8187,144 @@ Confirmed:
   addressing, Inspect and adapter contracts remain green.
 
 Accepted baseline: `5dcd3a4`.
+
+## Context-engine split tranche 36 — register-effect application wrapper (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_apply.lua
+~~~
+
+This module owns only the final register-effect application gate:
+
+- injected syntax-derived mnemonic matching;
+- generic operand and condition matching;
+- delegation to `register_fact_builder.build`;
+- delegation to `register_state_write.publish`.
+
+It does not resolve register values, compose alias masks, construct publication
+policy, or own the ordered register-processing loop.
+
+`context_engine.lua` no longer directly requires `register_fact_builder` or
+`register_state_write`; it keeps only a tiny syntax-policy wrapper around the
+new module.
+
+New regressions:
+
+~~~
+tests/register_effect_apply_smoke.lua
+tests/asm_register_effect_apply_smoke.lua
+~~~
+
+The parser-backed ASM proof keeps `mov rax, 41; inc rax` reduced to one
+canonical resolved RAX fact with value `42` and effect `inc_register`.
+
+## Context-engine split tranche 37 — source-time memory-address evaluator (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/memory_address_evaluator.lua
+~~~
+
+This module owns coordination of one normalized source-memory address:
+
+- validate source-time evaluation context;
+- choose instruction-relative evaluation when required;
+- otherwise replay register effects only up to the memory instruction;
+- index canonical/source register facts for read projection;
+- preserve partial/unknown register certainty;
+- delegate arithmetic to `effective_address.evaluate`.
+
+It does not parse memory operands, resolve source symbols, provide machine
+addresses, match memory-access policy, read process memory, or claim runtime
+execution.
+
+`context_engine.lua` now injects only `M.collect_register_effects` into this
+module. Direct `effective_address` and `relative_address` dependencies moved
+out of the context engine.
+
+New regressions:
+
+~~~
+tests/memory_address_evaluator_smoke.lua
+tests/asm_memory_address_evaluator_smoke.lua
+~~~
+
+The parser-backed proof uses:
+
+~~~
+bits 64
+mov rax, 0x1000
+mov rbx, [rax + 8]
+mov rax, 0x2000
+~~~
+
+The line-3 source memory operand must evaluate to decimal `4104` from
+pre-instruction RAX value `4096`; the later RAX write must not leak backward.
+The resulting source fact must remain `execution_status = not_observed`.
+
+## Static audit at pending head
+
+`context_engine.lua`: 1433 lines.
+
+Expected ownership markers:
+
+- exact `register_effect_apply` require: 1
+- direct `register_fact_builder` require: 0
+- direct `register_state_write` require: 0
+- exact `memory_address_evaluator` require: 1
+- direct `effective_address` require: 0
+- direct `relative_address` require: 0
+- local `apply_register_effect` definition: 1
+- local `evaluate_memory_address_before_instruction` definition: 1
+
+The context engine still owns adapter syntax/index setup, source collection
+wiring, and the cross-section orchestration that belongs at that boundary.
+
+## Ten-commit relay boundary after tranches 36 and 37
+
+This relay stops after exactly ten commits on top of accepted `5dcd3a4`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_apply_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_fact_builder_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay head and re-audit `context_engine.lua`
+for the next ownership boundary rather than continuing extraction by size.
