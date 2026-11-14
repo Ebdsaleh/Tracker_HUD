@@ -10352,3 +10352,166 @@ line-103=29.869 ms
 
 No broader refresh-wide replay sharing should be accepted until this measurement
 is captured.
+
+## Shared immutable register-source index tranche — pending ERIDU acceptance (2026-11-15)
+
+**Status: pushed on main, pending ERIDU gate.**
+
+The first performance measurement after accepting source-memory incremental replay
+was mixed:
+
+~~~text
+phase                  before       after
+source_memory avg       6.916 ms     8.415 ms
+source_memory max      29.869 ms    21.885 ms
+total avg              54.117 ms    60.236 ms
+total max             120.305 ms   128.527 ms
+~~~
+
+The expensive line-103 source-memory path improved by about 26.7%, but average
+source-memory and total refresh time regressed.
+
+The source-memory replay semantics remain accepted because the 145-test gate
+proved one monotonic session, zero backwards fallback and full semantic parity.
+
+The performance result itself is **not** accepted as a win.
+
+### Root cause hypothesis
+
+Each register replay session still indexed the same immutable register-effect
+source nodes independently.
+
+Within one context refresh, the same Tree-sitter register-effect source was
+therefore scanned/indexed repeatedly by:
+
+- normal Registers reduction;
+- registers-before-current-line reduction;
+- boundary replay;
+- source-memory replay.
+
+This tranche shares only the immutable source index.
+
+Mutable reduction/replay state remains completely consumer-local.
+
+### Design
+
+`register_effect_pipeline.prepare_source(adapter, opts)` builds:
+
+- the register effect index;
+- one sorted, deduplicated full-source register-effect node list.
+
+Prepared-source consumers preserve their existing visibility semantics by
+filtering that immutable list against:
+
+- explicit limit/stop/before positions;
+- cursor line;
+- cursor column;
+- line-summary ON/PAST policy.
+
+`register_effect_pipeline.collect` accepts an optional prepared source.
+
+`register_effect_pipeline.new_replay_session` accepts the same prepared source.
+
+Backward replay fallback also keeps the prepared source, so a backwards query
+does not force another Tree-sitter scan.
+
+### Refresh-local ownership
+
+`context.lua` creates one empty `register_source_cache` per context refresh.
+
+That cache is passed to:
+
+- normal Registers;
+- registers-before-current-line;
+- boundary;
+- source-memory.
+
+`context_engine` lazily builds the prepared source once and reuses that exact
+immutable object for all four consumers.
+
+Each consumer still owns independent mutable register reduction/replay state.
+
+Stack is intentionally excluded from this tranche because its mixed
+stack/register reducer has separate ownership semantics.
+
+### New proofs
+
+Prepared source parity:
+
+~~~text
+tests/register_effect_prepared_source_smoke.lua
+~~~
+
+Pins:
+
+- prepared source builds once;
+- legacy and prepared-source full reduction produce identical facts;
+- prepared-source collection does not rescan the root tree;
+- an independent replay session can reuse the same prepared source;
+- replay output matches the legacy full reduction.
+
+Context refresh sharing:
+
+~~~text
+tests/context_engine_register_source_cache_smoke.lua
+~~~
+
+Pins:
+
+- two register reductions, boundary replay and source-memory replay share one
+  prepared immutable source;
+- the prepared source is built exactly once;
+- two register reductions still execute independently;
+- boundary and source-memory still create separate replay sessions;
+- shared immutable indexing does not merge mutable consumer state.
+
+### Compatibility
+
+`context_engine` remains at exactly 37 public callables.
+
+No existing public facade API is added.
+
+The legacy non-prepared paths remain available.
+
+### Cumulative gate
+
+`tests\run_tests.bat` now contains 147 runnable tests.
+
+Newest entries are appended last:
+
+~~~text
+register_effect_prepared_source_smoke.lua
+context_engine_register_source_cache_smoke.lua
+~~~
+
+Expected ending:
+
+~~~text
+PASS Tracker_HUD register-effect prepared-source smoke
+PASS context register source cache: one immutable index serves four consumers
+PASS context register source cache: mutable replay state remains consumer-local
+PASS Tracker_HUD context-engine register-source cache smoke
+[GREEN] Tracker_HUD test suite passed: 147/147
+~~~
+
+ERIDU acceptance command:
+
+~~~bat
+tracker_full.bat
+~~~
+
+If GREEN, rerun the exact committed performance fixture.
+
+Primary comparison is against the current mixed source-memory profile:
+
+~~~text
+context avg=49.316 ms
+source_memory avg=8.415 ms max=21.885 ms
+registers avg=5.213 ms max=15.810 ms
+registers_before avg=4.464 ms max=23.122 ms
+boundary avg=5.556 ms max=19.425 ms
+total avg=60.236 ms max=128.527 ms
+~~~
+
+The desired result is lower setup cost across multiple register-history
+consumers, not merely another source-memory-only improvement.
