@@ -27,6 +27,7 @@ local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
+local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
 local effect_match = require("tracker_hud.low_level.effect_match")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
@@ -45,7 +46,6 @@ local register_fact_builder = require("tracker_hud.low_level.register_fact_build
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local stack_effect_match = require("tracker_hud.low_level.stack_effect_match")
 local boundary_infer = require("tracker_hud.low_level.boundary_infer")
-local control_infer = require("tracker_hud.low_level.control_infer")
 
 local M = {}
 
@@ -1363,70 +1363,26 @@ local function instruction_event_matches(
 end
 
 
-local function make_instruction_event_fact(context, adapter, instruction, event_spec)
-    if not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(event_spec)
-    then
-        return nil
-    end
-
-    return {
-        kind = event_spec.kind or "instruction_event",
-        category = event_spec.category or "instruction",
-        name = event_spec.name
-            or get_instruction_event_mnemonic(event_spec)
-            or "instruction_event",
-        role = event_spec.role,
-
-        source = "instruction",
-        source_line = instruction.source_line,
-        source_column = instruction.source_column or 0,
-
-        source_start_line = instruction.source_line,
-        source_start_column = instruction.source_column or 0,
-        source_end_line = instruction.source_line,
-        source_end_column = instruction.source_end_column or instruction.source_column or 0,
-
-        metadata = vim.tbl_extend(
-            "force",
-            {
-                adapter = adapter.name,
-                architecture = adapter.architecture,
-                variant = adapter.active_variant_name,
-                mnemonic = instruction.mnemonic,
-                event = event_spec.name
-                    or get_instruction_event_mnemonic(event_spec),
-                operands = instruction.operands or {},
-                operand_specs = event_spec.operands or {},
-            },
-            control_infer.make_event_metadata(
-                context,
-                event_spec
-            )
-        ),
-    }
-end
-
-
-local function apply_instruction_event(facts, context, adapter, instruction, event_spec)
-    if not core.is_table(facts)
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(event_spec)
-    then
-        return
-    end
-
-    if not instruction_event_matches(instruction, event_spec) then
-        return
-    end
-
-    local fact = make_instruction_event_fact(context, adapter, instruction, event_spec)
-
-    if fact then
-        table.insert(facts, fact)
-    end
+local function apply_instruction_event(
+    facts,
+    context,
+    adapter,
+    instruction,
+    event_spec
+)
+    return instruction_event_fact.apply(
+        facts,
+        context,
+        adapter,
+        instruction,
+        event_spec,
+        {
+            matches =
+                instruction_event_matches,
+            get_mnemonic =
+                get_instruction_event_mnemonic,
+        }
+    )
 end
 
 
