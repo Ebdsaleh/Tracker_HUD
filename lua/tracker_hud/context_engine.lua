@@ -254,7 +254,8 @@ local function evaluate_memory_address_before_instruction(
     instruction,
     address,
     machine_addresses,
-    instruction_relative_policy
+    instruction_relative_policy,
+    register_replay_session
 )
     return memory_address_evaluator.evaluate(
         bufnr,
@@ -267,6 +268,18 @@ local function evaluate_memory_address_before_instruction(
         {
             collect_register_effects =
                 M.collect_register_effects,
+
+            collect_register_effects_before =
+                register_replay_session
+                and function(
+                    limit_position
+                )
+                    return register_replay_session
+                        :collect_before(
+                            limit_position
+                        )
+                end
+                or nil,
         }
     )
 end
@@ -279,6 +292,23 @@ local function collect_memory_source_operands_where(
     line_predicate,
     opts
 )
+    opts = opts or {}
+
+    local register_replay_session =
+        register_effect_pipeline
+            .new_replay_session(
+                {},
+                adapter,
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                },
+                register_pipeline_dependencies(
+                    adapter,
+                    bufnr
+                )
+            )
+
     return memory_source_discovery.collect(
         bufnr,
         root_node,
@@ -314,7 +344,8 @@ local function collect_memory_source_operands_where(
                     instruction,
                     address,
                     machine_addresses,
-                    instruction_relative_policy
+                    instruction_relative_policy,
+                    register_replay_session
                 )
             end,
         }
