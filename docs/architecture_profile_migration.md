@@ -9942,3 +9942,62 @@ diagnostic evidence and must not be used to judge replay performance.
 
 The next authoritative measurement is a fresh run of the exact committed
 performance fixture after `c169d37`.
+
+## Accepted measured boundary replay optimization (2026-11-15)
+
+The corrected production replay wiring was measured on ERIDU with the committed
+163-line ASM performance fixture.
+
+Authoritative before/after:
+
+~~~text
+phase                     before avg   after avg    before max   after max
+context.boundary           41.859 ms     5.417 ms    371.388 ms    15.111 ms
+context                    95.701 ms    64.470 ms    473.123 ms   136.551 ms
+total                     107.253 ms    74.574 ms    486.065 ms   148.930 ms
+~~~
+
+Measured reductions:
+
+- boundary average: ~87.1%;
+- boundary maximum: ~95.9%;
+- context average: ~32.6%;
+- context maximum: ~71.1%;
+- total average: ~30.5%;
+- worst line-103 total: ~69.4%.
+
+The line-103 large jump now reports:
+
+~~~text
+total=148.930 ms
+context=136.551 ms
+top=[
+  context.source_memory=27.104
+  context.registers=25.770
+  context.configure=21.373
+  context.registers_before=19.737
+]
+~~~
+
+`context.boundary` is no longer a dominant phase.
+
+The incremental per-boundary register replay design is therefore accepted as a
+measured performance win.
+
+### Next measured owner
+
+The next tranche targets redundant per-refresh adapter configuration.
+
+Current corrected profile:
+
+~~~text
+context.configure avg=21.977 ms max=48.294 ms
+~~~
+
+The registry currently re-runs adapter buffer configuration and configured
+adapter validation for every cursor refresh, even when the same buffer,
+unchanged buffer contents and the same runtime config remain active.
+
+The intended optimization is a conservative last-successful-configuration cache
+at the adapter registry boundary. It must invalidate on edits, buffer switches,
+config-object changes, adapter registration/reload and registry clear.
