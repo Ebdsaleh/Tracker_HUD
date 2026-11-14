@@ -8695,3 +8695,138 @@ Confirmed:
   contracts all remain green.
 
 Accepted baseline: `916a2bc`.
+
+## Context-engine split tranche 42 — boundary-effect pipeline (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/boundary_effect_pipeline.lua
+~~~
+
+This coordinator owns the architecture-neutral boundary pipeline:
+
+- boundary-rule index construction;
+- indexed source traversal;
+- adapter instruction parse dispatch;
+- pre-boundary register-context construction;
+- boundary matcher/fact application;
+- final fact collection.
+
+Register reduction remains injected from the context engine, so the pipeline
+does not create a dependency cycle or own register semantics.
+
+New regressions:
+
+~~~
+tests/boundary_effect_pipeline_smoke.lua
+tests/asm_boundary_effect_pipeline_smoke.lua
+~~~
+
+The parser-backed proof requires `mov rax, 60; mov rdi, 7; syscall` to resolve
+the Linux `exit` boundary from pre-instruction state, including status value
+`7`.
+
+## Context-engine split tranche 43 — instruction-event pipeline (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/instruction_event_pipeline.lua
+~~~
+
+This coordinator owns the architecture-neutral instruction-event pipeline:
+
+- instruction-event index construction;
+- indexed source traversal;
+- adapter instruction parse dispatch;
+- event mnemonic matching;
+- event fact application;
+- stable event collection.
+
+It does not own adapter parsing or control-flow semantics.
+
+New regressions:
+
+~~~
+tests/instruction_event_pipeline_smoke.lua
+tests/asm_instruction_event_pipeline_smoke.lua
+~~~
+
+The parser-backed proof requires real `call target; ret` source to preserve
+call/ret ordering and parsed call-target metadata.
+
+## Context-engine cleanup produced by tranches 42 and 43
+
+The context engine no longer directly depends on:
+
+- `boundary_effect_index`
+- `boundary_effect_collection`
+- `boundary_effect_apply`
+- `boundary_register_context`
+- `instruction_event_index`
+- `instruction_event_collection`
+- `instruction_event_fact`
+
+The public APIs remain unchanged:
+
+- `collect_boundary_effects`
+- `collect_instruction_events`
+
+Stack orchestration remains in the context engine intentionally; its carried
+register-family/latest-fact state makes it a materially different pipeline.
+
+## Static audit at pending head
+
+`context_engine.lua`: 843 lines.
+
+Expected markers:
+
+- exact `boundary_effect_pipeline` require: 1
+- exact `instruction_event_pipeline` require: 1
+- direct `boundary_effect_collection` require: 0
+- direct `boundary_effect_apply` require: 0
+- direct `instruction_event_collection` require: 0
+- direct `instruction_event_fact` require: 0
+- exported boundary entry point: 1
+- exported event entry point: 1
+
+## Ten-commit relay boundary after tranches 42 and 43
+
+This relay stops after exactly ten commits on top of accepted `916a2bc`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/instruction_event_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/boundary_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_fact_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay and audit stack/register orchestration
+as the next likely ownership boundary.
