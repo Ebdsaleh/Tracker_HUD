@@ -8442,16 +8442,24 @@ Expected ownership markers:
 The source-discovery collection wiring remains in `context_engine.lua`
 intentionally; this relay moves shared policy only.
 
-## Ten-commit relay boundary after tranches 38 and 39
+## Relay boundary after tranches 38 and 39
 
-This relay stops after exactly ten commits on top of accepted `90f0bd5`.
+The planned architecture relay contains ten commits on top of accepted
+`90f0bd5`. Before ERIDU acceptance, connector-side static audit found four
+duplicated replacement-boundary markers in `context_engine.lua`:
+`build_source_written_role`, the boundary-inference comment,
+`instruction_event_matches`, and `apply_stack_effect`.
+
+A narrow production correction in `84b0835` repairs only those duplicated
+markers. The new rule-syntax and effect-selection modules were unchanged, and
+no semantic inference or reducer behavior changed.
 
 ### ERIDU acceptance gate
 
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -12 --oneline
+git log -14 --oneline
 
 nvim --headless -u NONE -c "luafile tests/rule_syntax_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/asm_rule_syntax_smoke.lua" -c "qa!"
