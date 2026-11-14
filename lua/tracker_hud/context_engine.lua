@@ -9,10 +9,9 @@ local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local memory_access = require("tracker_hud.low_level.memory_access")
-local effective_address = require("tracker_hud.low_level.effective_address")
-local relative_address = require("tracker_hud.low_level.relative_address")
 local memory_source_evidence = require("tracker_hud.low_level.memory_source_evidence")
 local memory_source_collection = require("tracker_hud.low_level.memory_source_collection")
+local memory_address_evaluator = require("tracker_hud.low_level.memory_address_evaluator")
 local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
@@ -315,10 +314,6 @@ local parse_numeric_number =
     register_value_policy.parse_numeric_number
 
 
-local register_fact_is_resolved =
-    register_state_read.fact_is_resolved
-
-
 local function prepare_register_instruction_inference_state(
     low_level_state,
     facts_by_register,
@@ -612,28 +607,6 @@ local function get_memory_operand_role(
 end
 
 
-local function register_fact_map_from_list(facts)
-    local result = {}
-
-    for _, fact in ipairs(facts or {}) do
-        if core.is_table(fact)
-            and core.is_non_empty_string(fact.name)
-        then
-            result[fact.name:lower()] = fact
-
-            local canonical = fact.metadata
-                and fact.metadata.canonical_name
-
-            if core.is_non_empty_string(canonical) then
-                result[canonical:lower()] = fact
-            end
-        end
-    end
-
-    return result
-end
-
-
 local function evaluate_memory_address_before_instruction(
     bufnr,
     root_node,
@@ -643,108 +616,19 @@ local function evaluate_memory_address_before_instruction(
     machine_addresses,
     instruction_relative_policy
 )
-    if not bufnr
-        or not root_node
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(address)
-    then
-        return {
-            status = "unknown",
-            value = nil,
-            reason = "evaluation context unavailable",
-        }
-    end
-
-    local line = instruction.source_start_line
-        or instruction.source_line
-    local column = instruction.source_start_column
-        or instruction.source_column
-        or 0
-
-    if not core.is_number(line) then
-        return {
-            status = "unknown",
-            value = nil,
-            reason = "instruction position unavailable",
-        }
-    end
-
-    if relative_address.requires_next_instruction(
-        address,
-        {
-            instruction_relative_policy =
-                instruction_relative_policy,
-        }
-    )
-    then
-        return relative_address.evaluate(
-            address,
-            machine_addresses,
-            {
-                bits = adapter.metadata
-                    and adapter.metadata.bits
-                    or nil,
-                instruction_relative_policy =
-                    instruction_relative_policy,
-            }
-        )
-    end
-
-    local facts = M.collect_register_effects(
-        {
-            cursor = {
-                line = line,
-                column = column + 1,
-            },
-        },
+    return memory_address_evaluator.evaluate(
+        bufnr,
+        root_node,
         adapter,
+        instruction,
+        address,
+        machine_addresses,
+        instruction_relative_policy,
         {
-            bufnr = bufnr,
-            root_node = root_node,
-            limit_position = {
-                line = line,
-                column = column,
-            },
+            collect_register_effects =
+                M.collect_register_effects,
         }
     )
-
-    local facts_by_register = register_fact_map_from_list(
-        facts
-    )
-
-    local bits = adapter.metadata
-        and adapter.metadata.bits
-        or nil
-
-    return effective_address.evaluate(address, {
-        bits = bits,
-        resolve_register = function(register_name)
-            local fact = get_register_fact_for_read(
-                facts_by_register,
-                adapter,
-                register_name
-            )
-
-            if not register_fact_is_resolved(fact) then
-                local partial = fact
-                    and fact.metadata
-                    and fact.metadata.partial_value
-                    or nil
-
-                return nil, {
-                    status = partial and "partial" or "unknown",
-                    fact_name = fact and fact.name or nil,
-                    partial_value = partial,
-                }
-            end
-
-            return fact.value, {
-                status = "known",
-                fact_name = fact.name,
-            }
-        end,
-    })
 end
 
 
