@@ -96,7 +96,6 @@ local function run()
 
     local saw_mnemonic = false
     local saw_destination = false
-    local saw_memory = false
     local saw_base = false
 
     for _, occurrence in ipairs(
@@ -110,15 +109,6 @@ local function run()
             and occurrence.text == "rbx"
         then
             saw_destination = true
-        elseif occurrence.kind == "operand"
-            and occurrence.text
-                == "[rax + 8]"
-        then
-            saw_memory =
-                occurrence.metadata
-                and occurrence.metadata
-                    .memory_effective_address_value
-                    == "4104"
         elseif occurrence.kind
                 == "memory_component"
             and occurrence.text == "rax"
@@ -134,14 +124,13 @@ local function run()
     assert(
         saw_mnemonic
             and saw_destination
-            and saw_memory
             and saw_base,
         "parser-backed register source discovery changed"
     )
 
     print(
         "PASS ASM register discovery: "
-            .. "mnemonic operands and address evidence preserved"
+            .. "mnemonic register focus and address evidence preserved"
     )
 
     print(

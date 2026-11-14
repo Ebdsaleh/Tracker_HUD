@@ -245,7 +245,7 @@ local function collect_nodes_by_type(
 end
 
 
-local parse_numeric_value =local parse_numeric_value =
+local parse_numeric_value =
     register_value_policy.parse_numeric_value
 
 local parse_numeric_number =
@@ -445,7 +445,7 @@ end
 -- Source-time address evaluation is shared by memory and register discovery.
 
 
-local function evaluate_memory_address_before_instruction(local function evaluate_memory_address_before_instruction(
+local function evaluate_memory_address_before_instruction(
     bufnr,
     root_node,
     adapter,
@@ -520,7 +520,7 @@ local function collect_memory_source_operands_where(
 end
 
 
-function M.discover_memory_source_operands(function M.discover_memory_source_operands(
+function M.discover_memory_source_operands(
     bufnr,
     root_node,
     adapter,
@@ -620,7 +620,7 @@ function M.discover_register_source_occurrences(
 end
 
 
-local function get_boundary_effect_index(adapter)local function get_boundary_effect_index(adapter)
+local function get_boundary_effect_index(adapter)
     return boundary_effect_index.get(
         adapter,
         rule_index_options

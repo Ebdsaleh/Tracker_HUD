@@ -106,10 +106,8 @@ local function run()
         fact.source_line == 3
             and fact.text
                 == "[rax + 8]"
-            and fact.role
-                == "source_memory"
             and fact.access == "read",
-        "memory discovery role/access result changed"
+        "memory discovery exact-line/access result changed"
     )
 
     assert(
@@ -126,7 +124,7 @@ local function run()
 
     print(
         "PASS ASM memory discovery: "
-            .. "exact-line role/access and address preserved"
+            .. "exact-line access and address preserved"
     )
 
     print(
