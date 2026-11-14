@@ -117,32 +117,51 @@ function M.evaluate(
         )
     end
 
-    if type(deps.collect_register_effects)
-        ~= "function"
+    if type(
+        deps.collect_register_effects_before
+    ) ~= "function"
+        and type(
+            deps.collect_register_effects
+        ) ~= "function"
     then
         return unknown(
             "register collection unavailable"
         )
     end
 
-    local facts =
-        deps.collect_register_effects(
-            {
-                cursor = {
-                    line = line,
-                    column = column + 1,
+    local limit_position = {
+        line = line,
+        column = column,
+    }
+
+    local facts = nil
+
+    if type(
+        deps.collect_register_effects_before
+    ) == "function"
+    then
+        facts =
+            deps.collect_register_effects_before(
+                limit_position
+            )
+    else
+        facts =
+            deps.collect_register_effects(
+                {
+                    cursor = {
+                        line = line,
+                        column = column + 1,
+                    },
                 },
-            },
-            adapter,
-            {
-                bufnr = bufnr,
-                root_node = root_node,
-                limit_position = {
-                    line = line,
-                    column = column,
-                },
-            }
-        )
+                adapter,
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                    limit_position =
+                        limit_position,
+                }
+            )
+    end
 
     local facts_by_register =
         register_fact_map_from_list(
