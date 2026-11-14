@@ -10,12 +10,9 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local memory_address_evaluator = require("tracker_hud.low_level.memory_address_evaluator")
 local memory_source_discovery = require("tracker_hud.low_level.memory_source_discovery")
-local register_effect_index = require("tracker_hud.low_level.register_effect_index")
 local register_source_discovery = require("tracker_hud.low_level.register_source_discovery")
+local register_effect_pipeline = require("tracker_hud.low_level.register_effect_pipeline")
 local line_summary = require("tracker_hud.low_level.line_summary")
-local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
-local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
-local register_effect_apply = require("tracker_hud.low_level.register_effect_apply")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_pipeline = require("tracker_hud.low_level.boundary_effect_pipeline")
 local instruction_event_pipeline = require("tracker_hud.low_level.instruction_event_pipeline")
@@ -30,7 +27,6 @@ local construct_spec_validation = require("tracker_hud.constructs.spec_validatio
 local construct_source_identity = require("tracker_hud.constructs.source_identity")
 local construct_parser = require("tracker_hud.constructs.parser")
 local register_infer = require("tracker_hud.low_level.register_infer")
-local register_state_read = require("tracker_hud.low_level.register_state_read")
 local register_value_policy = require("tracker_hud.low_level.register_value_policy")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 
@@ -48,12 +44,11 @@ local rule_index_options =
     rule_syntax.index_options()
 
 
-local function get_register_effect_index(adapter)
-    return register_effect_index.get(
-        adapter,
-        rule_index_options
-    )
-end
+local get_register_effect_index =
+    register_effect_pipeline.get_index
+
+local apply_register_effect =
+    register_effect_pipeline.apply_effect
 
 
 local parse_instruction_with_adapter =
@@ -240,10 +235,6 @@ local function collect_nodes_by_type(
 end
 
 
-local get_register_fact_for_read =
-    register_state_read.get_fact_for_read
-
-
 local parse_numeric_value =
     register_value_policy.parse_numeric_value
 
@@ -251,38 +242,27 @@ local parse_numeric_number =
     register_value_policy.parse_numeric_number
 
 
-local function prepare_register_instruction_inference_state(
-    low_level_state,
-    facts_by_register,
-    instruction,
-    effect_specs,
-    adapter
+function M.collect_register_effects(
+    context,
+    adapter,
+    opts
 )
-    return stack_infer.prepare_instruction_state(
-        low_level_state,
-        instruction,
-        effect_specs,
+    opts = opts or {}
+
+    return register_effect_pipeline.collect(
+        context,
+        adapter,
+        opts,
         {
-            parse_numeric_value = parse_numeric_value,
-            parse_numeric_number = parse_numeric_number,
-            resolve_operand_value = function(operand)
-                return register_infer.resolve_operand_value(
-                    facts_by_register,
-                    instruction,
-                    operand,
-                    {
-                        parse_numeric_value = parse_numeric_value,
-                        resolve_register_fact = function(
-                            register_facts,
-                            register_name
-                        )
-                            return get_register_fact_for_read(
-                                register_facts,
-                                adapter,
-                                register_name
-                            )
-                        end,
-                    }
+            parse_instruction = function(
+                node,
+                representative_effect_spec
+            )
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    opts.bufnr,
+                    representative_effect_spec
                 )
             end,
         }
@@ -290,158 +270,7 @@ local function prepare_register_instruction_inference_state(
 end
 
 
-local function apply_register_effect(
-    facts_by_register,
-    family_state,
-    latest_state_facts,
-    adapter,
-    instruction,
-    effect_spec,
-    instruction_state
-)
-    return register_effect_apply.apply(
-        facts_by_register,
-        family_state,
-        latest_state_facts,
-        adapter,
-        instruction,
-        effect_spec,
-        instruction_state,
-        {
-            get_mnemonic =
-                get_rule_mnemonic,
-            normalize_mnemonic =
-                normalize_mnemonic,
-        }
-    )
-end
-
-
-local function collect_register_effect_nodes(
-    context,
-    root_node,
-    effect_index,
-    opts
-)
-    opts = opts or {}
-
-    return register_effect_collection.collect({
-        context = context,
-        config = opts.config,
-        node_types = effect_index
-            and effect_index.node_types
-            or {},
-        limit_position = opts.limit_position,
-        stop_before = opts.stop_before,
-        before_position = opts.before_position,
-
-        collect_nodes = function(node_type)
-            return collect_nodes_by_type(
-                root_node,
-                node_type
-            )
-        end,
-
-        normalize_position =
-            low_level_inference.normalize_position,
-        position_is_before =
-            low_level_inference.position_is_before,
-        classify_position =
-            M.classify_instruction_cursor_position,
-        allows_position =
-            M.line_summary_allows_position,
-    })
-end
-
-
-function M.collect_register_effects(context, adapter, opts)
-    opts = opts or {}
-
-    local bufnr = opts.bufnr
-    local root_node = opts.root_node
-
-    if not bufnr
-        or not root_node
-        or not core.is_table(adapter)
-        or not core.is_table(adapter.register_effects)
-    then
-        return {}
-    end
-
-    local effect_index =
-        get_register_effect_index(adapter)
-
-    local nodes =
-        collect_register_effect_nodes(
-            context,
-            root_node,
-            effect_index,
-            opts
-        )
-
-    return register_effect_processing.process({
-        nodes = nodes,
-        effect_index = effect_index,
-
-        parse_instruction = function(
-            node,
-            representative_effect_spec
-        )
-            return collect_instruction_operands(
-                adapter,
-                node,
-                bufnr,
-                representative_effect_spec
-            )
-        end,
-
-        normalize_mnemonic =
-            normalize_mnemonic,
-
-        new_low_level_state =
-            low_level_inference.new_state,
-
-        prepare_instruction_state = function(
-            low_level_state,
-            facts_by_register,
-            instruction,
-            effect_specs
-        )
-            return prepare_register_instruction_inference_state(
-                low_level_state,
-                facts_by_register,
-                instruction,
-                effect_specs,
-                adapter
-            )
-        end,
-
-        apply_effect = function(
-            facts_by_register,
-            family_state,
-            latest_state_facts,
-            instruction,
-            effect_spec,
-            instruction_state
-        )
-            return apply_register_effect(
-                facts_by_register,
-                family_state,
-                latest_state_facts,
-                adapter,
-                instruction,
-                effect_spec,
-                instruction_state
-            )
-        end,
-
-        to_fact_list =
-            register_infer.to_fact_list,
-    })
-end
-
-
--- Source-time address evaluation is shared by memory and register discovery.
+-- Source-time address evaluation is shared by memory and register discovery.-- Source-time address evaluation is shared by memory and register discovery.
 
 
 local function evaluate_memory_address_before_instruction(
