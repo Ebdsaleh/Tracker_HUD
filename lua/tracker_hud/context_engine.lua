@@ -21,6 +21,7 @@ local register_source_metadata = require("tracker_hud.low_level.register_source_
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
+local register_effect_apply = require("tracker_hud.low_level.register_effect_apply")
 local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
@@ -43,9 +44,7 @@ local construct_parser = require("tracker_hud.constructs.parser")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_state_read = require("tracker_hud.low_level.register_state_read")
-local register_state_write = require("tracker_hud.low_level.register_state_write")
 local register_value_policy = require("tracker_hud.low_level.register_value_policy")
-local register_fact_builder = require("tracker_hud.low_level.register_fact_builder")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 
 local M = {}
@@ -359,10 +358,6 @@ local function prepare_register_instruction_inference_state(
 end
 
 
-local make_register_fact =
-    register_fact_builder.build
-
-
 local function apply_register_effect(
     facts_by_register,
     family_state,
@@ -372,53 +367,21 @@ local function apply_register_effect(
     effect_spec,
     instruction_state
 )
-    if not core.is_table(facts_by_register)
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return
-    end
-
-    local expected_mnemonic =
-        get_register_effect_mnemonic(
-            effect_spec
-        )
-
-    if expected_mnemonic
-        and normalize_mnemonic(
-            instruction.mnemonic
-        ) ~= expected_mnemonic
-    then
-        return
-    end
-
-    if not operands_match_effect(instruction, effect_spec) then
-        return
-    end
-
-    if not condition_matches(instruction, effect_spec.condition) then
-        return
-    end
-
-    local fact = make_register_fact(
+    return register_effect_apply.apply(
         facts_by_register,
         family_state,
+        latest_state_facts,
         adapter,
         instruction,
         effect_spec,
-        instruction_state
+        instruction_state,
+        {
+            get_mnemonic =
+                get_register_effect_mnemonic,
+            normalize_mnemonic =
+                normalize_mnemonic,
+        }
     )
-
-    if fact then
-        register_state_write.publish(
-            facts_by_register,
-            family_state,
-            latest_state_facts,
-            adapter,
-            fact
-        )
-    end
 end
 
 
