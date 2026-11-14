@@ -9312,3 +9312,51 @@ yet. The next required input is the real ERIDU observational baseline from
 The measurement should answer which existing refresh phase dominates
 first-refresh, one-line cursor movement, a large cursor jump, and edit/target
 invalidation before checkpoint ownership or invalidation semantics are designed.
+
+## Repeatable profiling fixture added after code acceptance (2026-11-14)
+
+The previously suggested `memory_operand_validation.asm` sample is only 38
+lines and therefore cannot produce the profiler's default >=50-line
+`cursor_large_jump` classification.
+
+A dedicated measurement fixture is now committed:
+
+~~~
+samples/asm/x86_64/performance_baseline.asm
+~~~
+
+It is 150+ lines, retains normal x86-64/Linux/NASM target directives and has
+stable profile markers A/B/C. Marker A to marker C spans more than 50 source
+lines.
+
+Parser-backed fixture proof:
+
+~~~
+tests/asm_performance_baseline_sample_smoke.lua
+~~~
+
+The smoke requires:
+
+- fixture length sufficient for a large jump;
+- target directives present;
+- marker ordering and >=50-line A-to-C separation;
+- ASM Tree-sitter parsing;
+- adapter configuration;
+- non-empty register, stack, boundary and instruction-event facts.
+
+This fixture is measurement infrastructure only. It does not change runtime
+Tracker_HUD semantics.
+
+### ERIDU fixture gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -5 --oneline
+
+nvim --headless -c "luafile tests/asm_performance_baseline_sample_smoke.lua" -c "qa!"
+~~~
+
+If GREEN, use the exact interaction sequence in
+`docs/performance_baseline.md` and paste the full `:HudProfile` report before
+checkpoint design begins.
