@@ -26,7 +26,7 @@ local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_ind
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
 local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")
-local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
+local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")\nlocal stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
 local effect_match = require("tracker_hud.low_level.effect_match")
@@ -1449,61 +1449,26 @@ local function get_stack_effect_index(adapter)
 end
 
 
-local stack_operand_value_matches =
-    stack_effect_match.operand_value_matches
-
-local stack_operand_matches_spec =
-    stack_effect_match.operand_matches_spec
-
-local stack_operands_match_effect =
-    stack_effect_match.operands_match_effect
-
-
-local function make_stack_fact(adapter, instruction, effect_spec, instruction_state)
-    return stack_infer.make_effect_fact(
+local function apply_stack_effect(
+    facts,
+    adapter,
+    instruction,
+    effect_spec,
+    instruction_state
+)
+    return stack_effect_apply.apply(
+        facts,
         adapter,
         instruction,
         effect_spec,
-        instruction_state
+        instruction_state,
+        {
+            get_mnemonic =
+                get_stack_effect_mnemonic,
+            normalize_mnemonic =
+                normalize_mnemonic,
+        }
     )
-end
-
-
-local function apply_stack_effect(facts, adapter, instruction, effect_spec, instruction_state)
-    if not core.is_table(facts)
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return
-    end
-
-    local expected_mnemonic =
-        get_stack_effect_mnemonic(
-            effect_spec
-        )
-
-    if expected_mnemonic
-        and normalize_mnemonic(
-            instruction.mnemonic
-        ) ~= expected_mnemonic
-    then
-        return
-    end
-
-    if not stack_operands_match_effect(adapter, instruction, effect_spec) then
-        return
-    end
-
-    if not condition_matches(instruction, effect_spec.condition) then
-        return
-    end
-
-    local fact = make_stack_fact(adapter, instruction, effect_spec, instruction_state)
-
-    if fact then
-        table.insert(facts, fact)
-    end
 end
 
 
