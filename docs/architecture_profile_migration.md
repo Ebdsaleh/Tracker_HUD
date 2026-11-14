@@ -9253,6 +9253,7 @@ New files:
 - `lua/tracker_hud/analysis_profile.lua`
 - `tests/analysis_profile_smoke.lua`
 - `tests/analysis_profile_report_smoke.lua`
+- `tests/analysis_profile_command_smoke.lua`
 - `docs/performance_baseline.md`
 
 Changed:
@@ -9266,10 +9267,11 @@ Changed:
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -11 --oneline
+git log -13 --oneline
 
 nvim --headless -u NONE -c "luafile tests/analysis_profile_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/analysis_profile_report_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/analysis_profile_command_smoke.lua" -c "qa!"
 
 nvim --headless -u NONE -c "luafile tests/context_engine_facade_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
