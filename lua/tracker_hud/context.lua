@@ -830,6 +830,28 @@ function M.get_cursor_context(
         parser_phase
     )
 
+    local configure_profile_opts = nil
+
+    if profile_token then
+        configure_profile_opts = {
+            profile_begin =
+                function(name)
+                    return profile_begin(
+                        profile_token,
+                        name
+                    )
+                end,
+            profile_end =
+                function(name, started)
+                    return profile_end(
+                        profile_token,
+                        name,
+                        started
+                    )
+                end,
+        }
+    end
+
     local configure_phase =
         profile_begin(
             profile_token,
@@ -841,7 +863,8 @@ function M.get_cursor_context(
             .configure_adapter_for_buffer(
                 filetype,
                 bufnr,
-                config
+                config,
+                configure_profile_opts
             )
 
     profile_end(

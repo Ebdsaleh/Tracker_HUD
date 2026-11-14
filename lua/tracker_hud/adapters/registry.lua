@@ -31,6 +31,38 @@ local function invalidate_configuration_cache()
 end
 
 
+local function profile_begin(
+    opts,
+    name
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(name)
+end
+
+
+local function profile_end(
+    opts,
+    name,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        name,
+        started
+    )
+end
+
+
 local function get_buffer_changedtick(bufnr)
     if not bufnr
         or not vim
@@ -152,9 +184,26 @@ end
 function M.configure_adapter_for_buffer(
     filetype,
     bufnr,
-    config
+    config,
+    opts
 )
+    opts = type(opts) == "table"
+        and opts
+        or nil
+
+    local phase =
+        profile_begin(
+            opts,
+            "context.configure.lookup"
+        )
+
     local adapter = M.get_adapter(filetype)
+
+    profile_end(
+        opts,
+        "context.configure.lookup",
+        phase
+    )
 
     if not adapter then
         return false,
@@ -162,19 +211,45 @@ function M.configure_adapter_for_buffer(
             .. tostring(filetype)
     end
 
+    phase =
+        profile_begin(
+            opts,
+            "context.configure.changedtick"
+        )
+
     local changedtick =
         get_buffer_changedtick(
             bufnr
         )
 
-    if configuration_cache_matches(
-        adapter,
-        filetype,
-        bufnr,
-        config,
-        changedtick
+    profile_end(
+        opts,
+        "context.configure.changedtick",
+        phase
     )
-    then
+
+    phase =
+        profile_begin(
+            opts,
+            "context.configure.cache_check"
+        )
+
+    local cache_matches =
+        configuration_cache_matches(
+            adapter,
+            filetype,
+            bufnr,
+            config,
+            changedtick
+        )
+
+    profile_end(
+        opts,
+        "context.configure.cache_check",
+        phase
+    )
+
+    if cache_matches then
         return true, nil
     end
 
@@ -184,10 +259,22 @@ function M.configure_adapter_for_buffer(
     invalidate_configuration_cache()
 
     if type(adapter.configure_adapter_for_buffer) == "function" then
+        phase =
+            profile_begin(
+                opts,
+                "context.configure.adapter"
+            )
+
         local ok, err = pcall(
             adapter.configure_adapter_for_buffer,
             bufnr,
             config
+        )
+
+        profile_end(
+            opts,
+            "context.configure.adapter",
+            phase
         )
 
         if not ok then
@@ -198,7 +285,19 @@ function M.configure_adapter_for_buffer(
     -- Variant-backed adapters mutate their active descriptive spec during
     -- per-buffer configuration. Validate the resulting active adapter too,
     -- not only the default state that was registered at startup.
+    phase =
+        profile_begin(
+            opts,
+            "context.configure.validate"
+        )
+
     local valid, validation_err = M.validate_adapter(adapter)
+
+    profile_end(
+        opts,
+        "context.configure.validate",
+        phase
+    )
 
     if not valid then
         return false,
@@ -206,11 +305,23 @@ function M.configure_adapter_for_buffer(
             .. tostring(validation_err)
     end
 
+    phase =
+        profile_begin(
+            opts,
+            "context.configure.remember"
+        )
+
     remember_configuration(
         adapter,
         filetype,
         bufnr,
         config
+    )
+
+    profile_end(
+        opts,
+        "context.configure.remember",
+        phase
     )
 
     return true, nil
