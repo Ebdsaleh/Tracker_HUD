@@ -9003,7 +9003,7 @@ lines, with register and stack public entry points each present exactly once.
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -12 --oneline
+git log -13 --oneline
 
 nvim --headless -u NONE -c "luafile tests/register_effect_pipeline_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
