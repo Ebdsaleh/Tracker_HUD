@@ -132,7 +132,7 @@ local function run()
             and fact.metadata.adapter
                 == "asm"
             and fact.metadata.architecture
-                == "x86"
+                == "x86-64"
             and fact.metadata.mnemonic
                 == "call"
             and fact.metadata.event
