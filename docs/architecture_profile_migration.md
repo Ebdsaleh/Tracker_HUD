@@ -8849,3 +8849,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay and audit stack/register orchestration
 as the next likely ownership boundary.
+
+## Accepted context-engine split tranches 42 and 43 (2026-11-14)
+
+ERIDU accepted the boundary-effect and instruction-event pipeline coordinators
+green, including the pre-gate register-read alias restoration.
+
+Confirmed:
+
+- boundary parser dispatch, pre-register replay, known-effect resolution and
+  read/write phase semantics remain intact;
+- real `mov rax, 60; mov rdi, 7; syscall` still resolves Linux `exit` from
+  pre-instruction state;
+- instruction-event parser dispatch, event identity, metadata and fail-closed
+  behavior remain intact;
+- real `call target; ret` still preserves ordered event facts and call operand
+  metadata;
+- existing boundary collection/apply and instruction-event collection/fact
+  contracts remain green;
+- the restored register-read alias is proven by `mov eax, 1; mov rbx, rax`,
+  and the full x86 scalar alias-write suite remains green;
+- stack, source-time memory replay, Inspect and adapter contracts remain green.
+
+Accepted baseline: `bd1710e`.
