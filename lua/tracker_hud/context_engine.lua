@@ -7,17 +7,14 @@
 
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
-local low_level_inference = require("tracker_hud.low_level.inference")
 local memory_address_evaluator = require("tracker_hud.low_level.memory_address_evaluator")
 local memory_source_discovery = require("tracker_hud.low_level.memory_source_discovery")
 local register_source_discovery = require("tracker_hud.low_level.register_source_discovery")
 local register_effect_pipeline = require("tracker_hud.low_level.register_effect_pipeline")
 local line_summary = require("tracker_hud.low_level.line_summary")
-local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_pipeline = require("tracker_hud.low_level.boundary_effect_pipeline")
 local instruction_event_pipeline = require("tracker_hud.low_level.instruction_event_pipeline")
-local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")
-local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
+local stack_effect_pipeline = require("tracker_hud.low_level.stack_effect_pipeline")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
 local rule_syntax = require("tracker_hud.low_level.rule_syntax")
@@ -26,9 +23,6 @@ local branch_presentation = require("tracker_hud.constructs.branch_presentation"
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
 local construct_source_identity = require("tracker_hud.constructs.source_identity")
 local construct_parser = require("tracker_hud.constructs.parser")
-local register_infer = require("tracker_hud.low_level.register_infer")
-local register_value_policy = require("tracker_hud.low_level.register_value_policy")
-local stack_infer = require("tracker_hud.low_level.stack_infer")
 
 local M = {}
 
@@ -46,9 +40,6 @@ local rule_index_options =
 
 local get_register_effect_index =
     register_effect_pipeline.get_index
-
-local apply_register_effect =
-    register_effect_pipeline.apply_effect
 
 
 local parse_instruction_with_adapter =
@@ -235,39 +226,7 @@ local function collect_nodes_by_type(
 end
 
 
-local parse_numeric_value =
-    register_value_policy.parse_numeric_value
-
-local parse_numeric_number =
-    register_value_policy.parse_numeric_number
-
-
-function M.collect_register_effects(
-    context,
-    adapter,
-    opts
-)
-    opts = opts or {}
-
-    return register_effect_pipeline.collect(
-        context,
-        adapter,
-        opts,
-        {
-            parse_instruction = function(
-                node,
-                representative_effect_spec
-            )
-                return collect_instruction_operands(
-                    adapter,
-                    node,
-                    opts.bufnr,
-                    representative_effect_spec
-                )
-            end,
-        }
-    )
-end
+-- Register-effect reduction is owned by register_effect_pipeline.
 
 
 -- Source-time address evaluation is shared by memory and register discovery.-- Source-time address evaluation is shared by memory and register discovery.
@@ -507,169 +466,32 @@ function M.collect_instruction_events(
 end
 
 
-local function get_stack_effect_index(adapter)
-    return stack_effect_index.get(
-        adapter,
-        rule_index_options
-    )
-end
-
-
-local function apply_stack_effect(
-    facts,
+function M.collect_stack_effects(
+    context,
     adapter,
-    instruction,
-    effect_spec,
-    instruction_state
+    opts
 )
-    return stack_effect_apply.apply(
-        facts,
+    opts = opts or {}
+
+    return stack_effect_pipeline.collect(
+        context,
         adapter,
-        instruction,
-        effect_spec,
-        instruction_state,
+        opts,
         {
-            get_mnemonic =
-                get_rule_mnemonic,
-            normalize_mnemonic =
-                normalize_mnemonic,
+            parse_instruction = function(
+                node,
+                representative_effect_spec
+            )
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    opts.bufnr,
+                    representative_effect_spec
+                )
+            end,
         }
     )
 end
 
 
-local function collect_stack_effects_with_module(
-    context,
-    adapter,
-    opts,
-    stack_index,
-    register_index
-)
-    opts = opts or {}
-
-    local carried_family_state = {}
-    local carried_latest_state_facts = {}
-
-    return stack_effect_collection.collect({
-        context = context,
-        stack_effect_index = stack_index,
-        register_effect_index = register_index,
-
-        collect_nodes = function(node_type)
-            return collect_nodes_by_type(
-                opts.root_node,
-                node_type
-            )
-        end,
-
-        parse_instruction = function(
-            node,
-            representative_effect_spec
-        )
-            return collect_instruction_operands(
-                adapter,
-                node,
-                opts.bufnr,
-                representative_effect_spec
-            )
-        end,
-
-        normalize_mnemonic =
-            normalize_mnemonic,
-
-        new_state =
-            low_level_inference.new_state,
-
-        prepare_stack_state = function(
-            low_level_state,
-            facts_by_register,
-            instruction,
-            stack_effect_specs
-        )
-            return stack_infer.prepare_instruction_state(
-                low_level_state,
-                instruction,
-                stack_effect_specs,
-                {
-                    parse_numeric_value =
-                        parse_numeric_value,
-                    parse_numeric_number =
-                        parse_numeric_number,
-                    resolve_operand_value = function(
-                        operand
-                    )
-                        return register_infer.resolve_operand_value(
-                            facts_by_register,
-                            instruction,
-                            operand,
-                            {
-                                parse_numeric_value =
-                                    parse_numeric_value,
-                            }
-                        )
-                    end,
-                }
-            )
-        end,
-
-        apply_stack_effect = function(
-            facts,
-            instruction,
-            effect_spec,
-            instruction_state
-        )
-            apply_stack_effect(
-                facts,
-                adapter,
-                instruction,
-                effect_spec,
-                instruction_state
-            )
-        end,
-
-        apply_register_effect = function(
-            facts_by_register,
-            instruction,
-            effect_spec,
-            instruction_state
-        )
-            apply_register_effect(
-                facts_by_register,
-                carried_family_state,
-                carried_latest_state_facts,
-                adapter,
-                instruction,
-                effect_spec,
-                instruction_state
-            )
-        end,
-    })
-end
-
-
-function M.collect_stack_effects(context, adapter, opts)
-    opts = opts or {}
-
-    local bufnr = opts.bufnr
-    local root_node = opts.root_node
-
-    if not bufnr
-        or not root_node
-        or not core.is_table(adapter)
-        or not core.is_table(
-            adapter.stack_effects
-        )
-    then
-        return {}
-    end
-
-    return collect_stack_effects_with_module(
-        context,
-        adapter,
-        opts,
-        get_stack_effect_index(adapter),
-        get_register_effect_index(adapter)
-    )
-end
-
-return M
+return Mreturn M
