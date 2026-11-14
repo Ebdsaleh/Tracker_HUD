@@ -34,7 +34,7 @@ local instruction_event_fact = require("tracker_hud.low_level.instruction_event_
 local effect_match = require("tracker_hud.low_level.effect_match")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
-local syntax_spec = require("tracker_hud.syntax_spec")
+local rule_syntax = require("tracker_hud.low_level.rule_syntax")
 local context_primitives = require("tracker_hud.constructs.context_primitives")
 local branch_presentation = require("tracker_hud.constructs.branch_presentation")
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
@@ -50,52 +50,20 @@ local M = {}
 
 
 
-local get_syntax_node_type =
-    syntax_spec.get_node_type
-
-local get_syntax_field =
-    syntax_spec.get_field
-
-local get_syntax_field_text =
-    syntax_spec.get_field_text
+local get_rule_mnemonic =
+    rule_syntax.get_mnemonic
 
 local normalize_mnemonic =
-    syntax_spec.normalize_mnemonic
+    rule_syntax.normalize_mnemonic
 
-
-local function get_register_effect_mnemonic(
-    effect_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(effect_spec) then
-        return normalize_mnemonic(fallback_mnemonic)
-    end
-
-    return normalize_mnemonic(
-        get_syntax_field_text(effect_spec, "kind")
-        or effect_spec.mnemonic
-        or fallback_mnemonic
-    )
-end
+local rule_index_options =
+    rule_syntax.index_options()
 
 
 local function get_register_effect_index(adapter)
     return register_effect_index.get(
         adapter,
-        {
-            get_node_type = function(effect_spec)
-                if not core.is_table(effect_spec) then
-                    return nil
-                end
-
-                return get_syntax_node_type(
-                    effect_spec
-                )
-                    or effect_spec.node_type
-            end,
-            get_mnemonic =
-                get_register_effect_mnemonic,
-        }
+        rule_index_options
     )
 end
 
@@ -372,7 +340,7 @@ local function apply_register_effect(
         instruction_state,
         {
             get_mnemonic =
-                get_register_effect_mnemonic,
+                get_rule_mnemonic,
             normalize_mnemonic =
                 normalize_mnemonic,
         }
@@ -907,44 +875,15 @@ function M.discover_register_source_occurrences(
 end
 
 
-local function get_boundary_effect_mnemonic(
-    effect_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(effect_spec) then
-        return normalize_mnemonic(fallback_mnemonic)
-    end
-
-    return normalize_mnemonic(
-        get_syntax_field_text(effect_spec, "kind")
-        or effect_spec.mnemonic
-        or fallback_mnemonic
-    )
-end
-
-
 local function get_boundary_effect_index(adapter)
     return boundary_effect_index.get(
         adapter,
-        {
-            get_node_type = function(effect_spec)
-                if not core.is_table(effect_spec) then
-                    return nil
-                end
-
-                return get_syntax_node_type(
-                    effect_spec
-                )
-                    or effect_spec.node_type
-            end,
-            get_mnemonic =
-                get_boundary_effect_mnemonic,
-        }
+        rule_index_options
     )
 end
 
 
--- Boundary read/write/not-preserved inference lives in
+-- Boundary read/write/not-preserved inference lives in-- Boundary read/write/not-preserved inference lives in
 -- tracker_hud.low_level.boundary_infer. Context engine keeps only syntax/node
 -- selection and adapter matching concerns here.
 
@@ -985,7 +924,7 @@ local function apply_boundary_effect(
         phase_contexts,
         {
             get_mnemonic =
-                get_boundary_effect_mnemonic,
+                get_rule_mnemonic,
             normalize_mnemonic =
                 normalize_mnemonic,
         }
@@ -1083,44 +1022,15 @@ function M.collect_boundary_effects(context, adapter, opts)
 end
 
 
-local function get_instruction_event_mnemonic(
-    event_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(event_spec) then
-        return normalize_mnemonic(fallback_mnemonic)
-    end
-
-    return normalize_mnemonic(
-        get_syntax_field_text(event_spec, "kind")
-        or event_spec.mnemonic
-        or fallback_mnemonic
-    )
-end
-
-
 local function get_instruction_event_index(adapter)
     return instruction_event_index.get(
         adapter,
-        {
-            get_node_type = function(event_spec)
-                if not core.is_table(event_spec) then
-                    return nil
-                end
-
-                return get_syntax_node_type(
-                    event_spec
-                )
-                    or event_spec.node_type
-            end,
-            get_mnemonic =
-                get_instruction_event_mnemonic,
-        }
+        rule_index_options
     )
 end
 
 
-local function instruction_event_matches(
+local function instruction_event_matches(local function instruction_event_matches(
     instruction,
     event_spec
 )
@@ -1129,7 +1039,7 @@ local function instruction_event_matches(
         event_spec,
         {
             get_mnemonic =
-                get_instruction_event_mnemonic,
+                get_rule_mnemonic,
         }
     )
 end
@@ -1152,7 +1062,7 @@ local function apply_instruction_event(
             matches =
                 instruction_event_matches,
             get_mnemonic =
-                get_instruction_event_mnemonic,
+                get_rule_mnemonic,
         }
     )
 end
@@ -1235,44 +1145,15 @@ function M.collect_instruction_events(context, adapter, opts)
 end
 
 
-local function get_stack_effect_mnemonic(
-    effect_spec,
-    fallback_mnemonic
-)
-    if not core.is_table(effect_spec) then
-        return normalize_mnemonic(fallback_mnemonic)
-    end
-
-    return normalize_mnemonic(
-        get_syntax_field_text(effect_spec, "kind")
-        or effect_spec.mnemonic
-        or fallback_mnemonic
-    )
-end
-
-
 local function get_stack_effect_index(adapter)
     return stack_effect_index.get(
         adapter,
-        {
-            get_node_type = function(effect_spec)
-                if not core.is_table(effect_spec) then
-                    return nil
-                end
-
-                return get_syntax_node_type(
-                    effect_spec
-                )
-                    or effect_spec.node_type
-            end,
-            get_mnemonic =
-                get_stack_effect_mnemonic,
-        }
+        rule_index_options
     )
 end
 
 
-local function apply_stack_effect(
+local function apply_stack_effect(local function apply_stack_effect(
     facts,
     adapter,
     instruction,
@@ -1287,7 +1168,7 @@ local function apply_stack_effect(
         instruction_state,
         {
             get_mnemonic =
-                get_stack_effect_mnemonic,
+                get_rule_mnemonic,
             normalize_mnemonic =
                 normalize_mnemonic,
         }
