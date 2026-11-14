@@ -9051,3 +9051,93 @@ Confirmed:
   green.
 
 Accepted baseline: `3182968`.
+
+## Context-engine split campaign complete — stable facade boundary (2026-11-14)
+
+**Status: stabilization relay pushed on main, pending ERIDU acceptance.**
+
+After accepting tranches 44 and 45, the remaining context engine was audited by
+ownership rather than size. No further reusable semantic subsystem remains.
+
+The remaining responsibilities are intentionally top-level:
+
+1. **Public compatibility facade**
+   - construct/context helper exports;
+   - branch-presentation exports;
+   - line-summary policy forwarding;
+   - the existing low-level public collection/discovery entry points.
+
+2. **Shared adapter instruction-source bridge**
+   - adapter parser dispatch;
+   - fallback source extraction through `instruction_source`;
+   - Tree-sitter node text callback wiring.
+
+3. **Cross-section source-time composition**
+   - register replay injected into source-time memory-address evaluation;
+   - memory/register discovery supplied with the shared register index, parser
+     bridge and address evaluator.
+
+4. **Thin pipeline entry points**
+   - register;
+   - boundary;
+   - instruction-event;
+   - stack.
+
+Moving any of these responsibilities again would either duplicate parser/source
+bridge plumbing, hide cross-section dependencies inside a lower-level module,
+or break the long-standing `context_engine` public compatibility surface.
+
+Therefore the context-engine extraction campaign stops here.
+
+Current `context_engine.lua`: 502 lines.
+
+Current public callable contract: 37 entries.
+
+### Stabilization regression
+
+New regression:
+
+~~~
+tests/context_engine_facade_smoke.lua
+~~~
+
+It pins:
+
+- all 37 established public callable names;
+- representative line-summary forwarding;
+- fail-closed behavior for all seven low-level collection/discovery entry
+  points;
+- construct parser/validation forwarding.
+
+This test is intentionally a facade contract rather than an implementation
+snapshot. Internal module ownership may continue evolving later without changing
+the public compatibility surface.
+
+### Small cleanup
+
+The duplicated source-time bridge comment introduced by an earlier replacement
+was reduced to one copy. No runtime behavior changed.
+
+### ERIDU stabilization gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -5 --oneline
+
+nvim --headless -u NONE -c "luafile tests/context_engine_facade_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, mark the context-engine split campaign complete and move
+development back to foundational architecture features rather than further
+facade decomposition.
