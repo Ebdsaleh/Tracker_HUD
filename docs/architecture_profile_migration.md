@@ -7733,3 +7733,137 @@ Confirmed:
   instruction-relative addressing, Inspect and adapter contracts remain green.
 
 Accepted baseline: `8220215`.
+
+
+## Context-engine split tranche 30 — register fact construction (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_fact_builder.lua
+~~~
+
+This module owns construction of one already-matched register fact:
+
+- effect target resolution;
+- register-effect value resolution;
+- target-width value policy;
+- alias-family certainty composition through register-value masks;
+- static register kind/role lookup;
+- semantic metadata assembly;
+- source integer/source-role metadata merge;
+- target-operand source range precedence;
+- implicit-register source fallback.
+
+It may read prior family state for alias composition, but it does not publish
+or mutate register state maps.
+
+`context_engine.lua` now delegates `make_register_fact` to this builder and
+no longer directly owns register-effect value resolution or alias-mask
+composition for fact construction.
+
+New regressions:
+
+~~~
+tests/register_fact_builder_smoke.lua
+tests/asm_register_fact_builder_smoke.lua
+~~~
+
+The parser-backed ASM test proves `mov eax, 0xFFFFFFFF` still produces an
+`eax` fact whose reduced canonical RAX value is
+`0x00000000FFFFFFFF`, with raw write value `4294967295`, canonical name
+`rax`, operand target origin and the same effect identity.
+
+## Context-engine split tranche 31 — register state publication (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_state_write.lua
+~~~
+
+This module owns publication of an already-built register fact:
+
+- latest canonical state publication;
+- family state publication;
+- sibling alias invalidation;
+- raw source-alias write publication;
+- reduced canonical family publication;
+- unresolved raw/canonical publication semantics.
+
+It does not match effects, resolve values or construct facts.
+`apply_register_effect()` remains in `context_engine.lua` as the semantic
+gatekeeper and now reduces to match -> build fact -> publish fact.
+
+New regressions:
+
+~~~
+tests/register_state_write_smoke.lua
+tests/asm_register_state_write_smoke.lua
+~~~
+
+The parser-backed ASM test proves:
+
+~~~
+mov rax, 0xFFFFFFFFFFFFFFFF
+mov eax, 1
+mov rbx, rax
+~~~
+
+publishes EAX as zero-extended canonical RAX and the later RAX source read
+observes value 1 rather than stale pre-EAX state.
+
+## Ten-commit relay boundary after tranches 30 and 31
+
+This relay stops after exactly ten commits on top of accepted `8220215`.
+Register effect matching remains in `apply_register_effect()`; stack fact
+construction/application, memory evaluation and boundary inference remain in
+their previous owners.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_fact_builder_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_fact_builder_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_value_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_value_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_value_policy_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_value_policy_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_state_read_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_read_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/stack_effect_match_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_match_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/x86_width_wrap_state_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_immediate_interpretation_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_focus_regression.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
