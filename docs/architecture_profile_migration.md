@@ -7893,3 +7893,114 @@ Confirmed:
 - x86 alias writes and register effect value resolution remain green.
 
 Accepted baseline: `1cf57a6`.
+
+
+## Context-engine split tranche 32 — instruction-event fact application (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/instruction_event_fact.lua
+~~~
+
+This module owns instruction-event fact assembly and match-gated append
+semantics only:
+
+- event kind/category/name/role assembly;
+- source-line/source-column range assembly;
+- adapter/architecture/variant/mnemonic metadata;
+- parsed operand and operand-spec metadata;
+- control-flow/read/write metadata through `control_infer`;
+- appending a fact only after an injected matcher accepts the event.
+
+Syntax-derived mnemonic lookup and event matching remain in their existing
+owners and are injected by `context_engine`.
+
+`context_engine.lua` no longer directly requires `control_infer`.
+
+New regressions:
+
+~~~
+tests/instruction_event_fact_smoke.lua
+tests/asm_instruction_event_fact_smoke.lua
+~~~
+
+The parser-backed ASM test proves `call target` preserves call event identity,
+source location, configured adapter metadata and parsed target operand metadata.
+
+A pre-gate test-only correction aligned the new test with the configured ASM
+architecture label `x86-64`; production code was unchanged.
+
+## Context-engine split tranche 33 — boundary-effect application wrapper (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/boundary_effect_apply.lua
+~~~
+
+This module owns only:
+
+- injected mnemonic matching for a boundary effect;
+- delegation to `boundary_infer.make_effect_fact`;
+- appending a produced boundary fact.
+
+Pre-boundary register collection remains in `context_engine.lua`.
+Known syscall resolution, reads, writes, not-preserved state and phase
+semantics remain owned by `boundary_infer`.
+
+`context_engine.lua` no longer directly requires `boundary_infer`.
+
+New pure regression:
+
+~~~
+tests/boundary_effect_apply_smoke.lua
+~~~
+
+Parser-backed integration remains pinned by the established
+`tests/asm_boundary_effects_smoke.lua`, which proves real syscall resolution
+from pre-boundary register state and read/write phase metadata.
+
+## Ten-commit relay boundary after tranches 32 and 33
+
+This relay stops after exactly ten commits on top of accepted `1cf57a6`.
+The register match gate, memory evaluation, stack fact/application and
+pre-boundary register collection remain in `context_engine.lua`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short
+git pull --ff-only
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/instruction_event_fact_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_fact_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_fact_builder_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+Do not take the next ownership slice until this gate is accepted green.
