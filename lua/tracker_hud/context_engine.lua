@@ -8,16 +8,11 @@
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
-local memory_access = require("tracker_hud.low_level.memory_access")
-local memory_source_evidence = require("tracker_hud.low_level.memory_source_evidence")
-local memory_source_collection = require("tracker_hud.low_level.memory_source_collection")
 local memory_address_evaluator = require("tracker_hud.low_level.memory_address_evaluator")
-local operand_metadata = require("tracker_hud.low_level.operand_metadata")
-local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
+local memory_source_discovery = require("tracker_hud.low_level.memory_source_discovery")
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
 local register_effect_selection = require("tracker_hud.low_level.register_effect_selection")
-local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
@@ -252,23 +247,7 @@ local function collect_nodes_by_type(
 end
 
 
-local get_static_register_spec =
-    register_state_read.get_static_spec
-
-local get_register_fact_from_map =
-    register_state_read.get_fact
-
-local get_register_fact_for_read =
-    register_state_read.get_fact_for_read
-
-local get_register_value_width =
-    register_state_read.get_value_width
-
-
-local apply_register_value_width_policy =
-    register_value_policy.apply_width_policy
-
-local parse_numeric_value =
+local parse_numeric_value =local parse_numeric_value =
     register_value_policy.parse_numeric_value
 
 local parse_numeric_number =
@@ -465,108 +444,10 @@ function M.collect_register_effects(context, adapter, opts)
 end
 
 
---
--- Discover source occurrences for explicit Registers inspection.
---
--- Register state remains line-based, while Inspect selection is occurrence-based.
--- This function does not mutate register state and does not render HUD nodes.
--- It describes which presentation register rows are addressed by the exact
--- Tree-sitter mnemonic/operand occurrences on one source line.
---
-
-local function get_register_operand_occurrence_role(
-    effect_specs,
-    operand_index
-)
-    for _, effect_spec in ipairs(effect_specs or {}) do
-        for _, operand_spec in ipairs(effect_spec.operands or {}) do
-            if tonumber(operand_spec.index) == operand_index then
-                local role = register_source_occurrence.normalize_role(
-                    operand_spec.role
-                )
-
-                if role then
-                    return role
-                end
-            end
-        end
-    end
-
-    return nil
-end
+-- Source-time address evaluation is shared by memory and register discovery.
 
 
-local function get_matching_register_effect_specs(
-    effect_index,
-    adapter,
-    instruction_node,
-    bufnr
-)
-    return register_effect_selection.match_node(
-        effect_index,
-        instruction_node,
-        {
-            parse_instruction = function(
-                node,
-                representative_effect_spec
-            )
-                return collect_instruction_operands(
-                    adapter,
-                    node,
-                    bufnr,
-                    representative_effect_spec
-                )
-            end,
-            normalize_mnemonic =
-                normalize_mnemonic,
-        }
-    )
-end
-
-
-local function build_source_written_role(instruction, operand)
-    local kind_label = operand_metadata.kind_label(
-        core.is_table(operand) and operand.kind or nil
-    ) or "source"
-
-    local mnemonic = instruction and instruction.mnemonic or nil
-
-    if kind_label == "memory" then
-        return "loaded from memory"
-            .. (mnemonic and " by " .. mnemonic or "")
-    end
-
-    return "written from "
-        .. kind_label
-        .. (mnemonic and " by " .. mnemonic or "")
-end
-
-
-local function get_memory_operand_role(
-    effect_specs,
-    operand_index
-)
-    local role = nil
-
-    for _, effect_spec in ipairs(effect_specs or {}) do
-        local operand_spec =
-            register_source_metadata.get_effect_operand_spec(
-                effect_spec,
-                operand_index
-            )
-
-        if core.is_table(operand_spec)
-            and core.is_non_empty_string(operand_spec.role)
-        then
-            role = role or operand_spec.role
-        end
-    end
-
-    return role
-end
-
-
-local function evaluate_memory_address_before_instruction(
+local function evaluate_memory_address_before_instruction(local function evaluate_memory_address_before_instruction(
     bufnr,
     root_node,
     adapter,
@@ -598,91 +479,35 @@ local function collect_memory_source_operands_where(
     line_predicate,
     opts
 )
-    opts = opts or {}
-
-    if not bufnr
-        or not root_node
-        or not core.is_table(adapter)
-        or type(line_predicate) ~= "function"
-    then
-        return {}
-    end
-
-    local instruction_spec =
-        core.is_table(adapter.construct_specs)
-        and adapter.construct_specs.instruction
-        or nil
-    local syntax =
-        core.is_table(instruction_spec)
-        and instruction_spec.syntax
-        or nil
-    local instruction_node_type =
-        core.is_table(syntax)
-        and core.is_non_empty_string(
-            syntax.node_type
-        )
-        and syntax.node_type
-        or "instruction"
-
-    local effect_index =
-        core.is_table(adapter.register_effects)
-        and get_register_effect_index(adapter)
-        or nil
-
-    local source_members = scope_members.collect(
+    return memory_source_discovery.collect(
         bufnr,
         root_node,
-        adapter
-    )
+        adapter,
+        line_predicate,
+        opts,
+        {
+            get_register_effect_index =
+                get_register_effect_index,
 
-    return memory_source_collection.collect({
-        nodes = collect_nodes_by_type(
-            root_node,
-            instruction_node_type
-        ),
-        adapter = adapter,
-        source_members = source_members,
-        line_predicate = line_predicate,
-        machine_address_providers =
-            opts.machine_address_providers,
-
-        parse_instruction = function(node)
-            return collect_instruction_operands(
-                adapter,
+            parse_instruction = function(
                 node,
-                bufnr,
-                nil
+                representative_effect_spec
             )
-        end,
-
-        match_effects = function(
-            node,
-            instruction
-        )
-            if not effect_index then
-                return {}
-            end
-
-            return register_effect_selection
-                .match_instruction(
-                    effect_index,
+                return collect_instruction_operands(
+                    adapter,
                     node,
-                    instruction,
-                    {
-                        normalize_mnemonic =
-                            normalize_mnemonic,
-                    }
+                    bufnr,
+                    representative_effect_spec
                 )
-        end,
+            end,
 
-        evaluate_address = function(
-            instruction,
-            address,
-            machine_addresses,
-            instruction_relative_policy
-        )
-            return
-                evaluate_memory_address_before_instruction(
+            evaluate_address = function(
+                instruction,
+                address,
+                machine_addresses,
+                instruction_relative_policy
+            )
+                return evaluate_memory_address_before_instruction(
                     bufnr,
                     root_node,
                     adapter,
@@ -691,29 +516,13 @@ local function collect_memory_source_operands_where(
                     machine_addresses,
                     instruction_relative_policy
                 )
-        end,
-
-        get_operand_role =
-            get_memory_operand_role,
-
-        resolve_access = function(
-            instruction,
-            operand_index,
-            operand
-        )
-            return memory_access.resolve(
-                adapter
-                    and adapter.memory_accesses,
-                instruction.mnemonic,
-                operand_index,
-                operand
-            )
-        end,
-    })
+            end,
+        }
+    )
 end
 
 
-function M.discover_memory_source_operands(
+function M.discover_memory_source_operands(function M.discover_memory_source_operands(
     bufnr,
     root_node,
     adapter,
