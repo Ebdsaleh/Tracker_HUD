@@ -9029,3 +9029,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay and re-audit the now-thin context
 engine for whether further extraction is justified at all.
+
+## Accepted context-engine split tranches 44 and 45 (2026-11-14)
+
+ERIDU accepted the register-effect and stack-effect pipeline coordinators green.
+
+Confirmed:
+
+- pure register pipeline indexing, immediate publication, carried register copy
+  and fail-closed behavior remain intact;
+- parser-backed canonical EAX-to-RAX state still feeds a later RBX copy with
+  exact value `0x0000000000000001`;
+- existing register processing, canonical state publication and full x86 scalar
+  alias-write regressions remain green;
+- pure stack mixed-index traversal, carried register value, source provenance
+  and fail-closed behavior remain intact;
+- parser-backed `mov rax, 42; push rax` still carries resolved value `42`;
+- existing stack collection, push/pop behavior and register-carry regression
+  remain green;
+- boundary, source-time memory replay, Inspect and adapter contracts remain
+  green.
+
+Accepted baseline: `3182968`.
