@@ -9871,3 +9871,53 @@ Test transcript remains:
 ~~~
 %USERPROFILE%\Desktop\trackerHUD_test_results.txt
 ~~~
+
+## Boundary replay production-wiring correction — pending ERIDU acceptance (2026-11-15)
+
+The first post-optimization ERIDU profile did **not** show the expected boundary
+collapse:
+
+~~~text
+before: context.boundary avg=41.859 ms max=371.388 ms
+after:  context.boundary avg=40.988 ms max=362.290 ms
+~~~
+
+That is only about a 2% movement and is not evidence of a meaningful
+optimization win.
+
+Code audit found the reason: the replay-session factory introduced by the
+original context-engine integration commit was wired into the source-memory
+evaluator dependency table instead of `collect_boundary_effects()`.
+
+Consequences:
+
+- the generic replay-session machinery was correct;
+- the generic boundary pipeline could use it;
+- parity tests stayed green;
+- but production `context_engine.collect_boundary_effects()` never supplied the
+  session factory, so it silently used the old full-register-replay fallback;
+- the misplaced memory dependency was unused by `memory_address_evaluator`.
+
+Correction:
+
+- remove the misplaced replay factory from source-memory evaluation;
+- supply `create_register_replay_session` from
+  `context_engine.collect_boundary_effects()`;
+- retain the full replay fallback;
+- add `tests/context_engine_boundary_replay_wiring_smoke.lua` to prove the public
+  context-engine boundary facade actually supplies and invokes the factory.
+
+The cumulative runner now contains 141 tests, with the new wiring regression
+appended last.
+
+Pending correction commits:
+
+~~~text
+ec9aac7 fix(context): wire replay session into boundary collection
+055e78d test(context): pin boundary replay-session wiring
+a48ac32 test: append context replay wiring regression
+~~~
+
+Do not interpret the first post-optimization profile as a result for the
+intended replay architecture. Re-profile only after this correction passes the
+full ERIDU gate.
