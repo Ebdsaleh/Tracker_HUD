@@ -120,7 +120,11 @@ local function update_hud(event_args)
         local current_context =
             context.get_cursor_context(
                 bufnr,
-                config
+                config,
+                {
+                    profile_token =
+                        profile_token,
+                }
             )
 
         analysis_profile.end_phase(
