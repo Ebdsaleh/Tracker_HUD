@@ -7867,3 +7867,29 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 30 and 31 (2026-11-14)
+
+ERIDU accepted register fact construction and register state publication after
+one narrow test-only correction.
+
+Confirmed:
+
+- register fact construction preserves target identity/role, EAX canonical
+  zero-extension, semantic metadata, target source-range precedence and
+  implicit-register targets;
+- register state publication preserves latest/family state, sibling alias
+  invalidation, raw write publication, reduced canonical publication,
+  unresolved publication and direct canonical publication;
+- real `mov eax, 0xFFFFFFFF` still produces canonical RAX
+  `0x00000000FFFFFFFF`;
+- real `mov rax, 0xFFFFFFFFFFFFFFFF; mov eax, 1; mov rbx, rax` publishes
+  canonical RAX `0x0000000000000001` and the later RBX copy reads that exact
+  newly-published value;
+- the temporary RED was a new-test representation assumption only: the test
+  expected decimal `"1"` instead of the exact canonical value string. The
+  correction changed only the test, not production code;
+- x86 alias writes and register effect value resolution remain green.
+
+Accepted baseline: `1cf57a6`.
