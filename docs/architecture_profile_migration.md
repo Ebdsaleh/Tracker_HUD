@@ -9418,3 +9418,74 @@ checkpoint reuse yet.
 
 The next measurement must identify which context collector dominates and retain
 all samples from the standard 12-refresh protocol.
+
+## Context subphase profiling refinement — pending ERIDU acceptance (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+This refinement is still observational only. It does not add checkpoint reuse,
+change replay semantics or change source visibility.
+
+### New nested phase coverage
+
+`context.get_cursor_context` / section attachment now reports:
+
+- `context.parser`
+- `context.configure`
+- `context.scopes`
+- `context.setup`
+- `context.scope_members`
+- `context.scope_members_all`
+- `context.registers`
+- `context.registers_before`
+- `context.stack`
+- `context.boundary`
+- `context.instruction_events`
+- `context.source_memory`
+- `context.events`
+- `context.heap`
+- `context.warnings`
+
+The existing outer `context` timing remains unchanged.
+
+The report now retains 16 recent samples by default and prints each sample's
+four most expensive nested phases.
+
+New parser-backed proof:
+
+~~~
+tests/asm_context_profile_subphases_smoke.lua
+~~~
+
+It runs the real 163-line ASM performance fixture through
+`context.get_cursor_context` and requires all nested phases to appear.
+
+### ERIDU code gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -10 --oneline
+
+nvim --headless -u NONE -c "luafile tests/analysis_profile_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/analysis_profile_report_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/analysis_profile_command_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_performance_baseline_sample_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_context_profile_subphases_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/context_engine_facade_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If GREEN, repeat the exact interactive measurement in
+`docs/performance_baseline.md` and paste the full `:HudProfile` report.
+
+Do not begin checkpoint implementation until the nested report identifies the
+first replay owner to optimize.
