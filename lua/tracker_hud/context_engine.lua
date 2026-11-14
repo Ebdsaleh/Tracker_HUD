@@ -17,7 +17,6 @@ local instruction_event_pipeline = require("tracker_hud.low_level.instruction_ev
 local stack_effect_pipeline = require("tracker_hud.low_level.stack_effect_pipeline")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
-local rule_syntax = require("tracker_hud.low_level.rule_syntax")
 local context_primitives = require("tracker_hud.constructs.context_primitives")
 local branch_presentation = require("tracker_hud.constructs.branch_presentation")
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
@@ -26,16 +25,6 @@ local construct_parser = require("tracker_hud.constructs.parser")
 
 local M = {}
 
-
-
-local get_rule_mnemonic =
-    rule_syntax.get_mnemonic
-
-local normalize_mnemonic =
-    rule_syntax.normalize_mnemonic
-
-local rule_index_options =
-    rule_syntax.index_options()
 
 
 local get_register_effect_index =
@@ -213,20 +202,35 @@ local function collect_instruction_operands(
 end
 
 
-local function collect_nodes_by_type(
-    node,
-    node_type,
-    result
+-- Register-effect reduction is owned by register_effect_pipeline.
+
+
+function M.collect_register_effects(
+    context,
+    adapter,
+    opts
 )
-    return instruction_source.collect_nodes_by_type(
-        node,
-        node_type,
-        result
+    opts = opts or {}
+
+    return register_effect_pipeline.collect(
+        context,
+        adapter,
+        opts,
+        {
+            parse_instruction = function(
+                node,
+                representative_effect_spec
+            )
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    opts.bufnr,
+                    representative_effect_spec
+                )
+            end,
+        }
     )
 end
-
-
--- Register-effect reduction is owned by register_effect_pipeline.
 
 
 -- Source-time address evaluation is shared by memory and register discovery.-- Source-time address evaluation is shared by memory and register discovery.
@@ -494,4 +498,4 @@ function M.collect_stack_effects(
 end
 
 
-return Mreturn M
+return M
