@@ -9489,3 +9489,93 @@ If GREEN, repeat the exact interactive measurement in
 
 Do not begin checkpoint implementation until the nested report identifies the
 first replay owner to optimize.
+
+## Context subphase gate correction and checkpoint owner decision (2026-11-14)
+
+The first ERIDU run of the context-subphase relay exposed one RED test:
+
+~~~
+tests/analysis_profile_report_smoke.lua
+~~~
+
+The runtime behaved correctly. The test configured `max_samples = 8` and then
+asserted that 12 historical samples must remain available. The profiler obeyed
+the configured eight-sample storage cap.
+
+Only the test fixture was corrected to use `max_samples = 16`. No runtime
+profiling or context code changed in that correction.
+
+All other new and established suites in the same ERIDU gate remained green,
+including the parser-backed context-subphase proof and the context/pipeline/
+memory/Inspect/adapter regressions.
+
+### Refined ERIDU measurement
+
+The live nested report captured 11 refreshes and again showed context dominance:
+
+| Phase | Average | Maximum |
+| --- | ---: | ---: |
+| context | 95.701 ms | 473.123 ms |
+| context.boundary | 41.859 ms | 371.388 ms |
+| context.configure | 16.368 ms | 18.263 ms |
+| context.source_memory | 8.043 ms | 29.590 ms |
+| context.registers | 6.265 ms | 19.714 ms |
+| context.scope_members | 5.152 ms | 9.157 ms |
+| context.scope_members_all | 4.127 ms | 9.440 ms |
+| context.stack | 3.900 ms | 11.705 ms |
+| context.registers_before | 3.164 ms | 8.561 ms |
+| render | 11.443 ms | 16.381 ms |
+| total | 107.253 ms | 486.065 ms |
+
+`context.boundary` alone is roughly 44% of average context cost and roughly
+39% of average total refresh cost. At the expensive line-103 jump, boundary
+work reached 371.388 ms inside a 473.123 ms context phase.
+
+### Boundary replay structure
+
+The measured result matches the current boundary pipeline structure.
+
+Boundary rules use the generic ASM `instruction` node type. The boundary
+collection layer parses each visible candidate instruction and intentionally
+collects its pre-boundary read context even when mnemonic lookup produces no
+boundary effect spec.
+
+That sequencing is already pinned by:
+
+~~~
+tests/boundary_effect_collection_smoke.lua
+~~~
+
+including the unmatched-instruction read-context call.
+
+Pre-boundary read context is constructed by:
+
+~~~
+lua/tracker_hud/low_level/boundary_register_context.lua
+~~~
+
+which invokes the full register-effect reducer with a limit position immediately
+before the candidate instruction.
+
+Therefore a long instruction stream can repeatedly replay register state from
+the beginning/prefix while collecting boundary context.
+
+### First checkpoint owner
+
+Do **not** remove the unmatched read-context call merely for speed; established
+boundary orchestration currently treats that sequencing as contract.
+
+The first optimization should instead be a reusable incremental register-state
+replay/checkpoint service that preserves the same calls and results while
+avoiding repeated prefix reduction.
+
+The service should be reusable by:
+
+- boundary pre-read context;
+- normal register collection;
+- pre-current-line register snapshots;
+- stack mixed register carry;
+- source-time memory address evaluation.
+
+Implementation remains blocked until the corrected report test returns GREEN on
+ERIDU.
