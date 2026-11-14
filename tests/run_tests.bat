@@ -4,10 +4,43 @@ setlocal EnableExtensions
 rem Tracker_HUD cumulative ERIDU test runner.
 rem Run from anywhere; the script changes to the repository root.
 rem
+rem Results are shown in the console and overwritten on each run at:
+rem   %USERPROFILE%\Desktop\trackerHUD_test_results.txt
+rem
 rem MAINTENANCE RULE:
 rem   Append each tranche's new tests to the END of the call list below.
 rem   Preserve -u NONE for pure tests and normal Neovim for parser-backed tests.
 rem   This runner is fail-fast: the first RED test stops the suite.
+
+set "TRACKER_HUD_RESULTS=%USERPROFILE%\Desktop\trackerHUD_test_results.txt"
+set "TRACKER_HUD_RUNNER=%~f0"
+
+if /I "%~1"=="--capture" goto :captured
+
+if not exist "%USERPROFILE%\Desktop" (
+    echo [FAIL] Desktop directory not found: "%USERPROFILE%\Desktop"
+    exit /b 1
+)
+
+echo [Tracker_HUD] Results will be written to:
+echo   %TRACKER_HUD_RESULTS%
+echo.
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command "$runner = [char]34 + $env:TRACKER_HUD_RUNNER + [char]34 + ' --capture'; & $env:ComSpec /d /c $runner 2>&1 | Tee-Object -FilePath $env:TRACKER_HUD_RESULTS; exit $LASTEXITCODE"
+set "TEST_EXIT=%errorlevel%"
+
+echo.
+echo [Tracker_HUD] Results saved to:
+echo   %TRACKER_HUD_RESULTS%
+
+exit /b %TEST_EXIT%
+
+:captured
+shift
+
+echo [Tracker_HUD] Test run started: %DATE% %TIME%
+echo [Tracker_HUD] Results file: %TRACKER_HUD_RESULTS%
+echo.
 
 pushd "%~dp0.."
 if errorlevel 1 (
