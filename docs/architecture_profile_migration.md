@@ -9161,3 +9161,74 @@ Accepted baseline: `aea0fb1`.
 
 The context-engine split campaign is complete. Further work returns to the
 shared architecture-profile migration roadmap.
+
+## Roadmap re-audit after context-engine stabilization (2026-11-14)
+
+The original migration sequence was re-audited against the current tree rather
+than followed by stale tranche number.
+
+### Already landed beyond the original first tranche
+
+The shared x86-64 profile now includes:
+
+- architecture register families/static rows/alias index;
+- language-independent platform declarations for Linux, Windows and Darwin;
+- calling-convention declarations including SysV AMD64 and Linux syscall
+  register convention;
+- ABI-owned register-role overlays.
+
+The ASM x86-64 adapter consumes those shared target facts while preserving its
+existing public compatibility fields.
+
+Therefore "begin architecture/ABI separation" is no longer the next missing
+step.
+
+### Still missing
+
+There is no end-to-end HUD/cursor performance instrumentation or incremental
+source-state checkpoint layer.
+
+The existing `analysis_cache.lua` provides cache-window/visibility policy, but
+does not record refresh timings, cache hits or replay work.
+
+The existing `tests/architecture_alias_benchmark.lua` measures only alias
+lookup and explicitly does not measure HUD redraw, Tree-sitter or instruction
+replay.
+
+### Next foundation tranche
+
+Before designing checkpoints or moving additional ISA/effect ownership, measure
+the existing refresh path.
+
+New observational module:
+
+~~~
+lua/tracker_hud/analysis_profile.lua
+~~~
+
+It is opt-in and records existing work only.
+
+Tracked phases:
+
+- context analysis;
+- source-state publication;
+- HUD render;
+- hex-width source refresh;
+- total refresh.
+
+Tracked refresh reasons include first refresh, cursor step/move/large jump,
+edit and buffer enter.
+
+Runtime command:
+
+~~~
+:HudProfile [show|on|off|reset]
+~~~
+
+Default configuration remains disabled.
+
+Repeatable ERIDU procedure:
+
+~~~
+docs/performance_baseline.md
+~~~
