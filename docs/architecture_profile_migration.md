@@ -9806,3 +9806,31 @@ Behavior:
   duplicate entries.
 
 Future runner maintenance must preserve this transcript behavior.
+
+## Desktop transcript wrapper correction (2026-11-15)
+
+The first Desktop-transcript implementation used a recursive PowerShell/cmd
+wrapper. ERIDU proved that wrapper was invalid:
+
+- cmd reported an error in the recursive command line;
+- the child test process no longer resolved `tests/...` from the repository root;
+- Neovim therefore emitted repeated `cannot open tests/...` errors;
+- the batch still reached a false GREEN because those Ex/Lua load failures did
+  not reliably propagate a non-zero process exit.
+
+The runner is now **pure cmd.exe / batch**. No PowerShell dependency is allowed.
+This matches the Visual Studio 2022 Native Tools Command Prompt environment.
+
+Each test now:
+
+1. runs from the repository root;
+2. writes stdout/stderr to a temporary file;
+3. echoes that output back to the command prompt;
+4. appends it to `%USERPROFILE%\Desktop\trackerHUD_test_results.txt`;
+5. wraps `luafile` in `pcall` and forces `cquit 1` on any load/test error;
+6. returns the Neovim exit code to the fail-fast batch gate.
+
+The recursive PowerShell wrapper was removed entirely.
+
+The cumulative inventory remains 140 runnable tests, with zero missing,
+duplicate or extra entries.
