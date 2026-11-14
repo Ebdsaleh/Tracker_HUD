@@ -14,8 +14,41 @@ local section_layout = require("tracker_hud.section_layout")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local target_diagnostics = require("tracker_hud.target_diagnostics")
 local c_memory_facts = require("tracker_hud.adapters.c.memory_facts")
+local analysis_profile = require("tracker_hud.analysis_profile")
 
 
+
+
+local function profile_begin(
+    profile_token,
+    name
+)
+    if not profile_token then
+        return nil
+    end
+
+    return analysis_profile.begin_phase(
+        profile_token,
+        name
+    )
+end
+
+
+local function profile_end(
+    profile_token,
+    name,
+    started
+)
+    if not profile_token then
+        return nil
+    end
+
+    return analysis_profile.end_phase(
+        profile_token,
+        name,
+        started
+    )
+end
 
 
 local function try_parse_construct_with_adapter(bufnr, node)
@@ -396,7 +429,15 @@ local function append_missing_range_scopes(scopes, range_scopes)
 end
 
 
-local function attach_context_sections(context, bufnr, root_node, adapter, scope_member_opts, config)
+local function attach_context_sections(
+    context,
+    bufnr,
+    root_node,
+    adapter,
+    scope_member_opts,
+    config,
+    profile_token
+)
     context.targets = vim.deepcopy(adapter.active_targets or {})
 
     context.section_layout = section_layout.resolve(adapter)
@@ -515,13 +556,38 @@ local function attach_context_sections(context, bufnr, root_node, adapter, scope
     return context
 end
 
-function M.get_cursor_context(bufnr, config)
+function M.get_cursor_context(
+    bufnr,
+    config,
+    opts
+)
     config = config or {}
+    opts = opts or {}
+
+    local profile_token =
+        opts.profile_token
 
     local filetype = vim.bo[bufnr].filetype
-    local ok, parser = pcall(vim.treesitter.get_parser, bufnr)
+
+    local parser_phase =
+        profile_begin(
+            profile_token,
+            "context.parser"
+        )
+
+    local ok, parser =
+        pcall(
+            vim.treesitter.get_parser,
+            bufnr
+        )
 
     if not ok or not parser then
+        profile_end(
+            profile_token,
+            "context.parser",
+            parser_phase
+        )
+
         return context_engine.make_unavailable_context(
             "No Tree-sitter parser available for filetype: " .. tostring(filetype),
             filetype
@@ -542,10 +608,30 @@ function M.get_cursor_context(bufnr, config)
         root_node = tree:root()
     end
 
-    local configured, configure_err = adapter_registry.configure_adapter_for_buffer(
-        filetype,
-        bufnr,
-        config
+    profile_end(
+        profile_token,
+        "context.parser",
+        parser_phase
+    )
+
+    local configure_phase =
+        profile_begin(
+            profile_token,
+            "context.configure"
+        )
+
+    local configured, configure_err =
+        adapter_registry
+            .configure_adapter_for_buffer(
+                filetype,
+                bufnr,
+                config
+            )
+
+    profile_end(
+        profile_token,
+        "context.configure",
+        configure_phase
     )
 
     if not configured then
@@ -561,6 +647,12 @@ function M.get_cursor_context(bufnr, config)
     local adapter = adapter_registry.get_adapter(filetype)
     local cursor = context_engine.get_cursor_location()
     local node = vim.treesitter.get_node()
+
+    local scopes_phase =
+        profile_begin(
+            profile_token,
+            "context.scopes"
+        )
 
     if not node then
         local context = context_engine.make_global_context()
@@ -591,13 +683,20 @@ function M.get_cursor_context(bufnr, config)
             context.member_scope = nil
         end
 
+        profile_end(
+            profile_token,
+            "context.scopes",
+            scopes_phase
+        )
+
         return attach_context_sections(
             context,
             bufnr,
             root_node,
             adapter,
             scope_member_opts,
-            config
+            config,
+            profile_token
         )
     end
 
@@ -643,13 +742,20 @@ function M.get_cursor_context(bufnr, config)
         context.member_scope = nil
     end
 
+    profile_end(
+        profile_token,
+        "context.scopes",
+        scopes_phase
+    )
+
     return attach_context_sections(
         context,
         bufnr,
         root_node,
         adapter,
         scope_member_opts,
-        config
+        config,
+        profile_token
     )
 end
 
