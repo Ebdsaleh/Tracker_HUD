@@ -32,7 +32,7 @@ print("PASS analysis profile report: opt-in defaults preserved")
 
 profile.configure({
     enabled = true,
-    max_samples = 8,
+    max_samples = 16,
     large_jump_lines = 50,
 })
 
