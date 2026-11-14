@@ -35,6 +35,8 @@ if errorlevel 1 (
 )
 
 echo [Tracker_HUD] Running 140 tests...
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 140 tests...
+>> "%TRACKER_HUD_RESULTS%" echo.
 
 call :run_none "tests/architecture_registry_smoke.lua"
 if errorlevel 1 goto :fail
