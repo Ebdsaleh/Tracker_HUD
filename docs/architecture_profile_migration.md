@@ -10317,3 +10317,38 @@ line-103=29.869 ms
 ~~~
 
 If RED, stop and fix only this source-memory replay tranche.
+
+## Accepted source-memory incremental replay tranche (2026-11-15)
+
+ERIDU accepted the source-memory register replay tranche green at `436a195`.
+
+Confirmed:
+
+- pure memory-address replay callback proof passes;
+- exact pre-instruction source position remains unchanged;
+- incremental replay is preferred over the full collector when available;
+- parser-backed 163-line fixture creates exactly one source-memory replay
+  session;
+- the real fixture serves multiple replay queries through that one session;
+- replay remains monotonic with zero backward/full-replay fallbacks;
+- replay never processes more source nodes than exist in the indexed source
+  set;
+- optimized source-memory facts match forced full-replay facts;
+- cumulative suite reports `145/145` GREEN;
+- `tracker_full.bat` reports full-gate GREEN.
+
+Accepted semantic baseline: `436a195`.
+
+The next authoritative step is to re-run the exact committed performance fixture
+before changing any other subsystem.
+
+Compare `context.source_memory` against the pre-replay baseline:
+
+~~~text
+avg=6.916 ms
+max=29.869 ms
+line-103=29.869 ms
+~~~
+
+No broader refresh-wide replay sharing should be accepted until this measurement
+is captured.
