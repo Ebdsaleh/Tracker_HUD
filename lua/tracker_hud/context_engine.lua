@@ -16,13 +16,11 @@ local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
 local register_effect_apply = require("tracker_hud.low_level.register_effect_apply")
-local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_pipeline = require("tracker_hud.low_level.boundary_effect_pipeline")
+local instruction_event_pipeline = require("tracker_hud.low_level.instruction_event_pipeline")
 local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
-local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
-local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
 local rule_syntax = require("tracker_hud.low_level.rule_syntax")
@@ -648,125 +646,30 @@ function M.collect_boundary_effects(
 end
 
 
-local function get_instruction_event_index(adapter)
-    return instruction_event_index.get(
-        adapter,
-        rule_index_options
-    )
-end
-
-
-local function instruction_event_matches(
-    instruction,
-    event_spec
-)
-    return instruction_event_index.matches(
-        instruction,
-        event_spec,
-        {
-            get_mnemonic =
-                get_rule_mnemonic,
-        }
-    )
-end
-
-
-local function apply_instruction_event(
-    facts,
+function M.collect_instruction_events(
     context,
     adapter,
-    instruction,
-    event_spec
-)
-    return instruction_event_fact.apply(
-        facts,
-        context,
-        adapter,
-        instruction,
-        event_spec,
-        {
-            matches =
-                instruction_event_matches,
-            get_mnemonic =
-                get_rule_mnemonic,
-        }
-    )
-end
-
-
-local function collect_instruction_events_with_module(
-    context,
-    adapter,
-    opts,
-    event_index
+    opts
 )
     opts = opts or {}
 
-    return instruction_event_collection.collect({
-        context = context,
-        event_index = event_index,
-
-        collect_nodes = function(node_type)
-            return collect_nodes_by_type(
-                opts.root_node,
-                node_type
-            )
-        end,
-
-        parse_instruction = function(
-            node,
-            representative_event_spec
-        )
-            return collect_instruction_operands(
-                adapter,
-                node,
-                opts.bufnr,
-                representative_event_spec
-            )
-        end,
-
-        normalize_mnemonic =
-            normalize_mnemonic,
-
-        apply_event = function(
-            facts,
-            instruction,
-            event_spec
-        )
-            apply_instruction_event(
-                facts,
-                context,
-                adapter,
-                instruction,
-                event_spec
-            )
-        end,
-    })
-end
-
-
-function M.collect_instruction_events(context, adapter, opts)
-    opts = opts or {}
-
-    local bufnr = opts.bufnr
-    local root_node = opts.root_node
-
-    if not bufnr
-        or not root_node
-        or not core.is_table(context)
-        or not core.is_table(adapter)
-        or not core.is_table(
-            adapter.instruction_events
-        )
-    then
-        return {}
-    end
-
-    return collect_instruction_events_with_module(
+    return instruction_event_pipeline.collect(
         context,
         adapter,
         opts,
-        get_instruction_event_index(adapter)
+        {
+            parse_instruction = function(
+                node,
+                representative_event_spec
+            )
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    opts.bufnr,
+                    representative_event_spec
+                )
+            end,
+        }
     )
 end
 
