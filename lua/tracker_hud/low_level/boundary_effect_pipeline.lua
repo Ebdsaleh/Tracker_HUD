@@ -55,6 +55,13 @@ function M.collect(
             rule_syntax.index_options()
         )
 
+    local register_replay_session =
+        type(
+            deps.create_register_replay_session
+        ) == "function"
+        and deps.create_register_replay_session()
+        or nil
+
     return boundary_effect_collection.collect({
         context = context,
         effect_index = effect_index,
@@ -93,6 +100,18 @@ function M.collect(
                 {
                     collect_register_effects =
                         deps.collect_register_effects,
+
+                    collect_register_effects_before =
+                        register_replay_session
+                        and function(
+                            limit_position
+                        )
+                            return register_replay_session
+                                :collect_before(
+                                    limit_position
+                                )
+                        end
+                        or nil,
                 }
             )
         end,
