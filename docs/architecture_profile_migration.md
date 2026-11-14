@@ -8545,8 +8545,9 @@ tests/asm_memory_source_discovery_smoke.lua
 ~~~
 
 The parser-backed proof requires exact-line discovery of `[rax + 8]` from
-`mov rbx, [rax + 8]`, preserving role `source_memory`, access `read`,
-effective address `4104`, and `execution_status = not_observed`.
+`mov rbx, [rax + 8]`, preserving access `read`, effective address `4104`,
+and `execution_status = not_observed`. Role propagation is pinned separately
+by the pure coordinator test with an injected register-effect rule.
 
 ## Context-engine split tranche 41 — register-source discovery coordinator (2026-11-14)
 
@@ -8582,8 +8583,10 @@ tests/asm_register_source_discovery_smoke.lua
 ~~~
 
 The parser-backed proof requires the line containing
-`mov rbx, [rax + 8]` to preserve mnemonic, destination operand, source-memory
-operand, base-register component, and effective-address evidence `4104`.
+`mov rbx, [rax + 8]` to preserve mnemonic, destination-register focus,
+base-register component, and effective-address evidence `4104`. Memory-operand
+Inspect-row construction is pinned separately by the pure coordinator test
+when a matching register-effect rule exists.
 
 ## Context-engine cleanup produced by ownership moves
 
@@ -8642,7 +8645,7 @@ established test or production semantic contract was weakened.
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -13 --oneline
+git log -14 --oneline
 
 nvim --headless -u NONE -c "luafile tests/memory_source_discovery_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_memory_source_discovery_smoke.lua" -c "qa!"
