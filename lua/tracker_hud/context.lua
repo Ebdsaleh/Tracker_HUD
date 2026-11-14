@@ -438,28 +438,97 @@ local function attach_context_sections(
     config,
     profile_token
 )
-    context.targets = vim.deepcopy(adapter.active_targets or {})
+    local phase =
+        profile_begin(
+            profile_token,
+            "context.setup"
+        )
 
-    context.section_layout = section_layout.resolve(adapter)
-    context.section_order = context.section_layout.order
-    context.section_count = context.section_layout.count
+    context.targets =
+        vim.deepcopy(
+            adapter.active_targets
+                or {}
+        )
 
-    target_diagnostics.show(bufnr, context.targets)
+    context.section_layout =
+        section_layout.resolve(adapter)
+    context.section_order =
+        context.section_layout.order
+    context.section_count =
+        context.section_layout.count
 
-    context.scope_members = scope_members.collect(
+    target_diagnostics.show(
         bufnr,
-        root_node,
-        adapter,
-        scope_member_opts
+        context.targets
     )
 
-    context.all_scope_members = scope_members.collect(bufnr, root_node, adapter)
+    profile_end(
+        profile_token,
+        "context.setup",
+        phase
+    )
 
-    context.registers = registers.collect(context, adapter, {
-        bufnr = bufnr,
-        root_node = root_node,
-        config = config,
-    })
+    phase =
+        profile_begin(
+            profile_token,
+            "context.scope_members"
+        )
+
+    context.scope_members =
+        scope_members.collect(
+            bufnr,
+            root_node,
+            adapter,
+            scope_member_opts
+        )
+
+    profile_end(
+        profile_token,
+        "context.scope_members",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.scope_members_all"
+        )
+
+    context.all_scope_members =
+        scope_members.collect(
+            bufnr,
+            root_node,
+            adapter
+        )
+
+    profile_end(
+        profile_token,
+        "context.scope_members_all",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.registers"
+        )
+
+    context.registers =
+        registers.collect(
+            context,
+            adapter,
+            {
+                bufnr = bufnr,
+                root_node = root_node,
+                config = config,
+            }
+        )
+
+    profile_end(
+        profile_token,
+        "context.registers",
+        phase
+    )
 
     -- Keep an explicit reduced snapshot from BEFORE the current source line.
     -- The normal Registers collection may already contain a latest effect from
@@ -468,90 +537,219 @@ local function attach_context_sections(
     -- family state so history does not visually disappear during that gap.
     context.registers_before_current_line = {}
 
-    if context.cursor and type(context.cursor.line) == "number" then
-        context.registers_before_current_line = registers.collect(
+    phase =
+        profile_begin(
+            profile_token,
+            "context.registers_before"
+        )
+
+    if context.cursor
+        and type(context.cursor.line)
+            == "number"
+    then
+        context.registers_before_current_line =
+            registers.collect(
+                context,
+                adapter,
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                    config = config,
+                    limit_position = {
+                        line =
+                            context.cursor.line,
+                        column = 0,
+                    },
+                }
+            )
+    end
+
+    profile_end(
+        profile_token,
+        "context.registers_before",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.stack"
+        )
+
+    context.stack =
+        stack.collect(
             context,
             adapter,
             {
                 bufnr = bufnr,
                 root_node = root_node,
-                config = config,
-                limit_position = {
-                    line = context.cursor.line,
-                    column = 0,
-                },
             }
         )
-    end
 
-    context.stack = stack.collect(context, adapter, {
-        bufnr = bufnr,
-        root_node = root_node,
-    })
-
-    context.boundary_effects = context_engine.collect_boundary_effects(
-        context,
-        adapter,
-        {
-            bufnr = bufnr,
-            root_node = root_node,
-        }
+    profile_end(
+        profile_token,
+        "context.stack",
+        phase
     )
 
-    context.instruction_events = context_engine.collect_instruction_events(
-        context,
-        adapter,
-        {
-            bufnr = bufnr,
-            root_node = root_node,
-        }
+    phase =
+        profile_begin(
+            profile_token,
+            "context.boundary"
+        )
+
+    context.boundary_effects =
+        context_engine
+            .collect_boundary_effects(
+                context,
+                adapter,
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                }
+            )
+
+    profile_end(
+        profile_token,
+        "context.boundary",
+        phase
     )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.instruction_events"
+        )
+
+    context.instruction_events =
+        context_engine
+            .collect_instruction_events(
+                context,
+                adapter,
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                }
+            )
+
+    profile_end(
+        profile_token,
+        "context.instruction_events",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.source_memory"
+        )
 
     -- ASM source memory operands are syntax-derived address structures.
     -- Keep them separate from Heap/Events: seeing [base + index*scale + disp]
     -- proves source structure, not that an access executed or an address exists.
     if adapter.name == "asm" then
         context.source_memory_operands =
-            context_engine.collect_memory_source_operands(
-                bufnr,
-                root_node,
-                adapter,
-                context.cursor and context.cursor.line,
-                {
-                    machine_address_providers =
-                        config.machine_address_providers,
-                }
-            )
+            context_engine
+                .collect_memory_source_operands(
+                    bufnr,
+                    root_node,
+                    adapter,
+                    context.cursor
+                        and context.cursor.line,
+                    {
+                        machine_address_providers =
+                            config
+                                .machine_address_providers,
+                    }
+                )
     end
 
     -- C/C++ source-observed memory operations. Only events that begin ON
     -- or BEFORE the cursor are visited. This records allocation/release
     -- expression sites, not successful allocations or ownership proofs.
-    if adapter.name == "c" or adapter.name == "cpp" then
-        context.source_memory_facts = c_memory_facts.collect(
-            bufnr,
-            root_node,
-            adapter.name,
-            context.cursor and context.cursor.line
-        )
+    if adapter.name == "c"
+        or adapter.name == "cpp"
+    then
+        context.source_memory_facts =
+            c_memory_facts.collect(
+                bufnr,
+                root_node,
+                adapter.name,
+                context.cursor
+                    and context.cursor.line
+            )
     end
 
-    context.events = events.collect(context)
+    profile_end(
+        profile_token,
+        "context.source_memory",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.events"
+        )
+
+    context.events =
+        events.collect(context)
+
+    profile_end(
+        profile_token,
+        "context.events",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.heap"
+        )
 
     -- Heap is intentionally a shell for now.
     -- Later, boundary effects such as mmap/brk/munmap/malloc/free/new/delete
     -- can populate this section.
-    context.heap = heap.collect(context, adapter, {
-        bufnr = bufnr,
-        root_node = root_node,
-    })
+    context.heap =
+        heap.collect(
+            context,
+            adapter,
+            {
+                bufnr = bufnr,
+                root_node = root_node,
+            }
+        )
+
+    profile_end(
+        profile_token,
+        "context.heap",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.warnings"
+        )
 
     -- warnings are derived after boundary/heap facts exist.
-    context.warnings = warnings.collect(context, adapter, {
-        bufnr = bufnr,
-        root_node = root_node,
-        filetype = vim.bo[bufnr].filetype,
-    })
+    context.warnings =
+        warnings.collect(
+            context,
+            adapter,
+            {
+                bufnr = bufnr,
+                root_node = root_node,
+                filetype =
+                    vim.bo[bufnr].filetype,
+            }
+        )
+
+    profile_end(
+        profile_token,
+        "context.warnings",
+        phase
+    )
 
     return context
 end
