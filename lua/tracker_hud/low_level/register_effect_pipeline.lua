@@ -210,9 +210,13 @@ function M.new_replay_session(
     local session_opts =
         copy_session_options(opts)
 
+    -- A replay session indexes the complete source node set once.
+    -- Visibility is applied by collect_before(position), using the same strict
+    -- source-position rule as the existing limit_position full-replay path.
+    -- Do not restrict this pool by the caller's current cursor column.
     local nodes =
         collect_nodes(
-            context,
+            {},
             session_opts,
             effect_index
         )
