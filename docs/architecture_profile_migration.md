@@ -10166,7 +10166,7 @@ than adapter configuration:
 ~~~text
 context.source_memory   29.869 ms
 context.registers       21.333 ms
-context.registers_before 17.308 ms
+context.boundary        17.308 ms
 context.stack           16.950 ms
 ~~~
 
@@ -10196,7 +10196,7 @@ The measured post-configuration-cache line-103 profile is dominated by:
 ~~~text
 context.source_memory     29.869 ms
 context.registers         21.333 ms
-context.registers_before  17.308 ms
+context.boundary          17.308 ms
 context.stack             16.950 ms
 ~~~
 
