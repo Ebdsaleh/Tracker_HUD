@@ -23,6 +23,84 @@ M.current_contract_version = adapter_contract.current_version
 
 
 local adapters_by_filetype = {}
+local configured_adapter_cache = nil
+
+
+local function invalidate_configuration_cache()
+    configured_adapter_cache = nil
+end
+
+
+local function get_buffer_changedtick(bufnr)
+    if not bufnr
+        or not vim
+        or not vim.api
+        or type(
+            vim.api.nvim_buf_get_changedtick
+        ) ~= "function"
+    then
+        return nil
+    end
+
+    local ok, changedtick =
+        pcall(
+            vim.api.nvim_buf_get_changedtick,
+            bufnr
+        )
+
+    if not ok then
+        return nil
+    end
+
+    return changedtick
+end
+
+
+local function configuration_cache_matches(
+    adapter,
+    filetype,
+    bufnr,
+    config,
+    changedtick
+)
+    local cached =
+        configured_adapter_cache
+
+    return cached ~= nil
+        and changedtick ~= nil
+        and cached.adapter == adapter
+        and cached.filetype == filetype
+        and cached.bufnr == bufnr
+        and cached.changedtick
+            == changedtick
+        and cached.config == config
+end
+
+
+local function remember_configuration(
+    adapter,
+    filetype,
+    bufnr,
+    config
+)
+    local changedtick =
+        get_buffer_changedtick(
+            bufnr
+        )
+
+    if changedtick == nil then
+        invalidate_configuration_cache()
+        return
+    end
+
+    configured_adapter_cache = {
+        adapter = adapter,
+        filetype = filetype,
+        bufnr = bufnr,
+        changedtick = changedtick,
+        config = config,
+    }
+end
 
 
 local function normalize_filetypes(filetypes)
@@ -44,6 +122,8 @@ end
 
 
 function M.register(adapter)
+    invalidate_configuration_cache()
+
     local ok, err = M.validate_adapter(adapter)
 
     if not ok then
@@ -82,6 +162,27 @@ function M.configure_adapter_for_buffer(
             .. tostring(filetype)
     end
 
+    local changedtick =
+        get_buffer_changedtick(
+            bufnr
+        )
+
+    if configuration_cache_matches(
+        adapter,
+        filetype,
+        bufnr,
+        config,
+        changedtick
+    )
+    then
+        return true, nil
+    end
+
+    -- Once configuration input changes, the previously-active adapter state
+    -- cannot be treated as reusable. Clear first so failures never leave a
+    -- stale success entry behind.
+    invalidate_configuration_cache()
+
     if type(adapter.configure_adapter_for_buffer) == "function" then
         local ok, err = pcall(
             adapter.configure_adapter_for_buffer,
@@ -104,6 +205,13 @@ function M.configure_adapter_for_buffer(
             "configured adapter is invalid: "
             .. tostring(validation_err)
     end
+
+    remember_configuration(
+        adapter,
+        filetype,
+        bufnr,
+        config
+    )
 
     return true, nil
 end
@@ -190,6 +298,7 @@ end
 
 function M.clear()
     adapters_by_filetype = {}
+    invalidate_configuration_cache()
 end
 
 
