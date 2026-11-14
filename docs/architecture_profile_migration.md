@@ -9141,3 +9141,23 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 If this gate is GREEN, mark the context-engine split campaign complete and move
 development back to foundational architecture features rather than further
 facade decomposition.
+
+## Accepted context-engine facade stabilization (2026-11-14)
+
+ERIDU accepted the stable context-engine facade contract green.
+
+Confirmed:
+
+- all 37 public context-engine callables are present;
+- line-summary forwarding remains intact;
+- all seven low-level collection/discovery entry points fail closed;
+- construct parser/validation forwarding remains intact;
+- register, stack, boundary and instruction-event parser-backed pipelines remain
+  green;
+- source-time memory replay and Inspect certainty remain green;
+- Lua/Python/C/C++ and ASM adapter contracts remain green.
+
+Accepted baseline: `aea0fb1`.
+
+The context-engine split campaign is complete. Further work returns to the
+shared architecture-profile migration roadmap.
