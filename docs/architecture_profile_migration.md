@@ -8622,16 +8622,27 @@ Expected ownership markers:
 The context engine still owns the source-time register replay bridge because it
 is shared with boundary and other cross-section inference.
 
-## Ten-commit relay boundary after tranches 40 and 41
+## Relay boundary after tranches 40 and 41
 
-This relay stops after exactly ten commits on top of accepted `7a2ad03`.
+The planned architecture relay contains ten commits on top of accepted
+`7a2ad03`. Before ERIDU acceptance, static audit found four duplicated
+replacement-boundary markers in `context_engine.lua`. The same audit also
+found two over-assertions in the newly added parser-backed tests: the current
+x86 register-effect tables do not declare a `mov register,[memory]` register
+effect, so source-memory role/Inspect-row presence must not be invented by the
+new migration tests.
+
+Correction `f2735f7` repairs the four duplicated engine markers and narrows
+only those two new parser-backed expectations. The pure coordinator tests still
+exercise role and memory-operand wiring with injected effect rules. No
+established test or production semantic contract was weakened.
 
 ### ERIDU acceptance gate
 
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -12 --oneline
+git log -13 --oneline
 
 nvim --headless -u NONE -c "luafile tests/memory_source_discovery_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_memory_source_discovery_smoke.lua" -c "qa!"
