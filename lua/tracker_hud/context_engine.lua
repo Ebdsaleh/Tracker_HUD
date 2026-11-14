@@ -25,6 +25,7 @@ local instruction_event_index = require("tracker_hud.low_level.instruction_event
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
+local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
@@ -45,7 +46,6 @@ local register_value_policy = require("tracker_hud.low_level.register_value_poli
 local register_fact_builder = require("tracker_hud.low_level.register_fact_builder")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
 local stack_effect_match = require("tracker_hud.low_level.stack_effect_match")
-local boundary_infer = require("tracker_hud.low_level.boundary_infer")
 
 local M = {}
 
@@ -1101,47 +1101,6 @@ end
 -- selection and adapter matching concerns here.
 
 
-local function boundary_instruction_matches(instruction, effect_spec)
-    if not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return false
-    end
-
-    local expected_mnemonic =
-        get_boundary_effect_mnemonic(
-            effect_spec
-        )
-
-    if expected_mnemonic
-        and normalize_mnemonic(
-            instruction.mnemonic
-        ) ~= expected_mnemonic
-    then
-        return false
-    end
-
-    return true
-end
-
-
-local function make_boundary_effect_fact(
-    context,
-    adapter,
-    instruction,
-    effect_spec,
-    phase_contexts
-)
-    return boundary_infer.make_effect_fact(
-        context,
-        adapter,
-        instruction,
-        effect_spec,
-        phase_contexts
-    )
-end
-
-
 local function collect_registers_before_instruction(
     context,
     adapter,
@@ -1194,30 +1153,20 @@ local function apply_boundary_effect(
     effect_spec,
     phase_contexts
 )
-    if not core.is_table(facts)
-        or not core.is_table(context)
-        or not core.is_table(adapter)
-        or not core.is_table(instruction)
-        or not core.is_table(effect_spec)
-    then
-        return
-    end
-
-    if not boundary_instruction_matches(instruction, effect_spec) then
-        return
-    end
-
-    local fact = make_boundary_effect_fact(
+    return boundary_effect_apply.apply(
+        facts,
         context,
         adapter,
         instruction,
         effect_spec,
-        phase_contexts
+        phase_contexts,
+        {
+            get_mnemonic =
+                get_boundary_effect_mnemonic,
+            normalize_mnemonic =
+                normalize_mnemonic,
+        }
     )
-
-    if fact then
-        table.insert(facts, fact)
-    end
 end
 
 
