@@ -12,6 +12,7 @@ local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
 local hex_width = require("tracker_hud.hex_width")
 local analysis_cache = require("tracker_hud.analysis_cache")
+local analysis_profile = require("tracker_hud.analysis_profile")
 local presentation_mode = require("tracker_hud.presentation_mode")
 
 local hud_group = vim.api.nvim_create_augroup("CodeBlockHUD", { clear = true })
@@ -86,7 +87,11 @@ local function close_panel_if_source_window_closed(closed_winid)
     end)
 end
 
-local function update_hud()
+local function update_hud(event_args)
+    local profile_token = nil
+    local profile_finished = false
+    local profile_updated = false
+
     local ok, err = pcall(function()
         local bufnr = vim.api.nvim_get_current_buf()
 
@@ -97,24 +102,136 @@ local function update_hud()
 
         local winid = vim.api.nvim_get_current_win()
         local cursor = vim.api.nvim_win_get_cursor(winid)
-        local current_context = context.get_cursor_context(bufnr, config)
 
-        local updated = state.update_source(bufnr, winid, cursor, current_context)
+        profile_token =
+            analysis_profile.begin_refresh(
+                event_args
+                    and event_args.event,
+                bufnr,
+                cursor
+            )
 
-        if  not updated then
+        local phase =
+            analysis_profile.begin_phase(
+                profile_token,
+                "context"
+            )
+
+        local current_context =
+            context.get_cursor_context(
+                bufnr,
+                config
+            )
+
+        analysis_profile.end_phase(
+            profile_token,
+            "context",
+            phase
+        )
+
+        phase =
+            analysis_profile.begin_phase(
+                profile_token,
+                "state"
+            )
+
+        local updated =
+            state.update_source(
+                bufnr,
+                winid,
+                cursor,
+                current_context
+            )
+
+        analysis_profile.end_phase(
+            profile_token,
+            "state",
+            phase
+        )
+
+        profile_updated =
+            updated == true
+
+        if not updated then
+            analysis_profile.finish_refresh(
+                profile_token,
+                {
+                    updated = false,
+                }
+            )
+            profile_finished = true
             return
         end
 
-        hud.render(current_context, config, state.source_winid)
-        hex_width.refresh_buffer(bufnr, config, winid)
+        phase =
+            analysis_profile.begin_phase(
+                profile_token,
+                "render"
+            )
+
+        hud.render(
+            current_context,
+            config,
+            state.source_winid
+        )
+
+        analysis_profile.end_phase(
+            profile_token,
+            "render",
+            phase
+        )
+
+        phase =
+            analysis_profile.begin_phase(
+                profile_token,
+                "hex"
+            )
+
+        hex_width.refresh_buffer(
+            bufnr,
+            config,
+            winid
+        )
+
+        analysis_profile.end_phase(
+            profile_token,
+            "hex",
+            phase
+        )
 
         -- During plugin-created panel updates, source focus wins.
         restore_source_focus()
+
+        analysis_profile.finish_refresh(
+            profile_token,
+            {
+                updated = true,
+            }
+        )
+        profile_finished = true
     end)
+
+    if profile_token
+        and not profile_finished
+    then
+        analysis_profile.finish_refresh(
+            profile_token,
+            {
+                updated =
+                    profile_updated,
+                failed =
+                    not ok,
+            }
+        )
+    end
 
     if not ok then
         hud.clear(config)
-        vim.notify("tracker_hud error: " .. tostring(err), vim.log.levels.WARN)
+        vim.notify(
+            "tracker_hud error: "
+                .. tostring(err),
+            vim.log.levels.WARN
+        )
     end
 end
 
@@ -472,6 +589,12 @@ end
 
 function M.setup(opts)
     config = config_module.resolve(opts)
+
+    analysis_profile.configure(
+        config.analysis
+            and config.analysis.profile
+            or {}
+    )
 
     -- Resolve once during setup so invalid public prefixes fail before any
     -- commands, keymaps, autocmds, or highlight groups are registered.
