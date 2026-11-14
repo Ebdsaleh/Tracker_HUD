@@ -10186,3 +10186,134 @@ serve those requests without changing source-time visibility semantics.
 The first tranche will reuse one replay session **within source-memory
 collection only**. It will not yet share state across Registers,
 registers-before-current-line or Stack.
+
+## Source-memory incremental register replay tranche — pending ERIDU acceptance (2026-11-15)
+
+**Status: pushed on main, pending ERIDU gate.**
+
+The measured post-configuration-cache line-103 profile is dominated by:
+
+~~~text
+context.source_memory     29.869 ms
+context.registers         21.333 ms
+context.registers_before  17.308 ms
+context.stack             16.950 ms
+~~~
+
+This tranche deliberately targets **source-memory only** before attempting a
+larger refresh-wide replay service.
+
+### Design
+
+Source-time effective-address evaluation historically called the full register
+collector independently for each memory operand.
+
+`memory_address_evaluator` now accepts an optional:
+
+~~~lua
+collect_register_effects_before(limit_position)
+~~~
+
+callback.
+
+If present, that callback supplies the exact register state immediately before
+the instruction.
+
+If absent, the existing full:
+
+~~~lua
+collect_register_effects(...)
+~~~
+
+path remains the fallback.
+
+`context_engine.collect_memory_source_operands` now creates one
+`register_effect_pipeline.new_replay_session` for the source-memory collection
+and routes each pre-instruction address query through that session.
+
+The session still uses the existing strict source-position-before semantics.
+
+The existing recursive instruction-node traversal is source ordered, so the
+normal production path should advance monotonically. If ordering ever moves
+backwards, the replay session's established full-replay fallback remains
+correct.
+
+Relative/RIP-based addresses that do not require register state still bypass
+register replay entirely.
+
+### Proofs
+
+Pure evaluator proof:
+
+~~~text
+tests/memory_address_replay_session_smoke.lua
+~~~
+
+Pins:
+
+- exact pre-instruction line/column is preserved;
+- incremental callback is preferred when available;
+- the full collector is not invoked on that path;
+- effective-address arithmetic/certainty remains unchanged.
+
+Parser-backed fixture parity:
+
+~~~text
+tests/asm_memory_replay_parity_smoke.lua
+~~~
+
+Uses the real 163-line performance fixture at line 103 and requires:
+
+- exactly one replay session for the source-memory collection;
+- more than one pre-instruction replay query;
+- zero backward/full-replay fallbacks;
+- no source node processed more than once;
+- optimized source-memory facts equal forced full-replay facts.
+
+No timing threshold is used in tests.
+
+### Compatibility
+
+The old full register collector remains available as fallback.
+
+`context_engine` still exposes exactly 37 established public callables.
+
+No source-time execution certainty semantics are changed.
+
+### Cumulative gate
+
+`tests\run_tests.bat` now contains 145 runnable tests.
+
+Newest entries are appended last:
+
+~~~text
+memory_address_replay_session_smoke.lua
+asm_memory_replay_parity_smoke.lua
+~~~
+
+Expected ending:
+
+~~~text
+PASS Tracker_HUD memory-address replay-session smoke
+PASS ASM memory replay: one monotonic session serves visible memory queries
+PASS ASM memory replay: optimized facts match full replay
+PASS Tracker_HUD ASM source-memory replay parity smoke
+[GREEN] Tracker_HUD test suite passed: 145/145
+~~~
+
+ERIDU acceptance command:
+
+~~~bat
+tracker_full.bat
+~~~
+
+If GREEN, rerun the exact performance fixture and compare
+`context.source_memory` against the current:
+
+~~~text
+avg=6.916 ms
+max=29.869 ms
+line-103=29.869 ms
+~~~
+
+If RED, stop and fix only this source-memory replay tranche.
