@@ -658,7 +658,7 @@ function M.format_report(opts)
     local recent =
         positive_integer(
             opts.recent,
-            8
+            16
         )
 
     local first =
@@ -698,10 +698,66 @@ function M.format_report(opts)
             end
         end
 
+        local nested = {}
+
+        for name, value in pairs(
+            sample.phases
+        ) do
+            if name ~= "context"
+                and name ~= "state"
+                and name ~= "render"
+                and name ~= "hex"
+            then
+                table.insert(
+                    nested,
+                    {
+                        name = name,
+                        value = value,
+                    }
+                )
+            end
+        end
+
+        table.sort(
+            nested,
+            function(left, right)
+                if left.value
+                    == right.value
+                then
+                    return left.name
+                        < right.name
+                end
+
+                return left.value
+                    > right.value
+            end
+        )
+
+        local nested_parts = {}
+
+        for nested_index = 1,
+            math.min(
+                #nested,
+                4
+            )
+        do
+            local item =
+                nested[nested_index]
+
+            table.insert(
+                nested_parts,
+                string.format(
+                    "%s=%.3f",
+                    item.name,
+                    item.value
+                )
+            )
+        end
+
         table.insert(
             lines,
             string.format(
-                "#%d %s line=%s delta=%s total=%.3f ms%s",
+                "#%d %s line=%s delta=%s total=%.3f ms%s%s",
                 index,
                 sample.reason,
                 tostring(
@@ -717,6 +773,14 @@ function M.format_report(opts)
                     and " ["
                         .. table.concat(
                             phase_parts,
+                            " "
+                        )
+                        .. "]"
+                    or "",
+                #nested_parts > 0
+                    and " top=["
+                        .. table.concat(
+                            nested_parts,
                             " "
                         )
                         .. "]"
