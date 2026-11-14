@@ -8486,3 +8486,24 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay and re-audit the remaining source
 collection wiring before choosing the next ownership slice.
+
+## Accepted context-engine split tranches 38 and 39 (2026-11-14)
+
+ERIDU accepted the shared low-level rule-syntax policy and shared
+register-effect selection tranches green.
+
+Confirmed:
+
+- Tree-sitter-first and legacy rule node/mnemonic lookup preserve their
+  contracts and fail closed on invalid input;
+- real x86-64 register, stack, boundary and instruction-event rules still
+  resolve `mov`, `push`, `syscall`, and `call`;
+- register-effect candidate filtering preserves representative parsing plus
+  operand/condition matching;
+- real `mov rax, 42` still selects exactly `mov_register_immediate`;
+- register application/processing, source-time memory evaluation, memory
+  structure/effective-address evidence, instruction-relative addressing,
+  Inspect, stack, boundary, instruction-event and adapter contracts remain
+  green.
+
+Accepted baseline: `7a2ad03`.
