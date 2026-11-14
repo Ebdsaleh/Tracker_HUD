@@ -267,20 +267,6 @@ local function evaluate_memory_address_before_instruction(
         {
             collect_register_effects =
                 M.collect_register_effects,
-
-            create_register_replay_session =
-                function()
-                    return register_effect_pipeline
-                        .new_replay_session(
-                            context,
-                            adapter,
-                            opts,
-                            register_pipeline_dependencies(
-                                adapter,
-                                opts.bufnr
-                            )
-                        )
-                end,
         }
     )
 end
@@ -462,6 +448,20 @@ function M.collect_boundary_effects(
 
             collect_register_effects =
                 M.collect_register_effects,
+
+            create_register_replay_session =
+                function()
+                    return register_effect_pipeline
+                        .new_replay_session(
+                            context,
+                            adapter,
+                            opts,
+                            register_pipeline_dependencies(
+                                adapter,
+                                opts.bufnr
+                            )
+                        )
+                end,
         }
     )
 end
