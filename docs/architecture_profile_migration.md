@@ -7564,3 +7564,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 26 and 27 (2026-11-14)
+
+ERIDU accepted the register-value policy and register-effect processing
+orchestration tranches green.
+
+Confirmed:
+
+- target-width modular wrapping, unsupported/missing-width fail-closed paths,
+  signed immediate interpretation, exact normalization and metadata shaping
+  remain intact;
+- real x86-64 `AL` arithmetic still wraps at 8 bits and
+  `add rax, 0xFFFFFFFF` still sign-interprets signed imm32 before target-width
+  wrapping;
+- register-effect processing preserves carried state, callback ordering,
+  fail-closed dependency handling and one latest canonical fact;
+- real `mov rax, 41; inc rax` still reduces to one RAX fact with value 42;
+- register reads, construct parsing, x86 alias writes, stack inference,
+  boundary inference, register focus, memory/effective-address evidence,
+  instruction-relative addressing, Inspect and adapter contracts remain green.
+
+Accepted baseline: `c375c6f`.
