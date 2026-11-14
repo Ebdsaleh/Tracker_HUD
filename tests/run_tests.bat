@@ -285,6 +285,10 @@ call :run_config "tests/asm_performance_baseline_sample_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/asm_context_profile_subphases_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_none "tests/relative_address_smoke.lua"
+if errorlevel 1 goto :fail
+call :run_none "tests/treesitter_field_access_smoke.lua"
+if errorlevel 1 goto :fail
 call :run_none "tests/register_effect_replay_session_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/asm_register_effect_replay_parity_smoke.lua"
@@ -292,10 +296,6 @@ if errorlevel 1 goto :fail
 call :run_none "tests/boundary_register_replay_session_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/asm_boundary_register_replay_parity_smoke.lua"
-if errorlevel 1 goto :fail
-call :run_none "tests/relative_address_smoke.lua"
-if errorlevel 1 goto :fail
-call :run_none "tests/treesitter_field_access_smoke.lua"
 if errorlevel 1 goto :fail
 
 echo [GREEN] Tracker_HUD test suite passed: 140/140
