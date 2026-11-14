@@ -183,6 +183,148 @@ local function copy_session_options(
 end
 
 
+local function prepared_source_is_valid(
+    prepared_source,
+    adapter,
+    opts
+)
+    return core.is_table(prepared_source)
+        and prepared_source.adapter
+            == adapter
+        and prepared_source.root_node
+            == opts.root_node
+        and core.is_table(
+            prepared_source.effect_index
+        )
+        and core.is_table(
+            prepared_source.nodes
+        )
+end
+
+
+local function filter_prepared_nodes(
+    prepared_source,
+    context,
+    opts
+)
+    local result = {}
+
+    local cursor_line =
+        context
+        and context.cursor
+        and context.cursor.line
+
+    local limit_position =
+        inference.normalize_position(
+            opts.limit_position
+            or opts.stop_before
+            or opts.before_position
+        )
+
+    for _, entry in ipairs(
+        prepared_source.nodes
+    ) do
+        local should_collect = false
+
+        if limit_position then
+            should_collect =
+                inference.position_is_before(
+                    {
+                        line = entry.line,
+                        column =
+                            entry.column,
+                    },
+                    limit_position
+                )
+        elseif not cursor_line
+            or entry.line < cursor_line
+        then
+            should_collect = true
+        elseif entry.line == cursor_line then
+            local cursor_column =
+                context
+                and context.cursor
+                and context.cursor.column
+
+            if core.is_number(
+                cursor_column
+            ) then
+                cursor_column =
+                    math.max(
+                        0,
+                        cursor_column - 1
+                    )
+            end
+
+            local _start_row,
+                _start_column,
+                _end_row,
+                end_column =
+                entry.node:range()
+
+            local cursor_position =
+                line_summary
+                    .classify_instruction_position(
+                        entry.column,
+                        end_column,
+                        cursor_column
+                    )
+
+            should_collect =
+                line_summary.allows_position(
+                    opts.config,
+                    cursor_position
+                )
+        end
+
+        if should_collect then
+            result[#result + 1] =
+                entry
+        end
+    end
+
+    return result
+end
+
+
+function M.prepare_source(
+    adapter,
+    opts
+)
+    opts = opts or {}
+
+    if not opts.root_node
+        or not core.is_table(adapter)
+        or not core.is_table(
+            adapter.register_effects
+        )
+    then
+        return nil
+    end
+
+    local effect_index =
+        M.get_index(adapter)
+
+    local source_opts =
+        copy_session_options(opts)
+
+    local nodes =
+        collect_nodes(
+            {},
+            source_opts,
+            effect_index
+        )
+
+    return {
+        adapter = adapter,
+        root_node = opts.root_node,
+        effect_index =
+            effect_index,
+        nodes = nodes,
+    }
+end
+
+
 function M.new_replay_session(
     context,
     adapter,
@@ -204,22 +346,36 @@ function M.new_replay_session(
         return nil
     end
 
+    local prepared_source =
+        opts.prepared_source
+
+    if not prepared_source_is_valid(
+        prepared_source,
+        adapter,
+        opts
+    )
+    then
+        prepared_source =
+            M.prepare_source(
+                adapter,
+                opts
+            )
+    end
+
+    if not prepared_source then
+        return nil
+    end
+
     local effect_index =
-        M.get_index(adapter)
+        prepared_source.effect_index
 
     local session_opts =
         copy_session_options(opts)
 
-    -- A replay session indexes the complete source node set once.
-    -- Visibility is applied by collect_before(position), using the same strict
-    -- source-position rule as the existing limit_position full-replay path.
-    -- Do not restrict this pool by the caller's current cursor column.
+    -- Replay sessions share immutable source indexing when supplied, while
+    -- retaining independent mutable reduction state.
     local nodes =
-        collect_nodes(
-            {},
-            session_opts,
-            effect_index
-        )
+        prepared_source.nodes
 
     local processing_session =
         register_effect_processing
@@ -319,6 +475,10 @@ function M.new_replay_session(
                 copy_session_options(opts)
 
             fallback_opts
+                .prepared_source =
+                prepared_source
+
+            fallback_opts
                 .limit_position =
                 normalized
 
@@ -399,15 +559,38 @@ function M.collect(
         return {}
     end
 
-    local effect_index =
-        M.get_index(adapter)
+    local prepared_source =
+        opts.prepared_source
 
-    local nodes =
-        collect_nodes(
-            context,
-            opts,
-            effect_index
-        )
+    local effect_index = nil
+    local nodes = nil
+
+    if prepared_source_is_valid(
+        prepared_source,
+        adapter,
+        opts
+    )
+    then
+        effect_index =
+            prepared_source.effect_index
+
+        nodes =
+            filter_prepared_nodes(
+                prepared_source,
+                context,
+                opts
+            )
+    else
+        effect_index =
+            M.get_index(adapter)
+
+        nodes =
+            collect_nodes(
+                context,
+                opts,
+                effect_index
+            )
+    end
 
     return register_effect_processing.process({
         nodes = nodes,
