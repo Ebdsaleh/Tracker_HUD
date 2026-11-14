@@ -13,33 +13,19 @@ rem   Preserve -u NONE for pure tests and normal Neovim for parser-backed tests.
 rem   This runner is fail-fast: the first RED test stops the suite.
 
 set "TRACKER_HUD_RESULTS=%USERPROFILE%\Desktop\trackerHUD_test_results.txt"
-set "TRACKER_HUD_RUNNER=%~f0"
-
-if /I "%~1"=="--capture" goto :captured
+set "TRACKER_HUD_TEMP=%TEMP%\trackerHUD_test_output_%RANDOM%_%RANDOM%.txt"
 
 if not exist "%USERPROFILE%\Desktop" (
     echo [FAIL] Desktop directory not found: "%USERPROFILE%\Desktop"
     exit /b 1
 )
 
+> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Test run started: %DATE% %TIME%
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Results file: %TRACKER_HUD_RESULTS%
+>> "%TRACKER_HUD_RESULTS%" echo.
+
 echo [Tracker_HUD] Results will be written to:
 echo   %TRACKER_HUD_RESULTS%
-echo.
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command "$runner = [char]34 + $env:TRACKER_HUD_RUNNER + [char]34 + ' --capture'; & $env:ComSpec /d /c $runner 2>&1 | Tee-Object -FilePath $env:TRACKER_HUD_RESULTS; exit $LASTEXITCODE"
-set "TEST_EXIT=%errorlevel%"
-
-echo.
-echo [Tracker_HUD] Results saved to:
-echo   %TRACKER_HUD_RESULTS%
-
-exit /b %TEST_EXIT%
-
-:captured
-shift
-
-echo [Tracker_HUD] Test run started: %DATE% %TIME%
-echo [Tracker_HUD] Results file: %TRACKER_HUD_RESULTS%
 echo.
 
 pushd "%~dp0.."
@@ -332,21 +318,41 @@ call :run_config "tests/asm_boundary_register_replay_parity_smoke.lua"
 if errorlevel 1 goto :fail
 
 echo [GREEN] Tracker_HUD test suite passed: 140/140
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 140/140
+echo.
+echo [Tracker_HUD] Results saved to:
+echo   %TRACKER_HUD_RESULTS%
+del /q "%TRACKER_HUD_TEMP%" >nul 2>&1
 popd
 exit /b 0
 
 :run_none
 echo [TEST] %~1
-nvim --headless -u NONE -c "luafile %~1" -c "qa!"
-exit /b %errorlevel%
+>> "%TRACKER_HUD_RESULTS%" echo [TEST] %~1
+nvim --headless -u NONE -c "lua local ok, err = pcall(vim.cmd, 'luafile ' .. vim.fn.fnameescape([[%~1]])); if not ok then io.stderr:write(tostring(err) .. string.char(10)); vim.cmd('cquit 1') end" -c "qa!" > "%TRACKER_HUD_TEMP%" 2>&1
+set "TEST_EXIT=%errorlevel%"
+type "%TRACKER_HUD_TEMP%"
+type "%TRACKER_HUD_TEMP%" >> "%TRACKER_HUD_RESULTS%"
+if not "%TEST_EXIT%"=="0" exit /b %TEST_EXIT%
+exit /b 0
 
 :run_config
 echo [TEST] %~1
-nvim --headless -c "luafile %~1" -c "qa!"
-exit /b %errorlevel%
+>> "%TRACKER_HUD_RESULTS%" echo [TEST] %~1
+nvim --headless -c "lua local ok, err = pcall(vim.cmd, 'luafile ' .. vim.fn.fnameescape([[%~1]])); if not ok then io.stderr:write(tostring(err) .. string.char(10)); vim.cmd('cquit 1') end" -c "qa!" > "%TRACKER_HUD_TEMP%" 2>&1
+set "TEST_EXIT=%errorlevel%"
+type "%TRACKER_HUD_TEMP%"
+type "%TRACKER_HUD_TEMP%" >> "%TRACKER_HUD_RESULTS%"
+if not "%TEST_EXIT%"=="0" exit /b %TEST_EXIT%
+exit /b 0
 
 :fail
 set "TEST_EXIT=%errorlevel%"
 echo [RED] Tracker_HUD test suite stopped on failure.
+>> "%TRACKER_HUD_RESULTS%" echo [RED] Tracker_HUD test suite stopped on failure.
+echo.
+echo [Tracker_HUD] Results saved to:
+echo   %TRACKER_HUD_RESULTS%
+del /q "%TRACKER_HUD_TEMP%" >nul 2>&1
 popd
 exit /b %TEST_EXIT%
