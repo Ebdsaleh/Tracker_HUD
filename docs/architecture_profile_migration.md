@@ -9785,3 +9785,24 @@ gate.
 The batch runner now replaces the long manually pasted cumulative command list.
 Tranche-specific diagnostics may still be run individually while fixing RED,
 but GREEN acceptance should include the canonical runner when practical.
+
+## Canonical runner Desktop transcript (2026-11-14)
+
+`tests\run_tests.bat` now mirrors the full live test transcript to:
+
+~~~
+%USERPROFILE%\Desktop\trackerHUD_test_results.txt
+~~~
+
+Behavior:
+
+- console output remains visible while tests run;
+- stdout and stderr from the captured suite are written to the transcript;
+- the transcript is overwritten on each run, so it represents the latest
+  cumulative ERIDU result;
+- the runner preserves the child test-suite exit code;
+- fail-fast behavior remains unchanged;
+- the cumulative test list remains 140 runnable tests with no missing or
+  duplicate entries.
+
+Future runner maintenance must preserve this transcript behavior.
