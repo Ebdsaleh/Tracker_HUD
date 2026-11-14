@@ -8872,3 +8872,148 @@ Confirmed:
 - stack, source-time memory replay, Inspect and adapter contracts remain green.
 
 Accepted baseline: `bd1710e`.
+
+## Context-engine split tranche 44 — register-effect pipeline (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_effect_pipeline.lua
+~~~
+
+This coordinator now owns the complete architecture-neutral register reduction
+pipeline:
+
+- register-effect index construction;
+- source visibility and ordering;
+- instruction-state preparation;
+- alias-aware register reads during preparation;
+- effect matching/application;
+- canonical family/latest-state publication;
+- final latest-fact reduction.
+
+It exposes reusable `get_index`, `prepare_instruction_state` and
+`apply_effect` helpers because the stack pipeline consumes intervening
+register effects without owning register semantics.
+
+Adapter instruction parsing remains injected.
+
+New regressions:
+
+~~~
+tests/register_effect_pipeline_smoke.lua
+tests/asm_register_effect_pipeline_smoke.lua
+~~~
+
+The parser-backed proof repeats the canonical EAX-to-RAX state followed by
+`mov rbx, rax`, requiring RBX to receive exact
+`0x0000000000000001`.
+
+## Context-engine split tranche 45 — stack-effect pipeline (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/stack_effect_pipeline.lua
+~~~
+
+This coordinator owns the mixed stack/register traversal required for stack
+inference:
+
+- stack-effect index construction;
+- register-effect index reuse through `register_effect_pipeline`;
+- ordered/deduplicated union traversal;
+- stack inference state;
+- carried register-family/latest-fact state for intervening register effects;
+- stack operand value resolution;
+- stack fact application.
+
+The stack operand path intentionally preserves its prior direct current-register
+map behavior; it does not silently switch to the register pipeline's alias-aware
+instruction-state resolver.
+
+New regressions:
+
+~~~
+tests/stack_effect_pipeline_smoke.lua
+tests/asm_stack_effect_pipeline_smoke.lua
+~~~
+
+The parser-backed proof requires `mov rax, 42; push rax` to keep producing a
+resolved stack-push fact with value `42`.
+
+## Context-engine cleanup produced by tranches 44 and 45
+
+The context engine no longer directly owns:
+
+- register-effect collection/processing/application;
+- register-state read policy;
+- register value parsing/policy;
+- register operand-value inference;
+- stack inference state preparation;
+- stack index/collection/application;
+- generic low-level inference state for these paths.
+
+Public APIs remain unchanged:
+
+- `collect_register_effects`
+- `collect_stack_effects`
+
+The context engine retains only the shared adapter instruction-source bridge and
+cross-section composition of the already-owned pipelines/discovery modules.
+
+## Static audit at pending head
+
+`context_engine.lua`: 498 lines.
+
+Expected markers:
+
+- exact `register_effect_pipeline` require: 1
+- exact `stack_effect_pipeline` require: 1
+- direct `register_effect_processing` require: 0
+- direct `register_effect_apply` require: 0
+- direct `register_state_read` require: 0
+- direct `stack_effect_collection` require: 0
+- direct `stack_effect_apply` require: 0
+- exported register entry point: 0
+- exported stack entry point: 1
+
+## Ten-commit relay boundary after tranches 44 and 45
+
+This relay stops after exactly ten commits on top of accepted `bd1710e`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/stack_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/stack_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay and re-audit the now-thin context
+engine for whether further extraction is justified at all.
