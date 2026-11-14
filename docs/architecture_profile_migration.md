@@ -8133,7 +8133,7 @@ correction.
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -12 --oneline
+git log -14 --oneline
 
 nvim --headless -u NONE -c "luafile tests/stack_effect_apply_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_stack_effect_apply_smoke.lua" -c "qa!"
