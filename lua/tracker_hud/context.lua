@@ -793,6 +793,12 @@ function M.get_cursor_context(
     end
 
     if not adapter_registry.has_adapter(filetype) then
+        profile_end(
+            profile_token,
+            "context.parser",
+            parser_phase
+        )
+
         return context_engine.make_unavailable_context(
             "No Tracker HUD adapter available for filetype: " .. tostring(filetype),
             filetype
