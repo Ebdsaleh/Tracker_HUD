@@ -25,8 +25,10 @@ local instruction_event_index = require("tracker_hud.low_level.instruction_event
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
-local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")\nlocal boundary_register_context = require("tracker_hud.low_level.boundary_register_context")
-local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")\nlocal stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
+local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")
+local boundary_register_context = require("tracker_hud.low_level.boundary_register_context")
+local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")
+local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
 local effect_match = require("tracker_hud.low_level.effect_match")
@@ -45,7 +47,6 @@ local register_state_write = require("tracker_hud.low_level.register_state_write
 local register_value_policy = require("tracker_hud.low_level.register_value_policy")
 local register_fact_builder = require("tracker_hud.low_level.register_fact_builder")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
-local stack_effect_match = require("tracker_hud.low_level.stack_effect_match")
 
 local M = {}
 
