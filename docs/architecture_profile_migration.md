@@ -10001,3 +10001,107 @@ unchanged buffer contents and the same runtime config remain active.
 The intended optimization is a conservative last-successful-configuration cache
 at the adapter registry boundary. It must invalidate on edits, buffer switches,
 config-object changes, adapter registration/reload and registry clear.
+
+## Adapter configuration cache tranche — pending ERIDU acceptance (2026-11-15)
+
+**Status: pushed on main, pending ERIDU gate.**
+
+Measured owner:
+
+~~~text
+context.configure avg=21.977 ms max=48.294 ms
+line-103 configure=21.373 ms
+~~~
+
+The registry previously invoked adapter per-buffer configuration and then
+re-validated the configured adapter on every refresh, including cursor-only
+moves on an unchanged buffer.
+
+### Design
+
+`tracker_hud.adapters.registry` now retains only the **last successful active
+configuration**.
+
+A cache hit requires all of:
+
+- identical adapter table;
+- identical filetype;
+- identical buffer number;
+- identical Neovim buffer `changedtick`;
+- identical runtime config table object.
+
+On a hit, the registry returns the already-validated active adapter state
+without re-running the adapter callback or contract validation.
+
+This is intentionally **not** a persistent per-buffer cache. ASM/C/C++ adapters
+own mutable active target state, so configuring a different buffer replaces the
+active state and switching back must reconfigure.
+
+Invalidation occurs on:
+
+- any buffer edit / changedtick change;
+- switching buffers;
+- changing the config object;
+- adapter registration/reload;
+- registry clear;
+- any failed configuration attempt before that failure is returned.
+
+A failed configuration is never cached as a reusable success.
+
+### Proofs
+
+Generic registry contract:
+
+~~~text
+tests/adapter_configuration_cache_smoke.lua
+~~~
+
+Pins:
+
+- unchanged active buffer/config reuse;
+- edit invalidation and post-edit stabilization;
+- config-object invalidation;
+- buffer-switch ownership;
+- registry mutation invalidation;
+- failure non-caching.
+
+Real ASM target ownership:
+
+~~~text
+tests/asm_adapter_configuration_cache_smoke.lua
+~~~
+
+Pins:
+
+- unchanged Linux target state is reused by identity;
+- editing `platform=linux` to `platform=windows` rebuilds targets;
+- stable post-edit Windows target state is reused;
+- switching to another Linux ASM buffer rebuilds active state;
+- switching back rebuilds the original buffer's Windows state.
+
+No wall-clock timing assertions are used.
+
+### Cumulative gate
+
+`tests\run_tests.bat` now contains 143 runnable tests.
+
+The two configuration-cache proofs are appended last.
+
+Expected ending:
+
+~~~text
+PASS Tracker_HUD adapter-configuration cache smoke
+PASS Tracker_HUD ASM adapter-configuration cache smoke
+[GREEN] Tracker_HUD test suite passed: 143/143
+~~~
+
+ERIDU acceptance command:
+
+~~~bat
+tracker_full.bat
+~~~
+
+If GREEN, re-run the exact committed performance fixture and compare
+`context.configure` against the current 21.977 ms average / 48.294 ms max.
+
+If RED, stop and fix only this cache tranche.
