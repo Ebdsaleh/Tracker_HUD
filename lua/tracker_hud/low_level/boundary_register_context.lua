@@ -26,8 +26,14 @@ function M.collect(
         or not core.is_table(adapter)
         or not core.is_table(opts)
         or not core.is_table(instruction)
-        or type(deps.collect_register_effects)
-            ~= "function"
+        or (
+            type(
+                deps.collect_register_effects_before
+            ) ~= "function"
+            and type(
+                deps.collect_register_effects
+            ) ~= "function"
+        )
     then
         return context
     end
@@ -45,17 +51,29 @@ function M.collect(
         return context
     end
 
-    local registers_before =
-        deps.collect_register_effects(
-            context,
-            adapter,
-            {
-                bufnr = opts.bufnr,
-                root_node = opts.root_node,
-                limit_position =
-                    limit_position,
-            }
-        )
+    local registers_before = nil
+
+    if type(
+        deps.collect_register_effects_before
+    ) == "function"
+    then
+        registers_before =
+            deps.collect_register_effects_before(
+                limit_position
+            )
+    else
+        registers_before =
+            deps.collect_register_effects(
+                context,
+                adapter,
+                {
+                    bufnr = opts.bufnr,
+                    root_node = opts.root_node,
+                    limit_position =
+                        limit_position,
+                }
+            )
+    end
 
     return inference.with_section_facts(
         context,
