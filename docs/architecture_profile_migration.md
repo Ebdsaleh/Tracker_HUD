@@ -8672,3 +8672,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay and re-audit the remaining context
 orchestration rather than extracting by size.
+
+## Accepted context-engine split tranches 40 and 41 (2026-11-14)
+
+ERIDU accepted the memory-source and register-source discovery coordinators
+green.
+
+Confirmed:
+
+- memory discovery dependency dispatch, injected role/access policy, source-time
+  certainty and fail-closed behavior remain intact;
+- real `mov rbx, [rax + 8]` exact-line memory discovery preserves access
+  `read`, effective address `4104`, and source-only execution status;
+- register discovery preserves occurrence construction, memory evidence and
+  fail-closed behavior;
+- real source inspection preserves mnemonic/register focus plus base-register
+  effective-address evidence `4104`;
+- the existing memory/register source collection contracts remain green;
+- source-time memory replay isolation, normalized memory structure,
+  effective-address evaluation, instruction-relative addressing, Inspect,
+  register application, stack, boundary, instruction-event and adapter
+  contracts all remain green.
+
+Accepted baseline: `916a2bc`.
