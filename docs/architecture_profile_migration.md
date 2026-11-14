@@ -9921,3 +9921,24 @@ a48ac32 test: append context replay wiring regression
 Do not interpret the first post-optimization profile as a result for the
 intended replay architecture. Re-profile only after this correction passes the
 full ERIDU gate.
+
+## Accepted boundary replay production-wiring correction (2026-11-15)
+
+ERIDU accepted the production wiring correction green at `c169d37`.
+
+Confirmed:
+
+- the cumulative runner now contains 141 tests;
+- the new context-engine boundary replay wiring regression passes;
+- the public `context_engine.collect_boundary_effects()` path supplies the
+  replay-session factory;
+- the prior register replay and boundary parity proofs remain green;
+- the complete cumulative suite reports `141/141` GREEN.
+
+Accepted corrected production baseline: `c169d37`.
+
+The earlier post-replay profile at the miswired baseline is retained only as
+diagnostic evidence and must not be used to judge replay performance.
+
+The next authoritative measurement is a fresh run of the exact committed
+performance fixture after `c169d37`.
