@@ -9360,3 +9360,61 @@ nvim --headless -c "luafile tests/asm_performance_baseline_sample_smoke.lua" -c 
 If GREEN, use the exact interaction sequence in
 `docs/performance_baseline.md` and paste the full `:HudProfile` report before
 checkpoint design begins.
+
+## Accepted profiling fixture and first ERIDU performance baseline (2026-11-14)
+
+ERIDU accepted the repeatable profiling fixture green at `20656c6`.
+
+Fixture proof confirmed:
+
+- stable target directives and >=50-line marker separation;
+- ASM Tree-sitter parsing;
+- register, stack, boundary and instruction-event paths all produce facts.
+
+Accepted measurement-fixture baseline: `20656c6`.
+
+### First real ERIDU profile
+
+The exact interactive protocol produced 12 captured refreshes.
+
+Aggregate timings:
+
+| Phase | Average | Maximum |
+| --- | ---: | ---: |
+| context | 127.560 ms | 504.276 ms |
+| render | 12.639 ms | 17.443 ms |
+| hex | 0.110 ms | 0.234 ms |
+| state | 0.002 ms | 0.003 ms |
+| total | 140.319 ms | 517.989 ms |
+
+The context phase therefore accounts for roughly 91% of average tracked refresh
+time. Render is roughly 9%; hex scanning and state publication are negligible
+at this fixture size.
+
+Warm visible samples still show context analysis dominating:
+
+- large jump back to line 2: 47.875 ms context / 62.455 ms total;
+- edit at line 2: 49.176 ms context / 66.736 ms total;
+- same-line refresh at line 2: 42.908 ms context / 57.987 ms total;
+- edit at line 14: 60.121 ms context / 68.115 ms total;
+- same-line refresh at line 14: 40.487 ms context / 50.484 ms total.
+
+This is sufficient evidence that optimization work should target repeated
+context/source analysis rather than HUD rendering or hex-width scanning.
+
+### Measurement gap before checkpoint design
+
+The first report only emitted the most recent eight individual samples, so the
+first refresh, one-line cursor step and first A-to-C large jump were not visible
+individually.
+
+More importantly, the outer `context` phase still combines several independent
+collectors, including two register reductions, stack, boundary, event and source
+memory passes.
+
+Before selecting the first checkpoint owner, add observational subphase timing
+inside `context.get_cursor_context` / section attachment. Do not implement
+checkpoint reuse yet.
+
+The next measurement must identify which context collector dominates and retain
+all samples from the standard 12-refresh protocol.
