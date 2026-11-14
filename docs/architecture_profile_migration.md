@@ -8795,16 +8795,29 @@ Expected markers:
 - exported boundary entry point: 1
 - exported event entry point: 1
 
-## Ten-commit relay boundary after tranches 42 and 43
+## Relay boundary after tranches 42 and 43
 
-This relay stops after exactly ten commits on top of accepted `916a2bc`.
+The planned architecture relay contains ten commits on top of accepted
+`916a2bc`.
+
+During pre-gate static audit, a latent register-read defect from the prior
+accepted cleanup was found: `prepare_register_instruction_inference_state`
+still called `get_register_fact_for_read`, but tranche 40 had accidentally
+removed its local alias to `register_state_read.get_fact_for_read`. The prior
+ERIDU gate did not exercise the register-to-register read path, so the issue
+survived that acceptance.
+
+Correction `8230096` restores only that local alias. No register-read,
+alias-width, publication, boundary, event, stack, or memory semantic policy was
+changed. The gate below therefore includes the parser-backed register-state
+copy and x86 scalar alias regressions.
 
 ### ERIDU acceptance gate
 
 ~~~
 git status --short && ^
 git pull --ff-only && ^
-git log -12 --oneline
+git log -14 --oneline
 
 nvim --headless -u NONE -c "luafile tests/boundary_effect_pipeline_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
@@ -8821,6 +8834,8 @@ nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
 
 nvim --headless -c "luafile tests/asm_register_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
