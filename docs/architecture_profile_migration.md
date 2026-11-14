@@ -1585,7 +1585,7 @@ The test verifies:
 ```bat
 git status --short
 git pull --ff-only
-git log -12 --oneline
+git log -13 --oneline
 
 nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
@@ -8968,7 +8968,7 @@ cross-section composition of the already-owned pipelines/discovery modules.
 
 ## Static audit at pending head
 
-`context_engine.lua`: 498 lines.
+`context_engine.lua`: 502 lines.
 
 Expected markers:
 
@@ -8979,12 +8979,24 @@ Expected markers:
 - direct `register_state_read` require: 0
 - direct `stack_effect_collection` require: 0
 - direct `stack_effect_apply` require: 0
-- exported register entry point: 0
+- exported register entry point: 1
 - exported stack entry point: 1
 
-## Ten-commit relay boundary after tranches 44 and 45
+## Relay boundary after tranches 44 and 45
 
-This relay stops after exactly ten commits on top of accepted `bd1710e`.
+The planned architecture relay contains exactly ten commits on top of accepted
+`bd1710e`.
+
+During pre-gate static audit, the later stack delegation was found to have
+crossed two replacement boundaries in `context_engine.lua`: it swallowed the
+thin public `collect_register_effects` wrapper and duplicated the final module
+return as `return Mreturn M`. Neither defect changed the new pipeline modules;
+both would have prevented the context engine from loading correctly.
+
+Correction `78bb310` restores the public register wrapper, repairs the final
+return, and removes context-level rule-syntax/node-collection aliases that had
+become dead after the pipeline moves. The corrected context engine is 502
+lines, with register and stack public entry points each present exactly once.
 
 ### ERIDU acceptance gate
 
