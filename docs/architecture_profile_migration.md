@@ -7711,3 +7711,25 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+
+## Accepted context-engine split tranches 28 and 29 (2026-11-14)
+
+ERIDU accepted the register-effect value-resolution and stack-effect matching
+tranches green.
+
+Confirmed:
+
+- literal, stack-top, register, register-operand, fixed-delta,
+  operand-derived-delta and immediate value paths preserve their contracts;
+- real `mov rax, 40; mov rbx, rax; add rbx, 2` still resolves RBX to 40
+  and then 42;
+- stack matching preserves register-shaped symbol compatibility, unknown-symbol
+  rejection, value matching and operand-list contracts;
+- real `mov rax, 42; push rax` still selects `push_register` and carries
+  value 42;
+- register value policy/processing/reads, x86 alias writes, stack inference,
+  boundary inference, register focus, memory/effective-address evidence,
+  instruction-relative addressing, Inspect and adapter contracts remain green.
+
+Accepted baseline: `8220215`.
