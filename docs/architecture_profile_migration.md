@@ -8166,3 +8166,24 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay head and audit the remaining register
 match gate and memory-address coordination before choosing tranche 36.
+
+## Accepted context-engine split tranches 34 and 35 (2026-11-14)
+
+ERIDU accepted the stack-effect application wrapper and pre-boundary register
+context tranches green.
+
+Confirmed:
+
+- stack application preserves mnemonic/operand matching, fact construction,
+  match-gated append behavior and fail-closed dependency handling;
+- real ASM `push 7` still produces the resolved `push_immediate` stack fact;
+- pre-boundary register context preserves source-start position limiting and
+  publishes a separate register section without mutating the source context;
+- with `mov rax, 1; syscall; mov rax, 60`, the syscall still reads pre-boundary
+  RAX value `1`; the later write does not leak backward;
+- stack push/pop carry and depth transitions, syscall phase semantics,
+  register publication/fact construction, x86 alias writes, instruction-event
+  collection, memory/effective-address evidence, instruction-relative
+  addressing, Inspect and adapter contracts remain green.
+
+Accepted baseline: `5dcd3a4`.
