@@ -9834,3 +9834,40 @@ The recursive PowerShell wrapper was removed entirely.
 
 The cumulative inventory remains 140 runnable tests, with zero missing,
 duplicate or extra entries.
+
+## One-command full maintenance gate (2026-11-15)
+
+Root-level runner:
+
+~~~
+tracker_full.bat
+~~~
+
+Environment:
+
+- Visual Studio 2022 Native Tools Command Prompt;
+- pure `cmd.exe` / batch;
+- no PowerShell dependency.
+
+Pipeline:
+
+1. `git pull --ff-only` — visible;
+2. `nvim --headless -c "Lazy! sync" -c "qa!"` — visible and blocking;
+3. `tests\run_tests.bat >nul 2>&1` — console-silent, but the canonical Desktop
+   test transcript is still written.
+
+The full gate is fail-fast. Git, Lazy sync, and the cumulative test suite each
+have an independent RED exit path. GREEN is printed only after all three stages
+return success.
+
+Canonical invocation:
+
+~~~bat
+tracker_full.bat
+~~~
+
+Test transcript remains:
+
+~~~
+%USERPROFILE%\Desktop\trackerHUD_test_results.txt
+~~~
