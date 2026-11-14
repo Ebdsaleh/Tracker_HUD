@@ -10,9 +10,8 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 local low_level_inference = require("tracker_hud.low_level.inference")
 local memory_address_evaluator = require("tracker_hud.low_level.memory_address_evaluator")
 local memory_source_discovery = require("tracker_hud.low_level.memory_source_discovery")
-local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
-local register_effect_selection = require("tracker_hud.low_level.register_effect_selection")
+local register_source_discovery = require("tracker_hud.low_level.register_source_discovery")
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
 local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
@@ -35,7 +34,6 @@ local branch_presentation = require("tracker_hud.constructs.branch_presentation"
 local construct_spec_validation = require("tracker_hud.constructs.spec_validation")
 local construct_source_identity = require("tracker_hud.constructs.source_identity")
 local construct_parser = require("tracker_hud.constructs.parser")
-local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_state_read = require("tracker_hud.low_level.register_state_read")
 local register_value_policy = require("tracker_hud.low_level.register_value_policy")
@@ -579,59 +577,35 @@ function M.discover_register_source_occurrences(
     line_number,
     opts
 )
-    opts = opts or {}
+    return register_source_discovery.collect(
+        bufnr,
+        root_node,
+        adapter,
+        line_number,
+        opts,
+        {
+            get_register_effect_index =
+                get_register_effect_index,
 
-    if not bufnr
-        or not root_node
-        or not core.is_table(adapter)
-        or not core.is_table(adapter.register_effects)
-        or not core.is_number(line_number)
-    then
-        return {}
-    end
-
-    local effect_index =
-        get_register_effect_index(adapter)
-
-    local source_members =
-        scope_members.collect(
-            bufnr,
-            root_node,
-            adapter
-        )
-
-    return register_source_collection.collect({
-        adapter = adapter,
-        line_number = line_number,
-        node_types = effect_index.node_types,
-        source_members = source_members,
-        machine_address_providers =
-            opts.machine_address_providers,
-
-        collect_nodes = function(node_type)
-            return collect_nodes_by_type(
-                root_node,
-                node_type
-            )
-        end,
-
-        parse_and_match = function(node)
-            return get_matching_register_effect_specs(
-                effect_index,
-                adapter,
+            parse_instruction = function(
                 node,
-                bufnr
+                representative_effect_spec
             )
-        end,
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    bufnr,
+                    representative_effect_spec
+                )
+            end,
 
-        evaluate_address = function(
-            instruction,
-            address,
-            machine_addresses,
-            instruction_relative_policy
-        )
-            return
-                evaluate_memory_address_before_instruction(
+            evaluate_address = function(
+                instruction,
+                address,
+                machine_addresses,
+                instruction_relative_policy
+            )
+                return evaluate_memory_address_before_instruction(
                     bufnr,
                     root_node,
                     adapter,
@@ -640,12 +614,13 @@ function M.discover_register_source_occurrences(
                     machine_addresses,
                     instruction_relative_policy
                 )
-        end,
-    })
+            end,
+        }
+    )
 end
 
 
-local function get_boundary_effect_index(adapter)
+local function get_boundary_effect_index(adapter)local function get_boundary_effect_index(adapter)
     return boundary_effect_index.get(
         adapter,
         rule_index_options
