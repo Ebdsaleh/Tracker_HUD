@@ -9728,3 +9728,60 @@ regression.
 
 Do not begin persistent cross-refresh checkpointing until this per-collection
 replay layer is accepted and measured.
+
+## Accepted incremental register replay / boundary reuse tranche (2026-11-14)
+
+ERIDU accepted the first measured optimization tranche green at `369a305`.
+
+Confirmed:
+
+- incremental register processing session semantics;
+- monotonic register replay snapshots match independent full replay;
+- backward replay requests fall back with parity;
+- one register replay session serves ordered boundary read-context requests;
+- optimized boundary facts match original full-replay boundary facts;
+- register processing/pipeline regressions remain green;
+- established boundary collection sequencing remains green;
+- boundary parser-backed semantics remain green;
+- stack, source-time memory and Inspect regressions remain green;
+- context-engine 37-callable facade remains green;
+- adapter contracts remain green.
+
+Accepted semantic baseline: `369a305`.
+
+The next required result is the post-optimization ERIDU performance profile.
+
+## Canonical cumulative ERIDU test runner (2026-11-14)
+
+Canonical runner:
+
+~~~
+tests\run_tests.bat
+~~~
+
+Current coverage:
+
+- 140 runnable Lua test files;
+- 91 pure `-u NONE` tests;
+- 49 configured/parser-backed tests;
+- `tests/test_runtime.lua` excluded because it is a shared helper module;
+- fail-fast on the first RED result;
+- changes to the repository root automatically, so it may be invoked from the
+  repository root or from another working directory.
+
+Maintenance rule:
+
+**Every future tranche that adds a test must append its new test invocation to
+the end of `tests\run_tests.bat` in the same tranche.**
+
+Preserve the invocation environment:
+
+- pure/module tests use `nvim --headless -u NONE`;
+- parser-backed tests use normal configured `nvim --headless`.
+
+Do not remove older tests from the cumulative runner merely to shorten a tranche
+gate.
+
+The batch runner now replaces the long manually pasted cumulative command list.
+Tranche-specific diagnostics may still be run individually while fixing RED,
+but GREEN acceptance should include the canonical runner when practical.
