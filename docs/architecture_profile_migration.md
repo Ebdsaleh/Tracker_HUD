@@ -9579,3 +9579,152 @@ The service should be reusable by:
 
 Implementation remains blocked until the corrected report test returns GREEN on
 ERIDU.
+
+## Accepted context-subphase profiling tranche (2026-11-14)
+
+ERIDU accepted the corrected context-subphase profiling tranche green at
+`b4287b3`.
+
+Confirmed:
+
+- full 16-sample report retention and nested ranking pass;
+- parser-backed context subphase capture remains green;
+- the earlier RED was a test-fixture contradiction only;
+- runtime profiling/context behavior required no correction.
+
+Accepted baseline: `b4287b3`.
+
+The refined measurement identified repeated boundary pre-read register replay as
+the first optimization owner.
+
+## Incremental register replay / boundary reuse tranche — pending ERIDU acceptance (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+This is the first optimization tranche selected from measured ERIDU data.
+
+### Design
+
+The existing full register reducer remains the reference path.
+
+`register_effect_processing` now also exposes a resumable session that:
+
+- owns the same mutable facts/family/latest-state containers as full replay;
+- advances source nodes only once in source order;
+- snapshots the latest canonical reduced state at any monotonic prefix;
+- does no work when a caller repeats the same prefix;
+- does not attempt to reverse mutable state.
+
+`register_effect_pipeline.new_replay_session`:
+
+- indexes the complete register-effect source node set once;
+- applies the existing strict source-position-before rule per query;
+- advances only newly visible nodes;
+- falls back to independent full replay when a query moves backwards;
+- records query/processed/fallback counts for regression evidence.
+
+The complete source node pool is deliberate: replay requests are defined by
+explicit source positions, not by the current cursor column.
+
+### Boundary integration
+
+Boundary collection still performs its established read-context request for
+every candidate source instruction, including unmatched mnemonics.
+
+That sequencing is unchanged.
+
+One register replay session is created per boundary collection. Each
+pre-boundary context asks the session for state immediately before that
+instruction.
+
+If session creation is unavailable or fails, the existing full-replay path is
+still present.
+
+### New proofs
+
+Pure processing-session proof:
+
+~~~
+tests/register_effect_replay_session_smoke.lua
+~~~
+
+Parser-backed register parity:
+
+~~~
+tests/asm_register_effect_replay_parity_smoke.lua
+~~~
+
+It compares monotonic incremental snapshots against independent full replay at
+multiple source positions and verifies a backwards request falls back with
+parity.
+
+Pure boundary session wiring:
+
+~~~
+tests/boundary_register_replay_session_smoke.lua
+~~~
+
+It proves:
+
+- one replay session per boundary collection;
+- read-context queries remain source ordered;
+- unmatched instructions still request read context;
+- the full fallback is not called when a session is available;
+- known boundary semantics remain intact.
+
+Parser-backed boundary fact parity:
+
+~~~
+tests/asm_boundary_register_replay_parity_smoke.lua
+~~~
+
+It runs the real 163-line performance fixture and compares optimized boundary
+facts with the original full-replay boundary path.
+
+### Public compatibility
+
+`context_engine` still exposes exactly 37 established public callables.
+
+No new public facade API is required for the replay service.
+
+### ERIDU semantic gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/register_effect_replay_session_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_replay_parity_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_register_replay_session_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_register_replay_parity_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_processing_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/context_engine_facade_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If RED, stop and fix replay semantics narrowly.
+
+If GREEN, rerun the exact interactive performance fixture from
+`docs/performance_baseline.md`.
+
+The primary performance expectation is a large reduction in
+`context.boundary`, especially the line-103 large jump, without any semantic
+regression.
+
+Do not begin persistent cross-refresh checkpointing until this per-collection
+replay layer is accepted and measured.
