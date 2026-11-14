@@ -8507,3 +8507,154 @@ Confirmed:
   green.
 
 Accepted baseline: `7a2ad03`.
+
+## Context-engine split tranche 40 — memory-source discovery coordinator (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/memory_source_discovery.lua
+~~~
+
+This module owns the architecture-neutral setup that feeds
+`memory_source_collection`:
+
+- instruction-node type selection;
+- source-member snapshot collection;
+- optional register-effect index lookup;
+- register-effect role selection;
+- source-memory access intent resolution;
+- source-node traversal;
+- the bridge to source-time effective-address evaluation.
+
+It does not construct source-memory facts, perform register replay, resolve
+effective-address arithmetic, provide machine addresses, or claim execution.
+
+The public context-engine APIs remain unchanged:
+
+- `discover_memory_source_operands`
+- `collect_memory_source_operands`
+
+New regressions:
+
+~~~
+tests/memory_source_discovery_smoke.lua
+tests/asm_memory_source_discovery_smoke.lua
+~~~
+
+The parser-backed proof requires exact-line discovery of `[rax + 8]` from
+`mov rbx, [rax + 8]`, preserving role `source_memory`, access `read`,
+effective address `4104`, and `execution_status = not_observed`.
+
+## Context-engine split tranche 41 — register-source discovery coordinator (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/register_source_discovery.lua
+~~~
+
+This module owns the architecture-neutral setup that feeds
+`register_source_collection` for Inspect:
+
+- register-effect index lookup;
+- source-member snapshot collection;
+- indexed instruction-node traversal;
+- representative-rule parse and effect selection;
+- the bridge to source-time effective-address evaluation.
+
+Occurrence construction and memory-evidence attachment remain in the existing
+register-source collection/occurrence modules.
+
+The public context-engine API remains unchanged:
+
+- `discover_register_source_occurrences`
+
+New regressions:
+
+~~~
+tests/register_source_discovery_smoke.lua
+tests/asm_register_source_discovery_smoke.lua
+~~~
+
+The parser-backed proof requires the line containing
+`mov rbx, [rax + 8]` to preserve mnemonic, destination operand, source-memory
+operand, base-register component, and effective-address evidence `4104`.
+
+## Context-engine cleanup produced by ownership moves
+
+The coordinator delegation also removes context-engine dependencies/helpers that
+became provably dead:
+
+- direct `memory_access` dependency;
+- direct `memory_source_evidence` dependency;
+- direct `memory_source_collection` dependency;
+- direct `register_source_collection` dependency;
+- direct `register_effect_selection` dependency;
+- direct `register_source_metadata` dependency;
+- direct `register_source_occurrence` dependency;
+- direct `operand_metadata` dependency;
+- direct `scope_members` dependency;
+- unused register read/width compatibility aliases;
+- unused source-role presentation helpers.
+
+No public API is removed.
+
+## Static audit at pending head
+
+`context_engine.lua`: 1059 lines.
+
+Expected ownership markers:
+
+- exact `memory_source_discovery` require: 1
+- exact `register_source_discovery` require: 1
+- direct `memory_source_collection` require: 0
+- direct `register_source_collection` require: 0
+- direct `memory_access` require: 0
+- direct `scope_members` require: 0
+- local memory discovery wrapper: 1
+- exported register discovery entry point: 1
+
+The context engine still owns the source-time register replay bridge because it
+is shared with boundary and other cross-section inference.
+
+## Ten-commit relay boundary after tranches 40 and 41
+
+This relay stops after exactly ten commits on top of accepted `7a2ad03`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/memory_source_discovery_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_source_discovery_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/register_source_discovery_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_source_discovery_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/memory_source_collection_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_source_collection_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay and re-audit the remaining context
+orchestration rather than extracting by size.
