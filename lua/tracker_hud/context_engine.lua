@@ -39,6 +39,7 @@ local construct_parser = require("tracker_hud.constructs.parser")
 local scope_members = require("tracker_hud.scope_members")
 local register_infer = require("tracker_hud.low_level.register_infer")
 local register_state_read = require("tracker_hud.low_level.register_state_read")
+local register_state_write = require("tracker_hud.low_level.register_state_write")
 local register_value_policy = require("tracker_hud.low_level.register_value_policy")
 local register_fact_builder = require("tracker_hud.low_level.register_fact_builder")
 local stack_infer = require("tracker_hud.low_level.stack_infer")
@@ -297,14 +298,8 @@ local get_static_register_spec =
 local get_register_fact_from_map =
     register_state_read.get_fact
 
-local resolve_register_alias =
-    register_state_read.resolve_alias
-
 local get_register_fact_for_read =
     register_state_read.get_fact_for_read
-
-local register_state_key =
-    register_state_read.state_key
 
 local get_register_value_width =
     register_state_read.get_value_width
@@ -415,51 +410,13 @@ local function apply_register_effect(
     )
 
     if fact then
-        local state_key = register_state_key(adapter, fact.name)
-            or fact.name
-
-        latest_state_facts[state_key] = fact
-        family_state[state_key] = fact
-
-        -- Keep source-operand lookup behaviour separate from canonical reduced
-        -- state. Invalidate sibling spellings first so a later source read
-        -- can never observe a stale AL/AH/AX/EAX value after another alias
-        -- changed the same physical family.
-        local alias_resolution = resolve_register_alias(adapter, fact.name)
-        local family = alias_resolution and alias_resolution.family or nil
-
-        if core.is_table(family) and core.is_table(family.aliases) then
-            for alias_name, _ in pairs(family.aliases) do
-                facts_by_register[tostring(alias_name):lower()] = nil
-            end
-        end
-
-        local write_resolved = fact.metadata
-            and fact.metadata.write_resolved
-
-        facts_by_register[fact.name] = {
-            name = fact.name,
-            value = fact.metadata and fact.metadata.write_value or fact.value,
-            resolved = write_resolved ~= nil
-                and write_resolved
-                or fact.resolved,
-            metadata = fact.metadata,
-        }
-
-        -- Publish the reduced canonical family state as well. A partial
-        -- canonical fact remains unresolved as a whole register, but its
-        -- explicit certainty mask lets later alias reads project any slice
-        -- that is fully known.
-        if state_key ~= fact.name then
-            facts_by_register[state_key] = {
-                name = state_key,
-                value = fact.resolved ~= false
-                    and fact.value
-                    or nil,
-                resolved = fact.resolved ~= false,
-                metadata = fact.metadata,
-            }
-        end
+        register_state_write.publish(
+            facts_by_register,
+            family_state,
+            latest_state_facts,
+            adapter,
+            fact
+        )
     end
 end
 
