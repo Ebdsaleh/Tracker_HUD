@@ -8782,7 +8782,7 @@ register-family/latest-fact state makes it a materially different pipeline.
 
 ## Static audit at pending head
 
-`context_engine.lua`: 843 lines.
+`context_engine.lua`: 847 lines.
 
 Expected markers:
 
@@ -8811,6 +8811,10 @@ Correction `8230096` restores only that local alias. No register-read,
 alias-width, publication, boundary, event, stack, or memory semantic policy was
 changed. The gate below therefore includes the parser-backed register-state
 copy and x86 scalar alias regressions.
+
+With the alias restored, the pending context engine is 847 lines. The pending
+branch is thirteen commits ahead of accepted `916a2bc`: ten architectural
+relay commits plus the alias correction and two documentation records.
 
 ### ERIDU acceptance gate
 
