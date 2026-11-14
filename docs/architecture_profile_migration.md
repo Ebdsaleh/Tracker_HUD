@@ -8328,3 +8328,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 
 If this gate is GREEN, accept the relay head and re-audit `context_engine.lua`
 for the next ownership boundary rather than continuing extraction by size.
+
+## Accepted context-engine split tranches 36 and 37 (2026-11-14)
+
+ERIDU accepted the register-effect application wrapper and source-time
+memory-address evaluator tranches green.
+
+Confirmed:
+
+- register application preserves mnemonic/operand matching, fact construction,
+  match-gated publication and fail-closed dependency behavior;
+- real `mov rax, 41; inc rax` still publishes one canonical resolved RAX fact
+  with value `42`;
+- memory evaluation preserves the exact pre-instruction replay limit,
+  register arithmetic, partial-register fail-closed behavior and dependency
+  fail-closed behavior;
+- with `mov rax, 0x1000; mov rbx, [rax + 8]; mov rax, 0x2000`, the source
+  memory address still resolves to `4104` from the earlier RAX value and the
+  later write does not leak backward;
+- register processing/publication, x86 alias state, memory structure,
+  effective-address evidence, instruction-relative addressing, Inspect, stack,
+  boundary, instruction-event and adapter contracts remain green.
+
+Accepted baseline: `90f0bd5`.
