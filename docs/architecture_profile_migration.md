@@ -9286,3 +9286,29 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 If the code gate is GREEN, run the observational ERIDU scenario in
 `docs/performance_baseline.md` and include the `:HudProfile` report before
 choosing the checkpoint design.
+
+## Accepted performance instrumentation code tranche (2026-11-14)
+
+ERIDU accepted the observational profiling implementation green at `2a46644`.
+
+Confirmed:
+
+- deterministic refresh-reason classification and timing aggregation pass;
+- profiling remains disabled by default;
+- report formatting and sample reset behavior pass;
+- the public `:HudProfile` command is registered and its on/reset/off/show
+  controls work through real `tracker_hud.setup()`;
+- the 37-callable context-engine facade remains intact;
+- register, stack, boundary and instruction-event pipelines remain green;
+- source-time memory replay and Inspect certainty remain green;
+- Lua/Python/C/C++ and ASM adapter contracts remain green.
+
+Accepted code baseline: `2a46644`.
+
+This acceptance does **not** authorize incremental checkpoint implementation
+yet. The next required input is the real ERIDU observational baseline from
+`docs/performance_baseline.md`.
+
+The measurement should answer which existing refresh phase dominates
+first-refresh, one-line cursor movement, a large cursor jump, and edit/target
+invalidation before checkpoint ownership or invalidation semantics are designed.
