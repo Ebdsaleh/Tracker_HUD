@@ -205,6 +205,47 @@ end
 -- Register-effect reduction is owned by register_effect_pipeline.
 
 
+local function get_prepared_register_source(
+    adapter,
+    opts
+)
+    opts = opts or {}
+
+    local cache =
+        opts.register_source_cache
+
+    if not core.is_table(cache) then
+        return nil
+    end
+
+    if cache.adapter == adapter
+        and cache.root_node
+            == opts.root_node
+        and cache.prepared_source
+    then
+        return cache.prepared_source
+    end
+
+    local prepared_source =
+        register_effect_pipeline
+            .prepare_source(
+                adapter,
+                {
+                    root_node =
+                        opts.root_node,
+                }
+            )
+
+    cache.adapter = adapter
+    cache.root_node =
+        opts.root_node
+    cache.prepared_source =
+        prepared_source
+
+    return prepared_source
+end
+
+
 local function register_pipeline_dependencies(
     adapter,
     bufnr
@@ -231,6 +272,13 @@ function M.collect_register_effects(
     opts
 )
     opts = opts or {}
+
+    opts.prepared_source =
+        opts.prepared_source
+        or get_prepared_register_source(
+            adapter,
+            opts
+        )
 
     return register_effect_pipeline.collect(
         context,
@@ -294,15 +342,26 @@ local function collect_memory_source_operands_where(
 )
     opts = opts or {}
 
+    local replay_opts = {
+        bufnr = bufnr,
+        root_node = root_node,
+        prepared_source =
+            get_prepared_register_source(
+                adapter,
+                {
+                    root_node = root_node,
+                    register_source_cache =
+                        opts.register_source_cache,
+                }
+            ),
+    }
+
     local register_replay_session =
         register_effect_pipeline
             .new_replay_session(
                 {},
                 adapter,
-                {
-                    bufnr = bufnr,
-                    root_node = root_node,
-                },
+                replay_opts,
                 register_pipeline_dependencies(
                     adapter,
                     bufnr
@@ -482,11 +541,27 @@ function M.collect_boundary_effects(
 
             create_register_replay_session =
                 function()
+                    local replay_opts = {}
+
+                    for key, value in pairs(
+                        opts
+                    ) do
+                        replay_opts[key] =
+                            value
+                    end
+
+                    replay_opts.prepared_source =
+                        replay_opts.prepared_source
+                        or get_prepared_register_source(
+                            adapter,
+                            opts
+                        )
+
                     return register_effect_pipeline
                         .new_replay_session(
                             context,
                             adapter,
-                            opts,
+                            replay_opts,
                             register_pipeline_dependencies(
                                 adapter,
                                 opts.bufnr
