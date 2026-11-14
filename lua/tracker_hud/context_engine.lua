@@ -205,6 +205,26 @@ end
 -- Register-effect reduction is owned by register_effect_pipeline.
 
 
+local function register_pipeline_dependencies(
+    adapter,
+    bufnr
+)
+    return {
+        parse_instruction = function(
+            node,
+            representative_effect_spec
+        )
+            return collect_instruction_operands(
+                adapter,
+                node,
+                bufnr,
+                representative_effect_spec
+            )
+        end,
+    }
+end
+
+
 function M.collect_register_effects(
     context,
     adapter,
@@ -216,19 +236,10 @@ function M.collect_register_effects(
         context,
         adapter,
         opts,
-        {
-            parse_instruction = function(
-                node,
-                representative_effect_spec
-            )
-                return collect_instruction_operands(
-                    adapter,
-                    node,
-                    opts.bufnr,
-                    representative_effect_spec
-                )
-            end,
-        }
+        register_pipeline_dependencies(
+            adapter,
+            opts.bufnr
+        )
     )
 end
 
@@ -256,6 +267,20 @@ local function evaluate_memory_address_before_instruction(
         {
             collect_register_effects =
                 M.collect_register_effects,
+
+            create_register_replay_session =
+                function()
+                    return register_effect_pipeline
+                        .new_replay_session(
+                            context,
+                            adapter,
+                            opts,
+                            register_pipeline_dependencies(
+                                adapter,
+                                opts.bufnr
+                            )
+                        )
+                end,
         }
     )
 end
