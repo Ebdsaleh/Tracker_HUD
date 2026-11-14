@@ -1446,7 +1446,7 @@ composer regression separately proves exact 64-bit hexadecimal composition.
 ```bat
 git status --short
 git pull --ff-only
-git log -12 --oneline
+git log -14 --oneline
 nvim --headless -u NONE -c "luafile tests/register_value_mask_smoke.lua" -c "qa!"
 nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
 nvim --headless -u NONE -c "luafile tests/partial_value_mask_smoke.lua" -c "qa!"
@@ -8104,23 +8104,29 @@ snapshot.
 
 ## Static audit at pending head
 
-`context_engine.lua`: 1585 lines.
+`context_engine.lua`: 1586 lines.
 
 Expected ownership markers:
 
-- `stack_effect_apply` require: 2
-- direct `stack_effect_match` require: 1
-- `boundary_register_context` require: 2
-- `collect_registers_before_instruction`: 2
-- `apply_register_effect`: 4
-- `evaluate_memory_address_before_instruction`: 3
+- exact `stack_effect_apply` require: 1
+- direct `stack_effect_match` require: 0
+- exact `boundary_register_context` require: 1
+- local `collect_registers_before_instruction` definition: 1
+- local `apply_register_effect` definition: 1
+- local `evaluate_memory_address_before_instruction` definition: 1
 
 The register match/write reducer and memory-address coordinator remain in
 `context_engine.lua`; they were intentionally not moved in this relay.
 
-## Ten-commit relay boundary after tranches 34 and 35
+## Relay boundary after tranches 34 and 35
 
-This relay stops after exactly ten commits on top of accepted `e1ff4cc`.
+The planned architecture relay contains ten commits on top of accepted
+`e1ff4cc`. Before ERIDU acceptance, connector-side static audit found a
+literal `\\n` separator defect in the two newly inserted `require` lines.
+A narrow production correction repairs those separators and removes the
+now-dead direct `stack_effect_match` require; this documentation correction
+records the repaired static audit. No semantic reducer logic changed in either
+correction.
 
 ### ERIDU acceptance gate
 
