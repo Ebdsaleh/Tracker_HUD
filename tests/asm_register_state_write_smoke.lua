@@ -145,12 +145,13 @@ local function run()
     assert(
         rbx
             and rbx.resolved == true
-            and tostring(rbx.value)
-                == "1"
+            and rbx.value == rax.value
+            and rbx.value
+                == "0x0000000000000001"
             and rbx.metadata
                 .effect
                 == "mov_register_register",
-        "later RAX read observed stale state after EAX publication"
+        "later RAX read did not reuse newly published canonical state"
     )
 
     print(
