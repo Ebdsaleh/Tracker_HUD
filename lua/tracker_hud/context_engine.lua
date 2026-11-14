@@ -17,11 +17,8 @@ local register_effect_collection = require("tracker_hud.low_level.register_effec
 local register_effect_processing = require("tracker_hud.low_level.register_effect_processing")
 local register_effect_apply = require("tracker_hud.low_level.register_effect_apply")
 local instruction_event_index = require("tracker_hud.low_level.instruction_event_index")
-local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
-local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
-local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")
-local boundary_register_context = require("tracker_hud.low_level.boundary_register_context")
+local boundary_effect_pipeline = require("tracker_hud.low_level.boundary_effect_pipeline")
 local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
@@ -620,149 +617,33 @@ function M.discover_register_source_occurrences(
 end
 
 
-local function get_boundary_effect_index(adapter)
-    return boundary_effect_index.get(
-        adapter,
-        rule_index_options
-    )
-end
-
-
--- Boundary read/write/not-preserved inference lives in
--- tracker_hud.low_level.boundary_infer. Context engine keeps only syntax/node
--- selection and adapter matching concerns here.
-
-
-local function collect_registers_before_instruction(
+function M.collect_boundary_effects(
     context,
     adapter,
-    opts,
-    instruction
+    opts
 )
-    return boundary_register_context.collect(
+    opts = opts or {}
+
+    return boundary_effect_pipeline.collect(
         context,
         adapter,
         opts,
-        instruction,
         {
+            parse_instruction = function(
+                node,
+                representative_effect_spec
+            )
+                return collect_instruction_operands(
+                    adapter,
+                    node,
+                    opts.bufnr,
+                    representative_effect_spec
+                )
+            end,
+
             collect_register_effects =
                 M.collect_register_effects,
         }
-    )
-end
-
-
-local function apply_boundary_effect(
-    facts,
-    context,
-    adapter,
-    instruction,
-    effect_spec,
-    phase_contexts
-)
-    return boundary_effect_apply.apply(
-        facts,
-        context,
-        adapter,
-        instruction,
-        effect_spec,
-        phase_contexts,
-        {
-            get_mnemonic =
-                get_rule_mnemonic,
-            normalize_mnemonic =
-                normalize_mnemonic,
-        }
-    )
-end
-
-
-local function collect_boundary_effects_with_module(
-    context,
-    adapter,
-    opts,
-    effect_index
-)
-    opts = opts or {}
-
-    return boundary_effect_collection.collect({
-        context = context,
-        effect_index = effect_index,
-
-        collect_nodes = function(node_type)
-            return collect_nodes_by_type(
-                opts.root_node,
-                node_type
-            )
-        end,
-
-        parse_instruction = function(
-            node,
-            representative_effect_spec
-        )
-            return collect_instruction_operands(
-                adapter,
-                node,
-                opts.bufnr,
-                representative_effect_spec
-            )
-        end,
-
-        normalize_mnemonic =
-            normalize_mnemonic,
-
-        collect_read_context = function(
-            instruction
-        )
-            return collect_registers_before_instruction(
-                context,
-                adapter,
-                opts,
-                instruction
-            )
-        end,
-
-        apply_effect = function(
-            facts,
-            instruction,
-            effect_spec,
-            phase_contexts
-        )
-            apply_boundary_effect(
-                facts,
-                context,
-                adapter,
-                instruction,
-                effect_spec,
-                phase_contexts
-            )
-        end,
-    })
-end
-
-
-function M.collect_boundary_effects(context, adapter, opts)
-    opts = opts or {}
-
-    local bufnr = opts.bufnr
-    local root_node = opts.root_node
-
-    if not bufnr
-        or not root_node
-        or not core.is_table(context)
-        or not core.is_table(adapter)
-        or not core.is_table(
-            adapter.boundary_effects
-        )
-    then
-        return {}
-    end
-
-    return collect_boundary_effects_with_module(
-        context,
-        adapter,
-        opts,
-        get_boundary_effect_index(adapter)
     )
 end
 
