@@ -10136,3 +10136,53 @@ max=48.294 ms
 
 No further optimization work should be accepted until that measurement is
 captured.
+
+## Accepted measured adapter configuration cache win (2026-11-15)
+
+The accepted adapter configuration cache was measured on ERIDU with the exact
+committed ASM performance fixture.
+
+Authoritative before/after:
+
+~~~text
+phase                before avg   after avg    before max   after max
+context.configure      21.977 ms     5.176 ms     48.294 ms    19.255 ms
+context                64.470 ms    43.914 ms    136.551 ms   110.012 ms
+total                  74.574 ms    54.117 ms    148.930 ms   120.305 ms
+~~~
+
+Measured reductions:
+
+- configure average: ~76.4%;
+- configure maximum: ~60.1%;
+- context average: ~31.9%;
+- context maximum: ~19.4%;
+- total average: ~27.4%;
+- total maximum: ~19.2%.
+
+The line-103 large jump is now dominated by register-history consumers rather
+than adapter configuration:
+
+~~~text
+context.source_memory   29.869 ms
+context.registers       21.333 ms
+context.registers_before 17.308 ms
+context.stack           16.950 ms
+~~~
+
+The adapter configuration cache is therefore accepted as a measured
+performance win.
+
+### Next measured owner
+
+The next tranche targets repeated register-effect replay inside source-memory
+effective-address evaluation.
+
+Each visible memory operand currently asks the full register collector for the
+state immediately before its instruction. The source-memory traversal is
+naturally source ordered, so the existing monotonic register replay session can
+serve those requests without changing source-time visibility semantics.
+
+The first tranche will reuse one replay session **within source-memory
+collection only**. It will not yet share state across Registers,
+registers-before-current-line or Stack.
