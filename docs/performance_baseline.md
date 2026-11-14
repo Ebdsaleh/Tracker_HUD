@@ -47,34 +47,81 @@ The report includes aggregate averages/maxima plus recent individual samples.
 
 ## Repeatable ERIDU scenario
 
-Use the same representative ASM sample for each comparison.
+Use the committed repeatable fixture:
 
-1. Reset and enable capture:
+~~~
+samples/asm/x86_64/performance_baseline.asm
+~~~
+
+It is intentionally 150+ lines and contains stable profile markers:
+
+- PROFILE MARKER A: line 34
+- PROFILE MARKER B: line 67
+- PROFILE MARKER C: line 103
+
+The A -> C movement is therefore a >=50-line jump under the default profiler
+threshold.
+
+1. Open the fixture normally with Tracker_HUD active.
+
+2. Reset and enable capture:
 
 ~~~vim
 :HudProfile reset
 :HudProfile on
 ~~~
 
-2. Force a first refresh by reopening the source buffer or re-entering its
-   window.
+3. Move to marker A:
 
-3. Move down exactly one source line.
+~~~vim
+:34
+~~~
 
-4. Make a large cursor jump of at least 50 lines.
+This is the first captured refresh after reset.
 
-5. Edit a line near the beginning of the file, then undo it.
+4. Move down exactly one line:
 
-6. Change a target/source directive that causes adapter target configuration to
-   be reconsidered, then undo it.
+~~~vim
+:+1
+~~~
 
-7. Display the report:
+5. Jump to marker C:
+
+~~~vim
+:103
+~~~
+
+This must classify as a large cursor jump.
+
+6. Make one harmless edit near the start of the file and undo it. For example:
+
+~~~vim
+:2s/Synthetic/SyntheticX/
+u
+~~~
+
+7. Change the platform directive and undo it:
+
+~~~vim
+:14s/platform=linux/platform=windows/
+u
+~~~
+
+The directive edit intentionally exercises adapter target reconfiguration.
+
+8. Display the report:
 
 ~~~vim
 :HudProfile
 ~~~
 
-8. Copy the report into the relay acceptance output.
+9. Copy the complete report into the relay acceptance output.
+
+10. Disable capture after copying the report:
+
+~~~vim
+:HudProfile off
+~~~
 
 ## Interpretation
 
