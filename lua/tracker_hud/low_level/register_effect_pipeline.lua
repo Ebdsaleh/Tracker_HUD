@@ -164,6 +164,216 @@ local function collect_nodes(
 end
 
 
+local function copy_session_options(
+    opts
+)
+    local result = {}
+
+    for key, value in pairs(
+        opts or {}
+    ) do
+        result[key] = value
+    end
+
+    result.limit_position = nil
+    result.stop_before = nil
+    result.before_position = nil
+
+    return result
+end
+
+
+function M.new_replay_session(
+    context,
+    adapter,
+    opts,
+    deps
+)
+    opts = opts or {}
+    deps = deps or {}
+
+    if not opts.bufnr
+        or not opts.root_node
+        or not core.is_table(adapter)
+        or not core.is_table(
+            adapter.register_effects
+        )
+        or type(deps.parse_instruction)
+            ~= "function"
+    then
+        return nil
+    end
+
+    local effect_index =
+        M.get_index(adapter)
+
+    local session_opts =
+        copy_session_options(opts)
+
+    local nodes =
+        collect_nodes(
+            context,
+            session_opts,
+            effect_index
+        )
+
+    local processing_session =
+        register_effect_processing
+            .new_session({
+                nodes = nodes,
+                effect_index =
+                    effect_index,
+
+                parse_instruction =
+                    deps.parse_instruction,
+
+                normalize_mnemonic =
+                    rule_syntax
+                        .normalize_mnemonic,
+
+                new_low_level_state =
+                    inference.new_state,
+
+                prepare_instruction_state =
+                    function(
+                        low_level_state,
+                        facts_by_register,
+                        instruction,
+                        effect_specs
+                    )
+                        return M.prepare_instruction_state(
+                            low_level_state,
+                            facts_by_register,
+                            instruction,
+                            effect_specs,
+                            adapter
+                        )
+                    end,
+
+                apply_effect = function(
+                    facts_by_register,
+                    family_state,
+                    latest_state_facts,
+                    instruction,
+                    effect_spec,
+                    instruction_state
+                )
+                    return M.apply_effect(
+                        facts_by_register,
+                        family_state,
+                        latest_state_facts,
+                        adapter,
+                        instruction,
+                        effect_spec,
+                        instruction_state
+                    )
+                end,
+
+                to_fact_list =
+                    register_infer
+                        .to_fact_list,
+            })
+
+    if not processing_session then
+        return nil
+    end
+
+    local last_position = nil
+
+    local session = {
+        processed_count = 0,
+        query_count = 0,
+        fallback_count = 0,
+    }
+
+    function session:collect_before(
+        position
+    )
+        local normalized =
+            inference.normalize_position(
+                position
+            )
+
+        if not normalized then
+            return {}
+        end
+
+        self.query_count =
+            self.query_count + 1
+
+        if last_position
+            and inference
+                .position_is_before(
+                    normalized,
+                    last_position
+                )
+        then
+            self.fallback_count =
+                self.fallback_count + 1
+
+            local fallback_opts =
+                copy_session_options(opts)
+
+            fallback_opts
+                .limit_position =
+                normalized
+
+            return M.collect(
+                context,
+                adapter,
+                fallback_opts,
+                deps
+            )
+        end
+
+        local advanced =
+            register_effect_processing
+                .advance_while(
+                    processing_session,
+                    function(entry)
+                        return inference
+                            .position_is_before(
+                                {
+                                    line =
+                                        entry.line,
+                                    column =
+                                        entry.column,
+                                },
+                                normalized
+                            )
+                    end
+                )
+
+        self.processed_count =
+            self.processed_count
+                + advanced
+
+        last_position =
+            normalized
+
+        return register_effect_processing
+            .snapshot(
+                processing_session
+            )
+    end
+
+    function session:stats()
+        return {
+            processed_count =
+                self.processed_count,
+            query_count =
+                self.query_count,
+            fallback_count =
+                self.fallback_count,
+            source_node_count =
+                #nodes,
+        }
+    end
+
+    return session
+end
+
+
 function M.collect(
     context,
     adapter,
