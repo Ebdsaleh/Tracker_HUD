@@ -8004,3 +8004,26 @@ nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
 ~~~
 
 Do not take the next ownership slice until this gate is accepted green.
+
+## Accepted context-engine split tranches 32 and 33 (2026-11-14)
+
+ERIDU accepted the instruction-event fact application and boundary-effect
+application wrapper tranches green.
+
+Confirmed:
+
+- instruction-event facts preserve event identity, source ranges, configured
+  adapter metadata, parsed operand metadata, control metadata and match-gated
+  append behavior;
+- real ASM `call target` event facts preserve call identity and operand
+  semantics;
+- boundary application preserves mnemonic matching, fact identity, phase
+  metadata and match-gated append behavior;
+- real ASM syscall inference still resolves from pre-instruction register
+  state and preserves before-instruction read / after-instruction write phase
+  metadata;
+- register publication/fact construction, x86 alias writes, stack inference,
+  memory/effective-address evidence, instruction-relative addressing, Inspect
+  and adapter contracts remain green.
+
+Accepted baseline: `e1ff4cc`.
