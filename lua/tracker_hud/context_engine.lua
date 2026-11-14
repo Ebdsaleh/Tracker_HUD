@@ -25,7 +25,7 @@ local instruction_event_index = require("tracker_hud.low_level.instruction_event
 local boundary_effect_index = require("tracker_hud.low_level.boundary_effect_index")
 local stack_effect_index = require("tracker_hud.low_level.stack_effect_index")
 local boundary_effect_collection = require("tracker_hud.low_level.boundary_effect_collection")
-local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")
+local boundary_effect_apply = require("tracker_hud.low_level.boundary_effect_apply")\nlocal boundary_register_context = require("tracker_hud.low_level.boundary_register_context")
 local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")\nlocal stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
@@ -1107,40 +1107,15 @@ local function collect_registers_before_instruction(
     opts,
     instruction
 )
-    if not core.is_table(context)
-        or not core.is_table(adapter)
-        or not core.is_table(opts)
-        or not core.is_table(instruction)
-    then
-        return context
-    end
-
-    local limit_position = low_level_inference.normalize_position({
-        line = instruction.source_start_line
-            or instruction.source_line,
-        column = instruction.source_start_column
-            or instruction.source_column
-            or 0,
-    })
-
-    if not limit_position then
-        return context
-    end
-
-    local registers_before = M.collect_register_effects(
+    return boundary_register_context.collect(
         context,
         adapter,
+        opts,
+        instruction,
         {
-            bufnr = opts.bufnr,
-            root_node = opts.root_node,
-            limit_position = limit_position,
+            collect_register_effects =
+                M.collect_register_effects,
         }
-    )
-
-    return low_level_inference.with_section_facts(
-        context,
-        "registers",
-        registers_before
     )
 end
 
