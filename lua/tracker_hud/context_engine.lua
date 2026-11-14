@@ -524,7 +524,7 @@ local function get_matching_register_effect_specs(
 end
 
 
-local function build_source_written_role(local function build_source_written_role(instruction, operand)
+local function build_source_written_role(instruction, operand)
     local kind_label = operand_metadata.kind_label(
         core.is_table(operand) and operand.kind or nil
     ) or "source"
@@ -844,7 +844,7 @@ local function get_boundary_effect_index(adapter)
 end
 
 
--- Boundary read/write/not-preserved inference lives in-- Boundary read/write/not-preserved inference lives in
+-- Boundary read/write/not-preserved inference lives in
 -- tracker_hud.low_level.boundary_infer. Context engine keeps only syntax/node
 -- selection and adapter matching concerns here.
 
@@ -991,7 +991,7 @@ local function get_instruction_event_index(adapter)
 end
 
 
-local function instruction_event_matches(local function instruction_event_matches(
+local function instruction_event_matches(
     instruction,
     event_spec
 )
@@ -1114,7 +1114,7 @@ local function get_stack_effect_index(adapter)
 end
 
 
-local function apply_stack_effect(local function apply_stack_effect(
+local function apply_stack_effect(
     facts,
     adapter,
     instruction,
