@@ -152,3 +152,26 @@ Profiling must not change:
 - HUD section contents.
 
 Leave profiling off during normal use unless measurements are needed.
+
+## Context subphase measurement refinement
+
+The first ERIDU run proved that outer `context` analysis dominates average
+refresh cost, but the original report only retained eight recent samples and did
+not identify which context collector owns that cost.
+
+The refined profiler now:
+
+- retains 16 recent samples by default, enough for the standard run;
+- records parser/configuration/scope setup separately;
+- records visible and all-scope member collection separately;
+- records the normal register reduction separately;
+- records the pre-current-line register reduction separately;
+- records stack, boundary and instruction-event reductions separately;
+- records source-memory, events, heap and warnings separately;
+- prints the four most expensive nested phases for each recent sample.
+
+Repeat the same exact interactive sequence in this document after the refined
+code gate passes.
+
+The next architecture decision should be based on the nested timings, not only
+the outer `context` total.
