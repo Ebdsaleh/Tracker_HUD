@@ -34,8 +34,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [Tracker_HUD] Running 143 tests...
->> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 143 tests...
+echo [Tracker_HUD] Running 145 tests...
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 145 tests...
 >> "%TRACKER_HUD_RESULTS%" echo.
 
 call :run_none "tests/architecture_registry_smoke.lua"
@@ -324,9 +324,13 @@ call :run_none "tests/adapter_configuration_cache_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_none "tests/asm_adapter_configuration_cache_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_none "tests/memory_address_replay_session_smoke.lua"
+if errorlevel 1 goto :fail
+call :run_config "tests/asm_memory_replay_parity_smoke.lua"
+if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 143/143
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 143/143
+echo [GREEN] Tracker_HUD test suite passed: 145/145
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 145/145
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
