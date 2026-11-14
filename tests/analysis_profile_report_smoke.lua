@@ -109,6 +109,95 @@ assert(
 )
 print("PASS analysis profile report: summary and recent sample rendered")
 
+local detailed =
+    profile.begin_refresh(
+        "CursorMoved",
+        9,
+        { 13, 4 },
+        6000000
+    )
+
+profile.begin_phase(
+    detailed,
+    "context.registers",
+    6000000
+)
+profile.end_phase(
+    detailed,
+    "context.registers",
+    6000000,
+    9000000
+)
+
+profile.begin_phase(
+    detailed,
+    "context.stack",
+    6000000
+)
+profile.end_phase(
+    detailed,
+    "context.stack",
+    6000000,
+    7000000
+)
+
+profile.finish_refresh(
+    detailed,
+    {
+        updated = true,
+    },
+    10000000
+)
+
+for index = 3, 12 do
+    local sample =
+        profile.begin_refresh(
+            "CursorMoved",
+            9,
+            { 10 + index, 4 },
+            index * 10000000
+        )
+
+    profile.finish_refresh(
+        sample,
+        {
+            updated = true,
+        },
+        index * 10000000
+            + 1000000
+    )
+end
+
+local detailed_report =
+    table.concat(
+        profile.format_report(),
+        "\n"
+    )
+
+assert(
+    detailed_report:find(
+        "#1 first_refresh line=12"
+    )
+        and detailed_report:find(
+            "#12 cursor_step"
+        ),
+    "default report must retain at least 12 recent baseline samples:\n"
+        .. detailed_report
+)
+
+assert(
+    detailed_report:find(
+        "top=%[context%.registers=3%.000 context%.stack=1%.000%]"
+    ),
+    "nested phase ranking changed:\n"
+        .. detailed_report
+)
+
+print(
+    "PASS analysis profile report: "
+        .. "full baseline history and nested ranking preserved"
+)
+
 profile.reset()
 
 local reset =
