@@ -233,7 +233,7 @@ function M.collect_register_effects(
 end
 
 
--- Source-time address evaluation is shared by memory and register discovery.-- Source-time address evaluation is shared by memory and register discovery.
+-- Source-time address evaluation is shared by memory and register discovery.
 
 
 local function evaluate_memory_address_before_instruction(
