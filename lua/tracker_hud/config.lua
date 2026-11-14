@@ -167,6 +167,14 @@ M.defaults = {
     --   :<namespace-prefix>CacheLimit <number> set a custom line limit
     analysis = {
         cache_line_limit = 200,
+
+        -- Opt-in performance observation. This records existing refresh costs;
+        -- it does not enable caching or change source visibility/inference.
+        profile = {
+            enabled = false,
+            max_samples = 256,
+            large_jump_lines = 50,
+        },
     },
 
     -- "left", "right", "top", or "bottom"
