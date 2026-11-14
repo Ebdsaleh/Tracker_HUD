@@ -8027,3 +8027,136 @@ Confirmed:
   and adapter contracts remain green.
 
 Accepted baseline: `e1ff4cc`.
+
+## Context-engine split tranche 34 — stack-effect application wrapper (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/stack_effect_apply.lua
+~~~
+
+This module owns only the final stack-effect application gate:
+
+- injected syntax-derived mnemonic matching;
+- stack-specific operand matching, including the established register-shaped
+  symbol compatibility rule;
+- generic condition matching;
+- delegation to `stack_infer.make_effect_fact`;
+- appending an accepted stack fact.
+
+Stack state preparation, push/pop value carry, depth tracking and stack-read
+semantics remain owned by `stack_infer`. Register reduction remains separate.
+
+`context_engine.lua` no longer directly requires `stack_effect_match` and
+keeps only a tiny adapter/syntax wrapper around the new application module.
+
+New regressions:
+
+~~~
+tests/stack_effect_apply_smoke.lua
+tests/asm_stack_effect_apply_smoke.lua
+~~~
+
+The parser-backed ASM test proves a real `push 7` still produces one resolved
+`stack_push` fact with the declared `push_immediate` effect identity.
+
+## Context-engine split tranche 35 — pre-boundary register context (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+New module:
+
+~~~
+lua/tracker_hud/low_level/boundary_register_context.lua
+~~~
+
+This module owns construction of the register snapshot used by boundary reads:
+
+- choose the boundary instruction's source-start position;
+- normalize the pre-instruction limit;
+- invoke injected register-effect collection at that limit;
+- publish the resulting facts into the boundary `registers` section.
+
+It does not reduce registers, match boundary effects, resolve known syscalls, or
+infer boundary reads/writes/not-preserved state.
+
+New regressions:
+
+~~~
+tests/boundary_register_context_smoke.lua
+tests/asm_boundary_register_context_smoke.lua
+~~~
+
+The parser-backed proof uses:
+
+~~~
+mov rax, 1
+syscall
+mov rax, 60
+~~~
+
+with the cursor after all three lines. The syscall must still read pre-boundary
+RAX value `1`; the later value `60` must not leak backward into the boundary
+snapshot.
+
+## Static audit at pending head
+
+`context_engine.lua`: 1585 lines.
+
+Expected ownership markers:
+
+- `stack_effect_apply` require: 2
+- direct `stack_effect_match` require: 1
+- `boundary_register_context` require: 2
+- `collect_registers_before_instruction`: 2
+- `apply_register_effect`: 4
+- `evaluate_memory_address_before_instruction`: 3
+
+The register match/write reducer and memory-address coordinator remain in
+`context_engine.lua`; they were intentionally not moved in this relay.
+
+## Ten-commit relay boundary after tranches 34 and 35
+
+This relay stops after exactly ten commits on top of accepted `e1ff4cc`.
+
+### ERIDU acceptance gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -12 --oneline
+
+nvim --headless -u NONE -c "luafile tests/stack_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_apply_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_register_context_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_register_context_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_stack_effects_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_register_carry_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/stack_read_depth_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/boundary_effect_apply_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effects_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_register_state_write_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/register_state_write_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_fact_builder_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/x86_alias_write_state_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_instruction_event_index_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/instruction_event_collection_smoke.lua" -c "qa!"
+
+nvim --headless -c "luafile tests/asm_memory_structure_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_effective_address_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_relative_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If this gate is GREEN, accept the relay head and audit the remaining register
+match gate and memory-address coordination before choosing tranche 36.
