@@ -16,6 +16,7 @@ local operand_metadata = require("tracker_hud.low_level.operand_metadata")
 local register_source_occurrence = require("tracker_hud.low_level.register_source_occurrence")
 local register_source_collection = require("tracker_hud.low_level.register_source_collection")
 local register_effect_index = require("tracker_hud.low_level.register_effect_index")
+local register_effect_selection = require("tracker_hud.low_level.register_effect_selection")
 local register_source_metadata = require("tracker_hud.low_level.register_source_metadata")
 local line_summary = require("tracker_hud.low_level.line_summary")
 local register_effect_collection = require("tracker_hud.low_level.register_effect_collection")
@@ -31,7 +32,6 @@ local stack_effect_apply = require("tracker_hud.low_level.stack_effect_apply")
 local stack_effect_collection = require("tracker_hud.low_level.stack_effect_collection")
 local instruction_event_collection = require("tracker_hud.low_level.instruction_event_collection")
 local instruction_event_fact = require("tracker_hud.low_level.instruction_event_fact")
-local effect_match = require("tracker_hud.low_level.effect_match")
 local instruction_source = require("tracker_hud.low_level.instruction_source")
 local instruction_parser_dispatch = require("tracker_hud.low_level.instruction_parser_dispatch")
 local rule_syntax = require("tracker_hud.low_level.rule_syntax")
@@ -250,13 +250,6 @@ local function collect_nodes_by_type(
         result
     )
 end
-
-
-local operands_match_effect =
-    effect_match.operands_match_effect
-
-local condition_matches =
-    effect_match.condition_matches
 
 
 local get_static_register_spec =
@@ -509,7 +502,7 @@ local function get_matching_register_effect_specs(
     instruction_node,
     bufnr
 )
-    return register_effect_index.match_node(
+    return register_effect_selection.match_node(
         effect_index,
         instruction_node,
         {
@@ -524,16 +517,14 @@ local function get_matching_register_effect_specs(
                     representative_effect_spec
                 )
             end,
-            operands_match =
-                operands_match_effect,
-            condition_match =
-                condition_matches,
+            normalize_mnemonic =
+                normalize_mnemonic,
         }
     )
 end
 
 
-local function build_source_written_role(instruction, operand)
+local function build_source_written_role(local function build_source_written_role(instruction, operand)
     local kind_label = operand_metadata.kind_label(
         core.is_table(operand) and operand.kind or nil
     ) or "source"
@@ -668,50 +659,20 @@ local function collect_memory_source_operands_where(
             node,
             instruction
         )
-            local matching_specs = {}
-
-            if not instruction
-                or not effect_index
-            then
-                return matching_specs
+            if not effect_index then
+                return {}
             end
 
-            local node_bucket =
-                effect_index.by_node_type[
-                    node:type()
-                ]
-
-            local mnemonic =
-                normalize_mnemonic(
-                    instruction.mnemonic
-                )
-
-            local candidates =
-                node_bucket
-                and mnemonic
-                and node_bucket[mnemonic]
-                or nil
-
-            for _, effect_spec in ipairs(
-                candidates or {}
-            ) do
-                if operands_match_effect(
+            return register_effect_selection
+                .match_instruction(
+                    effect_index,
+                    node,
                     instruction,
-                    effect_spec
+                    {
+                        normalize_mnemonic =
+                            normalize_mnemonic,
+                    }
                 )
-                    and condition_matches(
-                        instruction,
-                        effect_spec.condition
-                    )
-                then
-                    table.insert(
-                        matching_specs,
-                        effect_spec
-                    )
-                end
-            end
-
-            return matching_specs
         end,
 
         evaluate_address = function(
