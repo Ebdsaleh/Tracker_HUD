@@ -545,6 +545,92 @@ local function set_presentation_mode_command(command_opts)
 end
 
 
+local function profile_usage()
+    return "Usage: :"
+        .. command_name("Profile")
+        .. " [show|on|off|reset]"
+end
+
+
+local function profile_command(
+    command_opts
+)
+    local requested =
+        tostring(
+            command_opts.args
+            or ""
+        )
+        :lower()
+        :gsub("^%s+", "")
+        :gsub("%s+$", "")
+
+    if requested == ""
+        or requested == "show"
+    then
+        vim.notify(
+            table.concat(
+                analysis_profile
+                    .format_report(),
+                "\n"
+            ),
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    if requested == "on" then
+        analysis_profile
+            .set_enabled(true)
+
+        if config.analysis
+            and config.analysis.profile
+        then
+            config.analysis
+                .profile.enabled = true
+        end
+
+        vim.notify(
+            "tracker_hud: profile capture on",
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    if requested == "off" then
+        analysis_profile
+            .set_enabled(false)
+
+        if config.analysis
+            and config.analysis.profile
+        then
+            config.analysis
+                .profile.enabled = false
+        end
+
+        vim.notify(
+            "tracker_hud: profile capture off",
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    if requested == "reset" then
+        analysis_profile.reset()
+
+        vim.notify(
+            "tracker_hud: profile samples reset",
+            vim.log.levels.INFO
+        )
+        return
+    end
+
+    vim.notify(
+        profile_usage(),
+        vim.log.levels.WARN
+    )
+end
+
+
 local function cache_limit_usage()
     return analysis_cache.usage(command_name("CacheLimit"))
 end
@@ -686,6 +772,14 @@ function M.setup(opts)
         nargs = "?",
         complete = function()
             return { "on", "off", "200", "500", "1000" }
+        end,
+        force = true,
+    })
+
+    register_user_command("Profile", profile_command, {
+        nargs = "?",
+        complete = function()
+            return { "show", "on", "off", "reset" }
         end,
         force = true,
     })
