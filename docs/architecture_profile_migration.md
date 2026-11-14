@@ -9232,3 +9232,55 @@ Repeatable ERIDU procedure:
 ~~~
 docs/performance_baseline.md
 ~~~
+
+## Performance instrumentation tranche — pending ERIDU acceptance (2026-11-14)
+
+**Status: pushed on main, pending ERIDU acceptance.**
+
+This tranche is observational only.
+
+It does **not**:
+
+- add incremental caching;
+- alter the 200-line cache-window policy;
+- change ON/PAST visibility;
+- change parser or adapter selection;
+- change target/ABI semantics;
+- change register/stack/boundary/event inference.
+
+New files:
+
+- `lua/tracker_hud/analysis_profile.lua`
+- `tests/analysis_profile_smoke.lua`
+- `tests/analysis_profile_report_smoke.lua`
+- `docs/performance_baseline.md`
+
+Changed:
+
+- `lua/tracker_hud/config.lua`: opt-in profile defaults;
+- `lua/tracker_hud/init.lua`: existing refresh phases bracketed with timing and
+  `:HudProfile` command registered.
+
+### ERIDU code gate
+
+~~~
+git status --short && ^
+git pull --ff-only && ^
+git log -11 --oneline
+
+nvim --headless -u NONE -c "luafile tests/analysis_profile_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/analysis_profile_report_smoke.lua" -c "qa!"
+
+nvim --headless -u NONE -c "luafile tests/context_engine_facade_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_register_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_stack_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_boundary_effect_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_instruction_event_pipeline_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_memory_address_evaluator_smoke.lua" -c "qa!"
+nvim --headless -c "luafile tests/asm_inspect_memory_target_smoke.lua" -c "qa!"
+nvim --headless -u NONE -c "luafile tests/adapter_contract_smoke.lua"
+~~~
+
+If the code gate is GREEN, run the observational ERIDU scenario in
+`docs/performance_baseline.md` and include the `:HudProfile` report before
+choosing the checkpoint design.
