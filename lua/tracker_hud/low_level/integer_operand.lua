@@ -241,18 +241,16 @@ function M.interpret(
 
     if spec.kind == "signed_bits" then
         interpreted =
-            integer_value
-                .reinterpret_signed_normalized(
-                    raw,
-                    bits
-                )
+            integer_value.reinterpret_signed(
+                raw,
+                bits
+            )
     else
         interpreted =
-            integer_value
-                .normalize_unsigned_normalized(
-                    raw,
-                    bits
-                )
+            integer_value.normalize_unsigned(
+                raw,
+                bits
+            )
     end
 
     profile_end(
