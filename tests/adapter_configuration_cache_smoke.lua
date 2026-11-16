@@ -348,6 +348,48 @@ print(
         .. "declared stable identity reuses registration proof"
 )
 
+adapter.validation_stable_components = {}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "lua",
+        buffer_a,
+        config_b,
+        profile_opts
+    )
+
+assert(
+    ok
+        and profile_counts[
+            "context.configure.validate.register_effects"
+        ] == 1,
+    "revoked stable-component declaration still reused validation"
+)
+
+print(
+    "PASS adapter validation reuse: "
+        .. "revoking declaration restores full validation"
+)
+
+adapter.validation_stable_components = {
+    register_effects = true,
+}
+
+registry.clear()
+
+registered,
+    register_error =
+    registry.register(
+        adapter
+    )
+
+assert(
+    registered,
+    tostring(register_error)
+)
+
+profile_counts = {}
+
 adapter.register_effects = {
     mov = {},
 }

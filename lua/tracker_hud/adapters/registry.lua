@@ -76,8 +76,27 @@ local function validation_options(
         end
     end
 
-    result.validated_components =
+    local remembered =
         validated_components_by_adapter[adapter]
+    local declared =
+        type(adapter) == "table"
+        and adapter.validation_stable_components
+        or nil
+
+    if type(remembered) == "table"
+        and type(declared) == "table"
+    then
+        local eligible = {}
+
+        for component, value in pairs(remembered) do
+            if declared[component] == true then
+                eligible[component] = value
+            end
+        end
+
+        result.validated_components =
+            eligible
+    end
 
     return result
 end
