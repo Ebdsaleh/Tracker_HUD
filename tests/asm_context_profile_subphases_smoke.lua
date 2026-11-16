@@ -112,6 +112,9 @@ local function run()
         "context.registers.dynamic.process.parse",
         "context.registers.dynamic.process.prepare_state",
         "context.registers.dynamic.process.apply",
+        "context.registers.dynamic.process.apply.match",
+        "context.registers.dynamic.process.apply.build",
+        "context.registers.dynamic.process.apply.publish",
         "context.registers.dynamic.process.snapshot",
         "context.registers.static",
         "context.registers.presentation",
@@ -123,6 +126,9 @@ local function run()
         "context.registers_before.dynamic.process.parse",
         "context.registers_before.dynamic.process.prepare_state",
         "context.registers_before.dynamic.process.apply",
+        "context.registers_before.dynamic.process.apply.match",
+        "context.registers_before.dynamic.process.apply.build",
+        "context.registers_before.dynamic.process.apply.publish",
         "context.registers_before.dynamic.process.snapshot",
         "context.registers_before.static",
         "context.registers_before.presentation",
@@ -173,6 +179,12 @@ local function run()
             )
             and report:find(
                 "context%.registers%.dynamic%.process%.apply:"
+            )
+            and report:find(
+                "context%.registers%.dynamic%.process%.apply%.match:"
+            )
+            and report:find(
+                "context%.registers%.dynamic%.process%.apply%.build:"
             )
             and report:find(
                 "context%.registers_before%.dynamic%.process:"

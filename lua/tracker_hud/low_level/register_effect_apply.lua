@@ -17,6 +17,63 @@ local register_state_write =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "register_effect_apply"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.matches(
     instruction,
     effect_spec,
@@ -109,14 +166,34 @@ function M.apply(
         return
     end
 
-    if not M.matches(
-        instruction,
-        effect_spec,
-        opts
+    local phase =
+        profile_begin(
+            opts,
+            "match"
+        )
+
+    local matched =
+        M.matches(
+            instruction,
+            effect_spec,
+            opts
+        )
+
+    profile_end(
+        opts,
+        "match",
+        phase
     )
-    then
+
+    if not matched then
         return
     end
+
+    phase =
+        profile_begin(
+            opts,
+            "build"
+        )
 
     local fact =
         M.build(
@@ -128,13 +205,31 @@ function M.apply(
             instruction_state
         )
 
+    profile_end(
+        opts,
+        "build",
+        phase
+    )
+
     if fact then
+        phase =
+            profile_begin(
+                opts,
+                "publish"
+            )
+
         register_state_write.publish(
             facts_by_register,
             family_state,
             latest_state_facts,
             adapter,
             fact
+        )
+
+        profile_end(
+            opts,
+            "publish",
+            phase
         )
     end
 end

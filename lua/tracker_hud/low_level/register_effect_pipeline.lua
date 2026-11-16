@@ -160,8 +160,10 @@ function M.apply_effect(
     adapter,
     instruction,
     effect_spec,
-    instruction_state
+    instruction_state,
+    opts
 )
+    opts = opts or {}
     return register_effect_apply.apply(
         facts_by_register,
         family_state,
@@ -175,6 +177,15 @@ function M.apply_effect(
                 rule_syntax.get_mnemonic,
             normalize_mnemonic =
                 rule_syntax.normalize_mnemonic,
+            profile_prefix =
+                profile_name(
+                    opts,
+                    "process.apply"
+                ),
+            profile_begin =
+                opts.profile_begin,
+            profile_end =
+                opts.profile_end,
         }
     )
 end
@@ -742,7 +753,8 @@ function M.collect(
                 adapter,
                 instruction,
                 effect_spec,
-                instruction_state
+                instruction_state,
+                opts
             )
         end,
 
