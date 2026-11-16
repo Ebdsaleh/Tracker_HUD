@@ -209,4 +209,50 @@ assert(exact_with_width == nil
     "runtime must reject meaningless width on exact interpretation")
 print("PASS integer operand: malformed policies fail closed at runtime")
 
+local profile_counts = {}
+
+local profile_opts = {
+    profile_prefix = "test.integer_operand",
+    profile_begin =
+        function(name)
+            profile_counts[name] =
+                (profile_counts[name] or 0)
+                + 1
+            return 0
+        end,
+    profile_end =
+        function()
+        end,
+}
+
+value, metadata =
+    operand.interpret(
+        "0xFFFFFFFF",
+        {
+            kind = "signed_bits",
+            bits_from = "target",
+            max_bits = 32,
+        },
+        {
+            target_bits = 64,
+        },
+        profile_opts
+    )
+
+assert(
+    value == "-1"
+        and metadata.bits == 32
+        and profile_counts[
+            "test.integer_operand.normalize"
+        ] == 1
+        and profile_counts[
+            "test.integer_operand.resolve_bits"
+        ] == 1
+        and profile_counts[
+            "test.integer_operand.reinterpret"
+        ] == 1,
+    "integer operand profiling phases changed"
+)
+print("PASS integer operand: profiling phases preserved")
+
 print("PASS Tracker_HUD integer operand interpretation smoke")

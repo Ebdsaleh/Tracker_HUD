@@ -16,6 +16,61 @@ local register_state_read =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "register_value_policy"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.apply_width_policy(
     adapter,
     target_register,
@@ -153,18 +208,58 @@ function M.interpret_integer_operand(
     adapter,
     target_register,
     value,
-    policy
+    policy,
+    opts
 )
+    opts = opts or {}
+
     if not core.is_table(policy) then
+        local phase =
+            profile_begin(
+                opts,
+                "normalize"
+            )
+
         local normalized =
             M.parse_numeric_value(
                 value
             )
 
+        profile_end(
+            opts,
+            "normalize",
+            phase
+        )
+
         return normalized,
             normalized ~= nil,
             nil
     end
+
+    local phase =
+        profile_begin(
+            opts,
+            "target_width"
+        )
+
+    local target_bits =
+        register_state_read
+            .get_value_width(
+                adapter,
+                target_register
+            )
+
+    profile_end(
+        opts,
+        "target_width",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "interpret"
+        )
 
     local interpreted,
         metadata =
@@ -173,19 +268,47 @@ function M.interpret_integer_operand(
             policy,
             {
                 target_bits =
-                    register_state_read
-                        .get_value_width(
-                            adapter,
-                            target_register
-                        ),
+                    target_bits,
+            },
+            {
+                profile_prefix =
+                    profile_name(
+                        opts,
+                        "interpret"
+                    ),
+                profile_begin =
+                    opts.profile_begin,
+                profile_end =
+                    opts.profile_end,
             }
         )
 
-    return interpreted,
-        interpreted ~= nil,
+    profile_end(
+        opts,
+        "interpret",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "metadata"
+        )
+
+    local shaped_metadata =
         M.build_integer_operand_metadata(
             metadata
         )
+
+    profile_end(
+        opts,
+        "metadata",
+        phase
+    )
+
+    return interpreted,
+        interpreted ~= nil,
+        shaped_metadata
 end
 
 

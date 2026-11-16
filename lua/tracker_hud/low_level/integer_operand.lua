@@ -11,6 +11,62 @@ local integer_value = require("tracker_hud.low_level.integer_value")
 
 local M = {}
 
+
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "integer_operand"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function positive_integer(value)
     return type(value) == "number"
         and value == math.floor(value)
@@ -83,11 +139,30 @@ local function resolve_bits(spec, context)
     return bits, bits_source, nil
 end
 
-function M.interpret(value, spec, context)
+function M.interpret(
+    value,
+    spec,
+    context,
+    opts
+)
     spec = spec or {}
     context = context or {}
+    opts = opts or {}
 
-    local raw = integer_value.normalize(value)
+    local phase =
+        profile_begin(
+            opts,
+            "normalize"
+        )
+
+    local raw =
+        integer_value.normalize(value)
+
+    profile_end(
+        opts,
+        "normalize",
+        phase
+    )
     local metadata = {
         interpretation = spec.kind,
         raw_value = raw,
@@ -130,7 +205,24 @@ function M.interpret(value, spec, context)
         return nil, metadata
     end
 
-    local bits, bits_source, bits_error = resolve_bits(spec, context)
+    phase =
+        profile_begin(
+            opts,
+            "resolve_bits"
+        )
+
+    local bits, bits_source, bits_error =
+        resolve_bits(
+            spec,
+            context
+        )
+
+    profile_end(
+        opts,
+        "resolve_bits",
+        phase
+    )
+
     metadata.bits = bits
     metadata.bits_source = bits_source
 
@@ -139,13 +231,33 @@ function M.interpret(value, spec, context)
         return nil, metadata
     end
 
+    phase =
+        profile_begin(
+            opts,
+            "reinterpret"
+        )
+
     local interpreted
 
     if spec.kind == "signed_bits" then
-        interpreted = integer_value.reinterpret_signed(raw, bits)
+        interpreted =
+            integer_value.reinterpret_signed(
+                raw,
+                bits
+            )
     else
-        interpreted = integer_value.normalize_unsigned(raw, bits)
+        interpreted =
+            integer_value.normalize_unsigned(
+                raw,
+                bits
+            )
     end
+
+    profile_end(
+        opts,
+        "reinterpret",
+        phase
+    )
 
     if interpreted == nil then
         metadata.error = "value does not fit source width"

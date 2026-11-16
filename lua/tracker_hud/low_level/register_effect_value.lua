@@ -51,6 +51,28 @@ local function profile_begin(
 end
 
 
+local function nested_profile_options(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table" then
+        return nil
+    end
+
+    return {
+        profile_prefix =
+            profile_name(
+                opts,
+                suffix
+            ),
+        profile_begin =
+            opts.profile_begin,
+        profile_end =
+            opts.profile_end,
+    }
+end
+
+
 local function profile_end(
     opts,
     suffix,
@@ -411,7 +433,11 @@ function M.resolve(
                             delta_target_register,
                             delta_operand.text,
                             effect
-                                .value_delta_operand_interpretation
+                                .value_delta_operand_interpretation,
+                            nested_profile_options(
+                                opts,
+                                "delta.operand"
+                            )
                         )
 
                 if not operand_resolved
@@ -608,7 +634,11 @@ function M.resolve(
                             target_register,
                             value_operand.text,
                             effect
-                                .value_operand_interpretation
+                                .value_operand_interpretation,
+                            nested_profile_options(
+                                opts,
+                                "value_operand.integer"
+                            )
                         )
 
                 profile_end(
