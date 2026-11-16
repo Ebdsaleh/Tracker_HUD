@@ -614,7 +614,8 @@ local function evaluate_memory_address_before_instruction(
     address,
     machine_addresses,
     instruction_relative_policy,
-    register_replay_session
+    register_replay_session,
+    profile_opts
 )
     return memory_address_evaluator.evaluate(
         bufnr,
@@ -638,6 +639,22 @@ local function evaluate_memory_address_before_instruction(
                             limit_position
                         )
                 end
+                or nil,
+
+            profile_prefix =
+                profile_opts
+                and profile_opts
+                    .profile_prefix
+                or nil,
+            profile_begin =
+                profile_opts
+                and profile_opts
+                    .profile_begin
+                or nil,
+            profile_end =
+                profile_opts
+                and profile_opts
+                    .profile_end
                 or nil,
         }
     )
@@ -753,7 +770,19 @@ local function collect_memory_source_operands_where(
                     address,
                     machine_addresses,
                     instruction_relative_policy,
-                    register_replay_session
+                    register_replay_session,
+                    {
+                        profile_prefix =
+                            (
+                                opts.profile_prefix
+                                or "context.source_memory"
+                            )
+                            .. ".collect.evaluate",
+                        profile_begin =
+                            opts.profile_begin,
+                        profile_end =
+                            opts.profile_end,
+                    }
                 )
             end,
         }

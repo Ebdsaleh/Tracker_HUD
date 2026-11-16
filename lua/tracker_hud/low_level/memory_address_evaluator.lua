@@ -17,6 +17,63 @@ local register_state_read =
 local M = {}
 
 
+local function profile_name(
+    deps,
+    suffix
+)
+    local prefix =
+        deps
+        and deps.profile_prefix
+        or "memory_address_evaluator"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    deps,
+    suffix
+)
+    if type(deps) ~= "table"
+        or type(deps.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return deps.profile_begin(
+        profile_name(
+            deps,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    deps,
+    suffix,
+    started
+)
+    if type(deps) ~= "table"
+        or type(deps.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return deps.profile_end(
+        profile_name(
+            deps,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function unknown(reason)
     return {
         status = "unknown",
@@ -96,25 +153,55 @@ function M.evaluate(
         )
     end
 
-    if relative_address.requires_next_instruction(
-        address,
-        {
-            instruction_relative_policy =
-                instruction_relative_policy,
-        }
-    )
-    then
-        return relative_address.evaluate(
+    local phase =
+        profile_begin(
+            deps,
+            "relative_check"
+        )
+
+    local requires_next_instruction =
+        relative_address.requires_next_instruction(
             address,
-            machine_addresses,
             {
-                bits = adapter.metadata
-                    and adapter.metadata.bits
-                    or nil,
                 instruction_relative_policy =
                     instruction_relative_policy,
             }
         )
+
+    profile_end(
+        deps,
+        "relative_check",
+        phase
+    )
+
+    if requires_next_instruction
+    then
+        phase =
+            profile_begin(
+                deps,
+                "relative_evaluate"
+            )
+
+        local result =
+            relative_address.evaluate(
+                address,
+                machine_addresses,
+                {
+                    bits = adapter.metadata
+                        and adapter.metadata.bits
+                        or nil,
+                    instruction_relative_policy =
+                        instruction_relative_policy,
+                }
+            )
+
+        profile_end(
+            deps,
+            "relative_evaluate",
+            phase
+        )
+
+        return result
     end
 
     if type(
@@ -135,6 +222,12 @@ function M.evaluate(
     }
 
     local facts = nil
+
+    phase =
+        profile_begin(
+            deps,
+            "register_replay"
+        )
 
     if type(
         deps.collect_register_effects_before
@@ -163,65 +256,98 @@ function M.evaluate(
             )
     end
 
+    profile_end(
+        deps,
+        "register_replay",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            deps,
+            "fact_map"
+        )
+
     local facts_by_register =
         register_fact_map_from_list(
             facts
         )
+
+    profile_end(
+        deps,
+        "fact_map",
+        phase
+    )
 
     local bits =
         adapter.metadata
         and adapter.metadata.bits
         or nil
 
-    return effective_address.evaluate(
-        address,
-        {
-            bits = bits,
+    phase =
+        profile_begin(
+            deps,
+            "effective_address"
+        )
 
-            resolve_register = function(
-                register_name
-            )
-                local fact =
-                    register_state_read
-                        .get_fact_for_read(
-                            facts_by_register,
-                            adapter,
-                            register_name
-                        )
+    local result =
+        effective_address.evaluate(
+            address,
+            {
+                bits = bits,
 
-                if not register_state_read
-                    .fact_is_resolved(
-                        fact
-                    )
-                then
-                    local partial =
-                        fact
-                        and fact.metadata
-                        and fact.metadata
-                            .partial_value
-                        or nil
+                resolve_register = function(
+                    register_name
+                )
+                    local fact =
+                        register_state_read
+                            .get_fact_for_read(
+                                facts_by_register,
+                                adapter,
+                                register_name
+                            )
 
-                    return nil, {
-                        status =
-                            partial
-                            and "partial"
-                            or "unknown",
-                        fact_name =
+                    if not register_state_read
+                        .fact_is_resolved(
                             fact
-                            and fact.name
-                            or nil,
-                        partial_value =
-                            partial,
-                    }
-                end
+                        )
+                    then
+                        local partial =
+                            fact
+                            and fact.metadata
+                            and fact.metadata
+                                .partial_value
+                            or nil
 
-                return fact.value, {
-                    status = "known",
-                    fact_name = fact.name,
-                }
-            end,
-        }
+                        return nil, {
+                            status =
+                                partial
+                                and "partial"
+                                or "unknown",
+                            fact_name =
+                                fact
+                                and fact.name
+                                or nil,
+                            partial_value =
+                                partial,
+                        }
+                    end
+
+                    return fact.value, {
+                        status = "known",
+                        fact_name = fact.name,
+                    }
+                end,
+            }
+        )
+
+    profile_end(
+        deps,
+        "effective_address",
+        phase
     )
+
+    return result
 end
 
 

@@ -167,6 +167,10 @@ local function run()
         "context.source_memory.collect.match",
         "context.source_memory.collect.evidence",
         "context.source_memory.collect.evaluate",
+        "context.source_memory.collect.evaluate.relative_check",
+        "context.source_memory.collect.evaluate.register_replay",
+        "context.source_memory.collect.evaluate.fact_map",
+        "context.source_memory.collect.evaluate.effective_address",
         "context.source_memory.collect.role_access",
         "context.source_memory.collect.fact",
         "context.source_memory.collect.sort",
@@ -240,6 +244,12 @@ local function run()
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate:"
+            )
+            and report:find(
+                "context%.source_memory%.collect%.evaluate%.register_replay:"
+            )
+            and report:find(
+                "context%.source_memory%.collect%.evaluate%.effective_address:"
             )
             and report:find(
                 "context%.source_memory%.source_members:"
