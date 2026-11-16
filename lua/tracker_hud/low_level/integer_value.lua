@@ -149,6 +149,60 @@ local function signed_decimal(sign, magnitude)
     return sign < 0 and ("-" .. magnitude) or magnitude
 end
 
+
+local function negate_normalized(normalized)
+    if normalized == "0" then
+        return "0"
+    end
+
+    if normalized:sub(1, 1) == "-" then
+        return normalized:sub(2)
+    end
+
+    return "-" .. normalized
+end
+
+
+local function add_normalized(left, right)
+    local left_sign, left_abs =
+        split_sign(left)
+    local right_sign, right_abs =
+        split_sign(right)
+
+    left_abs = strip_zeroes(left_abs)
+    right_abs = strip_zeroes(right_abs)
+
+    if left_sign == right_sign then
+        return signed_decimal(
+            left_sign,
+            add_abs(left_abs, right_abs)
+        )
+    end
+
+    local cmp =
+        compare_abs(
+            left_abs,
+            right_abs
+        )
+
+    if cmp == 0 then
+        return "0"
+    end
+
+    if cmp > 0 then
+        return signed_decimal(
+            left_sign,
+            sub_abs(left_abs, right_abs)
+        )
+    end
+
+    return signed_decimal(
+        right_sign,
+        sub_abs(right_abs, left_abs)
+    )
+end
+
+
 function M.normalize(value)
     if value == nil then
         return nil
@@ -205,20 +259,16 @@ function M.normalize(value)
 end
 
 function M.negate(value)
-    local normalized = M.normalize(value)
+    local normalized =
+        M.normalize(value)
+
     if not normalized then
         return nil
     end
 
-    if normalized == "0" then
-        return "0"
-    end
-
-    if normalized:sub(1, 1) == "-" then
-        return normalized:sub(2)
-    end
-
-    return "-" .. normalized
+    return negate_normalized(
+        normalized
+    )
 end
 
 local function mul_abs(left, right)
@@ -256,35 +306,9 @@ function M.add(left, right)
         return nil
     end
 
-    local left_sign, left_abs = split_sign(left)
-    local right_sign, right_abs = split_sign(right)
-
-    left_abs = strip_zeroes(left_abs)
-    right_abs = strip_zeroes(right_abs)
-
-    if left_sign == right_sign then
-        return signed_decimal(
-            left_sign,
-            add_abs(left_abs, right_abs)
-        )
-    end
-
-    local cmp = compare_abs(left_abs, right_abs)
-
-    if cmp == 0 then
-        return "0"
-    end
-
-    if cmp > 0 then
-        return signed_decimal(
-            left_sign,
-            sub_abs(left_abs, right_abs)
-        )
-    end
-
-    return signed_decimal(
-        right_sign,
-        sub_abs(right_abs, left_abs)
+    return add_normalized(
+        left,
+        right
     )
 end
 
@@ -372,13 +396,14 @@ local function mod_abs(value, modulus)
     return strip_zeroes(remainder)
 end
 
-function M.fits_unsigned(value, bits)
-    if not valid_bit_width(bits) then
-        return false
-    end
-
-    local normalized = M.normalize(value)
-    if not normalized or normalized:sub(1, 1) == "-" then
+local function fits_unsigned_normalized(
+    normalized,
+    bits
+)
+    if not valid_bit_width(bits)
+        or type(normalized) ~= "string"
+        or normalized:sub(1, 1) == "-"
+    then
         return false
     end
 
@@ -388,65 +413,153 @@ function M.fits_unsigned(value, bits)
     ) < 0
 end
 
-function M.fits_signed(value, bits)
-    if not valid_bit_width(bits) then
+
+local function fits_signed_normalized(
+    normalized,
+    bits
+)
+    if not valid_bit_width(bits)
+        or type(normalized) ~= "string"
+    then
         return false
     end
 
-    local normalized = M.normalize(value)
-    if not normalized then
-        return false
-    end
+    local sign, magnitude =
+        split_sign(normalized)
 
-    local sign, magnitude = split_sign(normalized)
-    magnitude = strip_zeroes(magnitude)
+    magnitude =
+        strip_zeroes(magnitude)
 
-    local signed_limit = power_of_two(bits - 1)
+    local signed_limit =
+        power_of_two(bits - 1)
 
     if sign < 0 then
-        return compare_abs(magnitude, signed_limit) <= 0
+        return compare_abs(
+            magnitude,
+            signed_limit
+        ) <= 0
     end
 
-    return compare_abs(magnitude, signed_limit) < 0
+    return compare_abs(
+        magnitude,
+        signed_limit
+    ) < 0
 end
+
+
+function M.fits_unsigned(value, bits)
+    local normalized =
+        M.normalize(value)
+
+    return normalized ~= nil
+        and fits_unsigned_normalized(
+            normalized,
+            bits
+        )
+end
+
+
+function M.fits_signed(value, bits)
+    local normalized =
+        M.normalize(value)
+
+    return normalized ~= nil
+        and fits_signed_normalized(
+            normalized,
+            bits
+        )
+end
+
+
+function M.normalize_unsigned_normalized(
+    normalized,
+    bits
+)
+    if not fits_unsigned_normalized(
+        normalized,
+        bits
+    )
+    then
+        return nil
+    end
+
+    return normalized
+end
+
 
 function M.normalize_unsigned(value, bits)
-    if not M.fits_unsigned(value, bits) then
+    local normalized =
+        M.normalize(value)
+
+    if not normalized then
         return nil
     end
 
-    return M.normalize(value)
+    return M.normalize_unsigned_normalized(
+        normalized,
+        bits
+    )
 end
 
-function M.reinterpret_signed(value, bits)
-    if not valid_bit_width(bits) then
-        return nil
-    end
 
-    local normalized = M.normalize(value)
-    if not normalized then
+function M.reinterpret_signed_normalized(
+    normalized,
+    bits
+)
+    if not valid_bit_width(bits)
+        or type(normalized) ~= "string"
+    then
         return nil
     end
 
     if normalized:sub(1, 1) == "-" then
-        return M.fits_signed(normalized, bits)
+        return fits_signed_normalized(
+            normalized,
+            bits
+        )
             and normalized
             or nil
     end
 
-    if not M.fits_unsigned(normalized, bits) then
+    if not fits_unsigned_normalized(
+        normalized,
+        bits
+    )
+    then
         return nil
     end
 
-    local sign_bit = power_of_two(bits - 1)
+    local sign_bit =
+        power_of_two(bits - 1)
 
-    if compare_abs(normalized, sign_bit) < 0 then
+    if compare_abs(
+        normalized,
+        sign_bit
+    ) < 0
+    then
         return normalized
     end
 
-    return M.add(
+    return add_normalized(
         normalized,
-        M.negate(power_of_two(bits))
+        negate_normalized(
+            power_of_two(bits)
+        )
+    )
+end
+
+
+function M.reinterpret_signed(value, bits)
+    local normalized =
+        M.normalize(value)
+
+    if not normalized then
+        return nil
+    end
+
+    return M.reinterpret_signed_normalized(
+        normalized,
+        bits
     )
 end
 

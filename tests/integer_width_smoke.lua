@@ -64,6 +64,95 @@ assert(integer.reinterpret_signed(
     "64-bit signed reinterpretation must remain exact")
 print("PASS integer width: 64-bit signed reinterpretation remains exact")
 
+local normalized_signed_cases = {
+    {
+        value = "255",
+        bits = 8,
+        expected = "-1",
+    },
+    {
+        value = "128",
+        bits = 8,
+        expected = "-128",
+    },
+    {
+        value = "127",
+        bits = 8,
+        expected = "127",
+    },
+    {
+        value = "-128",
+        bits = 8,
+        expected = "-128",
+    },
+    {
+        value = "256",
+        bits = 8,
+        expected = nil,
+    },
+    {
+        value = "-129",
+        bits = 8,
+        expected = nil,
+    },
+    {
+        value = "18446744073709551615",
+        bits = 64,
+        expected = "-1",
+    },
+    {
+        value = "9223372036854775808",
+        bits = 64,
+        expected = "-9223372036854775808",
+    },
+}
+
+for _, case in ipairs(
+    normalized_signed_cases
+) do
+    local normalized =
+        assert(
+            integer.normalize(
+                case.value
+            )
+        )
+
+    assert(
+        integer
+            .reinterpret_signed_normalized(
+                normalized,
+                case.bits
+            )
+            == case.expected
+        and integer.reinterpret_signed(
+            case.value,
+            case.bits
+        ) == case.expected,
+        "normalized signed reinterpretation parity changed"
+    )
+end
+
+assert(
+    integer
+        .normalize_unsigned_normalized(
+            "255",
+            8
+        ) == "255"
+    and integer
+        .normalize_unsigned_normalized(
+            "256",
+            8
+        ) == nil
+    and integer
+        .normalize_unsigned_normalized(
+            "-1",
+            8
+        ) == nil,
+    "normalized unsigned interpretation parity changed"
+)
+
+print("PASS integer width: normalized fast paths preserve public semantics")
+
 local huge = "134078079299425970995740249982058461274793658205923933"
     .. "77723561443721764030073546976801874298166903427690031"
     .. "858186486050853753882811946569946433649006084096"
