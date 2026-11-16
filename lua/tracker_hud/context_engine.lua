@@ -1092,6 +1092,13 @@ function M.collect_stack_effects(
 )
     opts = opts or {}
 
+    opts.prepared_register_source =
+        opts.prepared_register_source
+        or get_prepared_register_source(
+            adapter,
+            opts
+        )
+
     return stack_effect_pipeline.collect(
         context,
         adapter,

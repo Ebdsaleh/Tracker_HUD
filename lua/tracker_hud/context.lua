@@ -636,6 +636,8 @@ local function attach_context_sections(
                 {
                     bufnr = bufnr,
                     root_node = root_node,
+                    register_source_cache =
+                        register_source_cache,
                 },
                 nested_profile_options(
                     profile_token,

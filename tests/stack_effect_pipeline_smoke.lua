@@ -28,6 +28,8 @@ local mov_node =
 local push_node =
     fake_node("push", 1)
 
+local root_walks = 0
+
 local root = {
     type = function()
         return "program"
@@ -36,6 +38,9 @@ local root = {
         return 0, 0, 2, 0
     end,
     iter_children = function()
+        root_walks =
+            root_walks + 1
+
         local nodes = {
             mov_node,
             push_node,
@@ -229,6 +234,119 @@ assert(
     "stack pipeline source metadata changed"
 )
 print("PASS stack pipeline: pushed register provenance preserved")
+
+local fallback_root_walks =
+    root_walks
+
+assert(
+    fallback_root_walks > 0,
+    "standalone stack pipeline did not retain recursive node fallback"
+)
+print(
+    "PASS stack pipeline: standalone node traversal fallback preserved"
+)
+
+root_walks = 0
+parse_calls = {}
+
+local prepared_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 2,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            prepared_register_source = {
+                effect_index = {
+                    node_types = {
+                        instruction = true,
+                    },
+                },
+                nodes = {
+                    {
+                        node = mov_node,
+                        line = 1,
+                        column = 0,
+                    },
+                    {
+                        node = push_node,
+                        line = 2,
+                        column = 0,
+                    },
+                },
+            },
+        },
+        {
+            parse_instruction = function(
+                node,
+                representative
+            )
+                table.insert(
+                    parse_calls,
+                    {
+                        node = node,
+                        representative =
+                            representative,
+                    }
+                )
+
+                if node == mov_node then
+                    return {
+                        mnemonic = "mov",
+                        source_line = 1,
+                        operands = {
+                            {
+                                kind = "register",
+                                text = "rax",
+                                source_line = 1,
+                            },
+                            {
+                                kind = "integer",
+                                text = "42",
+                                source_line = 1,
+                            },
+                        },
+                    }
+                end
+
+                return {
+                    mnemonic = "push",
+                    source_line = 2,
+                    operands = {
+                        {
+                            kind = "register",
+                            text = "rax",
+                            source_line = 2,
+                        },
+                    },
+                }
+            end,
+        }
+    )
+
+assert(
+    root_walks == 0,
+    "complete prepared register-node coverage did not bypass stack tree walk"
+)
+
+assert(
+    #prepared_facts == 1
+        and prepared_facts[1].resolved
+            == true
+        and tostring(
+            prepared_facts[1].value
+        ) == "42",
+    "prepared-node stack collection changed semantic result"
+)
+
+print(
+    "PASS stack pipeline: prepared register nodes bypass duplicate traversal"
+)
 
 assert(
     #pipeline.collect(
