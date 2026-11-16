@@ -156,6 +156,19 @@ local function run()
     local misses_only = {
         "context.configure.adapter",
         "context.configure.validate",
+        "context.configure.validate.filetypes",
+        "context.configure.validate.construct_specs",
+        "context.configure.validate.scope_members",
+        "context.configure.validate.range_scopes",
+        "context.configure.validate.capabilities",
+        "context.configure.validate.sections",
+        "context.configure.validate.presentation",
+        "context.configure.validate.instruction_parser",
+        "context.configure.validate.memory_accesses",
+        "context.configure.validate.register_effects",
+        "context.configure.validate.instruction_events",
+        "context.configure.validate.stack_effects",
+        "context.configure.validate.boundary_effects",
         "context.configure.remember",
     }
 
@@ -180,6 +193,12 @@ local function run()
             ] == nil
             and second.phases[
                 "context.configure.remember"
+            ] == nil
+            and second.phases[
+                "context.configure.validate.construct_specs"
+            ] == nil
+            and second.phases[
+                "context.configure.validate.register_effects"
             ] == nil,
         "cache-hit refresh performed miss-only configuration work"
     )

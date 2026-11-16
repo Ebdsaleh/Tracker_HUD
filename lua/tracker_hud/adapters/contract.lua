@@ -22,6 +22,63 @@ local M = {}
 M.current_version = 1
 
 
+local function profile_begin(
+    opts,
+    name
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(name)
+end
+
+
+local function profile_end(
+    opts,
+    name,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        name,
+        started
+    )
+end
+
+
+local function validate_phase(
+    opts,
+    name,
+    validator,
+    ...
+)
+    local started =
+        profile_begin(
+            opts,
+            name
+        )
+
+    local ok, err =
+        validator(...)
+
+    profile_end(
+        opts,
+        name,
+        started
+    )
+
+    return ok, err
+end
+
+
 local function path_error(path, message)
     if core.is_non_empty_string(path) then
         return false, path .. "." .. message
@@ -1685,7 +1742,14 @@ local function validate_filetypes(filetypes)
 end
 
 
-function M.validate_adapter(adapter)
+function M.validate_adapter(
+    adapter,
+    opts
+)
+    opts = type(opts) == "table"
+        and opts
+        or nil
+
     if not core.is_table(adapter) then
         return false, "adapter must be a table"
     end
@@ -1708,94 +1772,163 @@ function M.validate_adapter(adapter)
         return false, "adapter.name must be a non-empty string"
     end
 
-    local ok, err = validate_filetypes(adapter.filetypes)
+    local ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.filetypes",
+            validate_filetypes,
+            adapter.filetypes
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_construct_specs(adapter.construct_specs)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.construct_specs",
+            validate_construct_specs,
+            adapter.construct_specs
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_scope_members(adapter.scope_members)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.scope_members",
+            validate_scope_members,
+            adapter.scope_members
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_range_scopes(adapter.range_scopes)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.range_scopes",
+            validate_range_scopes,
+            adapter.range_scopes
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_capabilities(adapter.capabilities)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.capabilities",
+            validate_capabilities,
+            adapter.capabilities
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_sections(adapter.sections)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.sections",
+            validate_sections,
+            adapter.sections
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_presentation(adapter.presentation)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.presentation",
+            validate_presentation,
+            adapter.presentation
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_instruction_parser(adapter.instruction_parser)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.instruction_parser",
+            validate_instruction_parser,
+            adapter.instruction_parser
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_memory_accesses(adapter.memory_accesses)
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.memory_accesses",
+            validate_memory_accesses,
+            adapter.memory_accesses
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_instruction_rule_set(
-        adapter.register_effects,
-        "register_effects",
-        { require_effect = true }
-    )
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.register_effects",
+            validate_instruction_rule_set,
+            adapter.register_effects,
+            "register_effects",
+            { require_effect = true }
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_instruction_rule_set(
-        adapter.instruction_events,
-        "instruction_events",
-        {
-            require_effect = true,
-            require_event = true,
-        }
-    )
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.instruction_events",
+            validate_instruction_rule_set,
+            adapter.instruction_events,
+            "instruction_events",
+            {
+                require_effect = true,
+                require_event = true,
+            }
+        )
 
     if not ok then
         return false, err
     end
 
-    ok, err = validate_instruction_rule_set(
-        adapter.stack_effects,
-        "stack_effects",
-        { require_effect = true }
-    )
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.stack_effects",
+            validate_instruction_rule_set,
+            adapter.stack_effects,
+            "stack_effects",
+            { require_effect = true }
+        )
 
     if not ok then
         return false, err
     end
 
-    return validate_instruction_rule_set(
+    return validate_phase(
+        opts,
+        "context.configure.validate.boundary_effects",
+        validate_instruction_rule_set,
         adapter.boundary_effects,
         "boundary_effects"
     )

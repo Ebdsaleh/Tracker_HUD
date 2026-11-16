@@ -148,8 +148,14 @@ local function normalize_filetypes(filetypes)
 end
 
 
-function M.validate_adapter(adapter)
-    return adapter_contract.validate_adapter(adapter)
+function M.validate_adapter(
+    adapter,
+    opts
+)
+    return adapter_contract.validate_adapter(
+        adapter,
+        opts
+    )
 end
 
 
@@ -291,7 +297,11 @@ function M.configure_adapter_for_buffer(
             "context.configure.validate"
         )
 
-    local valid, validation_err = M.validate_adapter(adapter)
+    local valid, validation_err =
+        M.validate_adapter(
+            adapter,
+            opts
+        )
 
     profile_end(
         opts,
