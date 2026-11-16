@@ -73,7 +73,10 @@ register_pipeline.collect =
 
         assert(
             opts.prepared_source
-                == prepared_sentinel,
+                and opts.prepared_source.nodes
+                    == prepared_sentinel.nodes
+                and opts.prepared_source.effect_index
+                    == prepared_sentinel.effect_index,
             "register collector did not receive shared prepared source"
         )
 
@@ -97,7 +100,10 @@ register_pipeline.new_replay_session =
 
         assert(
             opts.prepared_source
-                == prepared_sentinel,
+                and opts.prepared_source.nodes
+                    == prepared_sentinel.nodes
+                and opts.prepared_source.effect_index
+                    == prepared_sentinel.effect_index,
             "replay consumer did not receive shared prepared source"
         )
 
@@ -229,6 +235,159 @@ local ok, err =
             print(
                 "PASS context register source cache: "
                     .. "mutable replay state remains consumer-local"
+            )
+
+
+            local real_buffer =
+                vim.api.nvim_create_buf(
+                    false,
+                    true
+                )
+
+            vim.api.nvim_buf_set_lines(
+                real_buffer,
+                0,
+                -1,
+                false,
+                {
+                    "mov rax, 1",
+                }
+            )
+
+            local stable_adapter = {
+                name = "asm",
+                validation_stable_components = {
+                    register_effects = true,
+                },
+                register_effects = {},
+            }
+
+            local persistent_start =
+                prepare_calls
+
+            local first_refresh_cache = {}
+
+            engine.collect_register_effects(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "root-a",
+                    register_source_cache =
+                        first_refresh_cache,
+                }
+            )
+
+            local first_prepared =
+                first_refresh_cache
+                    .prepared_source
+
+            local second_refresh_cache = {}
+
+            engine.collect_register_effects(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "root-b",
+                    register_source_cache =
+                        second_refresh_cache,
+                }
+            )
+
+            assert(
+                prepare_calls
+                    == persistent_start + 1,
+                "unchanged stable buffer rebuilt prepared source across refreshes"
+            )
+
+            assert(
+                second_refresh_cache
+                    .prepared_source
+                    ~= first_prepared
+                    and second_refresh_cache
+                        .prepared_source
+                        .nodes
+                        == first_prepared.nodes
+                    and second_refresh_cache
+                        .prepared_source
+                        .effect_index
+                        == first_prepared.effect_index
+                    and second_refresh_cache
+                        .prepared_source
+                        .root_node
+                        == "root-b"
+                    and second_refresh_cache
+                        .prepared_source
+                        .source_root_node
+                        == "root-a",
+                "persistent prepared source did not rebind root while preserving immutable source data"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "stable unchanged buffer reuses prepared source across refreshes"
+            )
+
+            vim.api.nvim_buf_set_lines(
+                real_buffer,
+                0,
+                -1,
+                false,
+                {
+                    "mov rax, 2",
+                }
+            )
+
+            engine.collect_register_effects(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "root-c",
+                    register_source_cache = {},
+                }
+            )
+
+            assert(
+                prepare_calls
+                    == persistent_start + 2,
+                "changedtick did not invalidate persistent prepared source"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "buffer edit invalidates persistent prepared source"
+            )
+
+            stable_adapter.register_effects = {}
+
+            engine.collect_register_effects(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "root-d",
+                    register_source_cache = {},
+                }
+            )
+
+            assert(
+                prepare_calls
+                    == persistent_start + 3,
+                "register-effect identity change did not invalidate persistent prepared source"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "register-effect identity change invalidates persistent source"
+            )
+
+            vim.api.nvim_buf_delete(
+                real_buffer,
+                {
+                    force = true,
+                }
             )
         end
     )

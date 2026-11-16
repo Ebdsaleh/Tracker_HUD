@@ -205,6 +205,188 @@ end
 -- Register-effect reduction is owned by register_effect_pipeline.
 
 
+local persistent_register_source_cache = nil
+local register_source_buffer_token_serial = 0
+local register_source_module_token =
+    tostring({})
+
+
+local function register_effects_are_stable(
+    adapter
+)
+    return core.is_table(adapter)
+        and core.is_table(
+            adapter.validation_stable_components
+        )
+        and adapter
+            .validation_stable_components
+            .register_effects == true
+        and core.is_table(
+            adapter.register_effects
+        )
+end
+
+
+local function get_register_source_buffer_revision(
+    bufnr
+)
+    if not vim
+        or not vim.api
+        or type(
+            vim.api.nvim_buf_get_changedtick
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_get_var
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_set_var
+        ) ~= "function"
+    then
+        return nil
+    end
+
+    local ok_tick, changedtick =
+        pcall(
+            vim.api.nvim_buf_get_changedtick,
+            bufnr
+        )
+
+    if not ok_tick then
+        return nil
+    end
+
+    local variable_name =
+        "tracker_hud_register_source_cache_token"
+
+    local ok_token, token =
+        pcall(
+            vim.api.nvim_buf_get_var,
+            bufnr,
+            variable_name
+        )
+
+    local expected_prefix =
+        register_source_module_token
+        .. ":"
+
+    if not ok_token
+        or type(token) ~= "string"
+        or token:sub(
+            1,
+            #expected_prefix
+        ) ~= expected_prefix
+    then
+        register_source_buffer_token_serial =
+            register_source_buffer_token_serial
+            + 1
+
+        token =
+            expected_prefix
+            .. tostring(
+                register_source_buffer_token_serial
+            )
+
+        local ok_set =
+            pcall(
+                vim.api.nvim_buf_set_var,
+                bufnr,
+                variable_name,
+                token
+            )
+
+        if not ok_set then
+            return nil
+        end
+    end
+
+    return {
+        token = token,
+        changedtick = changedtick,
+    }
+end
+
+
+local function copy_prepared_source_for_root(
+    prepared_source,
+    root_node
+)
+    if not core.is_table(prepared_source) then
+        return nil
+    end
+
+    local rebound = {}
+
+    for key, value in pairs(
+        prepared_source
+    ) do
+        rebound[key] = value
+    end
+
+    rebound.source_root_node =
+        prepared_source.source_root_node
+        or prepared_source.root_node
+    rebound.root_node = root_node
+
+    return rebound
+end
+
+
+local function persistent_register_source_matches(
+    adapter,
+    bufnr,
+    revision
+)
+    local cached =
+        persistent_register_source_cache
+
+    return core.is_table(cached)
+        and core.is_table(revision)
+        and cached.bufnr == bufnr
+        and cached.buffer_token
+            == revision.token
+        and cached.changedtick
+            == revision.changedtick
+        and cached.adapter == adapter
+        and cached.register_effects
+            == adapter.register_effects
+        and core.is_table(
+            cached.prepared_source
+        )
+end
+
+
+local function remember_persistent_register_source(
+    adapter,
+    bufnr,
+    revision,
+    prepared_source
+)
+    if not register_effects_are_stable(
+        adapter
+    )
+        or not core.is_table(revision)
+        or not core.is_table(
+            prepared_source
+        )
+    then
+        persistent_register_source_cache =
+            nil
+        return
+    end
+
+    persistent_register_source_cache = {
+        bufnr = bufnr,
+        buffer_token = revision.token,
+        changedtick = revision.changedtick,
+        adapter = adapter,
+        register_effects =
+            adapter.register_effects,
+        prepared_source =
+            prepared_source,
+    }
+end
+
+
 local function register_profile_name(
     opts,
     suffix
@@ -283,6 +465,43 @@ local function get_prepared_register_source(
         return cache.prepared_source
     end
 
+    local revision = nil
+
+    if register_effects_are_stable(
+        adapter
+    ) then
+        revision =
+            get_register_source_buffer_revision(
+                opts.bufnr
+            )
+
+        if persistent_register_source_matches(
+            adapter,
+            opts.bufnr,
+            revision
+        )
+        then
+            local rebound =
+                copy_prepared_source_for_root(
+                    persistent_register_source_cache
+                        .prepared_source,
+                    opts.root_node
+                )
+
+            cache.adapter = adapter
+            cache.root_node =
+                opts.root_node
+            cache.prepared_source =
+                rebound
+
+            persistent_register_source_cache
+                .prepared_source =
+                rebound
+
+            return rebound
+        end
+    end
+
     local prepare_opts = {
         root_node =
             opts.root_node,
@@ -306,6 +525,13 @@ local function get_prepared_register_source(
         opts.root_node
     cache.prepared_source =
         prepared_source
+
+    remember_persistent_register_source(
+        adapter,
+        opts.bufnr,
+        revision,
+        prepared_source
+    )
 
     return prepared_source
 end
@@ -426,6 +652,7 @@ local function collect_memory_source_operands_where(
             get_prepared_register_source(
                 adapter,
                 {
+                    bufnr = bufnr,
                     root_node = root_node,
                     register_source_cache =
                         opts.register_source_cache,
