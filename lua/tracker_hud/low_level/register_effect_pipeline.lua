@@ -178,7 +178,8 @@ function M.apply_effect(
             normalize_mnemonic =
                 rule_syntax.normalize_mnemonic,
             profile_prefix =
-                profile_name(
+                opts.apply_profile_prefix
+                or profile_name(
                     opts,
                     "process.apply"
                 ),
@@ -517,7 +518,24 @@ function M.new_replay_session(
                         adapter,
                         instruction,
                         effect_spec,
-                        instruction_state
+                        instruction_state,
+                        {
+                            apply_profile_prefix =
+                                session_opts
+                                    .profile_prefix
+                                and (
+                                    session_opts
+                                        .profile_prefix
+                                    .. ".apply"
+                                )
+                                or nil,
+                            profile_begin =
+                                session_opts
+                                    .profile_begin,
+                            profile_end =
+                                session_opts
+                                    .profile_end,
+                        }
                     )
                 end,
 

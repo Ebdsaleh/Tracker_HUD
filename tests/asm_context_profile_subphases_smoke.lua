@@ -172,6 +172,9 @@ local function run()
         "context.source_memory.collect.evaluate.register_replay.parse",
         "context.source_memory.collect.evaluate.register_replay.prepare_state",
         "context.source_memory.collect.evaluate.register_replay.apply",
+        "context.source_memory.collect.evaluate.register_replay.apply.match",
+        "context.source_memory.collect.evaluate.register_replay.apply.build",
+        "context.source_memory.collect.evaluate.register_replay.apply.publish",
         "context.source_memory.collect.evaluate.register_replay.snapshot",
         "context.source_memory.collect.evaluate.fact_map",
         "context.source_memory.collect.evaluate.effective_address",
@@ -257,6 +260,12 @@ local function run()
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate%.register_replay%.apply:"
+            )
+            and report:find(
+                "context%.source_memory%.collect%.evaluate%.register_replay%.apply%.build:"
+            )
+            and report:find(
+                "context%.source_memory%.collect%.evaluate%.register_replay%.apply%.match:"
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate%.effective_address:"
