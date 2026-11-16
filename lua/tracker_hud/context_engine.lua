@@ -686,6 +686,16 @@ local function collect_memory_source_operands_where(
         root_node = root_node,
         prepared_source =
             prepared_source,
+        profile_prefix =
+            (
+                opts.profile_prefix
+                or "context.source_memory"
+            )
+            .. ".collect.evaluate.register_replay",
+        profile_begin =
+            opts.profile_begin,
+        profile_end =
+            opts.profile_end,
     }
 
     local register_replay_session =

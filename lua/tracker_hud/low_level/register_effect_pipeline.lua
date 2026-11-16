@@ -524,6 +524,16 @@ function M.new_replay_session(
                 to_fact_list =
                     register_infer
                         .to_fact_list,
+
+                profile_prefix =
+                    session_opts
+                        .profile_prefix,
+                profile_begin =
+                    session_opts
+                        .profile_begin,
+                profile_end =
+                    session_opts
+                        .profile_end,
             })
 
     if not processing_session then
