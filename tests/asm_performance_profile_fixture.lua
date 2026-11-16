@@ -59,11 +59,18 @@ local function run()
         "performance fixture edit/directive anchors changed"
     )
 
+    -- Use a normal source buffer. scratch=true sets buftype=nofile,
+    -- and Tracker_HUD intentionally ignores non-source buffers.
     local buffer =
         vim.api.nvim_create_buf(
             false,
-            true
+            false
         )
+
+    assert(
+        vim.bo[buffer].buftype == "",
+        "performance fixture must use a normal source buffer"
+    )
 
     vim.api.nvim_buf_set_lines(
         buffer,
