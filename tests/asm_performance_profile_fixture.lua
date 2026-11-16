@@ -203,11 +203,36 @@ local function run()
         profile.snapshot()
 
     assert(
-        snapshot.refresh_count == 10,
+        snapshot.refresh_count == 9,
         "automated performance workload refresh count changed: "
             .. tostring(
                 snapshot.refresh_count
             )
+    )
+
+    local cursor_refreshes = 0
+    local edit_refreshes = 0
+
+    for _, sample in ipairs(
+        snapshot.samples
+    ) do
+        if sample.event == "CursorMoved" then
+            cursor_refreshes =
+                cursor_refreshes + 1
+        elseif sample.event == "TextChanged" then
+            edit_refreshes =
+                edit_refreshes + 1
+        end
+    end
+
+    assert(
+        cursor_refreshes == 5
+            and edit_refreshes == 4,
+        "automated performance workload event mix changed: "
+            .. "CursorMoved="
+            .. tostring(cursor_refreshes)
+            .. " TextChanged="
+            .. tostring(edit_refreshes)
     )
 
     local required_phases = {
