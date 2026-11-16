@@ -209,6 +209,7 @@ local persistent_register_source_cache = nil
 local register_source_buffer_token_serial = 0
 local register_source_module_token =
     tostring({})
+local issued_register_source_buffer_tokens = {}
 
 
 local function register_effects_are_stable(
@@ -275,6 +276,9 @@ local function get_register_source_buffer_revision(
             1,
             #expected_prefix
         ) ~= expected_prefix
+        or issued_register_source_buffer_tokens[
+            token
+        ] ~= true
     then
         register_source_buffer_token_serial =
             register_source_buffer_token_serial
@@ -285,6 +289,10 @@ local function get_register_source_buffer_revision(
             .. tostring(
                 register_source_buffer_token_serial
             )
+
+        issued_register_source_buffer_tokens[
+            token
+        ] = true
 
         local ok_set =
             pcall(
