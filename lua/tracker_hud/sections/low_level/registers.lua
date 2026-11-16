@@ -21,6 +21,63 @@ local M = section.extend(lookup, {
 })
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "context.registers"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function merge_metadata(base, extra)
     local metadata = {}
 
@@ -326,11 +383,64 @@ function M.collect(context, adapter, opts)
     if not M.is_enabled(opts) then
         return registers
     end
-    -- Dynamic facts go first so they override same-id static architecture rows.
-    collect_engine_register_effects(registers, seen, context, adapter, opts)
-    collect_adapter_static_registers(registers, seen, context, adapter)
 
-    apply_register_presentation(registers, adapter, opts)
+    -- Dynamic facts go first so they override same-id static architecture rows.
+    local phase =
+        profile_begin(
+            opts,
+            "dynamic"
+        )
+
+    collect_engine_register_effects(
+        registers,
+        seen,
+        context,
+        adapter,
+        opts
+    )
+
+    profile_end(
+        opts,
+        "dynamic",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "static"
+        )
+
+    collect_adapter_static_registers(
+        registers,
+        seen,
+        context,
+        adapter
+    )
+
+    profile_end(
+        opts,
+        "static",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "presentation"
+        )
+
+    apply_register_presentation(
+        registers,
+        adapter,
+        opts
+    )
+
+    profile_end(
+        opts,
+        "presentation",
+        phase
+    )
 
     return registers
 end

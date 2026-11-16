@@ -36,6 +36,63 @@ local stack_infer =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "context.registers"
+
+    return prefix
+        .. ".dynamic."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.get_index(adapter)
     return register_effect_index.get(
         adapter,
@@ -565,6 +622,12 @@ function M.collect(
     local effect_index = nil
     local nodes = nil
 
+    local phase =
+        profile_begin(
+            opts,
+            "source_select"
+        )
+
     if prepared_source_is_valid(
         prepared_source,
         adapter,
@@ -592,7 +655,20 @@ function M.collect(
             )
     end
 
-    return register_effect_processing.process({
+    profile_end(
+        opts,
+        "source_select",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "process"
+        )
+
+    local result =
+        register_effect_processing.process({
         nodes = nodes,
         effect_index = effect_index,
 
@@ -649,6 +725,14 @@ function M.collect(
         to_fact_list =
             register_infer.to_fact_list,
     })
+
+    profile_end(
+        opts,
+        "process",
+        phase
+    )
+
+    return result
 end
 
 

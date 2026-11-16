@@ -103,7 +103,19 @@ local function run()
         "context.scope_members",
         "context.scope_members_all",
         "context.registers",
+        "context.registers.dynamic",
+        "context.registers.dynamic.prepare_source",
+        "context.registers.dynamic.source_select",
+        "context.registers.dynamic.process",
+        "context.registers.static",
+        "context.registers.presentation",
         "context.registers_before",
+        "context.registers_before.dynamic",
+        "context.registers_before.dynamic.prepare_source",
+        "context.registers_before.dynamic.source_select",
+        "context.registers_before.dynamic.process",
+        "context.registers_before.static",
+        "context.registers_before.presentation",
         "context.stack",
         "context.boundary",
         "context.instruction_events",
@@ -143,6 +155,12 @@ local function run()
         report:find(
             "context%.registers:"
         )
+            and report:find(
+                "context%.registers%.dynamic%.process:"
+            )
+            and report:find(
+                "context%.registers_before%.dynamic%.process:"
+            )
             and report:find(
                 "context%.stack:"
             )

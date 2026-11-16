@@ -205,6 +205,63 @@ end
 -- Register-effect reduction is owned by register_effect_pipeline.
 
 
+local function register_profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "context.registers"
+
+    return prefix
+        .. ".dynamic."
+        .. suffix
+end
+
+
+local function register_profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        register_profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function register_profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        register_profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function get_prepared_register_source(
     adapter,
     opts
@@ -273,12 +330,24 @@ function M.collect_register_effects(
 )
     opts = opts or {}
 
+    local phase =
+        register_profile_begin(
+            opts,
+            "prepare_source"
+        )
+
     opts.prepared_source =
         opts.prepared_source
         or get_prepared_register_source(
             adapter,
             opts
         )
+
+    register_profile_end(
+        opts,
+        "prepare_source",
+        phase
+    )
 
     return register_effect_pipeline.collect(
         context,

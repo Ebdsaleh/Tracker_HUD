@@ -51,6 +51,35 @@ local function profile_end(
 end
 
 
+local function nested_profile_options(
+    profile_token,
+    prefix
+)
+    if not profile_token then
+        return {}
+    end
+
+    return {
+        profile_prefix = prefix,
+        profile_begin =
+            function(name)
+                return profile_begin(
+                    profile_token,
+                    name
+                )
+            end,
+        profile_end =
+            function(name, started)
+                return profile_end(
+                    profile_token,
+                    name,
+                    started
+                )
+            end,
+    }
+end
+
+
 local function try_parse_construct_with_adapter(bufnr, node)
     if not node then
         return nil
@@ -521,13 +550,20 @@ local function attach_context_sections(
         registers.collect(
             context,
             adapter,
-            {
-                bufnr = bufnr,
-                root_node = root_node,
-                config = config,
-                register_source_cache =
-                    register_source_cache,
-            }
+            vim.tbl_extend(
+                "force",
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                    config = config,
+                    register_source_cache =
+                        register_source_cache,
+                },
+                nested_profile_options(
+                    profile_token,
+                    "context.registers"
+                )
+            )
         )
 
     profile_end(
@@ -557,18 +593,25 @@ local function attach_context_sections(
             registers.collect(
                 context,
                 adapter,
-                {
-                    bufnr = bufnr,
-                    root_node = root_node,
-                    config = config,
-                    register_source_cache =
-                        register_source_cache,
-                    limit_position = {
-                        line =
-                            context.cursor.line,
-                        column = 0,
+                vim.tbl_extend(
+                    "force",
+                    {
+                        bufnr = bufnr,
+                        root_node = root_node,
+                        config = config,
+                        register_source_cache =
+                            register_source_cache,
+                        limit_position = {
+                            line =
+                                context.cursor.line,
+                            column = 0,
+                        },
                     },
-                }
+                    nested_profile_options(
+                        profile_token,
+                        "context.registers_before"
+                    )
+                )
             )
     end
 
