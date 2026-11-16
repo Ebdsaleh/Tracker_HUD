@@ -202,6 +202,95 @@ local function collect_instruction_operands(
 end
 
 
+local register_instruction_parse_nil = {}
+local register_instruction_parse_no_spec = {}
+
+
+local function get_register_instruction_parse_cache(
+    register_source_cache
+)
+    if not core.is_table(
+        register_source_cache
+    ) then
+        return nil
+    end
+
+    if not core.is_table(
+        register_source_cache
+            .instruction_parse_cache
+    )
+    then
+        register_source_cache
+            .instruction_parse_cache = {}
+    end
+
+    return register_source_cache
+        .instruction_parse_cache
+end
+
+
+local function collect_instruction_operands_cached(
+    adapter,
+    node,
+    bufnr,
+    effect_spec,
+    register_source_cache
+)
+    local parse_cache =
+        get_register_instruction_parse_cache(
+            register_source_cache
+        )
+
+    if not parse_cache
+        or node == nil
+    then
+        return collect_instruction_operands(
+            adapter,
+            node,
+            bufnr,
+            effect_spec
+        )
+    end
+
+    local by_spec =
+        parse_cache[node]
+
+    if not core.is_table(by_spec) then
+        by_spec = {}
+        parse_cache[node] =
+            by_spec
+    end
+
+    local spec_key =
+        effect_spec
+        or register_instruction_parse_no_spec
+
+    local cached =
+        by_spec[spec_key]
+
+    if cached ~= nil then
+        return cached
+            ~= register_instruction_parse_nil
+            and cached
+            or nil
+    end
+
+    local parsed =
+        collect_instruction_operands(
+            adapter,
+            node,
+            bufnr,
+            effect_spec
+        )
+
+    by_spec[spec_key] =
+        parsed
+        or register_instruction_parse_nil
+
+    return parsed
+end
+
+
 -- Register-effect reduction is owned by register_effect_pipeline.
 
 
@@ -547,18 +636,20 @@ end
 
 local function register_pipeline_dependencies(
     adapter,
-    bufnr
+    bufnr,
+    register_source_cache
 )
     return {
         parse_instruction = function(
             node,
             representative_effect_spec
         )
-            return collect_instruction_operands(
+            return collect_instruction_operands_cached(
                 adapter,
                 node,
                 bufnr,
-                representative_effect_spec
+                representative_effect_spec,
+                register_source_cache
             )
         end,
     }
@@ -597,7 +688,8 @@ function M.collect_register_effects(
         opts,
         register_pipeline_dependencies(
             adapter,
-            opts.bufnr
+            opts.bufnr,
+            opts.register_source_cache
         )
     )
 end
@@ -706,7 +798,8 @@ local function collect_memory_source_operands_where(
                 replay_opts,
                 register_pipeline_dependencies(
                     adapter,
-                    bufnr
+                    bufnr,
+                    opts.register_source_cache
                 )
             )
 
@@ -758,11 +851,12 @@ local function collect_memory_source_operands_where(
                 node,
                 representative_effect_spec
             )
-                return collect_instruction_operands(
+                return collect_instruction_operands_cached(
                     adapter,
                     node,
                     bufnr,
-                    representative_effect_spec
+                    representative_effect_spec,
+                    opts.register_source_cache
                 )
             end,
 
@@ -916,11 +1010,12 @@ function M.collect_boundary_effects(
                 node,
                 representative_effect_spec
             )
-                return collect_instruction_operands(
+                return collect_instruction_operands_cached(
                     adapter,
                     node,
                     opts.bufnr,
-                    representative_effect_spec
+                    representative_effect_spec,
+                    opts.register_source_cache
                 )
             end,
 
@@ -952,7 +1047,8 @@ function M.collect_boundary_effects(
                             replay_opts,
                             register_pipeline_dependencies(
                                 adapter,
-                                opts.bufnr
+                                opts.bufnr,
+                                opts.register_source_cache
                             )
                         )
                 end,

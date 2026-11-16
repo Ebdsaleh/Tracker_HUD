@@ -22,6 +22,11 @@ local memory_discovery =
         "tracker_hud.low_level.memory_source_discovery"
     )
 
+local instruction_source =
+    require(
+        "tracker_hud.low_level.instruction_source"
+    )
+
 local original_prepare_source =
     register_pipeline.prepare_source
 
@@ -37,11 +42,42 @@ local original_boundary_collect =
 local original_memory_collect =
     memory_discovery.collect
 
+local original_collect_instruction =
+    instruction_source.collect_instruction
+
 local prepare_calls = 0
 local collect_calls = 0
 local replay_calls = 0
+local parse_calls = 0
+
+local parse_node = {}
+local parse_spec = {}
+local parsed_instruction = {
+    mnemonic = "mov",
+    operands = {},
+}
 
 local prepared_sentinel = nil
+
+instruction_source.collect_instruction =
+    function(
+        _adapter,
+        node,
+        _bufnr,
+        effect_spec
+    )
+        assert(
+            node == parse_node
+                and effect_spec
+                    == parse_spec,
+            "unexpected parser-cache test key"
+        )
+
+        parse_calls =
+            parse_calls + 1
+
+        return parsed_instruction
+    end
 
 register_pipeline.prepare_source =
     function(
@@ -66,7 +102,8 @@ register_pipeline.collect =
     function(
         _context,
         _adapter,
-        opts
+        opts,
+        deps
     )
         collect_calls =
             collect_calls + 1
@@ -78,6 +115,14 @@ register_pipeline.collect =
                 and opts.prepared_source.effect_index
                     == prepared_sentinel.effect_index,
             "register collector did not receive shared prepared source"
+        )
+
+        assert(
+            deps.parse_instruction(
+                parse_node,
+                parse_spec
+            ) == parsed_instruction,
+            "register collector parser result changed"
         )
 
         return {}
@@ -93,7 +138,8 @@ register_pipeline.new_replay_session =
     function(
         _context,
         _adapter,
-        opts
+        opts,
+        deps
     )
         replay_calls =
             replay_calls + 1
@@ -107,6 +153,14 @@ register_pipeline.new_replay_session =
             "replay consumer did not receive shared prepared source"
         )
 
+        assert(
+            deps.parse_instruction(
+                parse_node,
+                parse_spec
+            ) == parsed_instruction,
+            "replay parser result changed"
+        )
+
         return replay_sentinel
     end
 
@@ -117,6 +171,14 @@ boundary_pipeline.collect =
         _opts,
         deps
     )
+        assert(
+            deps.parse_instruction(
+                parse_node,
+                parse_spec
+            ) == parsed_instruction,
+            "boundary parser result changed"
+        )
+
         local session =
             deps
                 .create_register_replay_session()
@@ -130,7 +192,22 @@ boundary_pipeline.collect =
     end
 
 memory_discovery.collect =
-    function()
+    function(
+        _bufnr,
+        _root_node,
+        _adapter,
+        _line_predicate,
+        _opts,
+        deps
+    )
+        assert(
+            deps.parse_instruction(
+                parse_node,
+                parse_spec
+            ) == parsed_instruction,
+            "memory discovery parser result changed"
+        )
+
         return {}
     end
 
@@ -219,6 +296,16 @@ local ok, err =
             assert(
                 replay_calls == 2,
                 "boundary/source-memory did not create independent replay sessions"
+            )
+
+            assert(
+                parse_calls == 1,
+                "refresh-local instruction parse cache did not serve all consumers"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "one parsed instruction serves refresh-local consumers"
             )
 
             print(
@@ -406,6 +493,9 @@ boundary_pipeline.collect =
 
 memory_discovery.collect =
     original_memory_collect
+
+instruction_source.collect_instruction =
+    original_collect_instruction
 
 package.loaded[
     "tracker_hud.context_engine"
