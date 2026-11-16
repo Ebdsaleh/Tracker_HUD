@@ -17,14 +17,72 @@ local register_value_policy =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "register_effect_value"
+
+    return prefix
+        .. ".build.resolve_value."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.resolve(
     facts_by_register,
     instruction,
     effect,
     instruction_state,
     adapter,
-    target_register
+    target_register,
+    opts
 )
+    opts = opts or {}
+
     local value = effect.value
     local resolved =
         value ~= nil
@@ -34,6 +92,12 @@ function M.resolve(
         or effect.value_from_stack
             == "top"
     then
+        local phase =
+            profile_begin(
+                opts,
+                "stack"
+            )
+
         local stack_value =
             core.is_table(
                 instruction_state
@@ -46,11 +110,21 @@ function M.resolve(
             stack_value
         )
         then
+            profile_end(
+                opts,
+                "stack",
+                phase
+            )
             return stack_value.value,
                 stack_value.resolved
                     ~= false
         end
 
+        profile_end(
+            opts,
+            "stack",
+            phase
+        )
         return nil, false
     end
 
@@ -58,6 +132,12 @@ function M.resolve(
         effect.value_from_register
     )
     then
+        local phase =
+            profile_begin(
+                opts,
+                "register"
+            )
+
         local source_fact =
             register_state_read
                 .get_fact_for_read(
@@ -72,10 +152,20 @@ function M.resolve(
                 source_fact
             )
         then
+            profile_end(
+                opts,
+                "register",
+                phase
+            )
             return source_fact.value,
                 true
         end
 
+        profile_end(
+            opts,
+            "register",
+            phase
+        )
         return effect
             .value_from_register,
             false
@@ -86,6 +176,12 @@ function M.resolve(
             .value_from_register_operand
     )
     then
+        local phase =
+            profile_begin(
+                opts,
+                "register_operand"
+            )
+
         local source_operand =
             instruction.operands[
                 tonumber(
@@ -112,13 +208,29 @@ function M.resolve(
                     source_fact
                 )
             then
+                profile_end(
+                    opts,
+                    "register_operand",
+                    phase
+                )
                 return source_fact.value,
                     true
             end
 
+            profile_end(
+                opts,
+                "register_operand",
+                phase
+            )
             return source_operand.text,
                 false
         end
+
+        profile_end(
+            opts,
+            "register_operand",
+            phase
+        )
     end
 
     if tonumber(
@@ -126,6 +238,18 @@ function M.resolve(
     )
         or effect.value_delta ~= nil
     then
+        local delta_phase =
+            profile_begin(
+                opts,
+                "delta"
+            )
+
+        local phase =
+            profile_begin(
+                opts,
+                "delta.target_read"
+            )
+
         local target_operand = nil
         local delta_target_register =
             effect.target_register
@@ -156,13 +280,30 @@ function M.resolve(
                     delta_target_register
                 )
 
+        profile_end(
+            opts,
+            "delta.target_read",
+            phase
+        )
+
         if not register_state_read
             .fact_is_resolved(
                 target_fact
             )
         then
+            profile_end(
+                opts,
+                "delta",
+                delta_phase
+            )
             return nil, false
         end
+
+        phase =
+            profile_begin(
+                opts,
+                "delta.parse_current"
+            )
 
         local current_value =
             register_value_policy
@@ -170,7 +311,18 @@ function M.resolve(
                     target_fact.value
                 )
 
+        profile_end(
+            opts,
+            "delta.parse_current",
+            phase
+        )
+
         if not current_value then
+            profile_end(
+                opts,
+                "delta",
+                delta_phase
+            )
             return nil, false
         end
 
@@ -180,6 +332,12 @@ function M.resolve(
         if effect.value_delta
             ~= nil
         then
+            phase =
+                profile_begin(
+                    opts,
+                    "delta.fixed"
+                )
+
             local fixed_delta =
                 register_value_policy
                     .parse_numeric_value(
@@ -187,6 +345,16 @@ function M.resolve(
                     )
 
             if not fixed_delta then
+                profile_end(
+                    opts,
+                    "delta.fixed",
+                    phase
+                )
+                profile_end(
+                    opts,
+                    "delta",
+                    delta_phase
+                )
                 return nil, false
             end
 
@@ -198,6 +366,12 @@ function M.resolve(
 
             has_delta =
                 total_delta ~= nil
+
+            profile_end(
+                opts,
+                "delta.fixed",
+                phase
+            )
         end
 
         local source_integer_metadata =
@@ -207,6 +381,12 @@ function M.resolve(
             effect.value_delta_operand
         )
         then
+            phase =
+                profile_begin(
+                    opts,
+                    "delta.operand"
+                )
+
             local delta_operand =
                 instruction.operands[
                     tonumber(
@@ -237,6 +417,16 @@ function M.resolve(
                 if not operand_resolved
                     or not operand_delta
                 then
+                    profile_end(
+                        opts,
+                        "delta.operand",
+                        phase
+                    )
+                    profile_end(
+                        opts,
+                        "delta",
+                        delta_phase
+                    )
                     return nil,
                         false,
                         source_integer_metadata
@@ -250,18 +440,51 @@ function M.resolve(
 
                 has_delta =
                     total_delta ~= nil
+
+                profile_end(
+                    opts,
+                    "delta.operand",
+                    phase
+                )
             elseif effect.value_delta
                 == nil
             then
+                profile_end(
+                    opts,
+                    "delta.operand",
+                    phase
+                )
+                profile_end(
+                    opts,
+                    "delta",
+                    delta_phase
+                )
                 return nil, false
+            else
+                profile_end(
+                    opts,
+                    "delta.operand",
+                    phase
+                )
             end
         end
 
         if not has_delta
             or not total_delta
         then
+            profile_end(
+                opts,
+                "delta",
+                delta_phase
+            )
             return nil, false
         end
+
+        phase =
+            profile_begin(
+                opts,
+                "delta.arithmetic"
+            )
 
         local sign =
             tonumber(
@@ -275,6 +498,16 @@ function M.resolve(
                     total_delta
                 )
         elseif sign ~= 1 then
+            profile_end(
+                opts,
+                "delta.arithmetic",
+                phase
+            )
+            profile_end(
+                opts,
+                "delta",
+                delta_phase
+            )
             return nil, false
         end
 
@@ -283,6 +516,17 @@ function M.resolve(
                 current_value,
                 total_delta
             )
+
+        profile_end(
+            opts,
+            "delta.arithmetic",
+            phase
+        )
+        profile_end(
+            opts,
+            "delta",
+            delta_phase
+        )
 
         return result,
             result ~= nil,
@@ -294,6 +538,12 @@ function M.resolve(
             effect.value_operand
         )
     then
+        local value_phase =
+            profile_begin(
+                opts,
+                "value_operand"
+            )
+
         local value_operand =
             instruction.operands[
                 tonumber(
@@ -308,6 +558,12 @@ function M.resolve(
             if value_operand.kind
                 == "register"
             then
+                local phase =
+                    profile_begin(
+                        opts,
+                        "value_operand.register"
+                    )
+
                 local source_fact =
                     register_state_read
                         .get_fact_for_read(
@@ -326,9 +582,21 @@ function M.resolve(
                     value =
                         source_fact.value
                 end
+
+                profile_end(
+                    opts,
+                    "value_operand.register",
+                    phase
+                )
             elseif value_operand.kind
                 == "integer"
             then
+                local phase =
+                    profile_begin(
+                        opts,
+                        "value_operand.integer"
+                    )
+
                 local source_integer_metadata
 
                 value,
@@ -343,6 +611,17 @@ function M.resolve(
                                 .value_operand_interpretation
                         )
 
+                profile_end(
+                    opts,
+                    "value_operand.integer",
+                    phase
+                )
+                profile_end(
+                    opts,
+                    "value_operand",
+                    value_phase
+                )
+
                 return value,
                     resolved,
                     source_integer_metadata
@@ -351,7 +630,25 @@ function M.resolve(
                     value ~= nil
             end
         end
+
+        profile_end(
+            opts,
+            "value_operand",
+            value_phase
+        )
     end
+
+    local phase =
+        profile_begin(
+            opts,
+            "literal_or_fallback"
+        )
+
+    profile_end(
+        opts,
+        "literal_or_fallback",
+        phase
+    )
 
     return value, resolved
 end

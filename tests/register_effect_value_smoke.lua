@@ -310,4 +310,78 @@ assert(
 )
 print("PASS register effect value: invalid arithmetic fails closed")
 
+local profile_counts = {}
+
+local profile_opts = {
+    profile_prefix = "test.resolve",
+    profile_begin =
+        function(name)
+            profile_counts[name] =
+                (profile_counts[name] or 0)
+                + 1
+            return 0
+        end,
+    profile_end =
+        function()
+        end,
+}
+
+value, resolved =
+    resolver.resolve(
+        {
+            rbx = {
+                name = "rbx",
+                value = "40",
+                resolved = true,
+            },
+        },
+        {
+            operands = {
+                {
+                    text = "rbx",
+                    kind = "register",
+                },
+                {
+                    text = "2",
+                    kind = "integer",
+                },
+            },
+        },
+        {
+            target_operand = 1,
+            value_delta_operand = 2,
+            value_delta_operand_interpretation = {
+                kind = "signed_bits",
+                bits_from = "target",
+                max_bits = 32,
+            },
+        },
+        nil,
+        adapter,
+        "rbx",
+        profile_opts
+    )
+
+assert(
+    value == "42"
+        and resolved == true
+        and profile_counts[
+            "test.resolve.build.resolve_value.delta"
+        ] == 1
+        and profile_counts[
+            "test.resolve.build.resolve_value.delta.target_read"
+        ] == 1
+        and profile_counts[
+            "test.resolve.build.resolve_value.delta.parse_current"
+        ] == 1
+        and profile_counts[
+            "test.resolve.build.resolve_value.delta.operand"
+        ] == 1
+        and profile_counts[
+            "test.resolve.build.resolve_value.delta.arithmetic"
+        ] == 1,
+    "delta value-resolution profiling phases changed"
+)
+print("PASS register effect value: delta profiling phases preserved")
+
 print("PASS Tracker_HUD register-effect value smoke")

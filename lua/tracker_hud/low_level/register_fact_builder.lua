@@ -168,7 +168,8 @@ function M.build(
             effect,
             instruction_state,
             adapter,
-            target_register
+            target_register,
+            opts
         )
 
     profile_end(
