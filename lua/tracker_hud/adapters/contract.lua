@@ -1500,6 +1500,75 @@ local function validate_instruction_rule_set(
 end
 
 
+local reusable_validation_components = {
+    register_effects = true,
+}
+
+
+local function validate_stable_validation_components(components)
+    if components == nil then
+        return true, nil
+    end
+
+    if not core.is_table(components) then
+        return false,
+            "adapter.validation_stable_components must be a table when provided"
+    end
+
+    for component, enabled in pairs(components) do
+        if not reusable_validation_components[component] then
+            return false,
+                "adapter.validation_stable_components contains unsupported component: "
+                .. tostring(component)
+        end
+
+        if enabled ~= true then
+            return false,
+                "adapter.validation_stable_components."
+                .. tostring(component)
+                .. " must be true when declared"
+        end
+    end
+
+    return true, nil
+end
+
+
+local function validation_component_is_reusable(
+    opts,
+    component,
+    value
+)
+    if type(opts) ~= "table"
+        or type(opts.validated_components) ~= "table"
+    then
+        return false
+    end
+
+    return value ~= nil
+        and opts.validated_components[component]
+            == value
+end
+
+
+local function profile_reused_component(
+    opts,
+    name
+)
+    local started =
+        profile_begin(
+            opts,
+            name
+        )
+
+    profile_end(
+        opts,
+        name,
+        started
+    )
+end
+
+
 local function validate_capabilities(capabilities)
     if capabilities == nil then
         return true, nil
@@ -1787,6 +1856,18 @@ function M.validate_adapter(
     ok, err =
         validate_phase(
             opts,
+            "context.configure.validate.stable_components",
+            validate_stable_validation_components,
+            adapter.validation_stable_components
+        )
+
+    if not ok then
+        return false, err
+    end
+
+    ok, err =
+        validate_phase(
+            opts,
             "context.configure.validate.construct_specs",
             validate_construct_specs,
             adapter.construct_specs
@@ -1880,18 +1961,30 @@ function M.validate_adapter(
         return false, err
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "register_effects",
+        adapter.register_effects
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.register_effects",
-            validate_instruction_rule_set,
-            adapter.register_effects,
-            "register_effects",
-            { require_effect = true }
+            "context.configure.validate.register_effects_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.register_effects",
+                validate_instruction_rule_set,
+                adapter.register_effects,
+                "register_effects",
+                { require_effect = true }
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     ok, err =

@@ -165,7 +165,7 @@ local function run()
         "context.configure.validate.presentation",
         "context.configure.validate.instruction_parser",
         "context.configure.validate.memory_accesses",
-        "context.configure.validate.register_effects",
+        "context.configure.validate.register_effects_reuse",
         "context.configure.validate.instruction_events",
         "context.configure.validate.stack_effects",
         "context.configure.validate.boundary_effects",
@@ -206,6 +206,18 @@ local function run()
     print(
         "PASS ASM configure profile: "
             .. "lookup/changedtick/cache check recorded on every refresh"
+    )
+
+    assert(
+        snapshot.phases[
+            "context.configure.validate.register_effects"
+        ] == nil,
+        "stable ASM register-effect table was redundantly revalidated"
+    )
+
+    print(
+        "PASS ASM configure profile: "
+            .. "stable register-effect validation is reused by identity"
     )
 
     print(

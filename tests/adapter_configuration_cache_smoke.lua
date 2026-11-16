@@ -291,6 +291,93 @@ print(
         .. "failures never become reusable successes"
 )
 
+registry.clear()
+
+adapter.validation_stable_components = {
+    register_effects = true,
+}
+adapter.register_effects = {}
+
+registered,
+    register_error =
+    registry.register(
+        adapter
+    )
+
+assert(
+    registered,
+    tostring(register_error)
+)
+
+local profile_counts = {}
+
+local profile_opts = {
+    profile_begin =
+        function(name)
+            profile_counts[name] =
+                (profile_counts[name] or 0)
+                + 1
+            return 0
+        end,
+    profile_end =
+        function()
+        end,
+}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "lua",
+        buffer_a,
+        config_a,
+        profile_opts
+    )
+
+assert(
+    ok
+        and profile_counts[
+            "context.configure.validate.register_effects_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.register_effects"
+        ] == nil,
+    "stable component identity did not reuse prior successful validation"
+)
+
+print(
+    "PASS adapter validation reuse: "
+        .. "declared stable identity reuses registration proof"
+)
+
+adapter.register_effects = {
+    mov = {},
+}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "lua",
+        buffer_a,
+        config_b,
+        profile_opts
+    )
+
+assert(
+    ok == false
+        and tostring(err):find(
+            "register_effects.mov",
+            1,
+            true
+        ) ~= nil
+        and profile_counts[
+            "context.configure.validate.register_effects"
+        ] == 1,
+    "replacement stable component did not force full validation"
+)
+
+print(
+    "PASS adapter validation reuse: "
+        .. "replacement identity forces contract validation"
+)
+
 print(
     "PASS Tracker_HUD adapter-configuration cache smoke"
 )

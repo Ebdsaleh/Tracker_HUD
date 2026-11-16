@@ -24,10 +24,62 @@ M.current_contract_version = adapter_contract.current_version
 
 local adapters_by_filetype = {}
 local configured_adapter_cache = nil
+local validated_components_by_adapter =
+    setmetatable(
+        {},
+        { __mode = "k" }
+    )
 
 
 local function invalidate_configuration_cache()
     configured_adapter_cache = nil
+end
+
+
+local function remember_validated_components(
+    adapter
+)
+    local declared =
+        type(adapter) == "table"
+        and adapter.validation_stable_components
+        or nil
+
+    if type(declared) ~= "table" then
+        validated_components_by_adapter[adapter] =
+            nil
+        return
+    end
+
+    local remembered = {}
+
+    for component, enabled in pairs(declared) do
+        if enabled == true then
+            remembered[component] =
+                adapter[component]
+        end
+    end
+
+    validated_components_by_adapter[adapter] =
+        remembered
+end
+
+
+local function validation_options(
+    adapter,
+    opts
+)
+    local result = {}
+
+    if type(opts) == "table" then
+        for key, value in pairs(opts) do
+            result[key] = value
+        end
+    end
+
+    result.validated_components =
+        validated_components_by_adapter[adapter]
+
+    return result
 end
 
 
@@ -168,6 +220,10 @@ function M.register(adapter)
         return false, err
     end
 
+    remember_validated_components(
+        adapter
+    )
+
     for _, filetype in ipairs(
         normalize_filetypes(adapter.filetypes)
     ) do
@@ -300,7 +356,10 @@ function M.configure_adapter_for_buffer(
     local valid, validation_err =
         M.validate_adapter(
             adapter,
-            opts
+            validation_options(
+                adapter,
+                opts
+            )
         )
 
     profile_end(
@@ -314,6 +373,10 @@ function M.configure_adapter_for_buffer(
             "configured adapter is invalid: "
             .. tostring(validation_err)
     end
+
+    remember_validated_components(
+        adapter
+    )
 
     phase =
         profile_begin(
@@ -419,6 +482,11 @@ end
 
 function M.clear()
     adapters_by_filetype = {}
+    validated_components_by_adapter =
+        setmetatable(
+            {},
+            { __mode = "k" }
+        )
     invalidate_configuration_cache()
 end
 
