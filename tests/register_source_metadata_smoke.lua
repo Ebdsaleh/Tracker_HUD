@@ -186,4 +186,54 @@ assert(next(metadata.build(
     "invalid inputs must fail closed")
 print("PASS register source metadata: invalid inputs fail closed")
 
+local profile_counts = {}
+
+local profiled =
+    metadata.build(
+        effect_spec,
+        instruction,
+        {
+            value_operand = 2,
+        },
+        {},
+        {
+            profile_prefix =
+                "test.source_metadata",
+            profile_begin =
+                function(name)
+                    profile_counts[name] =
+                        (profile_counts[name] or 0)
+                        + 1
+                    return 0
+                end,
+            profile_end =
+                function()
+                end,
+        }
+    )
+
+assert(
+    profiled.source_operand == "[rbp + 8]"
+        and profile_counts[
+            "test.source_metadata.source_select"
+        ] == 1
+        and profile_counts[
+            "test.source_metadata.operand"
+        ] == 1
+        and profile_counts[
+            "test.source_metadata.operand.spec"
+        ] == 1
+        and profile_counts[
+            "test.source_metadata.operand.labels"
+        ] == 1
+        and profile_counts[
+            "test.source_metadata.operand.fields"
+        ] == 1
+        and profile_counts[
+            "test.source_metadata.operand.memory"
+        ] == 1,
+    "register source metadata profiling phases changed"
+)
+print("PASS register source metadata: profiling phases preserved")
+
 print("PASS Tracker_HUD register-source metadata smoke")

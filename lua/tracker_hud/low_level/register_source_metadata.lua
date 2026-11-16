@@ -13,6 +13,61 @@ local operand_metadata =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "register_source_metadata"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.get_effect_operand_spec(
     effect_spec,
     operand_index
@@ -60,8 +115,11 @@ function M.build(
     effect_spec,
     instruction,
     effect,
-    instruction_state
+    instruction_state,
+    opts
 )
+    opts = opts or {}
+
     if not core.is_table(instruction)
         or not core.is_table(effect)
     then
@@ -73,6 +131,12 @@ function M.build(
     if effect.value_from_stack_top == true
         or effect.value_from_stack == "top"
     then
+        local phase =
+            profile_begin(
+                opts,
+                "stack"
+            )
+
         local stack_value =
             core.is_table(instruction_state)
             and instruction_state.stack_pop
@@ -118,8 +182,20 @@ function M.build(
                 stack_value.resolved ~= false
         end
 
+        profile_end(
+            opts,
+            "stack",
+            phase
+        )
+
         return metadata
     end
+
+    local phase =
+        profile_begin(
+            opts,
+            "source_select"
+        )
 
     local source_index =
         M.get_source_operand_index(effect)
@@ -132,17 +208,47 @@ function M.build(
         ]
         or nil
 
+    profile_end(
+        opts,
+        "source_select",
+        phase
+    )
+
     if core.is_table(source_operand)
         and core.is_non_empty_string(
             source_operand.text
         )
     then
+        local operand_phase =
+            profile_begin(
+                opts,
+                "operand"
+            )
+
+        phase =
+            profile_begin(
+                opts,
+                "operand.spec"
+            )
+
         local operand_spec =
             M.get_effect_operand_spec(
                 effect_spec,
                 source_index
             )
             or {}
+
+        profile_end(
+            opts,
+            "operand.spec",
+            phase
+        )
+
+        phase =
+            profile_begin(
+                opts,
+                "operand.labels"
+            )
 
         local kind_label =
             operand_metadata.kind_label(
@@ -160,6 +266,18 @@ function M.build(
                 .value_source_label(
                     source_operand
                 )
+
+        profile_end(
+            opts,
+            "operand.labels",
+            phase
+        )
+
+        phase =
+            profile_begin(
+                opts,
+                "operand.fields"
+            )
 
         metadata.source_operand_index =
             source_index
@@ -195,11 +313,34 @@ function M.build(
         metadata.source_operand_end_column =
             source_operand.source_end_column
 
+        profile_end(
+            opts,
+            "operand.fields",
+            phase
+        )
+
+        phase =
+            profile_begin(
+                opts,
+                "operand.memory"
+            )
+
         operand_metadata
             .append_memory_operand(
                 metadata,
                 source_operand
             )
+
+        profile_end(
+            opts,
+            "operand.memory",
+            phase
+        )
+        profile_end(
+            opts,
+            "operand",
+            operand_phase
+        )
 
         return metadata
     end
@@ -225,6 +366,12 @@ function M.build(
     if core.is_non_empty_string(
         effect.value_from_register
     ) then
+        phase =
+            profile_begin(
+                opts,
+                "implicit_register"
+            )
+
         metadata.source_operand_kind =
             "register"
         metadata.source_kind =
@@ -244,6 +391,12 @@ function M.build(
             "register"
         metadata.value_source_text =
             effect.value_from_register
+
+        profile_end(
+            opts,
+            "implicit_register",
+            phase
+        )
     end
 
     return metadata

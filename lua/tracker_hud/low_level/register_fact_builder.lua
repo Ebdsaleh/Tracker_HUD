@@ -410,7 +410,18 @@ function M.build(
             effect_spec,
             instruction,
             effect,
-            instruction_state
+            instruction_state,
+            {
+                profile_prefix =
+                    profile_name(
+                        opts,
+                        "metadata.source_build"
+                    ),
+                profile_begin =
+                    opts.profile_begin,
+                profile_end =
+                    opts.profile_end,
+            }
         )
 
     profile_end(
