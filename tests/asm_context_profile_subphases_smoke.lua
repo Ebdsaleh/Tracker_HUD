@@ -155,6 +155,16 @@ local function run()
         "context.registers_before.static",
         "context.registers_before.presentation",
         "context.stack",
+        "context.stack.dynamic",
+        "context.stack.dynamic.index",
+        "context.stack.dynamic.collect",
+        "context.stack.dynamic.nodes",
+        "context.stack.dynamic.parse",
+        "context.stack.dynamic.prepare_state",
+        "context.stack.dynamic.apply_stack",
+        "context.stack.dynamic.apply_register",
+        "context.stack.static",
+        "context.stack.sort",
         "context.boundary",
         "context.instruction_events",
         "context.source_memory",
@@ -248,6 +258,12 @@ local function run()
             )
             and report:find(
                 "context%.stack:"
+            )
+            and report:find(
+                "context%.stack%.dynamic%.nodes:"
+            )
+            and report:find(
+                "context%.stack%.dynamic%.apply_register:"
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate:"

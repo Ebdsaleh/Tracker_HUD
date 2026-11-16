@@ -20,6 +20,48 @@ local M = section.extend(lookup, {
 })
 
 
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        (opts.profile_prefix
+            or "context.stack")
+            .. "."
+            .. suffix
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        (opts.profile_prefix
+            or "context.stack")
+            .. "."
+            .. suffix,
+        started
+    )
+end
+
+
 local function collect_engine_stack_effects(entries, seen, context, adapter, opts)
     if not core.is_table(adapter) then
         return
@@ -109,8 +151,50 @@ function M.collect(context, adapter, opts)
 
     -- Dynamic facts go first so source-derived entries are shown alongside
     -- static architecture entries.
-    collect_engine_stack_effects(entries, seen, context, adapter, opts)
-    collect_adapter_stack_entries(entries, seen, context, adapter)
+    local phase =
+        profile_begin(
+            opts,
+            "dynamic"
+        )
+
+    collect_engine_stack_effects(
+        entries,
+        seen,
+        context,
+        adapter,
+        opts
+    )
+
+    profile_end(
+        opts,
+        "dynamic",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "static"
+        )
+
+    collect_adapter_stack_entries(
+        entries,
+        seen,
+        context,
+        adapter
+    )
+
+    profile_end(
+        opts,
+        "static",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "sort"
+        )
 
     table.sort(entries, function(left, right)
         local left_line = left.source_line
@@ -134,6 +218,12 @@ function M.collect(context, adapter, opts)
 
         return tostring(left.label or left.name or "") < tostring(right.label or right.name or "")
     end)
+
+    profile_end(
+        opts,
+        "sort",
+        phase
+    )
 
     return entries
 end

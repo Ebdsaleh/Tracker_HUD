@@ -631,10 +631,17 @@ local function attach_context_sections(
         stack.collect(
             context,
             adapter,
-            {
-                bufnr = bufnr,
-                root_node = root_node,
-            }
+            vim.tbl_extend(
+                "force",
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                },
+                nested_profile_options(
+                    profile_token,
+                    "context.stack"
+                )
+            )
         )
 
     profile_end(

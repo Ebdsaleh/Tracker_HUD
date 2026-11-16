@@ -31,6 +31,48 @@ local stack_infer =
 local M = {}
 
 
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        (opts.profile_prefix
+            or "context.stack")
+            .. ".dynamic."
+            .. suffix
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        (opts.profile_prefix
+            or "context.stack")
+            .. ".dynamic."
+            .. suffix,
+        started
+    )
+end
+
+
 local function get_stack_index(adapter)
     return stack_effect_index.get(
         adapter,
@@ -63,32 +105,86 @@ function M.collect(
     local carried_family_state = {}
     local carried_latest_state_facts = {}
 
-    return stack_effect_collection.collect({
+    local phase =
+        profile_begin(
+            opts,
+            "index"
+        )
+
+    local stack_index =
+        get_stack_index(adapter)
+    local register_index =
+        register_effect_pipeline
+            .get_index(adapter)
+
+    profile_end(
+        opts,
+        "index",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "collect"
+        )
+
+    local result =
+        stack_effect_collection.collect({
         context = context,
         stack_effect_index =
-            get_stack_index(adapter),
+            stack_index,
         register_effect_index =
-            register_effect_pipeline
-                .get_index(adapter),
+            register_index,
 
         collect_nodes = function(
             node_type
         )
-            return instruction_source
-                .collect_nodes_by_type(
-                    opts.root_node,
-                    node_type
+            local started =
+                profile_begin(
+                    opts,
+                    "nodes"
                 )
+
+            local nodes =
+                instruction_source
+                    .collect_nodes_by_type(
+                        opts.root_node,
+                        node_type
+                    )
+
+            profile_end(
+                opts,
+                "nodes",
+                started
+            )
+
+            return nodes
         end,
 
         parse_instruction = function(
             node,
             representative_effect_spec
         )
-            return deps.parse_instruction(
-                node,
-                representative_effect_spec
+            local started =
+                profile_begin(
+                    opts,
+                    "parse"
+                )
+
+            local instruction =
+                deps.parse_instruction(
+                    node,
+                    representative_effect_spec
+                )
+
+            profile_end(
+                opts,
+                "parse",
+                started
             )
+
+            return instruction
         end,
 
         normalize_mnemonic =
@@ -103,7 +199,14 @@ function M.collect(
             instruction,
             stack_effect_specs
         )
-            return stack_infer
+            local started =
+                profile_begin(
+                    opts,
+                    "prepare_state"
+                )
+
+            local state =
+                stack_infer
                 .prepare_instruction_state(
                     low_level_state,
                     instruction,
@@ -132,6 +235,14 @@ function M.collect(
                             end,
                     }
                 )
+
+            profile_end(
+                opts,
+                "prepare_state",
+                started
+            )
+
+            return state
         end,
 
         apply_stack_effect = function(
@@ -140,6 +251,12 @@ function M.collect(
             effect_spec,
             instruction_state
         )
+            local started =
+                profile_begin(
+                    opts,
+                    "apply_stack"
+                )
+
             stack_effect_apply.apply(
                 facts,
                 adapter,
@@ -154,6 +271,12 @@ function M.collect(
                             .normalize_mnemonic,
                 }
             )
+
+            profile_end(
+                opts,
+                "apply_stack",
+                started
+            )
         end,
 
         apply_register_effect = function(
@@ -162,6 +285,12 @@ function M.collect(
             effect_spec,
             instruction_state
         )
+            local started =
+                profile_begin(
+                    opts,
+                    "apply_register"
+                )
+
             register_effect_pipeline
                 .apply_effect(
                     facts_by_register,
@@ -172,8 +301,22 @@ function M.collect(
                     effect_spec,
                     instruction_state
                 )
+
+            profile_end(
+                opts,
+                "apply_register",
+                started
+            )
         end,
     })
+
+    profile_end(
+        opts,
+        "collect",
+        phase
+    )
+
+    return result
 end
 
 
