@@ -709,13 +709,20 @@ local function attach_context_sections(
                     adapter,
                     context.cursor
                         and context.cursor.line,
-                    {
-                        machine_address_providers =
-                            config
-                                .machine_address_providers,
-                        register_source_cache =
-                            register_source_cache,
-                    }
+                    vim.tbl_extend(
+                        "force",
+                        {
+                            machine_address_providers =
+                                config
+                                    .machine_address_providers,
+                            register_source_cache =
+                                register_source_cache,
+                        },
+                        nested_profile_options(
+                            profile_token,
+                            "context.source_memory"
+                        )
+                    )
                 )
     end
 

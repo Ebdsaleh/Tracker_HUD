@@ -158,6 +158,18 @@ local function run()
         "context.boundary",
         "context.instruction_events",
         "context.source_memory",
+        "context.source_memory.effect_index",
+        "context.source_memory.source_members",
+        "context.source_memory.nodes",
+        "context.source_memory.collect",
+        "context.source_memory.collect.filter",
+        "context.source_memory.collect.parse",
+        "context.source_memory.collect.match",
+        "context.source_memory.collect.evidence",
+        "context.source_memory.collect.evaluate",
+        "context.source_memory.collect.role_access",
+        "context.source_memory.collect.fact",
+        "context.source_memory.collect.sort",
         "context.events",
         "context.heap",
         "context.warnings",
@@ -225,6 +237,12 @@ local function run()
             )
             and report:find(
                 "context%.stack:"
+            )
+            and report:find(
+                "context%.source_memory%.collect%.evaluate:"
+            )
+            and report:find(
+                "context%.source_memory%.source_members:"
             )
             and report:find(
                 "top=%["

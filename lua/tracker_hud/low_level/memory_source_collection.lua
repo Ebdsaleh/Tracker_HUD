@@ -16,6 +16,61 @@ local memory_source_fact =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "memory_source_collection"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function node_key(node)
     if not node then
         return nil
@@ -80,27 +135,75 @@ function M.collect(opts)
     local seen_nodes = {}
 
     for _, node in ipairs(opts.nodes or {}) do
-        local key, source_line = node_key(node)
+        local phase =
+            profile_begin(
+                opts,
+                "filter"
+            )
 
-        if key
-            and opts.line_predicate(source_line)
+        local key, source_line =
+            node_key(node)
+
+        local eligible =
+            key
+            and opts.line_predicate(
+                source_line
+            )
             and not seen_nodes[key]
+
+        profile_end(
+            opts,
+            "filter",
+            phase
+        )
+
+        if eligible
         then
             seen_nodes[key] = true
+
+            phase =
+                profile_begin(
+                    opts,
+                    "parse"
+                )
 
             local instruction =
                 opts.parse_instruction(node)
 
+            profile_end(
+                opts,
+                "parse",
+                phase
+            )
+
             if instruction then
+                phase =
+                    profile_begin(
+                        opts,
+                        "match"
+                    )
+
                 local matching_specs =
                     opts.match_effects(
                         node,
                         instruction
                     ) or {}
 
+                profile_end(
+                    opts,
+                    "match",
+                    phase
+                )
+
                 for operand_index, operand in ipairs(
                     instruction.operands or {}
                 ) do
+                    phase =
+                        profile_begin(
+                            opts,
+                            "evidence"
+                        )
+
                     local symbol_identity =
                         memory_source_evidence.resolve_symbol_identity(
                             opts.source_members,
@@ -126,6 +229,12 @@ function M.collect(opts)
                             instruction_relative_policy
                         )
 
+                    profile_end(
+                        opts,
+                        "evidence",
+                        phase
+                    )
+
                     local evaluation
 
                     if operand.kind == "memory"
@@ -134,6 +243,12 @@ function M.collect(opts)
                             operand.memory.normalized
                         )
                     then
+                        phase =
+                            profile_begin(
+                                opts,
+                                "evaluate"
+                            )
+
                         evaluation =
                             opts.evaluate_address(
                                 instruction,
@@ -141,6 +256,12 @@ function M.collect(opts)
                                 machine_addresses,
                                 instruction_relative_policy
                             )
+
+                        profile_end(
+                            opts,
+                            "evaluate",
+                            phase
+                        )
                     end
 
                     local memory_operand = nil
@@ -151,6 +272,12 @@ function M.collect(opts)
                             operand.memory.normalized
                         )
                     then
+                        phase =
+                            profile_begin(
+                                opts,
+                                "role_access"
+                            )
+
                         local role =
                             opts.get_operand_role(
                                 matching_specs,
@@ -163,6 +290,18 @@ function M.collect(opts)
                                 instruction,
                                 operand_index,
                                 operand
+                            )
+
+                        profile_end(
+                            opts,
+                            "role_access",
+                            phase
+                        )
+
+                        phase =
+                            profile_begin(
+                                opts,
+                                "fact"
                             )
 
                         memory_operand =
@@ -180,6 +319,12 @@ function M.collect(opts)
                                 machine_addresses =
                                     machine_addresses,
                             })
+
+                        profile_end(
+                            opts,
+                            "fact",
+                            phase
+                        )
                     end
 
                     if memory_operand then
@@ -193,7 +338,19 @@ function M.collect(opts)
         end
     end
 
+    local phase =
+        profile_begin(
+            opts,
+            "sort"
+        )
+
     sort_facts(result)
+
+    profile_end(
+        opts,
+        "sort",
+        phase
+    )
 
     return result
 end

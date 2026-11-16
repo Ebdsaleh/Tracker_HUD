@@ -27,6 +27,61 @@ local scope_members =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "context.source_memory"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function instruction_node_type(
     adapter
 )
@@ -109,6 +164,11 @@ function M.collect(
     end
 
     local effect_index = nil
+    local phase =
+        profile_begin(
+            opts,
+            "effect_index"
+        )
 
     if core.is_table(
         adapter.register_effects
@@ -126,6 +186,18 @@ function M.collect(
             )
     end
 
+    profile_end(
+        opts,
+        "effect_index",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "source_members"
+        )
+
     local source_members =
         scope_members.collect(
             bufnr,
@@ -133,15 +205,42 @@ function M.collect(
             adapter
         )
 
-    return memory_source_collection.collect({
-        nodes =
-            instruction_source
-                .collect_nodes_by_type(
-                    root_node,
-                    instruction_node_type(
-                        adapter
-                    )
-                ),
+    profile_end(
+        opts,
+        "source_members",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "nodes"
+        )
+
+    local nodes =
+        instruction_source
+            .collect_nodes_by_type(
+                root_node,
+                instruction_node_type(
+                    adapter
+                )
+            )
+
+    profile_end(
+        opts,
+        "nodes",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "collect"
+        )
+
+    local result =
+        memory_source_collection.collect({
+        nodes = nodes,
         adapter = adapter,
         source_members = source_members,
         line_predicate = line_predicate,
@@ -205,7 +304,25 @@ function M.collect(
                 operand
             )
         end,
+
+        profile_prefix =
+            profile_name(
+                opts,
+                "collect"
+            ),
+        profile_begin =
+            opts.profile_begin,
+        profile_end =
+            opts.profile_end,
     })
+
+    profile_end(
+        opts,
+        "collect",
+        phase
+    )
+
+    return result
 end
 
 
