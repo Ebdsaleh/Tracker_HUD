@@ -1114,18 +1114,6 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 end
 
 
-function M.filter_collected(
-    members,
-    opts
-)
-    return scope_member_model
-        .filter_collected(
-            members,
-            opts
-        )
-end
-
-
 function M.collect(bufnr, root_node, adapter, opts)
     local members = {}
     local seen = {}

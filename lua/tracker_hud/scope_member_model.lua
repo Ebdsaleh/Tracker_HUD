@@ -52,69 +52,6 @@ function M.build_label(member)
 end
 
 
-function M.line_matches_options(
-    line,
-    opts
-)
-    opts = opts or {}
-
-    if opts.start_line
-        and line
-        and line < opts.start_line
-    then
-        return false
-    end
-
-    if opts.end_line
-        and line
-        and line > opts.end_line
-    then
-        return false
-    end
-
-    if opts.cursor_line
-        and line
-        and line > opts.cursor_line
-    then
-        return false
-    end
-
-    return true
-end
-
-
-function M.filter_collected(
-    members,
-    opts
-)
-    opts = opts or {}
-
-    -- scope_depth is applied selectively by the syntax-specific collectors.
-    -- A post-filter cannot reproduce that distinction for structural fields,
-    -- so callers must fall back to a direct collection when depth is explicit.
-    if opts.scope_depth ~= nil then
-        return nil
-    end
-
-    local result = {}
-
-    for _, member in ipairs(
-        members or {}
-    ) do
-        if M.line_matches_options(
-            M.get_line(member),
-            opts
-        )
-        then
-            result[#result + 1] =
-                member
-        end
-    end
-
-    return result
-end
-
-
 function M.add(members, seen, name, kind, source_range, state, metadata)
     if not core.is_non_empty_string(name) then
         return
@@ -141,11 +78,15 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         line = source_range
     end
 
-    if not M.line_matches_options(
-        line,
-        opts
-    )
-    then
+    if opts.start_line and line and line < opts.start_line then
+        return
+    end
+
+    if opts.end_line and line and line > opts.end_line then
+        return
+    end
+
+    if opts.cursor_line and line and line > opts.cursor_line then
         return
     end
 
