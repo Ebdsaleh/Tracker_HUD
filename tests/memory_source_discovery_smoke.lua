@@ -285,4 +285,112 @@ assert(
 )
 print("PASS memory source discovery: invalid inputs fail closed")
 
+local scope_module =
+    require("tracker_hud.scope_members")
+local original_scope_collect =
+    scope_module.collect
+local scope_collect_calls = 0
+
+scope_module.collect =
+    function(...)
+        scope_collect_calls =
+            scope_collect_calls + 1
+        return original_scope_collect(...)
+    end
+
+local supplied_members = {
+    {
+        id = "supplied-member",
+        kind = "label",
+        name = "known_label",
+        line = 1,
+    },
+}
+
+local supplied_facts =
+    discovery.collect(
+        7,
+        root,
+        adapter,
+        function(line)
+            return line == 2
+        end,
+        {
+            source_members =
+                supplied_members,
+        },
+        {
+            get_register_effect_index =
+                function()
+                    return effect_index
+                end,
+            parse_instruction =
+                function()
+                    return instruction
+                end,
+            evaluate_address =
+                function()
+                    return {
+                        status = "known",
+                        value = "4104",
+                        bits = 64,
+                        wrapped = false,
+                    }
+                end,
+        }
+    )
+
+assert(
+    scope_collect_calls == 0
+        and #supplied_facts == 1
+        and supplied_facts[1].text
+            == "[rax + 8]",
+    "supplied source-member snapshot was not reused"
+)
+print(
+    "PASS memory source discovery: "
+        .. "supplied source members bypass duplicate collection"
+)
+
+discovery.collect(
+    7,
+    root,
+    adapter,
+    function(line)
+        return line == 2
+    end,
+    {},
+    {
+        get_register_effect_index =
+            function()
+                return effect_index
+            end,
+        parse_instruction =
+            function()
+                return instruction
+            end,
+        evaluate_address =
+            function()
+                return {
+                    status = "known",
+                    value = "4104",
+                    bits = 64,
+                    wrapped = false,
+                }
+            end,
+    }
+)
+
+scope_module.collect =
+    original_scope_collect
+
+assert(
+    scope_collect_calls == 1,
+    "standalone source-member fallback collection changed"
+)
+print(
+    "PASS memory source discovery: "
+        .. "standalone callers retain source-member fallback"
+)
+
 print("PASS Tracker_HUD memory-source discovery smoke")

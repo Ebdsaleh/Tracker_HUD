@@ -199,7 +199,11 @@ function M.collect(
         )
 
     local source_members =
-        scope_members.collect(
+        core.is_table(
+            opts.source_members
+        )
+        and opts.source_members
+        or scope_members.collect(
             bufnr,
             root_node,
             adapter

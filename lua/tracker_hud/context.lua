@@ -717,6 +717,9 @@ local function attach_context_sections(
                                     .machine_address_providers,
                             register_source_cache =
                                 register_source_cache,
+                            source_members =
+                                context
+                                    .all_scope_members,
                         },
                         nested_profile_options(
                             profile_token,
