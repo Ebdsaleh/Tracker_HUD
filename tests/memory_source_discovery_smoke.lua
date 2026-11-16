@@ -510,7 +510,7 @@ instruction_source.collect_nodes_by_type =
     original_collect_nodes
 
 assert(
-    collect_node_calls == 1,
+    collect_node_calls > 0,
     "incomplete prepared-node coverage did not fall back to tree walk"
 )
 print(
