@@ -390,7 +390,8 @@ function M.end_phase(
         )
 
     token.phases[name] =
-        value_ms
+        (token.phases[name] or 0)
+        + value_ms
 
     token.phase_started[name] = nil
 

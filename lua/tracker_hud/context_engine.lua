@@ -283,14 +283,22 @@ local function get_prepared_register_source(
         return cache.prepared_source
     end
 
+    local prepare_opts = {
+        root_node =
+            opts.root_node,
+        profile_prefix =
+            opts.profile_prefix,
+        profile_begin =
+            opts.profile_begin,
+        profile_end =
+            opts.profile_end,
+    }
+
     local prepared_source =
         register_effect_pipeline
             .prepare_source(
                 adapter,
-                {
-                    root_node =
-                        opts.root_node,
-                }
+                prepare_opts
             )
 
     cache.adapter = adapter

@@ -359,11 +359,29 @@ function M.prepare_source(
         return nil
     end
 
+    local phase =
+        profile_begin(
+            opts,
+            "prepare_source.index"
+        )
+
     local effect_index =
         M.get_index(adapter)
 
+    profile_end(
+        opts,
+        "prepare_source.index",
+        phase
+    )
+
     local source_opts =
         copy_session_options(opts)
+
+    phase =
+        profile_begin(
+            opts,
+            "prepare_source.collect_nodes"
+        )
 
     local nodes =
         collect_nodes(
@@ -371,6 +389,12 @@ function M.prepare_source(
             source_opts,
             effect_index
         )
+
+    profile_end(
+        opts,
+        "prepare_source.collect_nodes",
+        phase
+    )
 
     return {
         adapter = adapter,
@@ -724,6 +748,16 @@ function M.collect(
 
         to_fact_list =
             register_infer.to_fact_list,
+
+        profile_prefix =
+            profile_name(
+                opts,
+                "process"
+            ),
+        profile_begin =
+            opts.profile_begin,
+        profile_end =
+            opts.profile_end,
     })
 
     profile_end(

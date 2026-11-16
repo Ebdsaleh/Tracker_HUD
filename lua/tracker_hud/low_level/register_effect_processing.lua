@@ -13,6 +13,63 @@
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "context.registers.dynamic.process"
+
+    return prefix
+        .. "."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 local function dependencies_are_valid(
     opts
 )
@@ -64,11 +121,23 @@ local function process_entry(
     local representative_effect_spec =
         node_bucket.__first
 
+    local phase =
+        profile_begin(
+            session.opts,
+            "parse"
+        )
+
     local instruction =
         session.opts.parse_instruction(
             node,
             representative_effect_spec
         )
+
+    profile_end(
+        session.opts,
+        "parse",
+        phase
+    )
 
     local mnemonic =
         instruction
@@ -83,6 +152,12 @@ local function process_entry(
         and node_bucket[mnemonic]
         or nil
 
+    phase =
+        profile_begin(
+            session.opts,
+            "prepare_state"
+        )
+
     local instruction_state =
         session.opts
             .prepare_instruction_state(
@@ -91,6 +166,18 @@ local function process_entry(
                 instruction,
                 effect_specs
             )
+
+    profile_end(
+        session.opts,
+        "prepare_state",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            session.opts,
+            "apply"
+        )
 
     for _, effect_spec in ipairs(
         effect_specs or {}
@@ -104,6 +191,12 @@ local function process_entry(
             instruction_state
         )
     end
+
+    profile_end(
+        session.opts,
+        "apply",
+        phase
+    )
 end
 
 
@@ -195,9 +288,24 @@ function M.snapshot(session)
         return {}
     end
 
-    return session.opts.to_fact_list(
-        session.latest_state_facts
+    local phase =
+        profile_begin(
+            session.opts,
+            "snapshot"
+        )
+
+    local result =
+        session.opts.to_fact_list(
+            session.latest_state_facts
+        )
+
+    profile_end(
+        session.opts,
+        "snapshot",
+        phase
     )
+
+    return result
 end
 
 
