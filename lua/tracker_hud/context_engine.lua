@@ -653,19 +653,22 @@ local function collect_memory_source_operands_where(
 )
     opts = opts or {}
 
+    local prepared_source =
+        get_prepared_register_source(
+            adapter,
+            {
+                bufnr = bufnr,
+                root_node = root_node,
+                register_source_cache =
+                    opts.register_source_cache,
+            }
+        )
+
     local replay_opts = {
         bufnr = bufnr,
         root_node = root_node,
         prepared_source =
-            get_prepared_register_source(
-                adapter,
-                {
-                    bufnr = bufnr,
-                    root_node = root_node,
-                    register_source_cache =
-                        opts.register_source_cache,
-                }
-            ),
+            prepared_source,
     }
 
     local register_replay_session =
@@ -680,12 +683,46 @@ local function collect_memory_source_operands_where(
                 )
             )
 
+    local discovery_opts = {}
+
+    for key, value in pairs(
+        opts
+    ) do
+        discovery_opts[key] =
+            value
+    end
+
+    if core.is_table(
+        prepared_source
+    )
+        and core.is_table(
+            prepared_source.nodes
+        )
+        and core.is_table(
+            prepared_source.effect_index
+        )
+        and core.is_table(
+            prepared_source
+                .effect_index
+                .node_types
+        )
+    then
+        discovery_opts
+            .instruction_nodes =
+            prepared_source.nodes
+        discovery_opts
+            .instruction_node_types =
+            prepared_source
+                .effect_index
+                .node_types
+    end
+
     return memory_source_discovery.collect(
         bufnr,
         root_node,
         adapter,
         line_predicate,
-        opts,
+        discovery_opts,
         {
             get_register_effect_index =
                 get_register_effect_index,

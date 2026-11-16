@@ -108,6 +108,53 @@ local function instruction_node_type(
 end
 
 
+local function get_supplied_instruction_nodes(
+    opts,
+    adapter
+)
+    local wanted_type =
+        instruction_node_type(
+            adapter
+        )
+
+    if not core.is_table(
+        opts.instruction_nodes
+    )
+        or not core.is_table(
+            opts.instruction_node_types
+        )
+        or opts.instruction_node_types[
+            wanted_type
+        ] ~= true
+    then
+        return nil
+    end
+
+    local result = {}
+
+    for _, entry in ipairs(
+        opts.instruction_nodes
+    ) do
+        local node =
+            core.is_table(entry)
+            and entry.node
+            or nil
+
+        node = node or entry
+
+        if node
+            and node:type()
+                == wanted_type
+        then
+            result[#result + 1] =
+                node
+        end
+    end
+
+    return result
+end
+
+
 local function get_operand_role(
     effect_specs,
     operand_index
@@ -222,13 +269,21 @@ function M.collect(
         )
 
     local nodes =
-        instruction_source
-            .collect_nodes_by_type(
-                root_node,
-                instruction_node_type(
-                    adapter
+        get_supplied_instruction_nodes(
+            opts,
+            adapter
+        )
+
+    if nodes == nil then
+        nodes =
+            instruction_source
+                .collect_nodes_by_type(
+                    root_node,
+                    instruction_node_type(
+                        adapter
+                    )
                 )
-            )
+    end
 
     profile_end(
         opts,

@@ -393,4 +393,129 @@ print(
         .. "standalone callers retain source-member fallback"
 )
 
+local instruction_source =
+    require(
+        "tracker_hud.low_level.instruction_source"
+    )
+local original_collect_nodes =
+    instruction_source
+        .collect_nodes_by_type
+local collect_node_calls = 0
+
+instruction_source.collect_nodes_by_type =
+    function(...)
+        collect_node_calls =
+            collect_node_calls + 1
+        return original_collect_nodes(...)
+    end
+
+local reused_node_facts =
+    discovery.collect(
+        7,
+        root,
+        adapter,
+        function(line)
+            return line == 2
+        end,
+        {
+            source_members =
+                supplied_members,
+            instruction_nodes = {
+                {
+                    node =
+                        instruction_node,
+                    line = 2,
+                    column = 0,
+                },
+            },
+            instruction_node_types = {
+                instruction = true,
+            },
+        },
+        {
+            get_register_effect_index =
+                function()
+                    return effect_index
+                end,
+            parse_instruction =
+                function()
+                    return instruction
+                end,
+            evaluate_address =
+                function()
+                    return {
+                        status = "known",
+                        value = "4104",
+                        bits = 64,
+                        wrapped = false,
+                    }
+                end,
+        }
+    )
+
+assert(
+    collect_node_calls == 0
+        and #reused_node_facts == 1
+        and reused_node_facts[1].text
+            == "[rax + 8]",
+    "complete supplied instruction nodes were not reused"
+)
+print(
+    "PASS memory source discovery: "
+        .. "prepared instruction nodes bypass duplicate tree walk"
+)
+
+discovery.collect(
+    7,
+    root,
+    adapter,
+    function(line)
+        return line == 2
+    end,
+    {
+        source_members =
+            supplied_members,
+        instruction_nodes = {
+            {
+                node =
+                    instruction_node,
+                line = 2,
+                column = 0,
+            },
+        },
+        instruction_node_types = {},
+    },
+    {
+        get_register_effect_index =
+            function()
+                return effect_index
+            end,
+        parse_instruction =
+            function()
+                return instruction
+            end,
+        evaluate_address =
+            function()
+                return {
+                    status = "known",
+                    value = "4104",
+                    bits = 64,
+                    wrapped = false,
+                }
+            end,
+    }
+)
+
+instruction_source.collect_nodes_by_type =
+    original_collect_nodes
+
+assert(
+    collect_node_calls == 1,
+    "incomplete prepared-node coverage did not fall back to tree walk"
+)
+print(
+    "PASS memory source discovery: "
+        .. "incomplete node coverage retains traversal fallback"
+)
+
 print("PASS Tracker_HUD memory-source discovery smoke")
