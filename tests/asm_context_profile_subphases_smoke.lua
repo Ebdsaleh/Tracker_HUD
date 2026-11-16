@@ -114,6 +114,13 @@ local function run()
         "context.registers.dynamic.process.apply",
         "context.registers.dynamic.process.apply.match",
         "context.registers.dynamic.process.apply.build",
+        "context.registers.dynamic.process.apply.build.target",
+        "context.registers.dynamic.process.apply.build.resolve_value",
+        "context.registers.dynamic.process.apply.build.width_policy",
+        "context.registers.dynamic.process.apply.build.alias_lookup",
+        "context.registers.dynamic.process.apply.build.alias_compose",
+        "context.registers.dynamic.process.apply.build.static_spec",
+        "context.registers.dynamic.process.apply.build.metadata",
         "context.registers.dynamic.process.apply.publish",
         "context.registers.dynamic.process.snapshot",
         "context.registers.static",
@@ -128,6 +135,13 @@ local function run()
         "context.registers_before.dynamic.process.apply",
         "context.registers_before.dynamic.process.apply.match",
         "context.registers_before.dynamic.process.apply.build",
+        "context.registers_before.dynamic.process.apply.build.target",
+        "context.registers_before.dynamic.process.apply.build.resolve_value",
+        "context.registers_before.dynamic.process.apply.build.width_policy",
+        "context.registers_before.dynamic.process.apply.build.alias_lookup",
+        "context.registers_before.dynamic.process.apply.build.alias_compose",
+        "context.registers_before.dynamic.process.apply.build.static_spec",
+        "context.registers_before.dynamic.process.apply.build.metadata",
         "context.registers_before.dynamic.process.apply.publish",
         "context.registers_before.dynamic.process.snapshot",
         "context.registers_before.static",
@@ -185,6 +199,12 @@ local function run()
             )
             and report:find(
                 "context%.registers%.dynamic%.process%.apply%.build:"
+            )
+            and report:find(
+                "context%.registers%.dynamic%.process%.apply%.build%.resolve_value:"
+            )
+            and report:find(
+                "context%.registers%.dynamic%.process%.apply%.build%.alias_compose:"
             )
             and report:find(
                 "context%.registers_before%.dynamic%.process:"

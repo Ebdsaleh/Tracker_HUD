@@ -131,7 +131,8 @@ function M.build(
     adapter,
     instruction,
     effect_spec,
-    instruction_state
+    instruction_state,
+    opts
 )
     return register_fact_builder.build(
         facts_by_register,
@@ -139,7 +140,8 @@ function M.build(
         adapter,
         instruction,
         effect_spec,
-        instruction_state
+        instruction_state,
+        opts
     )
 end
 
@@ -202,7 +204,8 @@ function M.apply(
             adapter,
             instruction,
             effect_spec,
-            instruction_state
+            instruction_state,
+            opts
         )
 
     profile_end(

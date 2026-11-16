@@ -21,14 +21,74 @@ local register_source_metadata =
 local M = {}
 
 
+local function profile_name(
+    opts,
+    suffix
+)
+    local prefix =
+        opts
+        and opts.profile_prefix
+        or "register_fact_builder"
+
+    return prefix
+        .. ".build."
+        .. suffix
+end
+
+
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        profile_name(
+            opts,
+            suffix
+        )
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        profile_name(
+            opts,
+            suffix
+        ),
+        started
+    )
+end
+
+
 function M.build(
     facts_by_register,
     family_state,
     adapter,
     instruction,
     effect_spec,
-    instruction_state
+    instruction_state,
+    opts
 )
+    opts = opts or {}
+
     if not core.is_table(facts_by_register)
         or not core.is_table(adapter)
         or not core.is_table(instruction)
@@ -37,6 +97,12 @@ function M.build(
     then
         return nil
     end
+
+    local phase =
+        profile_begin(
+            opts,
+            "target"
+        )
 
     local effect =
         effect_spec.effect
@@ -73,8 +139,25 @@ function M.build(
         target_register
     )
     then
+        profile_end(
+            opts,
+            "target",
+            phase
+        )
         return nil
     end
+
+    profile_end(
+        opts,
+        "target",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "resolve_value"
+        )
 
     local write_value,
         write_resolved,
@@ -86,6 +169,18 @@ function M.build(
             instruction_state,
             adapter,
             target_register
+        )
+
+    profile_end(
+        opts,
+        "resolve_value",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "width_policy"
         )
 
     local width_metadata
@@ -102,8 +197,20 @@ function M.build(
                 write_resolved
             )
 
+    profile_end(
+        opts,
+        "width_policy",
+        phase
+    )
+
     local value = write_value
     local resolved = write_resolved
+
+    phase =
+        profile_begin(
+            opts,
+            "alias_lookup"
+        )
 
     local alias_resolution =
         register_state_read
@@ -112,12 +219,24 @@ function M.build(
                 target_register
             )
 
+    profile_end(
+        opts,
+        "alias_lookup",
+        phase
+    )
+
     local canonical_name =
         alias_resolution
         and alias_resolution.canonical
         or target_register:lower()
 
     local reduced_state = nil
+
+    phase =
+        profile_begin(
+            opts,
+            "alias_compose"
+        )
 
     if alias_resolution
         and core.is_table(
@@ -152,6 +271,18 @@ function M.build(
         end
     end
 
+    profile_end(
+        opts,
+        "alias_compose",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "static_spec"
+        )
+
     local static_spec =
         register_state_read
             .get_static_spec(
@@ -164,6 +295,18 @@ function M.build(
                 target_register
             )
         or {}
+
+    profile_end(
+        opts,
+        "static_spec",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "metadata"
+        )
 
     local metadata = {
         adapter = adapter.name,
@@ -239,6 +382,12 @@ function M.build(
             effect,
             instruction_state
         )
+    )
+
+    profile_end(
+        opts,
+        "metadata",
+        phase
     )
 
     return {
