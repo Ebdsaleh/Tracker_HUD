@@ -121,6 +121,10 @@ local function run()
         "context.registers.dynamic.process.apply.build.alias_compose",
         "context.registers.dynamic.process.apply.build.static_spec",
         "context.registers.dynamic.process.apply.build.metadata",
+        "context.registers.dynamic.process.apply.build.metadata.base",
+        "context.registers.dynamic.process.apply.build.metadata.source_integer_merge",
+        "context.registers.dynamic.process.apply.build.metadata.source_build",
+        "context.registers.dynamic.process.apply.build.metadata.source_merge",
         "context.registers.dynamic.process.apply.publish",
         "context.registers.dynamic.process.snapshot",
         "context.registers.static",
@@ -142,6 +146,10 @@ local function run()
         "context.registers_before.dynamic.process.apply.build.alias_compose",
         "context.registers_before.dynamic.process.apply.build.static_spec",
         "context.registers_before.dynamic.process.apply.build.metadata",
+        "context.registers_before.dynamic.process.apply.build.metadata.base",
+        "context.registers_before.dynamic.process.apply.build.metadata.source_integer_merge",
+        "context.registers_before.dynamic.process.apply.build.metadata.source_build",
+        "context.registers_before.dynamic.process.apply.build.metadata.source_merge",
         "context.registers_before.dynamic.process.apply.publish",
         "context.registers_before.dynamic.process.snapshot",
         "context.registers_before.static",
@@ -199,6 +207,9 @@ local function run()
             )
             and report:find(
                 "context%.registers%.dynamic%.process%.apply%.build:"
+            )
+            and report:find(
+                "context%.registers%.dynamic%.process%.apply%.build%.metadata%.source_build:"
             )
             and report:find(
                 "context%.registers%.dynamic%.process%.apply%.build%.resolve_value:"

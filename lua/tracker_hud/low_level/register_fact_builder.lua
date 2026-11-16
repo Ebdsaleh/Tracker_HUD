@@ -309,6 +309,12 @@ function M.build(
             "metadata"
         )
 
+    local metadata_phase =
+        profile_begin(
+            opts,
+            "metadata.base"
+        )
+
     local metadata = {
         adapter = adapter.name,
         architecture =
@@ -370,19 +376,64 @@ function M.build(
             reduced_state.partial_value
     end
 
+    profile_end(
+        opts,
+        "metadata.base",
+        metadata_phase
+    )
+
+    metadata_phase =
+        profile_begin(
+            opts,
+            "metadata.source_integer_merge"
+        )
+
     register_source_metadata.merge(
         metadata,
         source_integer_metadata
     )
 
-    register_source_metadata.merge(
-        metadata,
+    profile_end(
+        opts,
+        "metadata.source_integer_merge",
+        metadata_phase
+    )
+
+    metadata_phase =
+        profile_begin(
+            opts,
+            "metadata.source_build"
+        )
+
+    local source_metadata =
         register_source_metadata.build(
             effect_spec,
             instruction,
             effect,
             instruction_state
         )
+
+    profile_end(
+        opts,
+        "metadata.source_build",
+        metadata_phase
+    )
+
+    metadata_phase =
+        profile_begin(
+            opts,
+            "metadata.source_merge"
+        )
+
+    register_source_metadata.merge(
+        metadata,
+        source_metadata
+    )
+
+    profile_end(
+        opts,
+        "metadata.source_merge",
+        metadata_phase
     )
 
     profile_end(
