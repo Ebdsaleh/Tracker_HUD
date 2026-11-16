@@ -109,6 +109,13 @@ local function run()
         end
         print("PASS " .. fixture.ft .. " parser constructs mapped from real syntax")
 
+        local unfiltered =
+            collector.collect(
+                buffer,
+                root,
+                adapter
+            )
+
         local all = collector.collect(buffer, root, adapter, {
             cursor_line = #lines,
         })
@@ -266,6 +273,107 @@ local function run()
             end
             return false
         end
+
+        local function member_ids(members)
+            local ids = {}
+
+            for _, member in ipairs(
+                members or {}
+            ) do
+                ids[#ids + 1] =
+                    tostring(member.id)
+            end
+
+            return table.concat(
+                ids,
+                "\n"
+            )
+        end
+
+        local filtered_before =
+            collector.filter_collected(
+                unfiltered,
+                {
+                    cursor_line =
+                        declaration_line - 1,
+                }
+            )
+
+        local filtered_at =
+            collector.filter_collected(
+                unfiltered,
+                {
+                    cursor_line =
+                        declaration_line,
+                }
+            )
+
+        assert(
+            member_ids(filtered_before)
+                == member_ids(before),
+            fixture.ft
+                .. " post-filtered BEFORE members differ from direct collection"
+        )
+
+        assert(
+            member_ids(filtered_at)
+                == member_ids(at),
+            fixture.ft
+                .. " post-filtered ON members differ from direct collection"
+        )
+
+        local range_opts = {
+            start_line =
+                math.max(
+                    1,
+                    declaration_line - 3
+                ),
+            end_line =
+                math.min(
+                    #lines,
+                    declaration_line + 3
+                ),
+            cursor_line =
+                declaration_line,
+        }
+
+        local direct_range =
+            collector.collect(
+                buffer,
+                root,
+                adapter,
+                range_opts
+            )
+
+        local filtered_range =
+            collector.filter_collected(
+                unfiltered,
+                range_opts
+            )
+
+        assert(
+            member_ids(filtered_range)
+                == member_ids(direct_range),
+            fixture.ft
+                .. " post-filtered range members differ from direct collection"
+        )
+
+        assert(
+            collector.filter_collected(
+                unfiltered,
+                {
+                    scope_depth = 0,
+                }
+            ) == nil,
+            fixture.ft
+                .. " depth-sensitive collection must refuse post-filter reuse"
+        )
+
+        print(
+            "PASS "
+                .. fixture.ft
+                .. " scope-member range/cursor post-filter parity"
+        )
 
         assert(not has_name(before, fixture.visibility_name),
             fixture.ft .. " future declaration leaked before the cursor")

@@ -504,26 +504,6 @@ local function attach_context_sections(
     phase =
         profile_begin(
             profile_token,
-            "context.scope_members"
-        )
-
-    context.scope_members =
-        scope_members.collect(
-            bufnr,
-            root_node,
-            adapter,
-            scope_member_opts
-        )
-
-    profile_end(
-        profile_token,
-        "context.scope_members",
-        phase
-    )
-
-    phase =
-        profile_begin(
-            profile_token,
             "context.scope_members_all"
         )
 
@@ -537,6 +517,34 @@ local function attach_context_sections(
     profile_end(
         profile_token,
         "context.scope_members_all",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            profile_token,
+            "context.scope_members"
+        )
+
+    context.scope_members =
+        scope_members.filter_collected(
+            context.all_scope_members,
+            scope_member_opts
+        )
+
+    if context.scope_members == nil then
+        context.scope_members =
+            scope_members.collect(
+                bufnr,
+                root_node,
+                adapter,
+                scope_member_opts
+            )
+    end
+
+    profile_end(
+        profile_token,
+        "context.scope_members",
         phase
     )
 
