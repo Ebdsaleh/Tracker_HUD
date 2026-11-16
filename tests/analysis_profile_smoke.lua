@@ -94,57 +94,6 @@ assert(
 )
 print("PASS analysis profile: cursor step classified")
 
-local repeated =
-    profile.begin_refresh(
-        "CursorMoved",
-        7,
-        { 3, 0 },
-        16000000
-    )
-
-local repeated_one =
-    profile.begin_phase(
-        repeated,
-        "loop_work",
-        16000000
-    )
-
-profile.end_phase(
-    repeated,
-    "loop_work",
-    repeated_one,
-    17000000
-)
-
-local repeated_two =
-    profile.begin_phase(
-        repeated,
-        "loop_work",
-        18000000
-    )
-
-profile.end_phase(
-    repeated,
-    "loop_work",
-    repeated_two,
-    20000000
-)
-
-profile.finish_refresh(
-    repeated,
-    {
-        updated = true,
-    },
-    21000000
-)
-
-assert(
-    repeated.phases.loop_work
-        == 3,
-    "repeated phase timings did not accumulate within one refresh"
-)
-print("PASS analysis profile: repeated phase timings accumulate")
-
 local jump =
     record(
         "CursorMoved",
@@ -181,11 +130,11 @@ local snapshot =
     profile.snapshot()
 
 assert(
-    snapshot.refresh_count == 5
+    snapshot.refresh_count == 4
         and snapshot.reasons
             .first_refresh == 1
         and snapshot.reasons
-            .cursor_step == 2
+            .cursor_step == 1
         and snapshot.reasons
             .cursor_large_jump == 1
         and snapshot.reasons
@@ -214,6 +163,60 @@ assert(
 )
 print("PASS analysis profile: aggregation and sample cap preserved")
 
+local repeated =
+    profile.begin_refresh(
+        "CursorMoved",
+        99,
+        { 1, 0 },
+        40000000
+    )
+
+local repeated_one =
+    profile.begin_phase(
+        repeated,
+        "loop_work",
+        40000000
+    )
+
+profile.end_phase(
+    repeated,
+    "loop_work",
+    repeated_one,
+    41000000
+)
+
+local repeated_two =
+    profile.begin_phase(
+        repeated,
+        "loop_work",
+        42000000
+    )
+
+profile.end_phase(
+    repeated,
+    "loop_work",
+    repeated_two,
+    44000000
+)
+
+profile.finish_refresh(
+    repeated,
+    {
+        updated = true,
+    },
+    45000000
+)
+
+assert(
+    repeated.phases.loop_work
+        == 3
+        and profile.snapshot()
+            .phases.loop_work
+            .average_ms == 3,
+    "repeated phase timings did not accumulate within one refresh"
+)
+print("PASS analysis profile: repeated phase timings accumulate")
+
 profile.set_enabled(false)
 
 assert(
@@ -221,7 +224,7 @@ assert(
         "CursorMoved",
         7,
         { 31, 0 },
-        40000000
+        50000000
     ) == nil,
     "disabled profiling must not allocate a refresh token"
 )
