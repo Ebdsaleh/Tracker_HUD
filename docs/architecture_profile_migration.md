@@ -10550,3 +10550,217 @@ total avg=60.236 ms max=128.527 ms
 
 The goal of this tranche is lower shared setup/indexing cost across register
 history consumers, not merely another source-memory-only reduction.
+
+
+## Performance profiling and stable register-source reuse (2026-11-16)
+
+The ERIDU performance campaign is now automated and accepted.
+
+The profiling gate uses:
+
+~~~
+tracker_full.bat
+tracker_profile.bat
+~~~
+
+against:
+
+~~~
+samples/asm/x86_64/performance_baseline.asm
+~~~
+
+The automated fixture performs exactly nine refreshes:
+
+1. first refresh at marker A;
+2. one-line cursor step;
+3. large cursor jump to marker C;
+4. large jump to the top edit line;
+5. source edit;
+6. edit restore;
+7. cursor move to the platform directive;
+8. platform edit;
+9. platform restore.
+
+The reason mix is pinned as:
+
+~~~
+first_refresh=1
+cursor_step=1
+cursor_move=1
+cursor_large_jump=2
+edit=4
+~~~
+
+There are deliberately no wall-clock pass/fail thresholds. Timings are
+observational; semantic regressions remain hard failures.
+
+### Adapter configuration profiling
+
+Configuration was split into:
+
+~~~
+lookup
+changedtick
+cache_check
+adapter
+validate
+remember
+~~~
+
+ERIDU showed configuration cache-hit bookkeeping is negligible while
+validation dominated misses.
+
+Validation was then decomposed. Register-effect validation accounted for roughly
+three quarters of validation time on the measured baseline.
+
+The ASM adapter already treats the active variant's register-effect table as a
+module-owned immutable table whose identity changes when the architecture variant
+changes.
+
+That allowed validation reuse to be guarded by both:
+
+~~~
+validation_stable_components.register_effects == true
+exact current register_effects table identity
+~~~
+
+Accepted result:
+
+~~~
+context.configure          7.130 -> 4.043 ms  (~43% lower)
+context.configure.validate 8.742 -> 3.325 ms  (~62% lower)
+register_effects validation 6.628 ms -> reuse check ~0.006 ms
+~~~
+
+Full registration validation remains unchanged, and undeclared/replaced/malformed
+components still validate normally and fail closed.
+
+### Register replay profiling
+
+Register collection was decomposed into:
+
+~~~
+prepared source
+source selection
+parse
+prepare state
+apply
+snapshot
+static rows
+presentation
+~~~
+
+The existing refresh-local prepared-source cache was confirmed to work correctly:
+Registers, Registers-before-current-line, Boundary and source-memory replay share
+one immutable source index during a refresh while keeping independent mutable
+replay state.
+
+Deeper instrumentation showed:
+
+- source filtering itself is negligible;
+- effect application is the largest replay substage when effects execute;
+- fact construction dominates match/publication inside effect application;
+- value resolution, metadata and width policy are the meaningful builder costs;
+- alias composition is already tiny;
+- source-metadata work is diffuse and contains no large individual micro-hotspot.
+
+A normalized-integer reinterpretation fast path was trialed and rejected after
+ERIDU measurements were mixed. The extra implementation complexity was reverted
+rather than retained without evidence.
+
+### Cross-refresh prepared-source reuse
+
+Before this optimization, the immutable register-effect source index was rebuilt
+once per context refresh even when source text was unchanged.
+
+The accepted cache now reuses that immutable prepared source across refreshes
+only when all of the following remain true:
+
+~~~
+adapter explicitly declares register_effects stable
+same buffer generation
+same changedtick
+same adapter identity
+same exact register_effects table identity
+~~~
+
+Edits, buffer replacement/reuse, architecture/effect-table replacement, or an
+adapter without the stability declaration force a rebuild.
+
+Only immutable prepared data is shared:
+
+~~~
+effect_index
+source instruction nodes
+~~~
+
+Mutable reduction/replay state remains per-consumer and per-refresh.
+
+The buffer-generation token is also scoped to the current context-engine module
+instance so a module reload cannot accept a stale token.
+
+Regression coverage proves:
+
+~~~
+unchanged stable buffer -> prepared source reused across refreshes
+buffer edit -> rebuild
+register_effects identity change -> rebuild
+mutable replay state -> remains consumer-local
+~~~
+
+ERIDU acceptance at:
+
+~~~
+c384b4b  perf(registers): reuse stable prepared source across refreshes
+16b4dde  fix(cache): harden register source buffer tokens
+~~~
+
+remained fully GREEN at 148/148.
+
+The expected mechanism was observed exactly:
+
+~~~
+prepare_source.collect_nodes: n=9 -> n=5
+prepare_source.index:         n=9 -> n=5
+~~~
+
+Measured averages from the immediately preceding instrumented run to the accepted
+cache run:
+
+~~~
+context.registers                         9.312 -> 6.490 ms
+context.registers.dynamic                 7.321 -> 4.684 ms
+context.registers.dynamic.prepare_source  3.670 -> 1.890 ms
+~~~
+
+The whole-refresh average is intentionally not used as proof of the optimization:
+the nine-refresh fixture also contains unrelated variation in render,
+source-memory, stack, configure and scope work. Acceptance is based on semantic
+GREEN plus the exact prepared-source count/cost reduction.
+
+### Current performance direction
+
+Do not continue micro-optimizing register source metadata.
+
+After cross-refresh register-source reuse, the largest measured section in the
+accepted run is source-memory collection/replay:
+
+~~~
+context.source_memory: avg ~9.207 ms, max ~34.802 ms
+~~~
+
+The next performance tranche should profile source-memory internals before
+changing semantics. In particular, preserve:
+
+~~~
+source-time effective-address certainty
+pre-instruction register-state semantics
+ON/PAST visibility
+memory access intent
+address-size semantics
+source-symbol identity
+unknown vs known certainty
+~~~
+
+Do not trade these semantics for a broad cache without first identifying the
+actual source-memory subcost.
