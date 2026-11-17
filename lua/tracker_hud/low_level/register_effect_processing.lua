@@ -278,6 +278,16 @@ function M.advance_while(
             entry
         )
 
+        if type(
+            session.opts.after_entry
+        ) == "function"
+        then
+            session.opts.after_entry(
+                entry,
+                session.latest_state_facts
+            )
+        end
+
         session.next_index =
             session.next_index + 1
 

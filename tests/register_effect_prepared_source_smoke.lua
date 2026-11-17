@@ -488,6 +488,140 @@ print(
 )
 
 
+
+local timeline_session =
+    pipeline.new_replay_session(
+        {},
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            prepared_source =
+                prepared,
+            capture_timeline = true,
+        },
+        {
+            parse_instruction =
+                parse_instruction,
+        }
+    )
+
+assert(
+    timeline_session,
+    "timeline register replay session was not created"
+)
+
+local timeline =
+    timeline_session:get_timeline()
+
+assert(
+    timeline,
+    "timeline replay session did not expose checkpoints"
+)
+
+assert(
+    timeline:snapshot_before({
+        line = 3,
+        column = 0,
+    }) == nil,
+    "incomplete timeline answered beyond processed coverage"
+)
+
+timeline_session:collect_before({
+    line = 2,
+    column = 0,
+})
+
+local timeline_before_second =
+    timeline:snapshot_before({
+        line = 2,
+        column = 0,
+    })
+
+assert(
+    normalize(timeline_before_second)
+        == normalize(before_expected),
+    "timeline checkpoint changed pre-instruction register semantics"
+)
+
+assert(
+    timeline:snapshot_before({
+        line = 3,
+        column = 0,
+    }) == nil,
+    "partially advanced timeline answered past its safe coverage"
+)
+
+local preserved_before_second =
+    normalize(timeline_before_second)
+
+timeline_before_second[1] = nil
+
+assert(
+    normalize(
+        timeline:snapshot_before({
+            line = 2,
+            column = 0,
+        })
+    ) == preserved_before_second,
+    "timeline lookup exposed mutable checkpoint list ownership"
+)
+
+timeline_session:collect_visible(
+    {
+        cursor = {
+            line = 2,
+            column = 200,
+        },
+    }
+)
+
+assert(
+    normalize(
+        timeline:snapshot_before({
+            line = 2,
+            column = 0,
+        })
+    ) == preserved_before_second,
+    "advancing timeline mutated earlier pre-instruction checkpoint"
+)
+
+assert(
+    normalize(
+        timeline:snapshot_before({
+            line = 3,
+            column = 0,
+        })
+    ) == normalize(visible_expected),
+    "completed timeline changed visible register semantics"
+)
+
+local timeline_stats =
+    timeline:stats()
+
+assert(
+    timeline_stats.captured_count == 2
+        and timeline_stats.processed_count == 2
+        and timeline_stats.source_node_count == 2,
+    "timeline checkpoint coverage statistics changed"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "timeline lookup matches independent pre-instruction replay"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "timeline fails closed beyond processed coverage"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "timeline checkpoints remain immutable across forward replay"
+)
+
+
 print(
     "PASS Tracker_HUD register-effect "
         .. "prepared-source smoke"

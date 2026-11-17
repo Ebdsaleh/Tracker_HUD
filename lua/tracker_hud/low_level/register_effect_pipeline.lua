@@ -252,6 +252,21 @@ local function copy_session_options(
 end
 
 
+local function copy_fact_list(
+    facts
+)
+    local result = {}
+
+    for index, fact in ipairs(
+        facts or {}
+    ) do
+        result[index] = fact
+    end
+
+    return result
+end
+
+
 local function prepared_source_is_valid(
     prepared_source,
     adapter,
@@ -465,6 +480,32 @@ function M.new_replay_session(
     local session_opts =
         copy_session_options(opts)
 
+    local timeline_checkpoints =
+        session_opts.capture_timeline == true
+        and {}
+        or nil
+
+    local function capture_timeline_checkpoint(
+        entry,
+        latest_state_facts
+    )
+        if not timeline_checkpoints then
+            return
+        end
+
+        timeline_checkpoints[
+            #timeline_checkpoints + 1
+        ] = {
+            line = entry.line,
+            column = entry.column,
+            facts =
+                register_infer
+                    .to_fact_list(
+                        latest_state_facts
+                    ),
+        }
+    end
+
     -- Replay sessions share immutable source indexing when supplied, while
     -- retaining independent mutable reduction state.
     local nodes =
@@ -555,6 +596,10 @@ function M.new_replay_session(
                 profile_counter =
                     session_opts
                         .profile_counter,
+                after_entry =
+                    timeline_checkpoints
+                    and capture_timeline_checkpoint
+                    or nil,
             })
 
     if not processing_session then
@@ -729,6 +774,96 @@ function M.new_replay_session(
             )
 
         return before, visible
+    end
+
+    function session:get_timeline()
+        if not timeline_checkpoints then
+            return nil
+        end
+
+        local timeline = {}
+
+        function timeline:snapshot_before(
+            position
+        )
+            local normalized =
+                inference.normalize_position(
+                    position
+                )
+
+            if not normalized then
+                return nil
+            end
+
+            -- A checkpoint timeline may answer only when the reducer has
+            -- already processed every source entry strictly before the query.
+            local next_entry =
+                nodes[
+                    processing_session
+                        .processed_count
+                    + 1
+                ]
+
+            if next_entry
+                and inference
+                    .position_is_before(
+                        {
+                            line =
+                                next_entry.line,
+                            column =
+                                next_entry.column,
+                        },
+                        normalized
+                    )
+            then
+                return nil
+            end
+
+            local selected = {}
+
+            for index =
+                #timeline_checkpoints,
+                1,
+                -1
+            do
+                local checkpoint =
+                    timeline_checkpoints[index]
+
+                if inference
+                    .position_is_before(
+                        {
+                            line =
+                                checkpoint.line,
+                            column =
+                                checkpoint.column,
+                        },
+                        normalized
+                    )
+                then
+                    selected =
+                        checkpoint.facts
+                    break
+                end
+            end
+
+            return copy_fact_list(
+                selected
+            )
+        end
+
+        function timeline:stats()
+            return {
+                captured_count =
+                    #timeline_checkpoints,
+                processed_count =
+                    processing_session
+                        .processed_count,
+                source_node_count =
+                    #nodes,
+            }
+        end
+
+        return timeline
     end
 
     function session:stats()
