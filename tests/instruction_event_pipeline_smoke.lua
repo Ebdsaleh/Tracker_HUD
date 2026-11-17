@@ -111,6 +111,26 @@ local instruction = {
 }
 
 local parse_calls = 0
+local profile_phases = {}
+
+local function profile_begin(name)
+    return {
+        name = name,
+    }
+end
+
+local function profile_end(
+    name,
+    started
+)
+    assert(
+        started
+            and started.name == name,
+        "instruction-event profile token changed"
+    )
+
+    profile_phases[name] = true
+end
 
 local facts =
     pipeline.collect(
@@ -124,6 +144,12 @@ local facts =
         {
             bufnr = 11,
             root_node = root,
+            profile_prefix =
+                "context.instruction_events",
+            profile_begin =
+                profile_begin,
+            profile_end =
+                profile_end,
         },
         {
             parse_instruction = function(
@@ -174,6 +200,24 @@ assert(
     "instruction-event pipeline metadata changed"
 )
 print("PASS instruction event pipeline: metadata preservation preserved")
+
+for _, phase_name in ipairs({
+    "context.instruction_events.index",
+    "context.instruction_events.collect",
+    "context.instruction_events.nodes",
+    "context.instruction_events.parse",
+    "context.instruction_events.apply",
+}) do
+    assert(
+        profile_phases[phase_name] == true,
+        "instruction-event profile phase missing: "
+            .. phase_name
+    )
+end
+
+print(
+    "PASS instruction event pipeline: all collection profile phases recorded"
+)
 
 assert(
     #pipeline.collect(

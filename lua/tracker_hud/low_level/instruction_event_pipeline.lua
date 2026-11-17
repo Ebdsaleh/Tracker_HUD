@@ -21,6 +21,46 @@ local rule_syntax =
 local M = {}
 
 
+local function profile_begin(
+    opts,
+    suffix
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_begin) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_begin(
+        (opts.profile_prefix
+            or "context.instruction_events")
+            .. "."
+            .. suffix
+    )
+end
+
+
+local function profile_end(
+    opts,
+    suffix,
+    started
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_end) ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_end(
+        (opts.profile_prefix
+            or "context.instruction_events")
+            .. "."
+            .. suffix,
+        started
+    )
+end
+
+
 function M.collect(
     context,
     adapter,
@@ -43,34 +83,83 @@ function M.collect(
         return {}
     end
 
+    local phase =
+        profile_begin(
+            opts,
+            "index"
+        )
+
     local event_index =
         instruction_event_index.get(
             adapter,
             rule_syntax.index_options()
         )
 
-    return instruction_event_collection.collect({
+    profile_end(
+        opts,
+        "index",
+        phase
+    )
+
+    phase =
+        profile_begin(
+            opts,
+            "collect"
+        )
+
+    local result =
+        instruction_event_collection.collect({
         context = context,
         event_index = event_index,
 
         collect_nodes = function(
             node_type
         )
-            return instruction_source
-                .collect_nodes_by_type(
-                    opts.root_node,
-                    node_type
+            local started =
+                profile_begin(
+                    opts,
+                    "nodes"
                 )
+
+            local nodes =
+                instruction_source
+                    .collect_nodes_by_type(
+                        opts.root_node,
+                        node_type
+                    )
+
+            profile_end(
+                opts,
+                "nodes",
+                started
+            )
+
+            return nodes
         end,
 
         parse_instruction = function(
             node,
             representative_event_spec
         )
-            return deps.parse_instruction(
-                node,
-                representative_event_spec
+            local started =
+                profile_begin(
+                    opts,
+                    "parse"
+                )
+
+            local instruction =
+                deps.parse_instruction(
+                    node,
+                    representative_event_spec
+                )
+
+            profile_end(
+                opts,
+                "parse",
+                started
             )
+
+            return instruction
         end,
 
         normalize_mnemonic =
@@ -81,6 +170,12 @@ function M.collect(
             instruction,
             event_spec
         )
+            local started =
+                profile_begin(
+                    opts,
+                    "apply"
+                )
+
             instruction_event_fact.apply(
                 facts,
                 context,
@@ -107,8 +202,22 @@ function M.collect(
                         rule_syntax.get_mnemonic,
                 }
             )
+
+            profile_end(
+                opts,
+                "apply",
+                started
+            )
         end,
     })
+
+    profile_end(
+        opts,
+        "collect",
+        phase
+    )
+
+    return result
 end
 
 

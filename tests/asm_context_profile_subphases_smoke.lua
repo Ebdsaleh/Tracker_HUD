@@ -173,6 +173,10 @@ local function run()
         "context.boundary.parse",
         "context.boundary.read_context",
         "context.instruction_events",
+        "context.instruction_events.index",
+        "context.instruction_events.collect",
+        "context.instruction_events.nodes",
+        "context.instruction_events.parse",
         "context.source_memory",
         "context.source_memory.effect_index",
         "context.source_memory.source_members",
@@ -276,6 +280,12 @@ local function run()
             )
             and report:find(
                 "context%.boundary%.read_context:"
+            )
+            and report:find(
+                "context%.instruction_events%.nodes:"
+            )
+            and report:find(
+                "context%.instruction_events%.parse:"
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate:"
