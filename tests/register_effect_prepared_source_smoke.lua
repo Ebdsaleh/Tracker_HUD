@@ -354,6 +354,140 @@ print(
         .. "replay work counter reaches processing layer"
 )
 
+
+local before_expected =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 2,
+                column = 200,
+            },
+        },
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            limit_position = {
+                line = 2,
+                column = 0,
+            },
+            prepared_source =
+                prepared,
+        },
+        {
+            parse_instruction =
+                parse_instruction,
+        }
+    )
+
+local visible_expected =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 2,
+                column = 200,
+            },
+        },
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            prepared_source =
+                prepared,
+        },
+        {
+            parse_instruction =
+                parse_instruction,
+        }
+    )
+
+local paired_work_counters = {}
+
+local paired_session =
+    pipeline.new_replay_session(
+        {},
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            prepared_source =
+                prepared,
+            profile_prefix =
+                "context.register_pair",
+            profile_counter =
+                function(name, delta)
+                    paired_work_counters[name] =
+                        (paired_work_counters[name] or 0)
+                        + delta
+                end,
+        },
+        {
+            parse_instruction =
+                parse_instruction,
+        }
+    )
+
+assert(
+    paired_session,
+    "paired register replay session was not created"
+)
+
+local before_paired,
+    visible_paired =
+    paired_session
+        :collect_before_and_visible(
+            {
+                line = 2,
+                column = 0,
+            },
+            {
+                cursor = {
+                    line = 2,
+                    column = 200,
+                },
+            }
+        )
+
+assert(
+    normalize(before_paired)
+        == normalize(before_expected),
+    "paired replay changed before-line register snapshot"
+)
+
+assert(
+    normalize(visible_paired)
+        == normalize(visible_expected),
+    "paired replay changed cursor-visible register snapshot"
+)
+
+assert(
+    normalize(before_paired)
+        == normalize(before_expected),
+    "paired replay mutated the earlier before-line snapshot"
+)
+
+local paired_stats =
+    paired_session:stats()
+
+assert(
+    paired_stats.processed_count == 2
+        and paired_work_counters[
+            "context.register_pair.processed_entries"
+        ] == 2,
+    "paired replay did not reduce the shared prefix exactly once"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "paired before/visible snapshots preserve independent semantics"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "paired replay reduces shared prefix exactly once"
+)
+
+
 print(
     "PASS Tracker_HUD register-effect "
         .. "prepared-source smoke"

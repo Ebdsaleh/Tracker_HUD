@@ -644,6 +644,93 @@ function M.new_replay_session(
             )
     end
 
+    function session:collect_visible(
+        visible_context,
+        visible_opts
+    )
+        visible_opts =
+            visible_opts or {}
+
+        local target_opts =
+            copy_session_options(opts)
+
+        target_opts.limit_position = nil
+        target_opts.stop_before = nil
+        target_opts.before_position = nil
+
+        if visible_opts.config ~= nil then
+            target_opts.config =
+                visible_opts.config
+        end
+
+        local visible_nodes =
+            filter_prepared_nodes(
+                prepared_source,
+                visible_context,
+                target_opts
+            )
+
+        local target_count =
+            #visible_nodes
+
+        if target_count
+            < processing_session
+                .processed_count
+        then
+            self.fallback_count =
+                self.fallback_count + 1
+
+            target_opts.prepared_source =
+                prepared_source
+
+            return M.collect(
+                visible_context,
+                adapter,
+                target_opts,
+                deps
+            )
+        end
+
+        local advanced =
+            register_effect_processing
+                .advance_while(
+                    processing_session,
+                    function()
+                        return processing_session
+                            .processed_count
+                            < target_count
+                    end
+                )
+
+        self.processed_count =
+            self.processed_count
+                + advanced
+
+        return register_effect_processing
+            .snapshot(
+                processing_session
+            )
+    end
+
+    function session:collect_before_and_visible(
+        position,
+        visible_context,
+        visible_opts
+    )
+        local before =
+            self:collect_before(
+                position
+            )
+
+        local visible =
+            self:collect_visible(
+                visible_context,
+                visible_opts
+            )
+
+        return before, visible
+    end
+
     function session:stats()
         return {
             processed_count =
