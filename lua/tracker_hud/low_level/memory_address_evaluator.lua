@@ -306,7 +306,11 @@ function M.evaluate(
             deps.collect_register_effects_before(
                 limit_position
             )
-    elseif facts == nil then
+    elseif facts == nil
+        and type(
+            deps.collect_register_effects
+        ) == "function"
+    then
         facts =
             deps.collect_register_effects(
                 {
@@ -330,6 +334,12 @@ function M.evaluate(
         "register_replay",
         phase
     )
+
+    if facts == nil then
+        return unknown(
+            "register collection unavailable"
+        )
+    end
 
     phase =
         profile_begin(

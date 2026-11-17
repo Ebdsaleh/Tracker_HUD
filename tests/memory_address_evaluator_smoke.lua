@@ -310,4 +310,38 @@ print(
 )
 
 
+
+local incomplete_timeline_only =
+    evaluator.evaluate(
+        12,
+        root_node,
+        adapter,
+        instruction,
+        address,
+        nil,
+        nil,
+        {
+            register_timeline = {
+                snapshot_before =
+                    function()
+                        return nil
+                    end,
+            },
+        }
+    )
+
+assert(
+    incomplete_timeline_only.status
+        == "unknown"
+        and incomplete_timeline_only.reason
+            == "register collection unavailable",
+    "incomplete timeline without fallback must fail closed"
+)
+
+print(
+    "PASS memory address evaluator: "
+        .. "incomplete timeline without fallback fails closed"
+)
+
+
 print("PASS Tracker_HUD memory-address evaluator smoke")
