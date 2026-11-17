@@ -107,7 +107,6 @@ local function run()
         "context.registers.dynamic.prepare_source",
         "context.registers.dynamic.prepare_source.index",
         "context.registers.dynamic.prepare_source.collect_nodes",
-        "context.registers.dynamic.source_select",
         "context.registers.dynamic.process",
         "context.registers.dynamic.process.parse",
         "context.registers.dynamic.process.prepare_state",
@@ -131,27 +130,6 @@ local function run()
         "context.registers.presentation",
         "context.registers_before",
         "context.registers_before.dynamic",
-        "context.registers_before.dynamic.prepare_source",
-        "context.registers_before.dynamic.source_select",
-        "context.registers_before.dynamic.process",
-        "context.registers_before.dynamic.process.parse",
-        "context.registers_before.dynamic.process.prepare_state",
-        "context.registers_before.dynamic.process.apply",
-        "context.registers_before.dynamic.process.apply.match",
-        "context.registers_before.dynamic.process.apply.build",
-        "context.registers_before.dynamic.process.apply.build.target",
-        "context.registers_before.dynamic.process.apply.build.resolve_value",
-        "context.registers_before.dynamic.process.apply.build.width_policy",
-        "context.registers_before.dynamic.process.apply.build.alias_lookup",
-        "context.registers_before.dynamic.process.apply.build.alias_compose",
-        "context.registers_before.dynamic.process.apply.build.static_spec",
-        "context.registers_before.dynamic.process.apply.build.metadata",
-        "context.registers_before.dynamic.process.apply.build.metadata.base",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_integer_merge",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_build",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_merge",
-        "context.registers_before.dynamic.process.apply.publish",
-        "context.registers_before.dynamic.process.snapshot",
         "context.registers_before.static",
         "context.registers_before.presentation",
         "context.stack",
@@ -261,10 +239,13 @@ local function run()
                 "context%.registers%.dynamic%.process%.apply%.build%.alias_compose:"
             )
             and report:find(
-                "context%.registers_before%.dynamic%.process:"
+                "context%.registers_before%.dynamic:"
             )
             and report:find(
-                "context%.registers_before%.dynamic%.process%.parse:"
+                "context%.registers_before%.static:"
+            )
+            and report:find(
+                "context%.registers_before%.presentation:"
             )
             and report:find(
                 "context%.stack:"
@@ -317,9 +298,21 @@ local function run()
         "nested context phases missing from report"
     )
 
+    assert(
+        snapshot.phases[
+            "context.registers_before.dynamic.process"
+        ] == nil,
+        "Registers-before unexpectedly restored an independent replay phase"
+    )
+
     print(
         "PASS ASM context profile: "
             .. "nested phases appear in report"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "Registers-before reuses paired replay without process phase"
     )
 
     print(
