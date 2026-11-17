@@ -1040,6 +1040,12 @@ function M.collect_boundary_effects(
                             opts
                         )
 
+                    if opts.profile_prefix then
+                        replay_opts.profile_prefix =
+                            opts.profile_prefix
+                            .. ".read_context.register_replay"
+                    end
+
                     return register_effect_pipeline
                         .new_replay_session(
                             context,

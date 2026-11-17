@@ -166,6 +166,13 @@ local function run()
         "context.stack.static",
         "context.stack.sort",
         "context.boundary",
+        "context.boundary.index",
+        "context.boundary.replay_session",
+        "context.boundary.collect",
+        "context.boundary.nodes",
+        "context.boundary.parse",
+        "context.boundary.read_context",
+        "context.boundary.apply",
         "context.instruction_events",
         "context.source_memory",
         "context.source_memory.effect_index",
@@ -264,6 +271,12 @@ local function run()
             )
             and report:find(
                 "context%.stack%.dynamic%.apply_register:"
+            )
+            and report:find(
+                "context%.boundary%.nodes:"
+            )
+            and report:find(
+                "context%.boundary%.read_context:"
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate:"

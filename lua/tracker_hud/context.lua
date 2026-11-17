@@ -663,12 +663,19 @@ local function attach_context_sections(
             .collect_boundary_effects(
                 context,
                 adapter,
-                {
-                    bufnr = bufnr,
-                    root_node = root_node,
-                    register_source_cache =
-                        register_source_cache,
-                }
+                vim.tbl_extend(
+                    "force",
+                    {
+                        bufnr = bufnr,
+                        root_node = root_node,
+                        register_source_cache =
+                            register_source_cache,
+                    },
+                    nested_profile_options(
+                        profile_token,
+                        "context.boundary"
+                    )
+                )
             )
 
     profile_end(
