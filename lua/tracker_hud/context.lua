@@ -555,25 +555,63 @@ local function attach_context_sections(
             "context.registers"
         )
 
-    context.registers =
-        registers.collect(
-            context,
-            adapter,
-            vim.tbl_extend(
-                "force",
-                {
-                    bufnr = bufnr,
-                    root_node = root_node,
-                    config = config,
-                    register_source_cache =
-                        register_source_cache,
-                },
-                nested_profile_options(
-                    profile_token,
-                    "context.registers"
+    local paired_before_dynamic = nil
+
+    if context.cursor
+        and type(context.cursor.line)
+            == "number"
+    then
+        context.registers,
+            paired_before_dynamic =
+            registers
+                .collect_with_before_snapshot(
+                    context,
+                    adapter,
+                    vim.tbl_extend(
+                        "force",
+                        {
+                            bufnr = bufnr,
+                            root_node = root_node,
+                            config = config,
+                            register_source_cache =
+                                register_source_cache,
+                        },
+                        nested_profile_options(
+                            profile_token,
+                            "context.registers"
+                        )
+                    ),
+                    {
+                        line =
+                            context.cursor.line,
+                        column = 0,
+                    }
+                )
+    end
+
+    -- If paired replay cannot be constructed, preserve the existing independent
+    -- collection path rather than weakening source-time register semantics.
+    if context.registers == nil then
+        context.registers =
+            registers.collect(
+                context,
+                adapter,
+                vim.tbl_extend(
+                    "force",
+                    {
+                        bufnr = bufnr,
+                        root_node = root_node,
+                        config = config,
+                        register_source_cache =
+                            register_source_cache,
+                    },
+                    nested_profile_options(
+                        profile_token,
+                        "context.registers"
+                    )
                 )
             )
-        )
+    end
 
     profile_end(
         profile_token,
@@ -582,10 +620,9 @@ local function attach_context_sections(
     )
 
     -- Keep an explicit reduced snapshot from BEFORE the current source line.
-    -- The normal Registers collection may already contain a latest effect from
-    -- this line even when the cursor is still on its mnemonic and the effect's
-    -- source column is not visible yet. Alternate presenters need the prior
-    -- family state so history does not visually disappear during that gap.
+    -- The paired path snapshots this state before advancing the same reducer to
+    -- the normal cursor-visible state. If paired replay is unavailable, fall
+    -- back to the original independent reduction.
     context.registers_before_current_line = {}
 
     phase =
@@ -598,29 +635,37 @@ local function attach_context_sections(
         and type(context.cursor.line)
             == "number"
     then
+        local before_opts =
+            vim.tbl_extend(
+                "force",
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                    config = config,
+                    register_source_cache =
+                        register_source_cache,
+                    limit_position = {
+                        line =
+                            context.cursor.line,
+                        column = 0,
+                    },
+                },
+                nested_profile_options(
+                    profile_token,
+                    "context.registers_before"
+                )
+            )
+
+        if paired_before_dynamic ~= nil then
+            before_opts.dynamic_registers =
+                paired_before_dynamic
+        end
+
         context.registers_before_current_line =
             registers.collect(
                 context,
                 adapter,
-                vim.tbl_extend(
-                    "force",
-                    {
-                        bufnr = bufnr,
-                        root_node = root_node,
-                        config = config,
-                        register_source_cache =
-                            register_source_cache,
-                        limit_position = {
-                            line =
-                                context.cursor.line,
-                            column = 0,
-                        },
-                    },
-                    nested_profile_options(
-                        profile_token,
-                        "context.registers_before"
-                    )
-                )
+                before_opts
             )
     end
 

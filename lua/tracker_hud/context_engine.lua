@@ -695,6 +695,94 @@ function M.collect_register_effects(
 end
 
 
+function M.collect_register_effect_pair(
+    context,
+    adapter,
+    opts
+)
+    opts = opts or {}
+
+    if not opts.before_position then
+        return nil, nil
+    end
+
+    local phase =
+        register_profile_begin(
+            opts,
+            "prepare_source"
+        )
+
+    opts.prepared_source =
+        opts.prepared_source
+        or get_prepared_register_source(
+            adapter,
+            opts
+        )
+
+    register_profile_end(
+        opts,
+        "prepare_source",
+        phase
+    )
+
+    if not opts.prepared_source then
+        return nil, nil
+    end
+
+    local replay_opts = {}
+
+    for key, value in pairs(opts) do
+        replay_opts[key] = value
+    end
+
+    replay_opts.profile_prefix =
+        register_profile_name(
+            opts,
+            "process"
+        )
+
+    local session =
+        register_effect_pipeline
+            .new_replay_session(
+                context,
+                adapter,
+                replay_opts,
+                register_pipeline_dependencies(
+                    adapter,
+                    opts.bufnr,
+                    opts.register_source_cache
+                )
+            )
+
+    if not session then
+        return nil, nil
+    end
+
+    phase =
+        register_profile_begin(
+            opts,
+            "process"
+        )
+
+    local before, visible =
+        session:collect_before_and_visible(
+            opts.before_position,
+            context,
+            {
+                config = opts.config,
+            }
+        )
+
+    register_profile_end(
+        opts,
+        "process",
+        phase
+    )
+
+    return before, visible
+end
+
+
 -- Source-time address evaluation is shared by memory and register discovery.
 
 

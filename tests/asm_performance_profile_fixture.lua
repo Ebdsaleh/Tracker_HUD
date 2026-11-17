@@ -266,25 +266,6 @@ local function run()
         "context.registers.dynamic.process.apply.build.metadata.source_merge",
         "context.registers.dynamic.process.apply.publish",
         "context.registers.dynamic.process.snapshot",
-        "context.registers_before.dynamic.process",
-        "context.registers_before.dynamic.process.parse",
-        "context.registers_before.dynamic.process.prepare_state",
-        "context.registers_before.dynamic.process.apply",
-        "context.registers_before.dynamic.process.apply.match",
-        "context.registers_before.dynamic.process.apply.build",
-        "context.registers_before.dynamic.process.apply.build.target",
-        "context.registers_before.dynamic.process.apply.build.resolve_value",
-        "context.registers_before.dynamic.process.apply.build.width_policy",
-        "context.registers_before.dynamic.process.apply.build.alias_lookup",
-        "context.registers_before.dynamic.process.apply.build.alias_compose",
-        "context.registers_before.dynamic.process.apply.build.static_spec",
-        "context.registers_before.dynamic.process.apply.build.metadata",
-        "context.registers_before.dynamic.process.apply.build.metadata.base",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_integer_merge",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_build",
-        "context.registers_before.dynamic.process.apply.build.metadata.source_merge",
-        "context.registers_before.dynamic.process.apply.publish",
-        "context.registers_before.dynamic.process.snapshot",
         "context.stack",
         "context.stack.dynamic",
         "context.stack.dynamic.index",
@@ -349,7 +330,6 @@ local function run()
 
     local required_counters = {
         "context.registers.dynamic.process.processed_entries",
-        "context.registers_before.dynamic.process.processed_entries",
         "context.stack.dynamic.processed_entries",
         "context.boundary.read_context.register_replay.processed_entries",
         "context.source_memory.collect.evaluate.register_replay.processed_entries",
@@ -368,6 +348,18 @@ local function run()
                 .. tostring(name)
         )
     end
+
+    assert(
+        snapshot.counters[
+            "context.registers_before.dynamic.process.processed_entries"
+        ] == nil,
+        "Registers-before unexpectedly replayed the shared register prefix"
+    )
+
+    print(
+        "[Tracker_HUD] Paired register replay: "
+            .. "Registers-before reuses current reduction"
+    )
 
     print(
         "[Tracker_HUD] Automated ASM performance profile"

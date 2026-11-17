@@ -48,6 +48,7 @@ local original_collect_instruction =
 local prepare_calls = 0
 local collect_calls = 0
 local replay_calls = 0
+local paired_replay_queries = 0
 local parse_calls = 0
 
 local parse_node = {}
@@ -132,6 +133,37 @@ local replay_sentinel = {
     collect_before = function()
         return {}
     end,
+
+    collect_before_and_visible =
+        function(
+            _self,
+            before_position,
+            visible_context,
+            visible_opts
+        )
+            paired_replay_queries =
+                paired_replay_queries + 1
+
+            assert(
+                before_position.line == 10
+                    and before_position.column == 0
+                    and visible_context.cursor.line == 10
+                    and visible_opts.config.marker == "config",
+                "paired register replay query inputs changed"
+            )
+
+            return {
+                {
+                    name = "rax",
+                    value = "before",
+                },
+            }, {
+                {
+                    name = "rax",
+                    value = "visible",
+                },
+            }
+        end,
 }
 
 register_pipeline.new_replay_session =
@@ -261,6 +293,33 @@ local ok, err =
                 }
             )
 
+            local paired_before,
+                paired_visible =
+                engine.collect_register_effect_pair(
+                    context,
+                    adapter,
+                    {
+                        bufnr = 77,
+                        root_node = "root",
+                        register_source_cache =
+                            cache,
+                        before_position = {
+                            line = 10,
+                            column = 0,
+                        },
+                        config = {
+                            marker = "config",
+                        },
+                    }
+                )
+
+            assert(
+                paired_before[1].value == "before"
+                    and paired_visible[1].value == "visible"
+                    and paired_replay_queries == 1,
+                "context engine paired register replay changed"
+            )
+
             engine.collect_boundary_effects(
                 context,
                 adapter,
@@ -294,8 +353,8 @@ local ok, err =
             )
 
             assert(
-                replay_calls == 2,
-                "boundary/source-memory did not create independent replay sessions"
+                replay_calls == 3,
+                "paired/boundary/source-memory replay-session ownership changed"
             )
 
             assert(
@@ -310,7 +369,12 @@ local ok, err =
 
             print(
                 "PASS context register source cache: "
-                    .. "one immutable index serves four consumers"
+                    .. "one immutable index serves paired and independent consumers"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "paired before/visible register state uses one replay session"
             )
 
             assert(

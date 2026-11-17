@@ -227,11 +227,19 @@ local function collect_engine_register_effects(registers, seen, context, adapter
         return
     end
 
-    local dynamic_registers = context_engine.collect_register_effects(
-        context,
-        adapter,
+    local dynamic_registers =
         opts
-    )
+        and opts.dynamic_registers
+        or nil
+
+    if not core.is_table(dynamic_registers) then
+        dynamic_registers =
+            context_engine.collect_register_effects(
+                context,
+                adapter,
+                opts
+            )
+    end
 
     if not core.is_table(dynamic_registers) then
         return
@@ -375,37 +383,14 @@ local function apply_register_presentation(registers, adapter, opts)
     end
 end
 
-function M.collect(context, adapter, opts)
-    local registers, seen = M.new_collection()
-
-    opts = opts or {}
-
-    if not M.is_enabled(opts) then
-        return registers
-    end
-
-    -- Dynamic facts go first so they override same-id static architecture rows.
+local function finish_collection(
+    registers,
+    seen,
+    context,
+    adapter,
+    opts
+)
     local phase =
-        profile_begin(
-            opts,
-            "dynamic"
-        )
-
-    collect_engine_register_effects(
-        registers,
-        seen,
-        context,
-        adapter,
-        opts
-    )
-
-    profile_end(
-        opts,
-        "dynamic",
-        phase
-    )
-
-    phase =
         profile_begin(
             opts,
             "static"
@@ -443,6 +428,127 @@ function M.collect(context, adapter, opts)
     )
 
     return registers
+end
+
+
+function M.collect(context, adapter, opts)
+    local registers, seen = M.new_collection()
+
+    opts = opts or {}
+
+    if not M.is_enabled(opts) then
+        return registers
+    end
+
+    -- Dynamic facts go first so they override same-id static architecture rows.
+    local phase =
+        profile_begin(
+            opts,
+            "dynamic"
+        )
+
+    collect_engine_register_effects(
+        registers,
+        seen,
+        context,
+        adapter,
+        opts
+    )
+
+    profile_end(
+        opts,
+        "dynamic",
+        phase
+    )
+
+    return finish_collection(
+        registers,
+        seen,
+        context,
+        adapter,
+        opts
+    )
+end
+
+
+function M.collect_with_before_snapshot(
+    context,
+    adapter,
+    opts,
+    before_position
+)
+    local registers, seen =
+        M.new_collection()
+
+    opts = opts or {}
+
+    if not M.is_enabled(opts) then
+        return registers, {}
+    end
+
+    local pair_opts = {}
+
+    for key, value in pairs(opts) do
+        pair_opts[key] = value
+    end
+
+    pair_opts.before_position =
+        before_position
+
+    local phase =
+        profile_begin(
+            opts,
+            "dynamic"
+        )
+
+    local before_dynamic,
+        visible_dynamic =
+        context_engine
+            .collect_register_effect_pair(
+                context,
+                adapter,
+                pair_opts
+            )
+
+    if not core.is_table(before_dynamic)
+        or not core.is_table(visible_dynamic)
+    then
+        profile_end(
+            opts,
+            "dynamic",
+            phase
+        )
+
+        return nil, nil
+    end
+
+    for _, register_spec in ipairs(
+        visible_dynamic
+    ) do
+        add_normalized_register(
+            registers,
+            seen,
+            register_spec,
+            context,
+            adapter,
+            "analysis"
+        )
+    end
+
+    profile_end(
+        opts,
+        "dynamic",
+        phase
+    )
+
+    return finish_collection(
+        registers,
+        seen,
+        context,
+        adapter,
+        opts
+    ),
+        before_dynamic
 end
 
 return M
