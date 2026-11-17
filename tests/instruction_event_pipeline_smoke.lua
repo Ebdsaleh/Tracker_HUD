@@ -51,6 +51,8 @@ local node =
         11
     )
 
+local root_walks = 0
+
 local root =
     fake_node(
         "program",
@@ -62,6 +64,17 @@ local root =
             node,
         }
     )
+
+local original_root_iter_children =
+    root.iter_children
+
+function root:iter_children()
+    root_walks =
+        root_walks + 1
+
+    return original_root_iter_children(self)
+end
+
 
 local event_spec = {
     syntax = {
@@ -217,6 +230,77 @@ end
 
 print(
     "PASS instruction event pipeline: all collection profile phases recorded"
+)
+
+assert(
+    root_walks > 0,
+    "standalone instruction-event pipeline did not retain recursive node fallback"
+)
+
+print(
+    "PASS instruction event pipeline: standalone node traversal fallback preserved"
+)
+
+root_walks = 0
+
+local prepared_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 1,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 11,
+            root_node = root,
+            prepared_register_source = {
+                effect_index = {
+                    node_types = {
+                        instruction = true,
+                    },
+                },
+                nodes = {
+                    {
+                        node = node,
+                        line = 1,
+                        column = 0,
+                    },
+                },
+            },
+        },
+        {
+            parse_instruction = function(
+                seen_node,
+                representative
+            )
+                assert(
+                    seen_node == node
+                        and representative == event_spec,
+                    "prepared instruction-event parse dispatch changed"
+                )
+
+                return instruction
+            end,
+        }
+    )
+
+assert(
+    root_walks == 0,
+    "complete prepared register-node coverage did not bypass instruction-event tree walk"
+)
+
+assert(
+    #prepared_facts == 1
+        and prepared_facts[1].name == "call"
+        and prepared_facts[1].kind == "control_event"
+        and prepared_facts[1].category == "control_flow",
+    "prepared-node instruction-event collection changed semantic result"
+)
+
+print(
+    "PASS instruction event pipeline: prepared register nodes bypass duplicate traversal"
 )
 
 assert(

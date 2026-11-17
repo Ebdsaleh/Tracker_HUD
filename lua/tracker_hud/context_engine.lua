@@ -1077,6 +1077,13 @@ function M.collect_instruction_events(
 )
     opts = opts or {}
 
+    opts.prepared_register_source =
+        opts.prepared_register_source
+        or get_prepared_register_source(
+            adapter,
+            opts
+        )
+
     return instruction_event_pipeline.collect(
         context,
         adapter,
