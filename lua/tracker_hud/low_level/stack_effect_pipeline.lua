@@ -187,6 +187,17 @@ function M.collect(
                     representative_effect_spec
                 )
 
+            if type(opts.profile_counter)
+                == "function"
+            then
+                opts.profile_counter(
+                    (opts.profile_prefix
+                        or "context.stack")
+                        .. ".dynamic.processed_entries",
+                    1
+                )
+            end
+
             profile_end(
                 opts,
                 "parse",

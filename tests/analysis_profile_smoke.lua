@@ -199,6 +199,20 @@ profile.end_phase(
     44000000
 )
 
+assert(
+    profile.add_counter(
+        repeated,
+        "replay.entries",
+        3
+    ) == 3
+        and profile.add_counter(
+            repeated,
+            "replay.entries",
+            2
+        ) == 5,
+    "profile counter accumulation changed"
+)
+
 profile.finish_refresh(
     repeated,
     {
@@ -215,6 +229,51 @@ assert(
             .average_ms == 3,
     "repeated phase timings did not accumulate within one refresh"
 )
+local counter_snapshot =
+    profile.snapshot()
+
+assert(
+    repeated.counters[
+        "replay.entries"
+    ] == 5
+        and counter_snapshot.counters[
+            "replay.entries"
+        ].count == 1
+        and counter_snapshot.counters[
+            "replay.entries"
+        ].average == 5
+        and counter_snapshot.samples[
+            #counter_snapshot.samples
+        ].counters[
+            "replay.entries"
+        ] == 5,
+    "profile counter aggregation changed"
+)
+
+local report =
+    table.concat(
+        profile.format_report({
+            recent = 1,
+        }),
+        "\n"
+    )
+
+assert(
+    report:find(
+        "work.replay.entries:",
+        1,
+        true
+    )
+        and report:find(
+            "replay.entries=5",
+            1,
+            true
+        ),
+    "profile counter report changed"
+)
+
+print("PASS analysis profile: work counters aggregate and report")
+
 print("PASS analysis profile: repeated phase timings accumulate")
 
 profile.set_enabled(false)

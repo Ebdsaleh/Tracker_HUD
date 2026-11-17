@@ -788,6 +788,8 @@ local function collect_memory_source_operands_where(
             opts.profile_begin,
         profile_end =
             opts.profile_end,
+        profile_counter =
+            opts.profile_counter,
     }
 
     local register_replay_session =

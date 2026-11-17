@@ -347,6 +347,28 @@ local function run()
         )
     end
 
+    local required_counters = {
+        "context.registers.dynamic.process.processed_entries",
+        "context.registers_before.dynamic.process.processed_entries",
+        "context.stack.dynamic.processed_entries",
+        "context.boundary.read_context.register_replay.processed_entries",
+        "context.source_memory.collect.evaluate.register_replay.processed_entries",
+    }
+
+    for _, name in ipairs(
+        required_counters
+    ) do
+        local counter =
+            snapshot.counters[name]
+
+        assert(
+            type(counter) == "table"
+                and counter.count > 0,
+            "automated performance fixture missing replay-work counter: "
+                .. tostring(name)
+        )
+    end
+
     print(
         "[Tracker_HUD] Automated ASM performance profile"
     )

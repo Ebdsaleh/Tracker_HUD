@@ -76,6 +76,15 @@ local function nested_profile_options(
                     started
                 )
             end,
+        profile_counter =
+            function(name, delta)
+                return analysis_profile
+                    .add_counter(
+                        profile_token,
+                        name,
+                        delta
+                    )
+            end,
     }
 end
 

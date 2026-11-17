@@ -20,6 +20,7 @@ local state = {
     refresh_count = 0,
     reasons = {},
     phases = {},
+    counters = {},
     last_cursor_by_buffer = {},
     seen_buffers = {},
 }
@@ -203,6 +204,7 @@ function M.reset()
     state.refresh_count = 0
     state.reasons = {}
     state.phases = {}
+    state.counters = {}
     state.last_cursor_by_buffer = {}
     state.seen_buffers = {}
 end
@@ -328,6 +330,7 @@ function M.begin_refresh(
             timestamp_ns
             or now_ns(),
         phases = {},
+        counters = {},
         phase_started = {},
         finished = false,
     }
@@ -399,6 +402,33 @@ function M.end_phase(
 end
 
 
+function M.add_counter(
+    token,
+    name,
+    delta
+)
+    if type(token) ~= "table"
+        or token.finished == true
+        or type(name) ~= "string"
+        or name == ""
+    then
+        return nil
+    end
+
+    local value = tonumber(delta)
+
+    if not value then
+        return nil
+    end
+
+    token.counters[name] =
+        (token.counters[name] or 0)
+        + value
+
+    return token.counters[name]
+end
+
+
 function M.finish_refresh(
     token,
     outcome,
@@ -454,6 +484,41 @@ function M.finish_refresh(
         )
     end
 
+    for name, value in pairs(
+        token.counters
+    ) do
+        local counter =
+            state.counters[name]
+            or {
+                count = 0,
+                total = 0,
+                min = nil,
+                max = nil,
+            }
+
+        counter.count =
+            counter.count + 1
+        counter.total =
+            counter.total + value
+        counter.min =
+            counter.min == nil
+            and value
+            or math.min(
+                counter.min,
+                value
+            )
+        counter.max =
+            counter.max == nil
+            and value
+            or math.max(
+                counter.max,
+                value
+            )
+
+        state.counters[name] =
+            counter
+    end
+
     table.insert(
         state.samples,
         {
@@ -471,6 +536,10 @@ function M.finish_refresh(
             phases =
                 copy_table(
                     token.phases
+                ),
+            counters =
+                copy_table(
+                    token.counters
                 ),
             updated =
                 token.updated,
@@ -525,6 +594,24 @@ function M.snapshot()
         }
     end
 
+    local counters = {}
+
+    for name, counter in pairs(
+        state.counters
+    ) do
+        counters[name] = {
+            count = counter.count,
+            total = counter.total,
+            min = counter.min,
+            max = counter.max,
+            average =
+                counter.count > 0
+                and counter.total
+                    / counter.count
+                or 0,
+        }
+    end
+
     local samples = {}
 
     for index, sample in ipairs(
@@ -546,6 +633,10 @@ function M.snapshot()
                 copy_table(
                     sample.phases
                 ),
+            counters =
+                copy_table(
+                    sample.counters
+                ),
             updated =
                 sample.updated,
             failed =
@@ -566,6 +657,7 @@ function M.snapshot()
                 state.reasons
             ),
         phases = phases,
+        counters = counters,
         samples = samples,
     }
 end
@@ -652,6 +744,26 @@ function M.format_report(opts)
                 phase.count,
                 phase.average_ms,
                 phase.max_ms or 0
+            )
+        )
+    end
+
+    for _, name in ipairs(
+        sorted_keys(
+            snapshot.counters
+        )
+    ) do
+        local counter =
+            snapshot.counters[name]
+
+        table.insert(
+            lines,
+            string.format(
+                "work.%s: n=%d avg=%.2f max=%.0f",
+                name,
+                counter.count,
+                counter.average,
+                counter.max or 0
             )
         )
     end
@@ -755,10 +867,54 @@ function M.format_report(opts)
             )
         end
 
+        local counter_items = {}
+
+        for name, value in pairs(
+            sample.counters or {}
+        ) do
+            table.insert(
+                counter_items,
+                {
+                    name = name,
+                    value = value,
+                }
+            )
+        end
+
+        table.sort(
+            counter_items,
+            function(left, right)
+                if left.value == right.value then
+                    return left.name < right.name
+                end
+
+                return left.value > right.value
+            end
+        )
+
+        local counter_parts = {}
+
+        for counter_index = 1,
+            math.min(
+                #counter_items,
+                5
+            )
+        do
+            local item =
+                counter_items[counter_index]
+
+            table.insert(
+                counter_parts,
+                item.name
+                    .. "="
+                    .. tostring(item.value)
+            )
+        end
+
         table.insert(
             lines,
             string.format(
-                "#%d %s line=%s delta=%s total=%.3f ms%s%s",
+                "#%d %s line=%s delta=%s total=%.3f ms%s%s%s",
                 index,
                 sample.reason,
                 tostring(
@@ -782,6 +938,14 @@ function M.format_report(opts)
                     and " top=["
                         .. table.concat(
                             nested_parts,
+                            " "
+                        )
+                        .. "]"
+                    or "",
+                #counter_parts > 0
+                    and " work=["
+                        .. table.concat(
+                            counter_parts,
                             " "
                         )
                         .. "]"

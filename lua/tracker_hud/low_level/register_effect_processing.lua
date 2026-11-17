@@ -70,6 +70,28 @@ local function profile_end(
 end
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_counter(
+        profile_name(
+            opts,
+            suffix
+        ),
+        delta
+    )
+end
+
+
 local function dependencies_are_valid(
     opts
 )
@@ -264,6 +286,12 @@ function M.advance_while(
 
         advanced = advanced + 1
     end
+
+    profile_counter(
+        session.opts,
+        "processed_entries",
+        advanced
+    )
 
     return advanced
 end
