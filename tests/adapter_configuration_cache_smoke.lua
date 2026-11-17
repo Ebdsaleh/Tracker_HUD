@@ -295,8 +295,10 @@ registry.clear()
 
 adapter.validation_stable_components = {
     register_effects = true,
+    instruction_events = true,
 }
 adapter.register_effects = {}
+adapter.instruction_events = {}
 
 registered,
     register_error =
@@ -339,6 +341,12 @@ assert(
         ] == 1
         and profile_counts[
             "context.configure.validate.register_effects"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.instruction_events_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.instruction_events"
         ] == nil,
     "stable component identity did not reuse prior successful validation"
 )
@@ -362,6 +370,9 @@ assert(
     ok
         and profile_counts[
             "context.configure.validate.register_effects"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.instruction_events"
         ] == 1,
     "revoked stable-component declaration still reused validation"
 )
@@ -373,6 +384,7 @@ print(
 
 adapter.validation_stable_components = {
     register_effects = true,
+    instruction_events = true,
 }
 
 registry.clear()
@@ -419,6 +431,58 @@ print(
     "PASS adapter validation reuse: "
         .. "replacement identity forces contract validation"
 )
+
+adapter.register_effects = {}
+adapter.instruction_events = {}
+
+registry.clear()
+
+registered,
+    register_error =
+    registry.register(
+        adapter
+    )
+
+assert(
+    registered,
+    tostring(register_error)
+)
+
+profile_counts = {}
+
+adapter.instruction_events = {
+    call = {},
+}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "lua",
+        buffer_a,
+        config_b,
+        profile_opts
+    )
+
+assert(
+    ok == false
+        and tostring(err):find(
+            "instruction_events.call",
+            1,
+            true
+        ) ~= nil
+        and profile_counts[
+            "context.configure.validate.instruction_events"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.instruction_events_reuse"
+        ] == nil,
+    "replacement stable instruction-event component did not force full validation"
+)
+
+print(
+    "PASS adapter validation reuse: "
+        .. "instruction-event replacement identity forces contract validation"
+)
+
 
 print(
     "PASS Tracker_HUD adapter-configuration cache smoke"

@@ -166,7 +166,7 @@ local function run()
         "context.configure.validate.instruction_parser",
         "context.configure.validate.memory_accesses",
         "context.configure.validate.register_effects_reuse",
-        "context.configure.validate.instruction_events",
+        "context.configure.validate.instruction_events_reuse",
         "context.configure.validate.stack_effects",
         "context.configure.validate.boundary_effects",
         "context.configure.remember",
@@ -215,9 +215,24 @@ local function run()
         "stable ASM register-effect table was redundantly revalidated"
     )
 
+    assert(
+        snapshot.phases[
+            "context.configure.validate.instruction_events"
+        ] == nil
+            and snapshot.phases[
+                "context.configure.validate.instruction_events_reuse"
+            ] ~= nil,
+        "stable ASM instruction-event table was redundantly revalidated"
+    )
+
     print(
         "PASS ASM configure profile: "
             .. "stable register-effect validation is reused by identity"
+    )
+
+    print(
+        "PASS ASM configure profile: "
+            .. "stable instruction-event validation is reused by identity"
     )
 
     print(

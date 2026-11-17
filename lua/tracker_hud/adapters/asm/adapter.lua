@@ -74,11 +74,12 @@ M.target_directives = {
     mode = "mode",
 }
 
--- Variant-owned register-effect rule tables are module constants.
--- Configuration replaces this table when the architecture variant changes;
--- it does not mutate a selected variant's rule table in place.
+-- Variant-owned instruction rule tables are module constants.
+-- Configuration replaces these tables when the architecture variant changes;
+-- it does not mutate a selected variant's rule tables in place.
 M.validation_stable_components = {
     register_effects = true,
+    instruction_events = true,
 }
 
 
@@ -829,5 +830,4 @@ M.comments = build_comments_for_syntax(default_variant or {}, M.active_targets.s
 
 
 return M
-
 

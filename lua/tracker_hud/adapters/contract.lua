@@ -1502,6 +1502,7 @@ end
 
 local reusable_validation_components = {
     register_effects = true,
+    instruction_events = true,
 }
 
 
@@ -1987,21 +1988,33 @@ function M.validate_adapter(
         end
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "instruction_events",
+        adapter.instruction_events
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.instruction_events",
-            validate_instruction_rule_set,
-            adapter.instruction_events,
-            "instruction_events",
-            {
-                require_effect = true,
-                require_event = true,
-            }
+            "context.configure.validate.instruction_events_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.instruction_events",
+                validate_instruction_rule_set,
+                adapter.instruction_events,
+                "instruction_events",
+                {
+                    require_effect = true,
+                    require_event = true,
+                }
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     ok, err =
