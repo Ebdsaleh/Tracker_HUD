@@ -361,4 +361,171 @@ assert(
 )
 print("PASS boundary pipeline: invalid inputs fail closed")
 
+
+local timeline_calls = 0
+local forbidden_replay_calls = 0
+
+local timeline_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 1,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 7,
+            root_node = root,
+            register_timeline = {
+                snapshot_before =
+                    function(
+                        _self,
+                        position
+                    )
+                        timeline_calls =
+                            timeline_calls + 1
+
+                        assert(
+                            position.line == 1
+                                and position.column == 0,
+                            "boundary timeline query position changed"
+                        )
+
+                        return {
+                            {
+                                name = "rax",
+                                value = "1",
+                                resolved = true,
+                            },
+                        }
+                    end,
+            },
+        },
+        {
+            parse_instruction = function()
+                return instruction
+            end,
+
+            collect_register_effects =
+                function()
+                    forbidden_replay_calls =
+                        forbidden_replay_calls + 1
+                    error(
+                        "boundary timeline hit unexpectedly used full register replay"
+                    )
+                end,
+
+            create_register_replay_session =
+                function()
+                    return {
+                        collect_before =
+                            function()
+                                forbidden_replay_calls =
+                                    forbidden_replay_calls + 1
+                                error(
+                                    "boundary timeline hit unexpectedly used replay session"
+                                )
+                            end,
+                    }
+                end,
+        }
+    )
+
+assert(
+    timeline_calls == 1
+        and forbidden_replay_calls == 0
+        and #timeline_facts == 1
+        and timeline_facts[1].effect_key
+            == "1",
+    "boundary timeline did not preserve pre-instruction read semantics"
+)
+
+print(
+    "PASS boundary pipeline: "
+        .. "timeline hit replaces independent register replay"
+)
+
+local timeline_misses = 0
+local timeline_fallback_calls = 0
+
+local fallback_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 1,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 7,
+            root_node = root,
+            register_timeline = {
+                snapshot_before =
+                    function()
+                        timeline_misses =
+                            timeline_misses + 1
+                        return nil
+                    end,
+            },
+        },
+        {
+            parse_instruction = function()
+                return instruction
+            end,
+
+            collect_register_effects =
+                function()
+                    error(
+                        "timeline fallback should prefer replay session when available"
+                    )
+                end,
+
+            create_register_replay_session =
+                function()
+                    return {
+                        collect_before =
+                            function(
+                                _self,
+                                position
+                            )
+                                timeline_fallback_calls =
+                                    timeline_fallback_calls
+                                    + 1
+
+                                assert(
+                                    position.line == 1
+                                        and position.column == 0,
+                                    "timeline fallback position changed"
+                                )
+
+                                return {
+                                    {
+                                        name = "rax",
+                                        value = "1",
+                                        resolved = true,
+                                    },
+                                }
+                            end,
+                    }
+                end,
+        }
+    )
+
+assert(
+    timeline_misses == 1
+        and timeline_fallback_calls == 1
+        and #fallback_facts == 1
+        and fallback_facts[1].effect_key
+            == "1",
+    "boundary timeline miss did not preserve replay fallback"
+)
+
+print(
+    "PASS boundary pipeline: "
+        .. "timeline miss falls back to independent replay"
+)
+
+
 print("PASS Tracker_HUD boundary-effect pipeline smoke")

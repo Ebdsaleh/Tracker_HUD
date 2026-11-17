@@ -556,13 +556,15 @@ local function attach_context_sections(
         )
 
     local paired_before_dynamic = nil
+    local register_timeline = nil
 
     if context.cursor
         and type(context.cursor.line)
             == "number"
     then
         context.registers,
-            paired_before_dynamic =
+            paired_before_dynamic,
+            register_timeline =
             registers
                 .collect_with_before_snapshot(
                     context,
@@ -724,6 +726,8 @@ local function attach_context_sections(
                         root_node = root_node,
                         register_source_cache =
                             register_source_cache,
+                        register_timeline =
+                            register_timeline,
                     },
                     nested_profile_options(
                         profile_token,

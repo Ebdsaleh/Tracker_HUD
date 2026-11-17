@@ -502,7 +502,8 @@ function M.collect_with_before_snapshot(
         )
 
     local before_dynamic,
-        visible_dynamic =
+        visible_dynamic,
+        register_timeline =
         context_engine
             .collect_register_effect_pair(
                 context,
@@ -548,7 +549,8 @@ function M.collect_with_before_snapshot(
         adapter,
         opts
     ),
-        before_dynamic
+        before_dynamic,
+        register_timeline
 end
 
 return M

@@ -284,6 +284,7 @@ local function run()
         "context.boundary.nodes",
         "context.boundary.parse",
         "context.boundary.read_context",
+        "context.boundary.read_context.timeline_lookup",
         "context.instruction_events",
         "context.instruction_events.index",
         "context.instruction_events.collect",
@@ -332,7 +333,7 @@ local function run()
         "context.registers.dynamic.process.processed_entries",
         "context.registers.dynamic.process.timeline_checkpoints",
         "context.stack.dynamic.processed_entries",
-        "context.boundary.read_context.register_replay.processed_entries",
+        "context.boundary.read_context.timeline_hits",
         "context.source_memory.collect.evaluate.register_replay.processed_entries",
     }
 
@@ -355,6 +356,25 @@ local function run()
             "context.registers_before.dynamic.process.processed_entries"
         ] == nil,
         "Registers-before unexpectedly replayed the shared register prefix"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.boundary.read_context.register_replay.processed_entries"
+        ] == nil,
+        "Boundary unexpectedly replayed register history instead of using timeline"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.boundary.read_context.timeline_fallbacks"
+        ] == nil,
+        "Boundary timeline coverage unexpectedly fell back to register replay"
+    )
+
+    print(
+        "[Tracker_HUD] Boundary register context: "
+            .. "pre-instruction timeline hits without replay fallback"
     )
 
     local processed =

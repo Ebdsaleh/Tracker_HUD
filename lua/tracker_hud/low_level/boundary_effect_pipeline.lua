@@ -44,6 +44,28 @@ local function profile_begin(
 end
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_counter(
+        (opts.profile_prefix
+            or "context.boundary")
+            .. "."
+            .. suffix,
+        delta
+    )
+end
+
+
 local function profile_end(
     opts,
     suffix,
@@ -221,16 +243,72 @@ function M.collect(
                             deps.collect_register_effects,
 
                         collect_register_effects_before =
-                            register_replay_session
-                            and function(
+                            function(
                                 limit_position
                             )
-                                return register_replay_session
-                                    :collect_before(
-                                        limit_position
+                                local timeline =
+                                    opts.register_timeline
+
+                                if core.is_table(
+                                    timeline
+                                )
+                                    and type(
+                                        timeline.snapshot_before
+                                    ) == "function"
+                                then
+                                    local timeline_started =
+                                        profile_begin(
+                                            opts,
+                                            "read_context.timeline_lookup"
+                                        )
+
+                                    local snapshot =
+                                        timeline:snapshot_before(
+                                            limit_position
+                                        )
+
+                                    profile_end(
+                                        opts,
+                                        "read_context.timeline_lookup",
+                                        timeline_started
                                     )
-                            end
-                            or nil,
+
+                                    if snapshot ~= nil then
+                                        profile_counter(
+                                            opts,
+                                            "read_context.timeline_hits",
+                                            1
+                                        )
+
+                                        return snapshot
+                                    end
+
+                                    profile_counter(
+                                        opts,
+                                        "read_context.timeline_fallbacks",
+                                        1
+                                    )
+                                end
+
+                                if register_replay_session then
+                                    return register_replay_session
+                                        :collect_before(
+                                            limit_position
+                                        )
+                                end
+
+                                return deps.collect_register_effects(
+                                    context,
+                                    adapter,
+                                    {
+                                        bufnr = opts.bufnr,
+                                        root_node =
+                                            opts.root_node,
+                                        limit_position =
+                                            limit_position,
+                                    }
+                                )
+                            end,
                     }
                 )
 

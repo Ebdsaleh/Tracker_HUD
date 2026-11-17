@@ -783,7 +783,9 @@ function M.collect_register_effect_pair(
         phase
     )
 
-    return before, visible
+    return before,
+        visible,
+        session:get_timeline()
 end
 
 

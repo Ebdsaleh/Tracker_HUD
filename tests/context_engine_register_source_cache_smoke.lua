@@ -130,9 +130,19 @@ register_pipeline.collect =
         return {}
     end
 
+local timeline_sentinel = {
+    snapshot_before = function()
+        return {}
+    end,
+}
+
 local replay_sentinel = {
     collect_before = function()
         return {}
+    end,
+
+    get_timeline = function()
+        return timeline_sentinel
     end,
 
     collect_before_and_visible =
@@ -213,9 +223,15 @@ boundary_pipeline.collect =
     function(
         _context,
         _adapter,
-        _opts,
+        seen_opts,
         deps
     )
+        assert(
+            seen_opts.register_timeline
+                == timeline_sentinel,
+            "boundary did not receive paired Register timeline"
+        )
+
         assert(
             deps.parse_instruction(
                 parse_node,
@@ -307,7 +323,8 @@ local ok, err =
             )
 
             local paired_before,
-                paired_visible =
+                paired_visible,
+                paired_timeline =
                 engine.collect_register_effect_pair(
                     context,
                     adapter,
@@ -329,6 +346,8 @@ local ok, err =
             assert(
                 paired_before[1].value == "before"
                     and paired_visible[1].value == "visible"
+                    and paired_timeline
+                        == timeline_sentinel
                     and paired_replay_queries == 1,
                 "context engine paired register replay changed"
             )
@@ -341,6 +360,8 @@ local ok, err =
                     root_node = "root",
                     register_source_cache =
                         cache,
+                    register_timeline =
+                        paired_timeline,
                 }
             )
 
@@ -398,6 +419,11 @@ local ok, err =
             print(
                 "PASS context register source cache: "
                     .. "paired before/visible register state uses one replay session"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "paired Register timeline threads into Boundary"
             )
 
             assert(
