@@ -140,7 +140,7 @@ local function run()
         "context.stack.dynamic.parse",
         "context.stack.dynamic.prepare_state",
         "context.stack.dynamic.apply_stack",
-        "context.stack.dynamic.apply_register",
+        "context.stack.dynamic.timeline_lookup",
         "context.stack.static",
         "context.stack.sort",
         "context.boundary",
@@ -248,7 +248,7 @@ local function run()
                 "context%.stack%.dynamic%.nodes:"
             )
             and report:find(
-                "context%.stack%.dynamic%.apply_register:"
+                "context%.stack%.dynamic%.timeline_lookup:"
             )
             and report:find(
                 "context%.boundary%.nodes:"
@@ -301,6 +301,30 @@ local function run()
     )
 
     assert(
+        snapshot.phases[
+            "context.stack.dynamic.apply_register"
+        ] == nil,
+        "Stack unexpectedly restored local register-effect application"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.stack.dynamic.timeline_hits"
+        ]
+            and snapshot.counters[
+                "context.stack.dynamic.timeline_hits"
+            ].total > 0,
+        "Stack timeline-hit counter missing"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.stack.dynamic.timeline_fallbacks"
+        ] == nil,
+        "Stack unexpectedly fell back from Register timeline coverage"
+    )
+
+    assert(
         snapshot.counters[
             "context.source_memory.collect.evaluate.timeline_hits"
         ]
@@ -332,6 +356,11 @@ local function run()
     print(
         "PASS ASM context profile: "
             .. "Source Memory uses timeline lookup without replay reduction"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "Stack uses Register timeline without local register application"
     )
 
     print(

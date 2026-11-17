@@ -274,7 +274,7 @@ local function run()
         "context.stack.dynamic.parse",
         "context.stack.dynamic.prepare_state",
         "context.stack.dynamic.apply_stack",
-        "context.stack.dynamic.apply_register",
+        "context.stack.dynamic.timeline_lookup",
         "context.stack.static",
         "context.stack.sort",
         "context.boundary",
@@ -327,6 +327,7 @@ local function run()
         "context.registers.dynamic.process.processed_entries",
         "context.registers.dynamic.process.timeline_checkpoints",
         "context.stack.dynamic.processed_entries",
+        "context.stack.dynamic.timeline_hits",
         "context.boundary.read_context.timeline_hits",
         "context.source_memory.collect.evaluate.timeline_hits",
     }
@@ -378,6 +379,25 @@ local function run()
             "context.source_memory.collect.evaluate.timeline_fallbacks"
         ] == nil,
         "Source Memory timeline coverage unexpectedly fell back to register replay"
+    )
+
+    assert(
+        snapshot.phases[
+            "context.stack.dynamic.apply_register"
+        ] == nil,
+        "Stack unexpectedly restored local register-effect application"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.stack.dynamic.timeline_fallbacks"
+        ] == nil,
+        "Stack timeline coverage unexpectedly fell back to legacy mixed replay"
+    )
+
+    print(
+        "[Tracker_HUD] Stack register carry: "
+            .. "pre-instruction timeline hits without local register application"
     )
 
     print(

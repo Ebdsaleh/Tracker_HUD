@@ -694,6 +694,8 @@ local function attach_context_sections(
                     root_node = root_node,
                     register_source_cache =
                         register_source_cache,
+                    register_timeline =
+                        register_timeline,
                 },
                 nested_profile_options(
                     profile_token,
