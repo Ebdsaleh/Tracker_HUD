@@ -73,57 +73,6 @@ local function profile_end(
 end
 
 
-local function get_prepared_nodes_by_type(
-    prepared_source,
-    node_type
-)
-    if not core.is_table(
-        prepared_source
-    )
-        or not core.is_table(
-            prepared_source.nodes
-        )
-        or not core.is_table(
-            prepared_source.effect_index
-        )
-        or not core.is_table(
-            prepared_source
-                .effect_index
-                .node_types
-        )
-        or prepared_source
-            .effect_index
-            .node_types[node_type]
-            ~= true
-    then
-        return nil
-    end
-
-    local result = {}
-
-    for _, entry in ipairs(
-        prepared_source.nodes
-    ) do
-        local node =
-            core.is_table(entry)
-            and entry.node
-            or nil
-
-        node = node or entry
-
-        if node
-            and node:type()
-                == node_type
-        then
-            result[#result + 1] =
-                node
-        end
-    end
-
-    return result
-end
-
-
 local function get_stack_index(adapter)
     return stack_effect_index.get(
         adapter,
@@ -198,10 +147,11 @@ function M.collect(
                 )
 
             local nodes =
-                get_prepared_nodes_by_type(
-                    opts.prepared_register_source,
-                    node_type
-                )
+                instruction_source
+                    .get_prepared_nodes_by_type(
+                        opts.prepared_register_source,
+                        node_type
+                    )
 
             if nodes == nil then
                 nodes =

@@ -150,10 +150,19 @@ function M.collect(
 
             local nodes =
                 instruction_source
-                    .collect_nodes_by_type(
-                        opts.root_node,
+                    .get_prepared_nodes_by_type(
+                        opts.prepared_register_source,
                         node_type
                     )
+
+            if nodes == nil then
+                nodes =
+                    instruction_source
+                        .collect_nodes_by_type(
+                            opts.root_node,
+                            node_type
+                        )
+            end
 
             profile_end(
                 opts,

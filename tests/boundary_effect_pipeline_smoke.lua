@@ -51,6 +51,8 @@ local instruction_node =
         7
     )
 
+local root_walks = 0
+
 local root =
     fake_node(
         "program",
@@ -62,6 +64,17 @@ local root =
             instruction_node,
         }
     )
+
+local original_root_iter_children =
+    root.iter_children
+
+function root:iter_children()
+    root_walks =
+        root_walks + 1
+
+    return original_root_iter_children(self)
+end
+
 
 local effect_spec = {
     syntax = {
@@ -253,6 +266,88 @@ end
 
 print(
     "PASS boundary pipeline: all collection profile phases recorded"
+)
+
+assert(
+    root_walks > 0,
+    "standalone boundary pipeline did not retain recursive node fallback"
+)
+
+print(
+    "PASS boundary pipeline: standalone node traversal fallback preserved"
+)
+
+root_walks = 0
+
+local prepared_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 1,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 7,
+            root_node = root,
+            prepared_register_source = {
+                effect_index = {
+                    node_types = {
+                        instruction = true,
+                    },
+                },
+                nodes = {
+                    {
+                        node = instruction_node,
+                        line = 1,
+                        column = 0,
+                    },
+                },
+            },
+        },
+        {
+            parse_instruction = function(
+                node,
+                representative
+            )
+                assert(
+                    node == instruction_node
+                        and representative == effect_spec,
+                    "prepared boundary parse dispatch changed"
+                )
+
+                return instruction
+            end,
+
+            collect_register_effects =
+                function()
+                    return {
+                        {
+                            name = "rax",
+                            value = "1",
+                            resolved = true,
+                        },
+                    }
+                end,
+        }
+    )
+
+assert(
+    root_walks == 0,
+    "complete prepared register-node coverage did not bypass boundary tree walk"
+)
+
+assert(
+    #prepared_facts == 1
+        and prepared_facts[1].kind == "syscall"
+        and prepared_facts[1].name == "write"
+        and prepared_facts[1].effect_key == "1",
+    "prepared-node boundary collection changed semantic result"
+)
+
+print(
+    "PASS boundary pipeline: prepared register nodes bypass duplicate traversal"
 )
 
 assert(
