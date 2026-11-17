@@ -121,6 +121,168 @@ local function run()
             .. "MOV register state reaches PUSH"
     )
 
+    vim.api.nvim_buf_set_lines(
+        buffer,
+        0,
+        -1,
+        false,
+        {
+            "mov rax, 42",
+            "push rax",
+            "pop rbx",
+            "push rbx",
+        }
+    )
+
+    trees = parser:parse()
+
+    assert(
+        trees and trees[1],
+        "ASM parser produced no tree for stack/register feedback proof"
+    )
+
+    root = trees[1]:root()
+
+    local feedback_context = {
+        cursor = {
+            line = 4,
+            column = 200,
+        },
+    }
+
+    local register_source_cache = {}
+
+    local _before,
+        _visible,
+        register_timeline =
+        engine.collect_register_effect_pair(
+            feedback_context,
+            adapter,
+            {
+                bufnr = buffer,
+                root_node = root,
+                register_source_cache =
+                    register_source_cache,
+                before_position = {
+                    line = 4,
+                    column = 0,
+                },
+            }
+        )
+
+    assert(
+        register_timeline,
+        "parser-backed Register timeline was not created for Stack feedback proof"
+    )
+
+    local before_final_push =
+        register_timeline:snapshot_before({
+            line = 4,
+            column = 0,
+        })
+
+    local rbx_before_push = nil
+
+    for _, fact in ipairs(
+        before_final_push or {}
+    ) do
+        if tostring(
+            fact.name or ""
+        ):lower() == "rbx"
+        then
+            rbx_before_push = fact
+            break
+        end
+    end
+
+    assert(
+        rbx_before_push
+            and rbx_before_push.resolved
+                == true
+            and tostring(
+                rbx_before_push.value
+            ) == "42",
+        "Register timeline did not carry PUSH/POP stack feedback into RBX"
+    )
+
+    print(
+        "PASS ASM stack pipeline: "
+            .. "Register timeline carries PUSH/POP feedback into later register state"
+    )
+
+    local legacy_feedback_facts =
+        engine.collect_stack_effects(
+            feedback_context,
+            adapter,
+            {
+                bufnr = buffer,
+                root_node = root,
+                register_source_cache =
+                    register_source_cache,
+            }
+        )
+
+    local timeline_feedback_facts =
+        engine.collect_stack_effects(
+            feedback_context,
+            adapter,
+            {
+                bufnr = buffer,
+                root_node = root,
+                register_source_cache =
+                    register_source_cache,
+                register_timeline =
+                    register_timeline,
+            }
+        )
+
+    local function final_push_value(facts)
+        for index = #facts, 1, -1 do
+            local fact = facts[index]
+
+            if fact.kind == "stack_push"
+                and fact.source_line == 4
+            then
+                return fact.value,
+                    fact.resolved
+            end
+        end
+
+        return nil, false
+    end
+
+    local legacy_value,
+        legacy_resolved =
+        final_push_value(
+            legacy_feedback_facts
+        )
+
+    local timeline_value,
+        timeline_resolved =
+        final_push_value(
+            timeline_feedback_facts
+        )
+
+    assert(
+        legacy_resolved == true
+            and timeline_resolved
+                == true
+            and tostring(
+                legacy_value
+            ) == "42"
+            and tostring(
+                timeline_value
+            ) == tostring(
+                legacy_value
+            ),
+        "timeline-driven Stack changed PUSH/POP/register feedback semantics"
+    )
+
+    print(
+        "PASS ASM stack pipeline: "
+            .. "timeline carry matches legacy mixed reducer across PUSH/POP feedback"
+    )
+
     print(
         "PASS Tracker_HUD ASM "
             .. "stack-effect pipeline smoke"
