@@ -167,13 +167,7 @@ local function run()
         "context.source_memory.collect.evaluate",
         "context.source_memory.collect.evaluate.relative_check",
         "context.source_memory.collect.evaluate.register_replay",
-        "context.source_memory.collect.evaluate.register_replay.parse",
-        "context.source_memory.collect.evaluate.register_replay.prepare_state",
-        "context.source_memory.collect.evaluate.register_replay.apply",
-        "context.source_memory.collect.evaluate.register_replay.apply.match",
-        "context.source_memory.collect.evaluate.register_replay.apply.build",
-        "context.source_memory.collect.evaluate.register_replay.apply.publish",
-        "context.source_memory.collect.evaluate.register_replay.snapshot",
+        "context.source_memory.collect.evaluate.timeline_lookup",
         "context.source_memory.collect.evaluate.fact_map",
         "context.source_memory.collect.evaluate.effective_address",
         "context.source_memory.collect.role_access",
@@ -275,16 +269,7 @@ local function run()
                 "context%.source_memory%.collect%.evaluate%.register_replay:"
             )
             and report:find(
-                "context%.source_memory%.collect%.evaluate%.register_replay%.parse:"
-            )
-            and report:find(
-                "context%.source_memory%.collect%.evaluate%.register_replay%.apply:"
-            )
-            and report:find(
-                "context%.source_memory%.collect%.evaluate%.register_replay%.apply%.build:"
-            )
-            and report:find(
-                "context%.source_memory%.collect%.evaluate%.register_replay%.apply%.match:"
+                "context%.source_memory%.collect%.evaluate%.timeline_lookup:"
             )
             and report:find(
                 "context%.source_memory%.collect%.evaluate%.effective_address:"
@@ -305,9 +290,48 @@ local function run()
         "Registers-before unexpectedly restored an independent replay phase"
     )
 
+    assert(
+        snapshot.phases[
+            "context.source_memory.collect.evaluate.register_replay.parse"
+        ] == nil
+            and snapshot.phases[
+                "context.source_memory.collect.evaluate.register_replay.apply"
+            ] == nil,
+        "Source Memory unexpectedly restored independent register reduction phases"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.source_memory.collect.evaluate.timeline_hits"
+        ]
+            and snapshot.counters[
+                "context.source_memory.collect.evaluate.timeline_hits"
+            ].total > 0,
+        "Source Memory timeline-hit counter missing"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.source_memory.collect.evaluate.register_replay.processed_entries"
+        ] == nil,
+        "Source Memory unexpectedly replayed register history"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.source_memory.collect.evaluate.timeline_fallbacks"
+        ] == nil,
+        "Source Memory unexpectedly fell back from timeline coverage"
+    )
+
     print(
         "PASS ASM context profile: "
             .. "nested phases appear in report"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "Source Memory uses timeline lookup without replay reduction"
     )
 
     print(
