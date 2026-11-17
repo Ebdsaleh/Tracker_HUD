@@ -484,6 +484,112 @@ local function remember_persistent_register_source(
 end
 
 
+local function persistent_register_timeline(
+    adapter,
+    bufnr
+)
+    local revision =
+        get_register_source_buffer_revision(
+            bufnr
+        )
+
+    if not persistent_register_source_matches(
+        adapter,
+        bufnr,
+        revision
+    ) then
+        return nil
+    end
+
+    local timeline =
+        persistent_register_source_cache
+            .timeline
+
+    if core.is_table(timeline)
+        and type(
+            timeline.snapshot_before
+        ) == "function"
+        and type(
+            timeline.snapshot_visible
+        ) == "function"
+        and type(
+            timeline.stats
+        ) == "function"
+    then
+        return timeline
+    end
+
+    return nil
+end
+
+
+local function remember_persistent_register_timeline(
+    adapter,
+    bufnr,
+    timeline
+)
+    if not core.is_table(timeline)
+        or type(timeline.stats)
+            ~= "function"
+    then
+        return
+    end
+
+    local revision =
+        get_register_source_buffer_revision(
+            bufnr
+        )
+
+    if not persistent_register_source_matches(
+        adapter,
+        bufnr,
+        revision
+    ) then
+        return
+    end
+
+    local incoming_stats =
+        timeline:stats()
+
+    if not core.is_table(
+        incoming_stats
+    ) then
+        return
+    end
+
+    local existing =
+        persistent_register_source_cache
+            .timeline
+
+    if core.is_table(existing)
+        and type(existing.stats)
+            == "function"
+    then
+        local existing_stats =
+            existing:stats()
+
+        if core.is_table(
+            existing_stats
+        )
+            and (
+                existing_stats
+                    .processed_count
+                or 0
+            ) >= (
+                incoming_stats
+                    .processed_count
+                or 0
+            )
+        then
+            return
+        end
+    end
+
+    persistent_register_source_cache
+        .timeline = timeline
+end
+
+
 local function register_profile_name(
     opts,
     suffix
@@ -515,6 +621,28 @@ local function register_profile_begin(
             opts,
             suffix
         )
+    )
+end
+
+
+local function register_profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_counter(
+        register_profile_name(
+            opts,
+            suffix
+        ),
+        delta
     )
 end
 
@@ -729,6 +857,46 @@ function M.collect_register_effect_pair(
         return nil, nil
     end
 
+    local prior_timeline =
+        persistent_register_timeline(
+            adapter,
+            opts.bufnr
+        )
+
+    local reusable_before = nil
+    local reusable_visible = nil
+
+    if prior_timeline then
+        reusable_before =
+            prior_timeline:snapshot_before(
+                opts.before_position
+            )
+
+        reusable_visible =
+            prior_timeline:snapshot_visible(
+                context,
+                {
+                    config = opts.config,
+                }
+            )
+    end
+
+    if reusable_before ~= nil
+        and reusable_visible ~= nil
+    then
+        register_profile_counter(
+            opts,
+            "process.cross_refresh_timeline_reuse_possible",
+            1
+        )
+    else
+        register_profile_counter(
+            opts,
+            "process.cross_refresh_timeline_reuse_miss",
+            1
+        )
+    end
+
     local replay_opts = {}
 
     for key, value in pairs(opts) do
@@ -783,9 +951,18 @@ function M.collect_register_effect_pair(
         phase
     )
 
+    local timeline =
+        session:get_timeline()
+
+    remember_persistent_register_timeline(
+        adapter,
+        opts.bufnr,
+        timeline
+    )
+
     return before,
         visible,
-        session:get_timeline()
+        timeline
 end
 
 

@@ -851,6 +851,60 @@ function M.new_replay_session(
             )
         end
 
+        function timeline:snapshot_visible(
+            visible_context,
+            visible_opts
+        )
+            visible_opts =
+                visible_opts or {}
+
+            local target_opts =
+                copy_session_options(opts)
+
+            target_opts.limit_position = nil
+            target_opts.stop_before = nil
+            target_opts.before_position = nil
+
+            if visible_opts.config ~= nil then
+                target_opts.config =
+                    visible_opts.config
+            end
+
+            local visible_nodes =
+                filter_prepared_nodes(
+                    prepared_source,
+                    visible_context,
+                    target_opts
+                )
+
+            local target_count =
+                #visible_nodes
+
+            if target_count
+                > processing_session
+                    .processed_count
+            then
+                return nil
+            end
+
+            if target_count == 0 then
+                return {}
+            end
+
+            local checkpoint =
+                timeline_checkpoints[
+                    target_count
+                ]
+
+            if not checkpoint then
+                return nil
+            end
+
+            return copy_fact_list(
+                checkpoint.facts
+            )
+        end
+
         function timeline:stats()
             return {
                 captured_count =

@@ -326,6 +326,8 @@ local function run()
     local required_counters = {
         "context.registers.dynamic.process.processed_entries",
         "context.registers.dynamic.process.timeline_checkpoints",
+        "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible",
+        "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss",
         "context.stack.dynamic.processed_entries",
         "context.stack.dynamic.timeline_hits",
         "context.boundary.read_context.timeline_hits",
@@ -345,6 +347,31 @@ local function run()
                 .. tostring(name)
         )
     end
+
+    local reuse_hits =
+        snapshot.counters[
+            "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible"
+        ]
+
+    local reuse_misses =
+        snapshot.counters[
+            "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss"
+        ]
+
+    assert(
+        reuse_hits.total
+            + reuse_misses.total
+            == snapshot.refresh_count,
+        "cross-refresh Register timeline eligibility checks changed"
+    )
+
+    print(
+        "[Tracker_HUD] Cross-refresh Register timeline: "
+            .. tostring(reuse_hits.total)
+            .. " reusable / "
+            .. tostring(snapshot.refresh_count)
+            .. " refreshes"
+    )
 
     assert(
         snapshot.counters[

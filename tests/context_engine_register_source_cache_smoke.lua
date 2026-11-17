@@ -50,6 +50,8 @@ local collect_calls = 0
 local replay_calls = 0
 local paired_replay_queries = 0
 local paired_timeline_capture_calls = 0
+local persistent_timeline_before_queries = 0
+local persistent_timeline_visible_queries = 0
 local parse_calls = 0
 
 local parse_node = {}
@@ -132,7 +134,23 @@ register_pipeline.collect =
 
 local timeline_sentinel = {
     snapshot_before = function()
+        persistent_timeline_before_queries =
+            persistent_timeline_before_queries + 1
         return {}
+    end,
+
+    snapshot_visible = function()
+        persistent_timeline_visible_queries =
+            persistent_timeline_visible_queries + 1
+        return {}
+    end,
+
+    stats = function()
+        return {
+            processed_count = 10,
+            captured_count = 10,
+            source_node_count = 10,
+        }
     end,
 }
 
@@ -540,6 +558,73 @@ local ok, err =
             print(
                 "PASS context register source cache: "
                     .. "stable unchanged buffer reuses prepared source across refreshes"
+            )
+
+            local reuse_counters = {}
+
+            engine.collect_register_effect_pair(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "timeline-root-a",
+                    register_source_cache = {},
+                    before_position = {
+                        line = 10,
+                        column = 0,
+                    },
+                    config = {
+                        marker = "config",
+                    },
+                    profile_counter =
+                        function(name, delta)
+                            reuse_counters[name] =
+                                (reuse_counters[name] or 0)
+                                + delta
+                        end,
+                }
+            )
+
+            engine.collect_register_effect_pair(
+                context,
+                stable_adapter,
+                {
+                    bufnr = real_buffer,
+                    root_node = "timeline-root-b",
+                    register_source_cache = {},
+                    before_position = {
+                        line = 10,
+                        column = 0,
+                    },
+                    config = {
+                        marker = "config",
+                    },
+                    profile_counter =
+                        function(name, delta)
+                            reuse_counters[name] =
+                                (reuse_counters[name] or 0)
+                                + delta
+                        end,
+                }
+            )
+
+            assert(
+                reuse_counters[
+                    "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible"
+                ] == 1
+                    and reuse_counters[
+                        "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss"
+                    ] == 1
+                    and persistent_timeline_before_queries
+                        >= 1
+                    and persistent_timeline_visible_queries
+                        >= 1,
+                "cross-refresh Register timeline eligibility measurement changed"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "unchanged source can measure read-only timeline reuse eligibility"
             )
 
             vim.api.nvim_buf_set_lines(

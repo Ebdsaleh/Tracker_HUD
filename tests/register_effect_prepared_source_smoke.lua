@@ -552,6 +552,18 @@ assert(
     "partially advanced timeline answered past its safe coverage"
 )
 
+assert(
+    timeline:snapshot_visible(
+        {
+            cursor = {
+                line = 2,
+                column = 200,
+            },
+        }
+    ) == nil,
+    "partially advanced timeline answered an uncovered visible snapshot"
+)
+
 local preserved_before_second =
     normalize(timeline_before_second)
 
@@ -596,6 +608,20 @@ assert(
     "completed timeline changed visible register semantics"
 )
 
+assert(
+    normalize(
+        timeline:snapshot_visible(
+            {
+                cursor = {
+                    line = 2,
+                    column = 200,
+                },
+            }
+        )
+    ) == normalize(visible_expected),
+    "completed timeline changed exact cursor-visible register semantics"
+)
+
 local timeline_stats =
     timeline:stats()
 
@@ -619,6 +645,11 @@ print(
 print(
     "PASS register prepared source: "
         .. "timeline checkpoints remain immutable across forward replay"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "timeline visible snapshot fails closed until exact coverage exists"
 )
 
 
