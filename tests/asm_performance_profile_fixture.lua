@@ -246,7 +246,6 @@ local function run()
         "context.registers.dynamic.prepare_source",
         "context.registers.dynamic.prepare_source.index",
         "context.registers.dynamic.prepare_source.collect_nodes",
-        "context.registers.dynamic.source_select",
         "context.registers.dynamic.process",
         "context.registers.dynamic.process.parse",
         "context.registers.dynamic.process.prepare_state",
