@@ -163,4 +163,151 @@ assert(
 )
 print("PASS memory address evaluator: invalid dependencies fail closed")
 
+
+local timeline_calls = 0
+local replay_calls = 0
+local timeline_counters = {}
+
+local timeline_result =
+    evaluator.evaluate(
+        12,
+        root_node,
+        adapter,
+        instruction,
+        address,
+        nil,
+        nil,
+        {
+            register_timeline = {
+                snapshot_before =
+                    function(
+                        _self,
+                        position
+                    )
+                        timeline_calls =
+                            timeline_calls + 1
+
+                        assert(
+                            position.line == 8
+                                and position.column == 3,
+                            "memory timeline lookup position changed"
+                        )
+
+                        return {
+                            {
+                                name = "rax",
+                                value = "4096",
+                                resolved = true,
+                            },
+                        }
+                    end,
+            },
+
+            collect_register_effects_before =
+                function()
+                    replay_calls =
+                        replay_calls + 1
+                    error(
+                        "timeline hit unexpectedly used replay fallback"
+                    )
+                end,
+
+            profile_prefix =
+                "memory.timeline_test",
+            profile_counter =
+                function(name, delta)
+                    timeline_counters[name] =
+                        (timeline_counters[name] or 0)
+                        + delta
+                end,
+        }
+    )
+
+assert(
+    timeline_calls == 1
+        and replay_calls == 0
+        and timeline_result.status == "known"
+        and timeline_result.value == "4104"
+        and timeline_counters[
+            "memory.timeline_test.timeline_hits"
+        ] == 1,
+    "memory timeline hit changed effective-address semantics"
+)
+
+print(
+    "PASS memory address evaluator: "
+        .. "timeline hit replaces pre-instruction replay"
+)
+
+local timeline_misses = 0
+local fallback_calls = 0
+local fallback_counters = {}
+
+local fallback_result =
+    evaluator.evaluate(
+        12,
+        root_node,
+        adapter,
+        instruction,
+        address,
+        nil,
+        nil,
+        {
+            register_timeline = {
+                snapshot_before =
+                    function()
+                        timeline_misses =
+                            timeline_misses + 1
+                        return nil
+                    end,
+            },
+
+            collect_register_effects_before =
+                function(position)
+                    fallback_calls =
+                        fallback_calls + 1
+
+                    assert(
+                        position.line == 8
+                            and position.column == 3,
+                        "memory timeline fallback position changed"
+                    )
+
+                    return {
+                        {
+                            name = "rax",
+                            value = "4096",
+                            resolved = true,
+                        },
+                    }
+                end,
+
+            profile_prefix =
+                "memory.timeline_fallback_test",
+            profile_counter =
+                function(name, delta)
+                    fallback_counters[name] =
+                        (fallback_counters[name] or 0)
+                        + delta
+                end,
+        }
+    )
+
+assert(
+    timeline_misses == 1
+        and fallback_calls == 1
+        and fallback_result.status == "known"
+        and fallback_result.value == "4104"
+        and fallback_counters[
+            "memory.timeline_fallback_test.timeline_fallbacks"
+        ] == 1,
+    "memory timeline miss did not preserve replay fallback"
+)
+
+print(
+    "PASS memory address evaluator: "
+        .. "timeline miss falls back to pre-instruction replay"
+)
+
+
 print("PASS Tracker_HUD memory-address evaluator smoke")

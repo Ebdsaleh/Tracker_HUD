@@ -258,9 +258,15 @@ memory_discovery.collect =
         _root_node,
         _adapter,
         _line_predicate,
-        _opts,
+        seen_opts,
         deps
     )
+        assert(
+            seen_opts.register_timeline
+                == timeline_sentinel,
+            "Source Memory did not receive paired Register timeline"
+        )
+
         assert(
             deps.parse_instruction(
                 parse_node,
@@ -373,6 +379,8 @@ local ok, err =
                 {
                     register_source_cache =
                         cache,
+                    register_timeline =
+                        paired_timeline,
                 }
             )
 
@@ -424,6 +432,11 @@ local ok, err =
             print(
                 "PASS context register source cache: "
                     .. "paired Register timeline threads into Boundary"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "paired Register timeline threads into Source Memory"
             )
 
             assert(

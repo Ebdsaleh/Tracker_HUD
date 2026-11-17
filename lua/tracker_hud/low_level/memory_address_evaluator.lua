@@ -52,6 +52,28 @@ local function profile_begin(
 end
 
 
+local function profile_counter(
+    deps,
+    suffix,
+    delta
+)
+    if type(deps) ~= "table"
+        or type(deps.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return deps.profile_counter(
+        profile_name(
+            deps,
+            suffix
+        ),
+        delta
+    )
+end
+
+
 local function profile_end(
     deps,
     suffix,
@@ -204,9 +226,21 @@ function M.evaluate(
         return result
     end
 
-    if type(
-        deps.collect_register_effects_before
-    ) ~= "function"
+    local register_timeline =
+        core.is_table(
+            deps.register_timeline
+        )
+        and type(
+            deps.register_timeline
+                .snapshot_before
+        ) == "function"
+        and deps.register_timeline
+        or nil
+
+    if not register_timeline
+        and type(
+            deps.collect_register_effects_before
+        ) ~= "function"
         and type(
             deps.collect_register_effects
         ) ~= "function"
@@ -229,15 +263,50 @@ function M.evaluate(
             "register_replay"
         )
 
-    if type(
-        deps.collect_register_effects_before
-    ) == "function"
+    if register_timeline then
+        local timeline_phase =
+            profile_begin(
+                deps,
+                "timeline_lookup"
+            )
+
+        facts =
+            register_timeline
+                :snapshot_before(
+                    limit_position
+                )
+
+        profile_end(
+            deps,
+            "timeline_lookup",
+            timeline_phase
+        )
+
+        if facts ~= nil then
+            profile_counter(
+                deps,
+                "timeline_hits",
+                1
+            )
+        else
+            profile_counter(
+                deps,
+                "timeline_fallbacks",
+                1
+            )
+        end
+    end
+
+    if facts == nil
+        and type(
+            deps.collect_register_effects_before
+        ) == "function"
     then
         facts =
             deps.collect_register_effects_before(
                 limit_position
             )
-    else
+    elseif facts == nil then
         facts =
             deps.collect_register_effects(
                 {

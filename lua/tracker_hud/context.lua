@@ -800,6 +800,8 @@ local function attach_context_sections(
                                     .machine_address_providers,
                             register_source_cache =
                                 register_source_cache,
+                            register_timeline =
+                                register_timeline,
                             source_members =
                                 context
                                     .all_scope_members,

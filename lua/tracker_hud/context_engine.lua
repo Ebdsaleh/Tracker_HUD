@@ -801,6 +801,7 @@ local function evaluate_memory_address_before_instruction(
     machine_addresses,
     instruction_relative_policy,
     register_replay_session,
+    register_timeline,
     profile_opts
 )
     return memory_address_evaluator.evaluate(
@@ -827,6 +828,9 @@ local function evaluate_memory_address_before_instruction(
                 end
                 or nil,
 
+            register_timeline =
+                register_timeline,
+
             profile_prefix =
                 profile_opts
                 and profile_opts
@@ -841,6 +845,11 @@ local function evaluate_memory_address_before_instruction(
                 profile_opts
                 and profile_opts
                     .profile_end
+                or nil,
+            profile_counter =
+                profile_opts
+                and profile_opts
+                    .profile_counter
                 or nil,
         }
     )
@@ -971,6 +980,7 @@ local function collect_memory_source_operands_where(
                     machine_addresses,
                     instruction_relative_policy,
                     register_replay_session,
+                    opts.register_timeline,
                     {
                         profile_prefix =
                             (
@@ -982,6 +992,8 @@ local function collect_memory_source_operands_where(
                             opts.profile_begin,
                         profile_end =
                             opts.profile_end,
+                        profile_counter =
+                            opts.profile_counter,
                     }
                 )
             end,
@@ -1082,7 +1094,9 @@ function M.discover_register_source_occurrences(
                     instruction,
                     address,
                     machine_addresses,
-                    instruction_relative_policy
+                    instruction_relative_policy,
+                    nil,
+                    nil
                 )
             end,
         }

@@ -302,13 +302,7 @@ local function run()
         "context.source_memory.collect.evaluate",
         "context.source_memory.collect.evaluate.relative_check",
         "context.source_memory.collect.evaluate.register_replay",
-        "context.source_memory.collect.evaluate.register_replay.parse",
-        "context.source_memory.collect.evaluate.register_replay.prepare_state",
-        "context.source_memory.collect.evaluate.register_replay.apply",
-        "context.source_memory.collect.evaluate.register_replay.apply.match",
-        "context.source_memory.collect.evaluate.register_replay.apply.build",
-        "context.source_memory.collect.evaluate.register_replay.apply.publish",
-        "context.source_memory.collect.evaluate.register_replay.snapshot",
+        "context.source_memory.collect.evaluate.timeline_lookup",
         "context.source_memory.collect.evaluate.fact_map",
         "context.source_memory.collect.evaluate.effective_address",
         "context.source_memory.collect.role_access",
@@ -334,7 +328,7 @@ local function run()
         "context.registers.dynamic.process.timeline_checkpoints",
         "context.stack.dynamic.processed_entries",
         "context.boundary.read_context.timeline_hits",
-        "context.source_memory.collect.evaluate.register_replay.processed_entries",
+        "context.source_memory.collect.evaluate.timeline_hits",
     }
 
     for _, name in ipairs(
@@ -370,6 +364,25 @@ local function run()
             "context.boundary.read_context.timeline_fallbacks"
         ] == nil,
         "Boundary timeline coverage unexpectedly fell back to register replay"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.source_memory.collect.evaluate.register_replay.processed_entries"
+        ] == nil,
+        "Source Memory unexpectedly replayed register history instead of using timeline"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.source_memory.collect.evaluate.timeline_fallbacks"
+        ] == nil,
+        "Source Memory timeline coverage unexpectedly fell back to register replay"
+    )
+
+    print(
+        "[Tracker_HUD] Source Memory register context: "
+            .. "pre-instruction timeline hits without replay fallback"
     )
 
     print(
