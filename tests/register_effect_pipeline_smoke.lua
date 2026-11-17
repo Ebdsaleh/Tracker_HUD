@@ -133,6 +133,7 @@ local adapter = {
 }
 
 local parse_calls = 0
+local work_counters = {}
 
 local facts =
     pipeline.collect(
@@ -150,6 +151,14 @@ local facts =
                 line = 3,
                 column = 0,
             },
+            profile_prefix =
+                "context.registers",
+            profile_counter =
+                function(name, delta)
+                    work_counters[name] =
+                        (work_counters[name] or 0)
+                        + delta
+                end,
         },
         {
             parse_instruction = function(
@@ -213,7 +222,16 @@ assert(
     parse_calls == 2,
     "register pipeline parser sequencing changed"
 )
+
+assert(
+    work_counters[
+        "context.registers.dynamic.process.processed_entries"
+    ] == 2,
+    "register pipeline did not forward processed-entry work counter"
+)
+
 print("PASS register pipeline: indexed parser sequencing preserved")
+print("PASS register pipeline: processed-entry work counter forwarded")
 
 local by_name = {}
 

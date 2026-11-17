@@ -292,6 +292,8 @@ print(
         .. "filtered collection matches legacy without rescanning"
 )
 
+local replay_work_counters = {}
+
 local session =
     pipeline.new_replay_session(
         {},
@@ -301,6 +303,14 @@ local session =
             root_node = root,
             prepared_source =
                 prepared,
+            profile_prefix =
+                "context.boundary.read_context.register_replay",
+            profile_counter =
+                function(name, delta)
+                    replay_work_counters[name] =
+                        (replay_work_counters[name] or 0)
+                        + delta
+                end,
         },
         {
             parse_instruction =
@@ -327,9 +337,21 @@ assert(
     "prepared replay session changed semantics or rescanned"
 )
 
+assert(
+    replay_work_counters[
+        "context.boundary.read_context.register_replay.processed_entries"
+    ] == 2,
+    "prepared replay session did not forward processed-entry work counter"
+)
+
 print(
     "PASS register prepared source: "
         .. "independent replay session reuses immutable index"
+)
+
+print(
+    "PASS register prepared source: "
+        .. "replay work counter reaches processing layer"
 )
 
 print(

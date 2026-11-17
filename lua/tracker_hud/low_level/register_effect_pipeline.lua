@@ -552,6 +552,9 @@ function M.new_replay_session(
                 profile_end =
                     session_opts
                         .profile_end,
+                profile_counter =
+                    session_opts
+                        .profile_counter,
             })
 
     if not processing_session then
@@ -798,6 +801,8 @@ function M.collect(
             opts.profile_begin,
         profile_end =
             opts.profile_end,
+        profile_counter =
+            opts.profile_counter,
     })
 
     profile_end(
