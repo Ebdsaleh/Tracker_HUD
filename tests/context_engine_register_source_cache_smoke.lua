@@ -136,13 +136,23 @@ local timeline_sentinel = {
     snapshot_before = function()
         persistent_timeline_before_queries =
             persistent_timeline_before_queries + 1
-        return {}
+        return {
+            {
+                name = "rax",
+                value = "timeline-before",
+            },
+        }
     end,
 
     snapshot_visible = function()
         persistent_timeline_visible_queries =
             persistent_timeline_visible_queries + 1
-        return {}
+        return {
+            {
+                name = "rax",
+                value = "timeline-visible",
+            },
+        }
     end,
 
     stats = function()
@@ -561,6 +571,8 @@ local ok, err =
             )
 
             local reuse_counters = {}
+            local reuse_replay_start =
+                replay_calls
 
             engine.collect_register_effect_pair(
                 context,
@@ -585,7 +597,13 @@ local ok, err =
                 }
             )
 
-            engine.collect_register_effect_pair(
+            local reuse_replay_after_first =
+                replay_calls
+
+            local reused_before,
+                reused_visible,
+                reused_timeline =
+                engine.collect_register_effect_pair(
                 context,
                 stable_adapter,
                 {
@@ -613,18 +631,31 @@ local ok, err =
                     "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible"
                 ] == 1
                     and reuse_counters[
+                        "context.registers.dynamic.process.cross_refresh_timeline_reuse_applied"
+                    ] == 1
+                    and reuse_counters[
                         "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss"
                     ] == 1
+                    and reuse_replay_after_first
+                        == reuse_replay_start + 1
+                    and replay_calls
+                        == reuse_replay_after_first
+                    and reused_timeline
+                        == timeline_sentinel
+                    and reused_before[1].value
+                        == "timeline-before"
+                    and reused_visible[1].value
+                        == "timeline-visible"
                     and persistent_timeline_before_queries
                         >= 1
                     and persistent_timeline_visible_queries
                         >= 1,
-                "cross-refresh Register timeline eligibility measurement changed"
+                "cross-refresh Register timeline production reuse changed"
             )
 
             print(
                 "PASS context register source cache: "
-                    .. "unchanged source can measure read-only timeline reuse eligibility"
+                    .. "unchanged source reuses read-only timeline without a new replay session"
             )
 
             vim.api.nvim_buf_set_lines(

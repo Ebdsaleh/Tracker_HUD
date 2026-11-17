@@ -889,13 +889,23 @@ function M.collect_register_effect_pair(
             "process.cross_refresh_timeline_reuse_possible",
             1
         )
-    else
+
         register_profile_counter(
             opts,
-            "process.cross_refresh_timeline_reuse_miss",
+            "process.cross_refresh_timeline_reuse_applied",
             1
         )
+
+        return reusable_before,
+            reusable_visible,
+            prior_timeline
     end
+
+    register_profile_counter(
+        opts,
+        "process.cross_refresh_timeline_reuse_miss",
+        1
+    )
 
     local replay_opts = {}
 
@@ -909,8 +919,8 @@ function M.collect_register_effect_pair(
             "process"
         )
 
-    -- Capture read-only pre-instruction checkpoints on the already-shared
-    -- Register replay. Consumers remain unchanged in this measurement tranche.
+    -- Capture read-only pre-instruction checkpoints on fresh paired replay.
+    -- Proven unchanged refreshes may return from the persistent timeline above.
     replay_opts.capture_timeline = true
 
     local session =

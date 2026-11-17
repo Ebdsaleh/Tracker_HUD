@@ -327,6 +327,7 @@ local function run()
         "context.registers.dynamic.process.processed_entries",
         "context.registers.dynamic.process.timeline_checkpoints",
         "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible",
+        "context.registers.dynamic.process.cross_refresh_timeline_reuse_applied",
         "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss",
         "context.stack.dynamic.processed_entries",
         "context.stack.dynamic.timeline_hits",
@@ -353,6 +354,11 @@ local function run()
             "context.registers.dynamic.process.cross_refresh_timeline_reuse_possible"
         ]
 
+    local reuse_applied =
+        snapshot.counters[
+            "context.registers.dynamic.process.cross_refresh_timeline_reuse_applied"
+        ]
+
     local reuse_misses =
         snapshot.counters[
             "context.registers.dynamic.process.cross_refresh_timeline_reuse_miss"
@@ -365,10 +371,27 @@ local function run()
         "cross-refresh Register timeline eligibility checks changed"
     )
 
+    assert(
+        reuse_applied.total
+            == reuse_hits.total,
+        "eligible cross-refresh Register timeline was not always reused"
+    )
+
+    local fresh_work =
+        snapshot.counters[
+            "context.registers.dynamic.process.processed_entries"
+        ]
+
+    assert(
+        fresh_work.count
+            == reuse_misses.total,
+        "fresh Register replay did not align with timeline reuse misses"
+    )
+
     print(
         "[Tracker_HUD] Cross-refresh Register timeline: "
-            .. tostring(reuse_hits.total)
-            .. " reusable / "
+            .. tostring(reuse_applied.total)
+            .. " reused / "
             .. tostring(snapshot.refresh_count)
             .. " refreshes"
     )
