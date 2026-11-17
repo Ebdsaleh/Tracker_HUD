@@ -191,6 +191,28 @@ function M.collect(opts)
             if core.is_table(
                 stack_effect_specs
             ) then
+                if type(
+                    opts.get_register_facts_before
+                ) == "function"
+                then
+                    local timeline_facts =
+                        opts.get_register_facts_before(
+                            {
+                                line = entry.line,
+                                column = entry.column,
+                            },
+                            instruction
+                        )
+
+                    if timeline_facts == nil then
+                        return nil,
+                            "register_timeline_incomplete"
+                    end
+
+                    facts_by_register =
+                        timeline_facts
+                end
+
                 instruction_state =
                     opts.prepare_stack_state(
                         low_level_state,
@@ -213,7 +235,11 @@ function M.collect(opts)
 
             if core.is_table(
                 register_effect_specs
-            ) then
+            )
+                and type(
+                    opts.get_register_facts_before
+                ) ~= "function"
+            then
                 for _, effect_spec in ipairs(
                     register_effect_specs
                 ) do

@@ -359,4 +359,212 @@ assert(
 )
 print("PASS stack pipeline: invalid inputs fail closed")
 
+
+root_walks = 0
+parse_calls = {}
+
+local timeline_queries = 0
+local timeline_counters = {}
+
+local timeline_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 2,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            register_timeline = {
+                snapshot_before =
+                    function(
+                        _self,
+                        position
+                    )
+                        timeline_queries =
+                            timeline_queries + 1
+
+                        assert(
+                            position.line == 2
+                                and position.column == 0,
+                            "stack timeline query position changed"
+                        )
+
+                        return {
+                            {
+                                name = "rax",
+                                value = "42",
+                                resolved = true,
+                                metadata = {
+                                    canonical_name = "rax",
+                                    write_value = "42",
+                                    write_resolved = true,
+                                },
+                            },
+                        }
+                    end,
+            },
+            profile_counter =
+                function(name, delta)
+                    timeline_counters[name] =
+                        (timeline_counters[name] or 0)
+                        + delta
+                end,
+        },
+        {
+            parse_instruction = function(
+                node,
+                representative
+            )
+                table.insert(
+                    parse_calls,
+                    {
+                        node = node,
+                        representative =
+                            representative,
+                    }
+                )
+
+                if node == mov_node then
+                    return {
+                        mnemonic = "mov",
+                        source_line = 1,
+                        operands = {
+                            {
+                                kind = "register",
+                                text = "rax",
+                                source_line = 1,
+                            },
+                            {
+                                kind = "integer",
+                                text = "42",
+                                source_line = 1,
+                            },
+                        },
+                    }
+                end
+
+                return {
+                    mnemonic = "push",
+                    source_line = 2,
+                    operands = {
+                        {
+                            kind = "register",
+                            text = "rax",
+                            source_line = 2,
+                        },
+                    },
+                }
+            end,
+        }
+    )
+
+assert(
+    timeline_queries == 1
+        and #timeline_facts == 1
+        and timeline_facts[1].resolved
+            == true
+        and tostring(
+            timeline_facts[1].value
+        ) == "42"
+        and timeline_counters[
+            "context.stack.dynamic.timeline_hits"
+        ] == 1,
+    "stack timeline did not preserve pre-instruction register carry"
+)
+
+print(
+    "PASS stack pipeline: "
+        .. "timeline snapshot replaces local register carry"
+)
+
+local fallback_queries = 0
+local fallback_counters = {}
+
+local fallback_facts =
+    pipeline.collect(
+        {
+            cursor = {
+                line = 2,
+                column = 1,
+            },
+        },
+        adapter,
+        {
+            bufnr = 1,
+            root_node = root,
+            register_timeline = {
+                snapshot_before =
+                    function()
+                        fallback_queries =
+                            fallback_queries + 1
+                        return nil
+                    end,
+            },
+            profile_counter =
+                function(name, delta)
+                    fallback_counters[name] =
+                        (fallback_counters[name] or 0)
+                        + delta
+                end,
+        },
+        {
+            parse_instruction = function(node)
+                if node == mov_node then
+                    return {
+                        mnemonic = "mov",
+                        source_line = 1,
+                        operands = {
+                            {
+                                kind = "register",
+                                text = "rax",
+                                source_line = 1,
+                            },
+                            {
+                                kind = "integer",
+                                text = "42",
+                                source_line = 1,
+                            },
+                        },
+                    }
+                end
+
+                return {
+                    mnemonic = "push",
+                    source_line = 2,
+                    operands = {
+                        {
+                            kind = "register",
+                            text = "rax",
+                            source_line = 2,
+                        },
+                    },
+                }
+            end,
+        }
+    )
+
+assert(
+    fallback_queries == 1
+        and #fallback_facts == 1
+        and fallback_facts[1].resolved
+            == true
+        and tostring(
+            fallback_facts[1].value
+        ) == "42"
+        and fallback_counters[
+            "context.stack.dynamic.timeline_fallbacks"
+        ] == 1,
+    "stack timeline miss did not rerun legacy register carry"
+)
+
+print(
+    "PASS stack pipeline: "
+        .. "incomplete timeline reruns legacy mixed reducer"
+)
+
+
 print("PASS Tracker_HUD stack-effect pipeline smoke")

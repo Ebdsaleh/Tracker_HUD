@@ -51,6 +51,28 @@ local function profile_begin(
 end
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_counter(
+        (opts.profile_prefix
+            or "context.stack")
+            .. ".dynamic."
+            .. suffix,
+        delta
+    )
+end
+
+
 local function profile_end(
     opts,
     suffix,
@@ -70,6 +92,74 @@ local function profile_end(
             .. suffix,
         started
     )
+end
+
+
+local function register_read_map_from_timeline(
+    facts
+)
+    local result = {}
+
+    for _, fact in ipairs(
+        facts or {}
+    ) do
+        if core.is_table(fact)
+            and core.is_non_empty_string(
+                fact.name
+            )
+        then
+            local name =
+                fact.name:lower()
+
+            local metadata =
+                core.is_table(
+                    fact.metadata
+                )
+                and fact.metadata
+                or {}
+
+            local write_resolved =
+                metadata.write_resolved
+
+            result[name] = {
+                name = name,
+                value =
+                    metadata.write_value
+                    ~= nil
+                    and metadata.write_value
+                    or fact.value,
+                resolved =
+                    write_resolved ~= nil
+                    and write_resolved
+                    or fact.resolved,
+                metadata = fact.metadata,
+            }
+
+            local canonical =
+                core.is_non_empty_string(
+                    metadata.canonical_name
+                )
+                and metadata
+                    .canonical_name
+                    :lower()
+                or name
+
+            if canonical ~= name then
+                result[canonical] = {
+                    name = canonical,
+                    value =
+                        fact.resolved ~= false
+                        and fact.value
+                        or nil,
+                    resolved =
+                        fact.resolved ~= false,
+                    metadata = fact.metadata,
+                }
+            end
+        end
+    end
+
+    return result
 end
 
 
@@ -102,9 +192,6 @@ function M.collect(
         return {}
     end
 
-    local carried_family_state = {}
-    local carried_latest_state_facts = {}
-
     local phase =
         profile_begin(
             opts,
@@ -129,8 +216,13 @@ function M.collect(
             "collect"
         )
 
-    local result =
-        stack_effect_collection.collect({
+    local function run_collection(
+        register_timeline
+    )
+        local carried_family_state = {}
+        local carried_latest_state_facts = {}
+
+        return stack_effect_collection.collect({
         context = context,
         stack_effect_index =
             stack_index,
@@ -206,6 +298,49 @@ function M.collect(
 
             return instruction
         end,
+
+        get_register_facts_before =
+            register_timeline
+            and function(position)
+                local started =
+                    profile_begin(
+                        opts,
+                        "timeline_lookup"
+                    )
+
+                local facts =
+                    register_timeline
+                        :snapshot_before(
+                            position
+                        )
+
+                profile_end(
+                    opts,
+                    "timeline_lookup",
+                    started
+                )
+
+                if facts == nil then
+                    profile_counter(
+                        opts,
+                        "timeline_fallbacks",
+                        1
+                    )
+
+                    return nil
+                end
+
+                profile_counter(
+                    opts,
+                    "timeline_hits",
+                    1
+                )
+
+                return register_read_map_from_timeline(
+                    facts
+                )
+            end
+            or nil,
 
         normalize_mnemonic =
             rule_syntax.normalize_mnemonic,
@@ -329,6 +464,32 @@ function M.collect(
             )
         end,
     })
+    end
+
+    local register_timeline =
+        core.is_table(
+            opts.register_timeline
+        )
+        and type(
+            opts.register_timeline
+                .snapshot_before
+        ) == "function"
+        and opts.register_timeline
+        or nil
+
+    local result, reason =
+        run_collection(
+            register_timeline
+        )
+
+    if result == nil
+        and reason
+            == "register_timeline_incomplete"
+        and register_timeline
+    then
+        result =
+            run_collection(nil)
+    end
 
     profile_end(
         opts,
@@ -336,7 +497,7 @@ function M.collect(
         phase
     )
 
-    return result
+    return result or {}
 end
 
 
