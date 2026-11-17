@@ -1503,6 +1503,7 @@ end
 local reusable_validation_components = {
     register_effects = true,
     instruction_events = true,
+    stack_effects = true,
 }
 
 
@@ -2017,18 +2018,30 @@ function M.validate_adapter(
         end
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "stack_effects",
+        adapter.stack_effects
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.stack_effects",
-            validate_instruction_rule_set,
-            adapter.stack_effects,
-            "stack_effects",
-            { require_effect = true }
+            "context.configure.validate.stack_effects_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.stack_effects",
+                validate_instruction_rule_set,
+                adapter.stack_effects,
+                "stack_effects",
+                { require_effect = true }
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     return validate_phase(

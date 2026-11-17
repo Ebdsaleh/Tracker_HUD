@@ -296,9 +296,11 @@ registry.clear()
 adapter.validation_stable_components = {
     register_effects = true,
     instruction_events = true,
+    stack_effects = true,
 }
 adapter.register_effects = {}
 adapter.instruction_events = {}
+adapter.stack_effects = {}
 
 registered,
     register_error =
@@ -347,6 +349,12 @@ assert(
         ] == 1
         and profile_counts[
             "context.configure.validate.instruction_events"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.stack_effects_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.stack_effects"
         ] == nil,
     "stable component identity did not reuse prior successful validation"
 )
@@ -373,6 +381,9 @@ assert(
         ] == 1
         and profile_counts[
             "context.configure.validate.instruction_events"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.stack_effects"
         ] == 1,
     "revoked stable-component declaration still reused validation"
 )
@@ -385,6 +396,7 @@ print(
 adapter.validation_stable_components = {
     register_effects = true,
     instruction_events = true,
+    stack_effects = true,
 }
 
 registry.clear()
@@ -481,6 +493,59 @@ assert(
 print(
     "PASS adapter validation reuse: "
         .. "instruction-event replacement identity forces contract validation"
+)
+
+
+adapter.register_effects = {}
+adapter.instruction_events = {}
+adapter.stack_effects = {}
+
+registry.clear()
+
+registered,
+    register_error =
+    registry.register(
+        adapter
+    )
+
+assert(
+    registered,
+    tostring(register_error)
+)
+
+profile_counts = {}
+
+adapter.stack_effects = {
+    push = {},
+}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "lua",
+        buffer_a,
+        config_b,
+        profile_opts
+    )
+
+assert(
+    ok == false
+        and tostring(err):find(
+            "stack_effects.push",
+            1,
+            true
+        ) ~= nil
+        and profile_counts[
+            "context.configure.validate.stack_effects"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.stack_effects_reuse"
+        ] == nil,
+    "replacement stable stack-effect component did not force full validation"
+)
+
+print(
+    "PASS adapter validation reuse: "
+        .. "stack-effect replacement identity forces contract validation"
 )
 
 

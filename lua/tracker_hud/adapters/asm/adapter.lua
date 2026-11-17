@@ -80,6 +80,7 @@ M.target_directives = {
 M.validation_stable_components = {
     register_effects = true,
     instruction_events = true,
+    stack_effects = true,
 }
 
 
@@ -830,4 +831,3 @@ M.comments = build_comments_for_syntax(default_variant or {}, M.active_targets.s
 
 
 return M
-
