@@ -282,9 +282,27 @@ function M.advance_while(
             session.opts.after_entry
         ) == "function"
         then
+            local timeline_phase =
+                profile_begin(
+                    session.opts,
+                    "timeline_capture"
+                )
+
             session.opts.after_entry(
                 entry,
                 session.latest_state_facts
+            )
+
+            profile_end(
+                session.opts,
+                "timeline_capture",
+                timeline_phase
+            )
+
+            profile_counter(
+                session.opts,
+                "timeline_checkpoints",
+                1
             )
         end
 

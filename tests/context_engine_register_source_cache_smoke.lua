@@ -49,6 +49,7 @@ local prepare_calls = 0
 local collect_calls = 0
 local replay_calls = 0
 local paired_replay_queries = 0
+local paired_timeline_capture_calls = 0
 local parse_calls = 0
 
 local parse_node = {}
@@ -175,6 +176,18 @@ register_pipeline.new_replay_session =
     )
         replay_calls =
             replay_calls + 1
+
+        if opts.profile_prefix
+            == "context.registers.dynamic.process"
+        then
+            assert(
+                opts.capture_timeline == true,
+                "paired Register replay did not enable timeline capture"
+            )
+
+            paired_timeline_capture_calls =
+                paired_timeline_capture_calls + 1
+        end
 
         assert(
             opts.prepared_source
@@ -355,6 +368,16 @@ local ok, err =
             assert(
                 replay_calls == 3,
                 "paired/boundary/source-memory replay-session ownership changed"
+            )
+
+            assert(
+                paired_timeline_capture_calls == 1,
+                "paired Register replay timeline capture ownership changed"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "paired replay alone enables timeline capture"
             )
 
             assert(

@@ -741,6 +741,10 @@ function M.collect_register_effect_pair(
             "process"
         )
 
+    -- Capture read-only pre-instruction checkpoints on the already-shared
+    -- Register replay. Consumers remain unchanged in this measurement tranche.
+    replay_opts.capture_timeline = true
+
     local session =
         register_effect_pipeline
             .new_replay_session(

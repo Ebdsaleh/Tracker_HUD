@@ -265,6 +265,7 @@ local function run()
         "context.registers.dynamic.process.apply.build.metadata.source_merge",
         "context.registers.dynamic.process.apply.publish",
         "context.registers.dynamic.process.snapshot",
+        "context.registers.dynamic.process.timeline_capture",
         "context.stack",
         "context.stack.dynamic",
         "context.stack.dynamic.index",
@@ -329,6 +330,7 @@ local function run()
 
     local required_counters = {
         "context.registers.dynamic.process.processed_entries",
+        "context.registers.dynamic.process.timeline_checkpoints",
         "context.stack.dynamic.processed_entries",
         "context.boundary.read_context.register_replay.processed_entries",
         "context.source_memory.collect.evaluate.register_replay.processed_entries",
@@ -353,6 +355,29 @@ local function run()
             "context.registers_before.dynamic.process.processed_entries"
         ] == nil,
         "Registers-before unexpectedly replayed the shared register prefix"
+    )
+
+    local processed =
+        snapshot.counters[
+            "context.registers.dynamic.process.processed_entries"
+        ]
+
+    local checkpoints =
+        snapshot.counters[
+            "context.registers.dynamic.process.timeline_checkpoints"
+        ]
+
+    assert(
+        processed
+            and checkpoints
+            and checkpoints.total
+                == processed.total,
+        "timeline checkpoint count diverged from processed Register entries"
+    )
+
+    print(
+        "[Tracker_HUD] Register timeline capture: "
+            .. "one checkpoint per processed entry"
     )
 
     print(
