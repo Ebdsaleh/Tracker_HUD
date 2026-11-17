@@ -303,7 +303,6 @@ local function run()
         "context.boundary.nodes",
         "context.boundary.parse",
         "context.boundary.read_context",
-        "context.boundary.apply",
         "context.source_memory",
         "context.source_memory.effect_index",
         "context.source_memory.source_members",

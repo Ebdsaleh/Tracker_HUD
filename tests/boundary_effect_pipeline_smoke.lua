@@ -110,6 +110,26 @@ local instruction = {
 
 local parse_calls = 0
 local replay_calls = 0
+local profile_phases = {}
+
+local function profile_begin(name)
+    return {
+        name = name,
+    }
+end
+
+local function profile_end(
+    name,
+    started
+)
+    assert(
+        started
+            and started.name == name,
+        "boundary pipeline profile token changed"
+    )
+
+    profile_phases[name] = true
+end
 
 local facts =
     pipeline.collect(
@@ -123,6 +143,12 @@ local facts =
         {
             bufnr = 7,
             root_node = root,
+            profile_prefix =
+                "context.boundary",
+            profile_begin =
+                profile_begin,
+            profile_end =
+                profile_end,
         },
         {
             parse_instruction = function(
@@ -208,6 +234,26 @@ assert(
     "boundary pipeline phase/read semantics changed"
 )
 print("PASS boundary pipeline: read and phase semantics preserved")
+
+for _, phase_name in ipairs({
+    "context.boundary.index",
+    "context.boundary.replay_session",
+    "context.boundary.collect",
+    "context.boundary.nodes",
+    "context.boundary.parse",
+    "context.boundary.read_context",
+    "context.boundary.apply",
+}) do
+    assert(
+        profile_phases[phase_name] == true,
+        "boundary pipeline profile phase missing: "
+            .. phase_name
+    )
+end
+
+print(
+    "PASS boundary pipeline: all collection profile phases recorded"
+)
 
 assert(
     #pipeline.collect(
