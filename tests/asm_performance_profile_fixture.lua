@@ -679,6 +679,72 @@ local function run()
             )
     )
 
+    local direct_parse_consumers = {
+        "stack",
+        "events",
+    }
+
+    local direct_parse_summary = {}
+
+    for _, consumer in ipairs(
+        direct_parse_consumers
+    ) do
+        local prefix =
+            "context.instruction_parse_opportunity."
+            .. consumer
+
+        local requests =
+            counter_total(
+                prefix .. ".requests"
+            )
+        local exact_available =
+            counter_total(
+                prefix
+                    .. ".exact_cache_available"
+            )
+        local other_spec =
+            counter_total(
+                prefix
+                    .. ".node_cached_other_spec"
+            )
+        local uncached =
+            counter_total(
+                prefix .. ".node_uncached"
+            )
+
+        assert(
+            requests > 0
+                and requests
+                    == exact_available
+                        + other_spec
+                        + uncached,
+            "direct instruction-parse opportunity measurement lost coverage for "
+                .. consumer
+        )
+
+        table.insert(
+            direct_parse_summary,
+            consumer
+                .. "="
+                .. tostring(requests)
+                .. " request/"
+                .. tostring(exact_available)
+                .. " exact/"
+                .. tostring(other_spec)
+                .. " other-spec/"
+                .. tostring(uncached)
+                .. " uncached"
+        )
+    end
+
+    print(
+        "[Tracker_HUD] Direct instruction-parse reuse opportunity: "
+            .. table.concat(
+                direct_parse_summary,
+                ", "
+            )
+    )
+
     assert(
         snapshot.counters[
             "context.registers_before.dynamic.process.processed_entries"

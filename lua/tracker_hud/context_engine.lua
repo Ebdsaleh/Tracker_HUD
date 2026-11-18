@@ -229,6 +229,77 @@ local function get_register_instruction_parse_cache(
 end
 
 
+local function profile_direct_instruction_parse(
+    opts,
+    consumer,
+    node,
+    effect_spec
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+        or type(consumer) ~= "string"
+        or consumer == ""
+        or node == nil
+    then
+        return
+    end
+
+    local prefix =
+        "context.instruction_parse_opportunity."
+        .. consumer
+
+    opts.profile_counter(
+        prefix .. ".requests",
+        1
+    )
+
+    local parse_cache =
+        core.is_table(
+            opts.register_source_cache
+        )
+        and core.is_table(
+            opts.register_source_cache
+                .instruction_parse_cache
+        )
+        and opts.register_source_cache
+            .instruction_parse_cache
+        or nil
+
+    local by_spec =
+        parse_cache
+        and parse_cache[node]
+        or nil
+
+    if not core.is_table(by_spec)
+        or next(by_spec) == nil
+    then
+        opts.profile_counter(
+            prefix .. ".node_uncached",
+            1
+        )
+        return
+    end
+
+    local spec_key =
+        effect_spec
+        or register_instruction_parse_no_spec
+
+    if by_spec[spec_key] ~= nil then
+        opts.profile_counter(
+            prefix .. ".exact_cache_available",
+            1
+        )
+        return
+    end
+
+    opts.profile_counter(
+        prefix .. ".node_cached_other_spec",
+        1
+    )
+end
+
+
 local function collect_instruction_operands_cached(
     adapter,
     node,
@@ -1390,6 +1461,13 @@ function M.collect_instruction_events(
                 node,
                 representative_event_spec
             )
+                profile_direct_instruction_parse(
+                    opts,
+                    "events",
+                    node,
+                    representative_event_spec
+                )
+
                 return collect_instruction_operands(
                     adapter,
                     node,
@@ -1425,6 +1503,13 @@ function M.collect_stack_effects(
                 node,
                 representative_effect_spec
             )
+                profile_direct_instruction_parse(
+                    opts,
+                    "stack",
+                    node,
+                    representative_effect_spec
+                )
+
                 return collect_instruction_operands(
                     adapter,
                     node,
