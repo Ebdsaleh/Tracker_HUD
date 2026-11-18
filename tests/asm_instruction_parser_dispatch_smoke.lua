@@ -111,6 +111,15 @@ local function run()
         "configured ASM mov effect unavailable"
     )
 
+    assert(
+        adapter.instruction_parser
+            and adapter
+                .instruction_parser
+                .cache_identity
+                == "node",
+        "ASM parser must explicitly declare node-stable cache identity"
+    )
+
     local instruction =
         dispatch.parse(
             adapter,
@@ -142,6 +151,30 @@ local function run()
             and instruction.operands[2].kind
                 == "integer",
         "real ASM parser operand output changed"
+    )
+
+    local alternate_instruction =
+        dispatch.parse(
+            adapter,
+            buffer,
+            nodes[1],
+            {
+                marker =
+                    "different-semantic-spec",
+            }
+        )
+
+    assert(
+        vim.deep_equal(
+            instruction,
+            alternate_instruction
+        ),
+        "ASM parser output changed across representative semantic specs"
+    )
+
+    print(
+        "PASS ASM parser dispatch: "
+            .. "node-stable cache identity matches parser behavior"
     )
 
     print(

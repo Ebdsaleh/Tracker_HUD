@@ -229,24 +229,49 @@ local function get_register_instruction_parse_cache(
 end
 
 
-local function profile_direct_instruction_parse(
+local register_instruction_parse_node = {}
+
+
+local function instruction_parse_cache_key(
+    adapter,
+    effect_spec
+)
+    local parser =
+        core.is_table(adapter)
+        and core.is_table(
+            adapter.instruction_parser
+        )
+        and adapter.instruction_parser
+        or nil
+
+    if parser
+        and parser.cache_identity
+            == "node"
+    then
+        return register_instruction_parse_node
+    end
+
+    return effect_spec
+        or register_instruction_parse_no_spec
+end
+
+
+local function profile_instruction_parse_cache(
     opts,
     consumer,
-    node,
-    effect_spec
+    cache_hit
 )
     if type(opts) ~= "table"
         or type(opts.profile_counter)
             ~= "function"
         or type(consumer) ~= "string"
         or consumer == ""
-        or node == nil
     then
         return
     end
 
     local prefix =
-        "context.instruction_parse_opportunity."
+        "context.instruction_parse_cache."
         .. consumer
 
     opts.profile_counter(
@@ -254,51 +279,16 @@ local function profile_direct_instruction_parse(
         1
     )
 
-    local parse_cache =
-        core.is_table(
-            opts.register_source_cache
-        )
-        and core.is_table(
-            opts.register_source_cache
-                .instruction_parse_cache
-        )
-        and opts.register_source_cache
-            .instruction_parse_cache
-        or nil
-
-    local by_spec =
-        parse_cache
-        and parse_cache[node]
-        or nil
-
-    if not core.is_table(by_spec)
-        or next(by_spec) == nil
-    then
-        opts.profile_counter(
-            prefix .. ".node_uncached",
-            1
-        )
-        return
-    end
-
-    local spec_key =
-        effect_spec
-        or register_instruction_parse_no_spec
-
-    if by_spec[spec_key] ~= nil then
-        opts.profile_counter(
-            prefix .. ".exact_cache_available",
-            1
-        )
-        return
-    end
-
     opts.profile_counter(
-        prefix .. ".node_cached_other_spec",
+        prefix
+            .. (
+                cache_hit
+                and ".hits"
+                or ".misses"
+            ),
         1
     )
 end
-
 
 local function collect_instruction_operands_cached(
     adapter,
@@ -320,7 +310,7 @@ local function collect_instruction_operands_cached(
             node,
             bufnr,
             effect_spec
-        )
+        ), false
     end
 
     local by_spec =
@@ -333,17 +323,21 @@ local function collect_instruction_operands_cached(
     end
 
     local spec_key =
-        effect_spec
-        or register_instruction_parse_no_spec
+        instruction_parse_cache_key(
+            adapter,
+            effect_spec
+        )
 
     local cached =
         by_spec[spec_key]
 
     if cached ~= nil then
-        return cached
-            ~= register_instruction_parse_nil
-            and cached
-            or nil
+        return (
+            cached
+                ~= register_instruction_parse_nil
+                and cached
+                or nil
+        ), true
     end
 
     local parsed =
@@ -358,7 +352,7 @@ local function collect_instruction_operands_cached(
         parsed
         or register_instruction_parse_nil
 
-    return parsed
+    return parsed, false
 end
 
 
@@ -1461,19 +1455,23 @@ function M.collect_instruction_events(
                 node,
                 representative_event_spec
             )
-                profile_direct_instruction_parse(
+                local instruction,
+                    cache_hit =
+                    collect_instruction_operands_cached(
+                        adapter,
+                        node,
+                        opts.bufnr,
+                        representative_event_spec,
+                        opts.register_source_cache
+                    )
+
+                profile_instruction_parse_cache(
                     opts,
                     "events",
-                    node,
-                    representative_event_spec
+                    cache_hit
                 )
 
-                return collect_instruction_operands(
-                    adapter,
-                    node,
-                    opts.bufnr,
-                    representative_event_spec
-                )
+                return instruction
             end,
         }
     )
@@ -1503,19 +1501,23 @@ function M.collect_stack_effects(
                 node,
                 representative_effect_spec
             )
-                profile_direct_instruction_parse(
+                local instruction,
+                    cache_hit =
+                    collect_instruction_operands_cached(
+                        adapter,
+                        node,
+                        opts.bufnr,
+                        representative_effect_spec,
+                        opts.register_source_cache
+                    )
+
+                profile_instruction_parse_cache(
                     opts,
                     "stack",
-                    node,
-                    representative_effect_spec
+                    cache_hit
                 )
 
-                return collect_instruction_operands(
-                    adapter,
-                    node,
-                    opts.bufnr,
-                    representative_effect_spec
-                )
+                return instruction
             end,
         }
     )

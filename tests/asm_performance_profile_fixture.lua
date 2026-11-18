@@ -679,68 +679,71 @@ local function run()
             )
     )
 
-    local direct_parse_consumers = {
-        "stack",
-        "events",
+    local parse_cache_consumers = {
+        {
+            label = "stack",
+            requests = 108,
+            hits = 93,
+            misses = 15,
+        },
+        {
+            label = "events",
+            requests = 108,
+            hits = 108,
+            misses = 0,
+        },
     }
 
-    local direct_parse_summary = {}
+    local parse_cache_summary = {}
 
     for _, consumer in ipairs(
-        direct_parse_consumers
+        parse_cache_consumers
     ) do
         local prefix =
-            "context.instruction_parse_opportunity."
-            .. consumer
+            "context.instruction_parse_cache."
+            .. consumer.label
 
         local requests =
             counter_total(
                 prefix .. ".requests"
             )
-        local exact_available =
+        local hits =
             counter_total(
-                prefix
-                    .. ".exact_cache_available"
+                prefix .. ".hits"
             )
-        local other_spec =
+        local misses =
             counter_total(
-                prefix
-                    .. ".node_cached_other_spec"
-            )
-        local uncached =
-            counter_total(
-                prefix .. ".node_uncached"
+                prefix .. ".misses"
             )
 
         assert(
-            requests > 0
+            requests
+                == consumer.requests
+                and hits
+                    == consumer.hits
+                and misses
+                    == consumer.misses
                 and requests
-                    == exact_available
-                        + other_spec
-                        + uncached,
-            "direct instruction-parse opportunity measurement lost coverage for "
-                .. consumer
+                    == hits + misses,
+            "node-stable instruction parse cache changed for "
+                .. consumer.label
         )
 
         table.insert(
-            direct_parse_summary,
-            consumer
+            parse_cache_summary,
+            consumer.label
                 .. "="
-                .. tostring(requests)
-                .. " request/"
-                .. tostring(exact_available)
-                .. " exact/"
-                .. tostring(other_spec)
-                .. " other-spec/"
-                .. tostring(uncached)
-                .. " uncached"
+                .. tostring(hits)
+                .. " hit/"
+                .. tostring(misses)
+                .. " miss"
         )
     end
 
     print(
-        "[Tracker_HUD] Direct instruction-parse reuse opportunity: "
+        "[Tracker_HUD] Node-stable instruction parse cache: "
             .. table.concat(
-                direct_parse_summary,
+                parse_cache_summary,
                 ", "
             )
     )

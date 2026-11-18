@@ -168,6 +168,56 @@ local function run()
         "persistent C++ panels must not claim registers or heap inference")
 
     print("PASS C/C++ adapter isolation")
+
+    local parser_identity_probe =
+        vim.deepcopy(c)
+
+    parser_identity_probe.instruction_parser = {
+        module = "tracker_hud.tests.parser_probe",
+        function_name = "parse_instruction",
+        cache_identity = "node",
+    }
+
+    local parser_identity_valid,
+        parser_identity_error =
+        contract.validate_adapter(
+            parser_identity_probe
+        )
+
+    assert(
+        parser_identity_valid,
+        "node-stable instruction parser contract rejected: "
+            .. tostring(
+                parser_identity_error
+            )
+    )
+
+    parser_identity_probe
+        .instruction_parser
+        .cache_identity =
+        "unsafe"
+
+    local invalid_identity,
+        invalid_identity_error =
+        contract.validate_adapter(
+            parser_identity_probe
+        )
+
+    assert(
+        not invalid_identity
+            and tostring(
+                invalid_identity_error
+            ):find(
+                "cache_identity",
+                1,
+                true
+            ),
+        "invalid instruction parser cache identity was accepted"
+    )
+
+    print(
+        "PASS instruction parser cache-identity contract"
+    )
 end
 
 local ok, err = pcall(run)

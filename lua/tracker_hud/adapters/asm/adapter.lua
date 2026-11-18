@@ -225,6 +225,10 @@ M.construct_specs = {
 local default_instruction_parser = {
     module = "tracker_hud.adapters.asm.instruction_utils",
     function_name = "parse_instruction",
+
+    -- Current ASM parsing depends on the syntax node + configured adapter,
+    -- not on the representative semantic rule supplied by a consumer.
+    cache_identity = "node",
 }
 
 M.instruction_parser = default_instruction_parser

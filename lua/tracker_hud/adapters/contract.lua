@@ -1781,6 +1781,14 @@ local function validate_instruction_parser(instruction_parser)
             "adapter.instruction_parser.function_name must be a non-empty string"
     end
 
+    if instruction_parser.cache_identity ~= nil
+        and instruction_parser.cache_identity ~= "node"
+        and instruction_parser.cache_identity ~= "node_and_spec"
+    then
+        return false,
+            "adapter.instruction_parser.cache_identity must be 'node' or 'node_and_spec' when provided"
+    end
+
     return true, nil
 end
 

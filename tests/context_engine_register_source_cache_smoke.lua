@@ -22,6 +22,16 @@ local memory_discovery =
         "tracker_hud.low_level.memory_source_discovery"
     )
 
+local stack_pipeline =
+    require(
+        "tracker_hud.low_level.stack_effect_pipeline"
+    )
+
+local instruction_event_pipeline =
+    require(
+        "tracker_hud.low_level.instruction_event_pipeline"
+    )
+
 local instruction_source =
     require(
         "tracker_hud.low_level.instruction_source"
@@ -42,6 +52,12 @@ local original_boundary_collect =
 local original_memory_collect =
     memory_discovery.collect
 
+local original_stack_collect =
+    stack_pipeline.collect
+
+local original_instruction_event_collect =
+    instruction_event_pipeline.collect
+
 local original_collect_instruction =
     instruction_source.collect_instruction
 
@@ -56,8 +72,15 @@ local parse_calls = 0
 
 local parse_node = {}
 local parse_spec = {}
+local parse_spec_other = {}
+
 local parsed_instruction = {
     mnemonic = "mov",
+    operands = {},
+}
+
+local parsed_instruction_other = {
+    mnemonic = "other",
     operands = {},
 }
 
@@ -72,15 +95,22 @@ instruction_source.collect_instruction =
     )
         assert(
             node == parse_node
-                and effect_spec
-                    == parse_spec,
+                and (
+                    effect_spec
+                        == parse_spec
+                    or effect_spec
+                        == parse_spec_other
+                ),
             "unexpected parser-cache test key"
         )
 
         parse_calls =
             parse_calls + 1
 
-        return parsed_instruction
+        return effect_spec
+                == parse_spec_other
+            and parsed_instruction_other
+            or parsed_instruction
     end
 
 register_pipeline.prepare_source =
@@ -306,6 +336,76 @@ memory_discovery.collect =
         return {}
     end
 
+stack_pipeline.collect =
+    function(
+        _context,
+        adapter,
+        _opts,
+        deps
+    )
+        local instruction =
+            deps.parse_instruction(
+                parse_node,
+                parse_spec_other
+            )
+
+        if adapter.instruction_parser
+            and adapter
+                .instruction_parser
+                .cache_identity
+                == "node"
+        then
+            assert(
+                instruction
+                    == parsed_instruction,
+                "node-stable Stack parser did not reuse cached instruction"
+            )
+        else
+            assert(
+                instruction
+                    == parsed_instruction_other,
+                "spec-sensitive Stack parser cache collapsed distinct specs"
+            )
+        end
+
+        return {}
+    end
+
+instruction_event_pipeline.collect =
+    function(
+        _context,
+        adapter,
+        _opts,
+        deps
+    )
+        local instruction =
+            deps.parse_instruction(
+                parse_node,
+                parse_spec_other
+            )
+
+        if adapter.instruction_parser
+            and adapter
+                .instruction_parser
+                .cache_identity
+                == "node"
+        then
+            assert(
+                instruction
+                    == parsed_instruction,
+                "node-stable Event parser did not reuse cached instruction"
+            )
+        else
+            assert(
+                instruction
+                    == parsed_instruction_other,
+                "spec-sensitive Event parser cache collapsed distinct specs"
+            )
+        end
+
+        return {}
+    end
+
 local ok, err =
     pcall(
         function()
@@ -319,6 +419,9 @@ local ok, err =
             local adapter = {
                 name = "asm",
                 marker = "adapter",
+                instruction_parser = {
+                    cache_identity = "node",
+                },
             }
 
             local context = {
@@ -412,6 +515,28 @@ local ok, err =
                 }
             )
 
+            engine.collect_stack_effects(
+                context,
+                adapter,
+                {
+                    bufnr = 77,
+                    root_node = "root",
+                    register_source_cache =
+                        cache,
+                }
+            )
+
+            engine.collect_instruction_events(
+                context,
+                adapter,
+                {
+                    bufnr = 77,
+                    root_node = "root",
+                    register_source_cache =
+                        cache,
+                }
+            )
+
             assert(
                 prepare_calls == 1,
                 "shared refresh cache rebuilt prepared source"
@@ -476,6 +601,53 @@ local ok, err =
             print(
                 "PASS context register source cache: "
                     .. "mutable replay state remains consumer-local"
+            )
+
+            local spec_sensitive_start =
+                parse_calls
+
+            local spec_sensitive_adapter = {
+                name = "probe",
+                marker = "spec-sensitive",
+                instruction_parser = {
+                    cache_identity =
+                        "node_and_spec",
+                },
+            }
+
+            local spec_sensitive_cache = {}
+
+            engine.collect_register_effects(
+                context,
+                spec_sensitive_adapter,
+                {
+                    bufnr = 88,
+                    root_node = "spec-root",
+                    register_source_cache =
+                        spec_sensitive_cache,
+                }
+            )
+
+            engine.collect_stack_effects(
+                context,
+                spec_sensitive_adapter,
+                {
+                    bufnr = 88,
+                    root_node = "spec-root",
+                    register_source_cache =
+                        spec_sensitive_cache,
+                }
+            )
+
+            assert(
+                parse_calls
+                    == spec_sensitive_start + 2,
+                "spec-sensitive parser cache incorrectly collapsed node identity across specs"
+            )
+
+            print(
+                "PASS context register source cache: "
+                    .. "spec-sensitive parsers remain keyed by node + spec"
             )
 
 
@@ -735,6 +907,12 @@ boundary_pipeline.collect =
 
 memory_discovery.collect =
     original_memory_collect
+
+stack_pipeline.collect =
+    original_stack_collect
+
+instruction_event_pipeline.collect =
+    original_instruction_event_collect
 
 instruction_source.collect_instruction =
     original_collect_instruction
