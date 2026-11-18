@@ -349,8 +349,7 @@ local function run()
         "context.warnings.syntax.nodes_visited",
         "context.warnings.syntax.candidates",
         "context.configure.adapter.directive_scans",
-        "context.configure.adapter.directive_scans.variant",
-        "context.configure.adapter.directive_scans.targets",
+        "context.configure.adapter.directive_scans.shared",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -844,36 +843,51 @@ local function run()
             .. " ERROR/MISSING candidate(s)"
     )
 
-    local directive_scans =
-        counter_total(
+    local directive_scan_counter =
+        snapshot.counters[
             "context.configure.adapter.directive_scans"
+        ]
+
+    local shared_directive_scans =
+        counter_total(
+            "context.configure.adapter.directive_scans.shared"
         )
 
-    local variant_scans =
-        counter_total(
-            "context.configure.adapter.directive_scans.variant"
-        )
-
-    local target_scans =
-        counter_total(
-            "context.configure.adapter.directive_scans.targets"
-        )
+    local configure_adapter_phase =
+        snapshot.phases[
+            "context.configure.adapter"
+        ]
 
     assert(
-        directive_scans == 10
-            and variant_scans == 5
-            and target_scans == 5,
-        "ASM configuration directive-scan measurement changed"
+        type(directive_scan_counter)
+            == "table"
+            and type(configure_adapter_phase)
+                == "table"
+            and directive_scan_counter.count
+                == configure_adapter_phase.count
+            and directive_scan_counter.total
+                == 5
+            and shared_directive_scans
+                == 5
+            and snapshot.counters[
+                "context.configure.adapter.directive_scans.variant"
+            ] == nil
+            and snapshot.counters[
+                "context.configure.adapter.directive_scans.targets"
+            ] == nil,
+        "ASM configuration shared directive-scan reuse changed"
     )
 
     print(
         "[Tracker_HUD] ASM configuration directive scans: "
-            .. tostring(directive_scans)
-            .. " total = "
-            .. tostring(variant_scans)
-            .. " variant + "
-            .. tostring(target_scans)
-            .. " target"
+            .. tostring(
+                shared_directive_scans
+            )
+            .. " shared scan(s) across "
+            .. tostring(
+                configure_adapter_phase.count
+            )
+            .. " configuration miss(es)"
     )
 
     assert(

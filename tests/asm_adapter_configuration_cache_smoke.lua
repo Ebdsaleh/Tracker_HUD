@@ -42,6 +42,20 @@ assert(
 
 local config = {}
 
+local scan_counters = {}
+
+local configure_profile_opts = {
+    profile_counter =
+        function(name, delta)
+            scan_counters[name] =
+                (
+                    scan_counters[name]
+                    or 0
+                )
+                + (delta or 0)
+        end,
+}
+
 local buffer_linux =
     vim.api.nvim_create_buf(
         false,
@@ -66,7 +80,8 @@ local ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_linux,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -90,7 +105,8 @@ ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_linux,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -119,7 +135,8 @@ ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_linux,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -144,7 +161,8 @@ ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_linux,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -183,7 +201,8 @@ ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_other,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -206,7 +225,8 @@ ok, err =
     registry.configure_adapter_for_buffer(
         "asm",
         buffer_linux,
-        config
+        config,
+        configure_profile_opts
     )
 
 assert(
@@ -225,6 +245,27 @@ assert(
 print(
     "PASS ASM configuration cache: "
         .. "buffer switches re-own mutable target state"
+)
+
+assert(
+    scan_counters[
+        "context.configure.adapter.directive_scans"
+    ] == 4
+        and scan_counters[
+            "context.configure.adapter.directive_scans.shared"
+        ] == 4
+        and scan_counters[
+            "context.configure.adapter.directive_scans.variant"
+        ] == nil
+        and scan_counters[
+            "context.configure.adapter.directive_scans.targets"
+        ] == nil,
+    "ASM configuration did not use exactly one shared directive scan per cache miss"
+)
+
+print(
+    "PASS ASM configuration cache: "
+        .. "one shared directive scan per cache miss"
 )
 
 print(

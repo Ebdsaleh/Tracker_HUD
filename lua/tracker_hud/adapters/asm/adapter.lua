@@ -327,8 +327,7 @@ end
 
 local function scan_source_directives(
     bufnr,
-    profile_opts,
-    consumer
+    profile_opts
 )
     profile_config_counter(
         profile_opts,
@@ -336,16 +335,11 @@ local function scan_source_directives(
         1
     )
 
-    if type(consumer) == "string"
-        and consumer ~= ""
-    then
-        profile_config_counter(
-            profile_opts,
-            "context.configure.adapter.directive_scans."
-                .. consumer,
-            1
-        )
-    end
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.directive_scans.shared",
+        1
+    )
 
     return variant_utils.scan_directives_from_buffer(bufnr, {
         directives = get_target_directive_names(),
@@ -357,26 +351,29 @@ local function scan_source_directives(
 end
 
 
-local function detect_variant_from_source(
-    bufnr,
-    profile_opts
+local function detect_variant_from_scan(
+    scan
 )
-    local scan = scan_source_directives(
-        bufnr,
-        profile_opts,
-        "variant"
-    )
-    local directive_name = M.variant_directive or "arch"
+    local directive_name =
+        M.variant_directive
+        or "arch"
 
-    for _, directive in ipairs(scan.directives or {}) do
-        if directive.directive == directive_name then
-            return normalize_variant_name(directive.value)
+    for _, directive in ipairs(
+        type(scan) == "table"
+            and scan.directives
+            or {}
+    ) do
+        if directive.directive
+            == directive_name
+        then
+            return normalize_variant_name(
+                directive.value
+            )
         end
     end
 
     return nil
 end
-
 
 local function get_directive_location(directive)
     if type(directive) ~= "table" then
@@ -394,15 +391,15 @@ local function get_directive_location(directive)
 end
 
 
-local function detect_targets_from_source(
-    bufnr,
-    profile_opts
+local function detect_targets_from_scan(
+    scan
 )
-    local scan = scan_source_directives(
-        bufnr,
-        profile_opts,
-        "targets"
-    )
+    scan = type(scan) == "table"
+        and scan
+        or {
+            directives = {},
+            diagnostics = {},
+        }
 
     local source_targets = {
         architecture = nil,
@@ -676,16 +673,14 @@ end
 
 
 local function resolve_targets(
-    bufnr,
+    source_scan,
     config,
-    variant,
-    profile_opts
+    variant
 )
     local config_targets = normalize_target_table(config and config.targets)
     local source_targets =
-        detect_targets_from_source(
-            bufnr,
-            profile_opts
+        detect_targets_from_scan(
+            source_scan
         )
     local diagnostics = {}
 
@@ -880,10 +875,15 @@ function M.configure_adapter_for_buffer(
 )
     local config_targets = normalize_target_table(config and config.targets)
 
-    local variant_name =
-        detect_variant_from_source(
+    local source_scan =
+        scan_source_directives(
             bufnr,
             profile_opts
+        )
+
+    local variant_name =
+        detect_variant_from_scan(
+            source_scan
         )
         or config_targets.architecture
         or M.default_variant
@@ -894,10 +894,9 @@ function M.configure_adapter_for_buffer(
 
     M.active_targets =
         resolve_targets(
-            bufnr,
+            source_scan,
             config,
-            variant or {},
-            profile_opts
+            variant or {}
         )
 
     M.comments =
@@ -913,7 +912,11 @@ local default_variant = load_variant(M.default_variant)
 
 apply_variant(default_variant)
 
-M.active_targets = resolve_targets(nil, nil, default_variant or {})
+M.active_targets = resolve_targets(
+    nil,
+    nil,
+    default_variant or {}
+)
 M.comments = build_comments_for_syntax(default_variant or {}, M.active_targets.syntax)
 
 
