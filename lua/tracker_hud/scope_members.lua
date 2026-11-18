@@ -13,6 +13,52 @@ local scope_member_model = require("tracker_hud.scope_member_model")
 local M = {}
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if not core.is_table(opts)
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    local prefix =
+        opts.profile_prefix
+        or "context.scope_members"
+
+    return opts.profile_counter(
+        prefix
+            .. "."
+            .. suffix,
+        delta
+    )
+end
+
+
+local function count_measurement(
+    state,
+    key,
+    delta
+)
+    local measurement =
+        state
+        and state.measurement
+
+    if not core.is_table(
+        measurement
+    ) then
+        return
+    end
+
+    measurement[key] =
+        (measurement[key] or 0)
+        + (delta or 1)
+end
+
+
 local function get_syntax(member_spec)
     if not core.is_table(member_spec)
         or not core.is_table(member_spec.syntax)
@@ -139,7 +185,14 @@ local function get_syntax_ancestor_exclusions(member_spec)
 end
 
 
-local function make_state(opts, scope_depth, scope_range, structural_depth, structural_range)
+local function make_state(
+    opts,
+    scope_depth,
+    scope_range,
+    structural_depth,
+    structural_range,
+    measurement
+)
     return {
         opts = opts or {},
         scope_depth = scope_depth or 0,
@@ -147,6 +200,8 @@ local function make_state(opts, scope_depth, scope_range, structural_depth, stru
 
         structural_depth = structural_depth or 0,
         structural_range = structural_range,
+
+        measurement = measurement,
     }
 end
 
@@ -658,7 +713,8 @@ local function make_structural_member_state(state)
         state.scope_depth,
         state.structural_range or state.scope_range,
         state.structural_depth,
-        state.structural_range
+        state.structural_range,
+        state.measurement
     )
 end
 
@@ -933,6 +989,12 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
     collector = collector or collect_member_spec
 
     for _, member_spec in ipairs(specs) do
+        count_measurement(
+            state,
+            "spec_checks",
+            1
+        )
+
         if not should_collect_before_scope_enter(member_spec) then
             collector(node, bufnr, member_spec, members, seen, state, adapter)
         end
@@ -955,6 +1017,12 @@ local function collect_member_group_before_scope_enter(
     end
 
     for _, member_spec in ipairs(specs) do
+        count_measurement(
+            state,
+            "spec_checks",
+            1
+        )
+
         if should_collect_before_scope_enter(member_spec) then
             collector(node, bufnr, member_spec, members, seen, state, adapter)
         end
@@ -1071,6 +1139,12 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 
     state = state or make_state()
 
+    count_measurement(
+        state,
+        "nodes_visited",
+        1
+    )
+
     local current_state = state
 
     local scope_member_spec = adapter.scope_members or {}
@@ -1092,7 +1166,8 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
             state.scope_depth + 1,
             ts_utils.get_node_range(node),
             state.structural_depth,
-            state.structural_range
+            state.structural_range,
+            state.measurement
         )
     end
 
@@ -1102,7 +1177,8 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
             current_state.scope_depth,
             current_state.scope_range,
             current_state.structural_depth + 1,
-            ts_utils.get_node_range(node)
+            ts_utils.get_node_range(node),
+            current_state.measurement
         )
     end
 
@@ -1117,6 +1193,10 @@ end
 function M.collect(bufnr, root_node, adapter, opts)
     local members = {}
     local seen = {}
+    local measurement = {
+        nodes_visited = 0,
+        spec_checks = 0,
+    }
 
     if not root_node or not core.is_table(adapter) then
         return members
@@ -1126,7 +1206,39 @@ function M.collect(bufnr, root_node, adapter, opts)
         return members
     end
 
-    walk_node(root_node, bufnr, adapter, members, seen, make_state(opts, 0))
+    walk_node(
+        root_node,
+        bufnr,
+        adapter,
+        members,
+        seen,
+        make_state(
+            opts,
+            0,
+            nil,
+            nil,
+            nil,
+            measurement
+        )
+    )
+
+    profile_counter(
+        opts,
+        "nodes_visited",
+        measurement.nodes_visited
+    )
+
+    profile_counter(
+        opts,
+        "spec_checks",
+        measurement.spec_checks
+    )
+
+    profile_counter(
+        opts,
+        "members_emitted",
+        #members
+    )
 
    table.sort(members, function(left, right)
         local left_line =

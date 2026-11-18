@@ -333,6 +333,12 @@ local function run()
         "context.stack.dynamic.timeline_hits",
         "context.boundary.read_context.timeline_hits",
         "context.source_memory.collect.evaluate.timeline_hits",
+        "context.scope_members.nodes_visited",
+        "context.scope_members.spec_checks",
+        "context.scope_members.members_emitted",
+        "context.scope_members_all.nodes_visited",
+        "context.scope_members_all.spec_checks",
+        "context.scope_members_all.members_emitted",
     }
 
     for _, name in ipairs(
@@ -394,6 +400,50 @@ local function run()
             .. " reused / "
             .. tostring(snapshot.refresh_count)
             .. " refreshes"
+    )
+
+    local current_scope_nodes =
+        snapshot.counters[
+            "context.scope_members.nodes_visited"
+        ]
+
+    local all_scope_nodes =
+        snapshot.counters[
+            "context.scope_members_all.nodes_visited"
+        ]
+
+    local current_scope_checks =
+        snapshot.counters[
+            "context.scope_members.spec_checks"
+        ]
+
+    local all_scope_checks =
+        snapshot.counters[
+            "context.scope_members_all.spec_checks"
+        ]
+
+    assert(
+        current_scope_nodes.total
+            == all_scope_nodes.total,
+        "scope-member current/all collections no longer traverse the same tree volume"
+    )
+
+    assert(
+        current_scope_checks.total
+            == all_scope_checks.total,
+        "scope-member current/all collections no longer execute the same spec-check volume"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member duplicate traversal: "
+            .. tostring(
+                current_scope_nodes.total
+            )
+            .. " nodes + "
+            .. tostring(
+                current_scope_checks.total
+            )
+            .. " spec checks repeated by current/all collections"
     )
 
     assert(

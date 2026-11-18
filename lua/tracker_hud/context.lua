@@ -521,7 +521,14 @@ local function attach_context_sections(
             bufnr,
             root_node,
             adapter,
-            scope_member_opts
+            vim.tbl_extend(
+                "force",
+                scope_member_opts or {},
+                nested_profile_options(
+                    profile_token,
+                    "context.scope_members"
+                )
+            )
         )
 
     profile_end(
@@ -540,7 +547,11 @@ local function attach_context_sections(
         scope_members.collect(
             bufnr,
             root_node,
-            adapter
+            adapter,
+            nested_profile_options(
+                profile_token,
+                "context.scope_members_all"
+            )
         )
 
     profile_end(
