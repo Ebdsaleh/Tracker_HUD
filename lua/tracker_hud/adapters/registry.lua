@@ -349,7 +349,8 @@ function M.configure_adapter_for_buffer(
         local ok, err = pcall(
             adapter.configure_adapter_for_buffer,
             bufnr,
-            config
+            config,
+            opts
         )
 
         profile_end(

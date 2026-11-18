@@ -306,7 +306,47 @@ local function get_target_key_for_directive(directive)
 end
 
 
-local function scan_source_directives(bufnr)
+local function profile_config_counter(
+    profile_opts,
+    name,
+    delta
+)
+    if type(profile_opts) ~= "table"
+        or type(profile_opts.profile_counter)
+            ~= "function"
+    then
+        return
+    end
+
+    profile_opts.profile_counter(
+        name,
+        delta
+    )
+end
+
+
+local function scan_source_directives(
+    bufnr,
+    profile_opts,
+    consumer
+)
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.directive_scans",
+        1
+    )
+
+    if type(consumer) == "string"
+        and consumer ~= ""
+    then
+        profile_config_counter(
+            profile_opts,
+            "context.configure.adapter.directive_scans."
+                .. consumer,
+            1
+        )
+    end
+
     return variant_utils.scan_directives_from_buffer(bufnr, {
         directives = get_target_directive_names(),
         comment_prefixes = M.directive_comment_prefixes or M.variant_comment_prefixes,
@@ -317,8 +357,15 @@ local function scan_source_directives(bufnr)
 end
 
 
-local function detect_variant_from_source(bufnr)
-    local scan = scan_source_directives(bufnr)
+local function detect_variant_from_source(
+    bufnr,
+    profile_opts
+)
+    local scan = scan_source_directives(
+        bufnr,
+        profile_opts,
+        "variant"
+    )
     local directive_name = M.variant_directive or "arch"
 
     for _, directive in ipairs(scan.directives or {}) do
@@ -347,8 +394,15 @@ local function get_directive_location(directive)
 end
 
 
-local function detect_targets_from_source(bufnr)
-    local scan = scan_source_directives(bufnr)
+local function detect_targets_from_source(
+    bufnr,
+    profile_opts
+)
+    local scan = scan_source_directives(
+        bufnr,
+        profile_opts,
+        "targets"
+    )
 
     local source_targets = {
         architecture = nil,
@@ -621,9 +675,18 @@ local function build_comments_for_syntax(variant, syntax)
 end
 
 
-local function resolve_targets(bufnr, config, variant)
+local function resolve_targets(
+    bufnr,
+    config,
+    variant,
+    profile_opts
+)
     local config_targets = normalize_target_table(config and config.targets)
-    local source_targets = detect_targets_from_source(bufnr)
+    local source_targets =
+        detect_targets_from_source(
+            bufnr,
+            profile_opts
+        )
     local diagnostics = {}
 
     add_existing_diagnostics(diagnostics, source_targets)
@@ -810,10 +873,18 @@ local function apply_variant(variant)
 end
 
 
-function M.configure_adapter_for_buffer(bufnr, config)
+function M.configure_adapter_for_buffer(
+    bufnr,
+    config,
+    profile_opts
+)
     local config_targets = normalize_target_table(config and config.targets)
 
-    local variant_name = detect_variant_from_source(bufnr)
+    local variant_name =
+        detect_variant_from_source(
+            bufnr,
+            profile_opts
+        )
         or config_targets.architecture
         or M.default_variant
 
@@ -821,8 +892,19 @@ function M.configure_adapter_for_buffer(bufnr, config)
 
     apply_variant(variant)
 
-    M.active_targets = resolve_targets(bufnr, config, variant or {})
-    M.comments = build_comments_for_syntax(variant or {}, M.active_targets.syntax)
+    M.active_targets =
+        resolve_targets(
+            bufnr,
+            config,
+            variant or {},
+            profile_opts
+        )
+
+    M.comments =
+        build_comments_for_syntax(
+            variant or {},
+            M.active_targets.syntax
+        )
 end
 
 -- Default variant so the adapter still exposes useful specs before

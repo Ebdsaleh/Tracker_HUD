@@ -1359,6 +1359,14 @@ function M.get_cursor_context(
                         started
                     )
                 end,
+            profile_counter =
+                function(name, delta)
+                    return analysis_profile.add_counter(
+                        profile_token,
+                        name,
+                        delta
+                    )
+                end,
         }
     end
 

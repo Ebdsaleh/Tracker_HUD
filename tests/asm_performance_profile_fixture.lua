@@ -348,6 +348,9 @@ local function run()
         "context.warnings.syntax.scans",
         "context.warnings.syntax.nodes_visited",
         "context.warnings.syntax.candidates",
+        "context.configure.adapter.directive_scans",
+        "context.configure.adapter.directive_scans.variant",
+        "context.configure.adapter.directive_scans.targets",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -839,6 +842,38 @@ local function run()
                 warning_candidates.total
             )
             .. " ERROR/MISSING candidate(s)"
+    )
+
+    local directive_scans =
+        counter_total(
+            "context.configure.adapter.directive_scans"
+        )
+
+    local variant_scans =
+        counter_total(
+            "context.configure.adapter.directive_scans.variant"
+        )
+
+    local target_scans =
+        counter_total(
+            "context.configure.adapter.directive_scans.targets"
+        )
+
+    assert(
+        directive_scans == 10
+            and variant_scans == 5
+            and target_scans == 5,
+        "ASM configuration directive-scan measurement changed"
+    )
+
+    print(
+        "[Tracker_HUD] ASM configuration directive scans: "
+            .. tostring(directive_scans)
+            .. " total = "
+            .. tostring(variant_scans)
+            .. " variant + "
+            .. tostring(target_scans)
+            .. " target"
     )
 
     assert(
