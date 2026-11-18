@@ -516,19 +516,23 @@ local function attach_context_sections(
             "context.scope_members"
         )
 
-    context.scope_members =
-        scope_members.collect(
+    -- Discover the immutable member set once per refresh. Current-scope and
+    -- all-members sections are views over the same source traversal.
+    local scope_member_discovery =
+        scope_members.discover(
             bufnr,
             root_node,
             adapter,
-            vim.tbl_extend(
-                "force",
-                scope_member_opts or {},
-                nested_profile_options(
-                    profile_token,
-                    "context.scope_members"
-                )
+            nested_profile_options(
+                profile_token,
+                "context.scope_members"
             )
+        )
+
+    context.scope_members =
+        scope_members.select(
+            scope_member_discovery,
+            scope_member_opts
         )
 
     profile_end(
@@ -544,14 +548,9 @@ local function attach_context_sections(
         )
 
     context.all_scope_members =
-        scope_members.collect(
-            bufnr,
-            root_node,
-            adapter,
-            nested_profile_options(
-                profile_token,
-                "context.scope_members_all"
-            )
+        scope_members.select(
+            scope_member_discovery,
+            {}
         )
 
     profile_end(

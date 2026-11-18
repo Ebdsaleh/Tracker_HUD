@@ -298,6 +298,39 @@ local function run()
             .. "all nested context phases recorded"
     )
 
+    local scope_nodes =
+        snapshot.counters[
+            "context.scope_members.nodes_visited"
+        ]
+
+    local scope_checks =
+        snapshot.counters[
+            "context.scope_members.spec_checks"
+        ]
+
+    assert(
+        type(scope_nodes) == "table"
+            and scope_nodes.total > 0
+            and type(scope_checks) == "table"
+            and scope_checks.total > 0,
+        "shared scope-member discovery work counters missing"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.scope_members_all.nodes_visited"
+        ] == nil
+            and snapshot.counters[
+                "context.scope_members_all.spec_checks"
+            ] == nil,
+        "all-members view unexpectedly repeated scope-member discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "shared scope-member discovery traverses once for current/all views"
+    )
+
     local report =
         table.concat(
             profile.format_report(),

@@ -336,9 +336,6 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.members_emitted",
-        "context.scope_members_all.nodes_visited",
-        "context.scope_members_all.spec_checks",
-        "context.scope_members_all.members_emitted",
     }
 
     for _, name in ipairs(
@@ -402,48 +399,39 @@ local function run()
             .. " refreshes"
     )
 
-    local current_scope_nodes =
+    local scope_nodes =
         snapshot.counters[
             "context.scope_members.nodes_visited"
         ]
 
-    local all_scope_nodes =
-        snapshot.counters[
-            "context.scope_members_all.nodes_visited"
-        ]
-
-    local current_scope_checks =
+    local scope_checks =
         snapshot.counters[
             "context.scope_members.spec_checks"
         ]
 
-    local all_scope_checks =
+    assert(
         snapshot.counters[
-            "context.scope_members_all.spec_checks"
-        ]
-
-    assert(
-        current_scope_nodes.total
-            == all_scope_nodes.total,
-        "scope-member current/all collections no longer traverse the same tree volume"
-    )
-
-    assert(
-        current_scope_checks.total
-            == all_scope_checks.total,
-        "scope-member current/all collections no longer execute the same spec-check volume"
+            "context.scope_members_all.nodes_visited"
+        ] == nil
+            and snapshot.counters[
+                "context.scope_members_all.spec_checks"
+            ] == nil
+            and snapshot.counters[
+                "context.scope_members_all.members_emitted"
+            ] == nil,
+        "all-members view unexpectedly repeated scope-member discovery"
     )
 
     print(
-        "[Tracker_HUD] Scope-member duplicate traversal: "
+        "[Tracker_HUD] Scope-member shared discovery: "
             .. tostring(
-                current_scope_nodes.total
+                scope_nodes.total
             )
             .. " nodes + "
             .. tostring(
-                current_scope_checks.total
+                scope_checks.total
             )
-            .. " spec checks repeated by current/all collections"
+            .. " spec checks feed current/all views"
     )
 
     assert(
