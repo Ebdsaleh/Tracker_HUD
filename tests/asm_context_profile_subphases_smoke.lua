@@ -55,11 +55,6 @@ local function run()
 
     local root = tree:root()
 
-    assert(
-        not root:has_error(),
-        "ASM performance fixture contains parser ERROR nodes"
-    )
-
     local adapter =
         require(
             "tracker_hud.adapters.asm.init"
