@@ -31,6 +31,35 @@ local function run()
         { 103, 0 }
     )
 
+    local ok_parser, parser =
+        pcall(
+            vim.treesitter.get_parser,
+            buffer,
+            "asm"
+        )
+
+    assert(
+        ok_parser and parser,
+        "Missing Tree-sitter 'asm' parser. "
+            .. "Install it in your Neovim configuration before running "
+            .. "this parser-backed test. Error: "
+            .. tostring(parser)
+    )
+
+    local tree = parser:parse()[1]
+
+    assert(
+        tree,
+        "ASM parser yielded no tree"
+    )
+
+    local root = tree:root()
+
+    assert(
+        not root:has_error(),
+        "ASM performance fixture contains parser ERROR nodes"
+    )
+
     local adapter =
         require(
             "tracker_hud.adapters.asm.init"
