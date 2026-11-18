@@ -195,6 +195,16 @@ local function run()
     local snapshot =
         profile.snapshot()
 
+    assert(
+        snapshot.counters[
+            "context.scope_members.cross_refresh_reuse_miss"
+        ]
+            and snapshot.counters[
+                "context.scope_members.cross_refresh_reuse_miss"
+            ].total == 1,
+        "initial Scope Member discovery did not record a fresh-cache miss"
+    )
+
     local expected = {
         "context.parser",
         "context.configure",
@@ -499,6 +509,159 @@ local function run()
     print(
         "PASS ASM context profile: "
             .. "Registers-before reuses paired replay without process phase"
+    )
+
+    local cache_counters = {}
+
+    local function cache_counter(
+        name,
+        delta
+    )
+        cache_counters[name] =
+            (cache_counters[name] or 0)
+            + (delta or 1)
+    end
+
+    local cache_opts = {
+        reuse_unchanged_source = true,
+        profile_prefix =
+            "cache_probe",
+        profile_counter =
+            cache_counter,
+    }
+
+    local reused_discovery =
+        scope_collector.discover(
+            buffer,
+            root,
+            adapter,
+            cache_opts
+        )
+
+    assert(
+        cache_counters[
+            "cache_probe.cross_refresh_reuse_applied"
+        ] == 1
+            and cache_counters[
+                "cache_probe.nodes_visited"
+            ] == nil
+            and member_ids(
+                scope_collector.select(
+                    reused_discovery,
+                    {}
+                )
+            ) == member_ids(
+                context.all_scope_members
+            ),
+        "unchanged source did not reuse immutable Scope Member discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "unchanged source reuses immutable Scope Member discovery"
+    )
+
+    local first_line =
+        vim.api.nvim_buf_get_lines(
+            buffer,
+            0,
+            1,
+            false
+        )[1]
+
+    vim.api.nvim_buf_set_lines(
+        buffer,
+        0,
+        1,
+        false,
+        {
+            first_line .. " ",
+        }
+    )
+
+    local edited_tree =
+        parser:parse()[1]
+
+    assert(
+        edited_tree,
+        "ASM parser yielded no tree after cache invalidation edit"
+    )
+
+    cache_counters = {}
+
+    local edited_discovery =
+        scope_collector.discover(
+            buffer,
+            edited_tree:root(),
+            adapter,
+            cache_opts
+        )
+
+    assert(
+        cache_counters[
+            "cache_probe.cross_refresh_reuse_miss"
+        ] == 1
+            and cache_counters[
+                "cache_probe.nodes_visited"
+            ] > 0
+            and member_ids(
+                scope_collector.select(
+                    edited_discovery,
+                    {}
+                )
+            ) == member_ids(
+                context.all_scope_members
+            ),
+        "buffer edit did not invalidate Scope Member discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "buffer edit invalidates persistent Scope Member discovery"
+    )
+
+    local original_scope_members =
+        adapter.scope_members
+
+    adapter.scope_members =
+        vim.deepcopy(
+            original_scope_members
+        )
+
+    cache_counters = {}
+
+    local identity_discovery =
+        scope_collector.discover(
+            buffer,
+            edited_tree:root(),
+            adapter,
+            cache_opts
+        )
+
+    adapter.scope_members =
+        original_scope_members
+
+    assert(
+        cache_counters[
+            "cache_probe.cross_refresh_reuse_miss"
+        ] == 1
+            and cache_counters[
+                "cache_probe.nodes_visited"
+            ] > 0
+            and member_ids(
+                scope_collector.select(
+                    identity_discovery,
+                    {}
+                )
+            ) == member_ids(
+                context.all_scope_members
+            ),
+        "scope-member spec identity change did not invalidate discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "scope-member spec identity invalidates persistent discovery"
     )
 
     print(

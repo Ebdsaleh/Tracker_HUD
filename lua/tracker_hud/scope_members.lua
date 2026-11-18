@@ -13,6 +13,149 @@ local scope_member_model = require("tracker_hud.scope_member_model")
 local M = {}
 
 
+-- One conservative persistent immutable discovery entry is enough for the
+-- active HUD path. Switching buffers/specs safely misses and replaces it.
+local persistent_discovery_cache = nil
+local discovery_module_token = tostring({})
+local discovery_buffer_token_serial = 0
+local issued_discovery_buffer_tokens = {}
+
+
+local function get_discovery_buffer_revision(
+    bufnr
+)
+    if not vim
+        or not vim.api
+        or type(
+            vim.api.nvim_buf_get_changedtick
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_get_var
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_set_var
+        ) ~= "function"
+    then
+        return nil
+    end
+
+    local ok_tick, changedtick =
+        pcall(
+            vim.api.nvim_buf_get_changedtick,
+            bufnr
+        )
+
+    if not ok_tick then
+        return nil
+    end
+
+    local variable_name =
+        "tracker_hud_scope_discovery_cache_token"
+
+    local ok_token, token =
+        pcall(
+            vim.api.nvim_buf_get_var,
+            bufnr,
+            variable_name
+        )
+
+    local expected_prefix =
+        discovery_module_token
+        .. ":"
+
+    if not ok_token
+        or type(token) ~= "string"
+        or token:sub(
+            1,
+            #expected_prefix
+        ) ~= expected_prefix
+        or issued_discovery_buffer_tokens[
+            token
+        ] ~= true
+    then
+        discovery_buffer_token_serial =
+            discovery_buffer_token_serial
+            + 1
+
+        token =
+            expected_prefix
+            .. tostring(
+                discovery_buffer_token_serial
+            )
+
+        issued_discovery_buffer_tokens[
+            token
+        ] = true
+
+        local ok_set =
+            pcall(
+                vim.api.nvim_buf_set_var,
+                bufnr,
+                variable_name,
+                token
+            )
+
+        if not ok_set then
+            return nil
+        end
+    end
+
+    return {
+        token = token,
+        changedtick = changedtick,
+    }
+end
+
+
+local function persistent_discovery_matches(
+    bufnr,
+    adapter,
+    revision
+)
+    local cached =
+        persistent_discovery_cache
+
+    return core.is_table(cached)
+        and core.is_table(revision)
+        and cached.bufnr == bufnr
+        and cached.buffer_token
+            == revision.token
+        and cached.changedtick
+            == revision.changedtick
+        and cached.adapter == adapter
+        and cached.scope_members
+            == adapter.scope_members
+        and core.is_table(
+            cached.discovery
+        )
+end
+
+
+local function remember_persistent_discovery(
+    bufnr,
+    adapter,
+    revision,
+    discovery
+)
+    if not core.is_table(revision)
+        or not core.is_table(discovery)
+    then
+        persistent_discovery_cache = nil
+        return
+    end
+
+    persistent_discovery_cache = {
+        bufnr = bufnr,
+        buffer_token = revision.token,
+        changedtick = revision.changedtick,
+        adapter = adapter,
+        scope_members =
+            adapter.scope_members,
+        discovery = discovery,
+    }
+end
+
+
 local function profile_counter(
     opts,
     suffix,
@@ -1374,7 +1517,51 @@ function M.discover(
     adapter,
     opts
 )
-    return {
+    opts = opts or {}
+
+    local reuse_unchanged_source =
+        opts.reuse_unchanged_source
+            == true
+
+    local revision = nil
+
+    if reuse_unchanged_source then
+        revision =
+            get_discovery_buffer_revision(
+                bufnr
+            )
+
+        if persistent_discovery_matches(
+            bufnr,
+            adapter,
+            revision
+        ) then
+            profile_counter(
+                opts,
+                "cross_refresh_reuse_possible",
+                1
+            )
+
+            profile_counter(
+                opts,
+                "cross_refresh_reuse_applied",
+                1
+            )
+
+            return persistent_discovery_cache
+                .discovery
+        end
+
+        if core.is_table(revision) then
+            profile_counter(
+                opts,
+                "cross_refresh_reuse_miss",
+                1
+            )
+        end
+    end
+
+    local discovery = {
         members =
             collect_internal(
                 bufnr,
@@ -1385,6 +1572,17 @@ function M.discover(
                 )
             ),
     }
+
+    if reuse_unchanged_source then
+        remember_persistent_discovery(
+            bufnr,
+            adapter,
+            revision,
+            discovery
+        )
+    end
+
+    return discovery
 end
 
 

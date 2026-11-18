@@ -518,15 +518,21 @@ local function attach_context_sections(
 
     -- Discover the immutable member set once per refresh. Current-scope and
     -- all-members sections are views over the same source traversal.
+    local scope_discovery_opts =
+        nested_profile_options(
+            profile_token,
+            "context.scope_members"
+        )
+
+    scope_discovery_opts
+        .reuse_unchanged_source = true
+
     local scope_member_discovery =
         scope_members.discover(
             bufnr,
             root_node,
             adapter,
-            nested_profile_options(
-                profile_token,
-                "context.scope_members"
-            )
+            scope_discovery_opts
         )
 
     context.scope_members =
