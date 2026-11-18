@@ -247,13 +247,137 @@ print(
         .. "buffer switches re-own mutable target state"
 )
 
+local buffer_prefix =
+    vim.api.nvim_create_buf(
+        false,
+        true
+    )
+
+vim.api.nvim_buf_set_lines(
+    buffer_prefix,
+    0,
+    -1,
+    false,
+    {
+        "; arch=x86-64;",
+        "# platform=linux;",
+        "; syntax=nasm;",
+        "mov rcx, 3",
+    }
+)
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "asm",
+        buffer_prefix,
+        config,
+        configure_profile_opts
+    )
+
+assert(
+    ok,
+    tostring(err)
+)
+
+local prefix_targets =
+    adapter.active_targets
+
+local prefix_diagnostic = false
+
+for _, diagnostic in ipairs(
+    prefix_targets.diagnostics
+        or {}
+) do
+    if diagnostic.key == "platform"
+        and tostring(
+            diagnostic.message
+        ):find(
+            "directive uses '#'",
+            1,
+            true
+        )
+    then
+        prefix_diagnostic = true
+        break
+    end
+end
+
+assert(
+    prefix_targets.platform
+        == "linux"
+        and prefix_targets.abi
+            == "linux_syscall"
+        and prefix_diagnostic,
+    "shared ASM directive scan lost syntax-prefix target diagnostics"
+)
+
+local buffer_malformed =
+    vim.api.nvim_create_buf(
+        false,
+        true
+    )
+
+vim.api.nvim_buf_set_lines(
+    buffer_malformed,
+    0,
+    -1,
+    false,
+    {
+        "; arch=x86-64;",
+        "; platform =linux;",
+        "; syntax=nasm;",
+        "mov rdx, 4",
+    }
+)
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "asm",
+        buffer_malformed,
+        config,
+        configure_profile_opts
+    )
+
+assert(
+    ok,
+    tostring(err)
+)
+
+local malformed_targets =
+    adapter.active_targets
+
+local malformed_diagnostic = false
+
+for _, diagnostic in ipairs(
+    malformed_targets.diagnostics
+        or {}
+) do
+    if diagnostic.key == "platform"
+        and diagnostic.reason
+            == "spaces_around_assignment"
+    then
+        malformed_diagnostic = true
+        break
+    end
+end
+
+assert(
+    malformed_diagnostic,
+    "shared ASM directive scan lost malformed-assignment diagnostics"
+)
+
+print(
+    "PASS ASM configuration cache: "
+        .. "shared scan preserves source diagnostics"
+)
+
 assert(
     scan_counters[
         "context.configure.adapter.directive_scans"
-    ] == 4
+    ] == 6
         and scan_counters[
             "context.configure.adapter.directive_scans.shared"
-        ] == 4
+        ] == 6
         and scan_counters[
             "context.configure.adapter.directive_scans.variant"
         ] == nil
