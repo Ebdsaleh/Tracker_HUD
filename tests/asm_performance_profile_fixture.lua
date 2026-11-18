@@ -107,6 +107,53 @@ local function run()
     profile.reset()
     profile.set_enabled(true)
 
+    -- Measure only. Do not reuse discovery yet.
+    -- A future persistent discovery cache must require both an unchanged
+    -- buffer revision and stable adapter/scope-member specification identity.
+    local scope_discovery_revision = nil
+    local scope_discovery_reuse_possible = 0
+    local scope_discovery_reuse_miss = 0
+
+    local function observe_scope_discovery_revision()
+        local adapter =
+            require(
+                "tracker_hud.adapters.registry"
+            ).get_adapter("asm")
+
+        local changedtick =
+            vim.api.nvim_buf_get_changedtick(
+                buffer
+            )
+
+        local scope_member_spec =
+            adapter
+                and adapter.scope_members
+                or nil
+
+        if scope_discovery_revision
+            and scope_discovery_revision.changedtick
+                == changedtick
+            and scope_discovery_revision.adapter
+                == adapter
+            and scope_discovery_revision.scope_members
+                == scope_member_spec
+        then
+            scope_discovery_reuse_possible =
+                scope_discovery_reuse_possible
+                + 1
+        else
+            scope_discovery_reuse_miss =
+                scope_discovery_reuse_miss
+                + 1
+        end
+
+        scope_discovery_revision = {
+            changedtick = changedtick,
+            adapter = adapter,
+            scope_members = scope_member_spec,
+        }
+    end
+
     local function refresh(
         event,
         line
@@ -128,6 +175,8 @@ local function run()
                 modeline = false,
             }
         )
+
+        observe_scope_discovery_revision()
     end
 
     local function replace_line(
@@ -208,6 +257,38 @@ local function run()
             .. tostring(
                 snapshot.refresh_count
             )
+    )
+
+    assert(
+        scope_discovery_reuse_possible
+            + scope_discovery_reuse_miss
+            == snapshot.refresh_count,
+        "scope-member discovery reuse measurement lost refresh coverage"
+    )
+
+    assert(
+        scope_discovery_reuse_possible == 4
+            and scope_discovery_reuse_miss == 5,
+        "scope-member unchanged-source opportunity changed: possible="
+            .. tostring(
+                scope_discovery_reuse_possible
+            )
+            .. " miss="
+            .. tostring(
+                scope_discovery_reuse_miss
+            )
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member unchanged-source opportunity: "
+            .. tostring(
+                scope_discovery_reuse_possible
+            )
+            .. " candidate(s) / "
+            .. tostring(
+                snapshot.refresh_count
+            )
+            .. " refreshes"
     )
 
     local cursor_refreshes = 0
