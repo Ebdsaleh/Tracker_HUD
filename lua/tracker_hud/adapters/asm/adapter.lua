@@ -792,7 +792,16 @@ end
 
 
 
-local function resolve_presentation(variant)
+local function resolve_presentation(
+    variant,
+    profile_opts
+)
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.variant.presentation_rebuilds",
+        1
+    )
+
     local presentation = {}
 
     if type(variant) == "table"
@@ -816,9 +825,32 @@ end
 
 
 
-local function apply_variant(variant)
+local function apply_variant(
+    variant,
+    profile_opts
+)
     if type(variant) ~= "table" then
         return
+    end
+
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.variant.apply_calls",
+        1
+    )
+
+    if M.active_variant == variant then
+        profile_config_counter(
+            profile_opts,
+            "context.configure.adapter.variant.same_identity",
+            1
+        )
+    else
+        profile_config_counter(
+            profile_opts,
+            "context.configure.adapter.variant.changed_identity",
+            1
+        )
     end
 
     M.active_variant = variant
@@ -845,7 +877,11 @@ local function apply_variant(variant)
     M.calling_conventions = variant.calling_conventions or {}
     M.register_roles = variant.register_roles or {}
 
-    M.presentation = resolve_presentation(variant)
+    M.presentation =
+        resolve_presentation(
+            variant,
+            profile_opts
+        )
     M.stack = variant.stack or { static = {} }
     M.scope_members = variant.scope_members or { symbols = {} }
     M.range_scopes = variant.range_scopes or {}
@@ -890,7 +926,10 @@ function M.configure_adapter_for_buffer(
 
     local variant = load_variant(variant_name)
 
-    apply_variant(variant)
+    apply_variant(
+        variant,
+        profile_opts
+    )
 
     M.active_targets =
         resolve_targets(
@@ -910,7 +949,10 @@ end
 -- configure_adapter_for_buffer() is called.
 local default_variant = load_variant(M.default_variant)
 
-apply_variant(default_variant)
+apply_variant(
+    default_variant,
+    nil
+)
 
 M.active_targets = resolve_targets(
     nil,

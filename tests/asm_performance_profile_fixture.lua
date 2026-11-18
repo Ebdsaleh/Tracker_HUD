@@ -350,6 +350,9 @@ local function run()
         "context.warnings.syntax.candidates",
         "context.configure.adapter.directive_scans",
         "context.configure.adapter.directive_scans.shared",
+        "context.configure.adapter.variant.apply_calls",
+        "context.configure.adapter.variant.same_identity",
+        "context.configure.adapter.variant.presentation_rebuilds",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -888,6 +891,50 @@ local function run()
                 configure_adapter_phase.count
             )
             .. " configuration miss(es)"
+    )
+
+    local variant_apply_calls =
+        counter_total(
+            "context.configure.adapter.variant.apply_calls"
+        )
+
+    local variant_same_identity =
+        counter_total(
+            "context.configure.adapter.variant.same_identity"
+        )
+
+    local variant_presentation_rebuilds =
+        counter_total(
+            "context.configure.adapter.variant.presentation_rebuilds"
+        )
+
+    local variant_changed_identity =
+        snapshot.counters[
+            "context.configure.adapter.variant.changed_identity"
+        ]
+
+    assert(
+        variant_apply_calls == 5
+            and variant_same_identity == 5
+            and variant_presentation_rebuilds == 5
+            and variant_changed_identity == nil,
+        "ASM variant reapplication measurement changed"
+    )
+
+    print(
+        "[Tracker_HUD] ASM variant reapplication: "
+            .. tostring(
+                variant_apply_calls
+            )
+            .. " apply call(s), "
+            .. tostring(
+                variant_same_identity
+            )
+            .. " same-identity, 0 changed, "
+            .. tostring(
+                variant_presentation_rebuilds
+            )
+            .. " presentation rebuild(s)"
     )
 
     assert(
