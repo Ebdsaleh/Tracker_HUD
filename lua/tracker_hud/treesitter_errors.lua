@@ -156,20 +156,196 @@ local function classify_warning_location(range, opts)
 end
 
 
-local function make_syntax_warning(node, opts)
-    opts = opts or {}
+local persistent_discovery_cache = nil
+local syntax_warning_module_token = tostring({})
+local syntax_warning_buffer_token_serial = 0
+local issued_syntax_warning_buffer_tokens = {}
 
-    local node_type = node and node:type() or "<unknown>"
-    local range = node_range(node) or {}
 
-    local is_missing = node_is_missing(node)
-    local message = "Tree-sitter parse error"
-
-    if is_missing then
-        message = "Tree-sitter missing node: " .. tostring(node_type)
+local function get_buffer_revision(
+    bufnr
+)
+    if not vim
+        or not vim.api
+        or type(
+            vim.api.nvim_buf_get_changedtick
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_get_var
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_set_var
+        ) ~= "function"
+    then
+        return nil
     end
 
-    local location = classify_warning_location(range, opts)
+    local ok_tick, changedtick =
+        pcall(
+            vim.api.nvim_buf_get_changedtick,
+            bufnr
+        )
+
+    if not ok_tick then
+        return nil
+    end
+
+    local variable_name =
+        "tracker_hud_syntax_warning_cache_token"
+
+    local ok_token, token =
+        pcall(
+            vim.api.nvim_buf_get_var,
+            bufnr,
+            variable_name
+        )
+
+    local expected_prefix =
+        syntax_warning_module_token
+        .. ":"
+
+    if not ok_token
+        or type(token) ~= "string"
+        or token:sub(
+            1,
+            #expected_prefix
+        ) ~= expected_prefix
+        or issued_syntax_warning_buffer_tokens[
+            token
+        ] ~= true
+    then
+        syntax_warning_buffer_token_serial =
+            syntax_warning_buffer_token_serial
+            + 1
+
+        token =
+            expected_prefix
+            .. tostring(
+                syntax_warning_buffer_token_serial
+            )
+
+        issued_syntax_warning_buffer_tokens[
+            token
+        ] = true
+
+        local ok_set =
+            pcall(
+                vim.api.nvim_buf_set_var,
+                bufnr,
+                variable_name,
+                token
+            )
+
+        if not ok_set then
+            return nil
+        end
+    end
+
+    return {
+        token = token,
+        changedtick = changedtick,
+    }
+end
+
+
+local function persistent_discovery_matches(
+    bufnr,
+    filetype,
+    revision
+)
+    local cached =
+        persistent_discovery_cache
+
+    return type(cached) == "table"
+        and type(revision) == "table"
+        and cached.bufnr == bufnr
+        and cached.buffer_token
+            == revision.token
+        and cached.changedtick
+            == revision.changedtick
+        and cached.filetype
+            == filetype
+        and type(cached.candidates)
+            == "table"
+end
+
+
+local function remember_persistent_discovery(
+    bufnr,
+    filetype,
+    revision,
+    candidates
+)
+    if type(revision) ~= "table"
+        or type(candidates) ~= "table"
+    then
+        persistent_discovery_cache =
+            nil
+        return
+    end
+
+    persistent_discovery_cache = {
+        bufnr = bufnr,
+        buffer_token = revision.token,
+        changedtick = revision.changedtick,
+        filetype = filetype,
+        candidates = candidates,
+    }
+end
+
+
+local function candidate_from_node(
+    node,
+    node_type,
+    is_missing
+)
+    return {
+        node_type =
+            node_type
+            or "<unknown>",
+        missing =
+            is_missing == true,
+        range =
+            node_range(node),
+    }
+end
+
+
+local function make_syntax_warning(
+    candidate,
+    opts
+)
+    opts = opts or {}
+
+    local node_type =
+        candidate
+        and candidate.node_type
+        or "<unknown>"
+
+    local range =
+        candidate
+        and candidate.range
+        or {}
+
+    local is_missing =
+        candidate
+        and candidate.missing
+            == true
+
+    local message =
+        "Tree-sitter parse error"
+
+    if is_missing then
+        message =
+            "Tree-sitter missing node: "
+            .. tostring(node_type)
+    end
+
+    local location =
+        classify_warning_location(
+            range,
+            opts
+        )
 
     return {
         message = message,
@@ -181,10 +357,14 @@ local function make_syntax_warning(node, opts)
         source_line = range.source_line,
         source_column = range.source_column,
 
-        source_start_line = range.source_start_line,
-        source_start_column = range.source_start_column,
-        source_end_line = range.source_end_line,
-        source_end_column = range.source_end_column,
+        source_start_line =
+            range.source_start_line,
+        source_start_column =
+            range.source_start_column,
+        source_end_line =
+            range.source_end_line,
+        source_end_column =
+            range.source_end_column,
 
         metadata = {
             provider = "treesitter",
@@ -197,7 +377,11 @@ local function make_syntax_warning(node, opts)
 end
 
 
-local function collect_from_node(node, warnings, opts)
+local function discover_from_node(
+    node,
+    candidates,
+    opts
+)
     if not node then
         return
     end
@@ -210,9 +394,14 @@ local function collect_from_node(node, warnings, opts)
         1
     )
 
-    local node_type = node:type()
-    local is_error = node_type == "ERROR"
-    local is_missing = node_is_missing(node)
+    local node_type =
+        node:type()
+
+    local is_error =
+        node_type == "ERROR"
+
+    local is_missing =
+        node_is_missing(node)
 
     if is_error or is_missing then
         profile_counter(
@@ -221,32 +410,36 @@ local function collect_from_node(node, warnings, opts)
             1
         )
 
-        local range = node_range(node)
-
-        if not warning_is_inside_comment(opts.bufnr, range, opts)
-            and (
-                not opts.cursor_line
-                or not range
-                or range.source_line <= opts.cursor_line
+        table.insert(
+            candidates,
+            candidate_from_node(
+                node,
+                node_type,
+                is_missing
             )
-        then
-            table.insert(warnings, make_syntax_warning(node, opts))
-        end
+        )
     end
 
     for child in node:iter_children() do
-        collect_from_node(child, warnings, opts)
+        discover_from_node(
+            child,
+            candidates,
+            opts
+        )
     end
 end
 
 
-function M.collect(bufnr, root_node, opts)
+function M.discover(
+    root_node,
+    opts
+)
     opts = opts or {}
 
-    local warnings = {}
+    local candidates = {}
 
-    if not bufnr or not root_node then
-        return warnings
+    if not root_node then
+        return candidates
     end
 
     profile_counter(
@@ -255,20 +448,124 @@ function M.collect(bufnr, root_node, opts)
         1
     )
 
-    collect_from_node(root_node, warnings, {
-        bufnr = bufnr,
-        cursor_line = opts.cursor_line,
-        scope_start_line = opts.scope_start_line,
-        scope_end_line = opts.scope_end_line,
-        filetype = opts.filetype,
-        comments = opts.comments,
-        profile_prefix =
-            opts.profile_prefix,
-        profile_counter =
-            opts.profile_counter,
-    })
+    discover_from_node(
+        root_node,
+        candidates,
+        opts
+    )
+
+    return candidates
+end
+
+
+function M.select(
+    bufnr,
+    candidates,
+    opts
+)
+    opts = opts or {}
+
+    local warnings = {}
+
+    for _, candidate in ipairs(
+        candidates or {}
+    ) do
+        local range =
+            candidate.range
+
+        if not warning_is_inside_comment(
+            bufnr,
+            range,
+            opts
+        )
+            and (
+                not opts.cursor_line
+                or not range
+                or range.source_line
+                    <= opts.cursor_line
+            )
+        then
+            table.insert(
+                warnings,
+                make_syntax_warning(
+                    candidate,
+                    opts
+                )
+            )
+        end
+    end
 
     return warnings
+end
+
+
+function M.collect(
+    bufnr,
+    root_node,
+    opts
+)
+    opts = opts or {}
+
+    if not bufnr
+        or not root_node
+    then
+        return {}
+    end
+
+    local revision =
+        get_buffer_revision(
+            bufnr
+        )
+
+    local candidates = nil
+
+    if persistent_discovery_matches(
+        bufnr,
+        opts.filetype,
+        revision
+    )
+    then
+        profile_counter(
+            opts,
+            "cross_refresh_reuse_possible",
+            1
+        )
+
+        profile_counter(
+            opts,
+            "cross_refresh_reuse_applied",
+            1
+        )
+
+        candidates =
+            persistent_discovery_cache
+                .candidates
+    else
+        profile_counter(
+            opts,
+            "cross_refresh_reuse_miss",
+            1
+        )
+
+        candidates =
+            M.discover(
+                root_node,
+                opts
+            )
+
+        remember_persistent_discovery(
+            bufnr,
+            opts.filetype,
+            revision,
+            candidates
+        )
+    end
+
+    return M.select(
+        bufnr,
+        candidates,
+        opts
+    )
 end
 
 

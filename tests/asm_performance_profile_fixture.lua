@@ -342,6 +342,12 @@ local function run()
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
         "context.scopes.range_scope_cross_refresh_reuse_miss",
+        "context.warnings.syntax.cross_refresh_reuse_possible",
+        "context.warnings.syntax.cross_refresh_reuse_applied",
+        "context.warnings.syntax.cross_refresh_reuse_miss",
+        "context.warnings.syntax.scans",
+        "context.warnings.syntax.nodes_visited",
+        "context.warnings.syntax.candidates",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -748,33 +754,90 @@ local function run()
             )
     )
 
-    local warning_scans =
-        counter_total(
-            "context.warnings.syntax.scans"
-        )
-    local warning_nodes =
-        counter_total(
-            "context.warnings.syntax.nodes_visited"
-        )
-    local warning_candidates =
-        counter_total(
-            "context.warnings.syntax.candidates"
-        )
+    local warning_reuse_possible =
+        snapshot.counters[
+            "context.warnings.syntax.cross_refresh_reuse_possible"
+        ]
+
+    local warning_reuse_applied =
+        snapshot.counters[
+            "context.warnings.syntax.cross_refresh_reuse_applied"
+        ]
+
+    local warning_reuse_miss =
+        snapshot.counters[
+            "context.warnings.syntax.cross_refresh_reuse_miss"
+        ]
 
     assert(
-        warning_scans
-            == snapshot.refresh_count
-            and warning_nodes > 0,
-        "Tree-sitter warning traversal measurement lost coverage"
+        warning_reuse_possible.total
+            == 4
+            and warning_reuse_applied.total
+                == 4
+            and warning_reuse_miss.total
+                == 5
+            and warning_reuse_possible.total
+                + warning_reuse_miss.total
+                == snapshot.refresh_count,
+        "Tree-sitter warning persistent discovery reuse changed"
+    )
+
+    print(
+        "[Tracker_HUD] Cross-refresh Tree-sitter warning discovery: "
+            .. tostring(
+                warning_reuse_applied.total
+            )
+            .. " reused / "
+            .. tostring(
+                snapshot.refresh_count
+            )
+            .. " refreshes"
+    )
+
+    local warning_scans =
+        snapshot.counters[
+            "context.warnings.syntax.scans"
+        ]
+
+    local warning_nodes =
+        snapshot.counters[
+            "context.warnings.syntax.nodes_visited"
+        ]
+
+    local warning_candidates =
+        snapshot.counters[
+            "context.warnings.syntax.candidates"
+        ]
+
+    assert(
+        warning_scans.count
+            == warning_reuse_miss.total
+            and warning_nodes.count
+                == warning_reuse_miss.total
+            and warning_candidates.count
+                == warning_reuse_miss.total
+            and warning_scans.total
+                == warning_reuse_miss.total
+            and warning_nodes.total
+                == 5590
+            and warning_candidates.total
+                == 15,
+        "fresh Tree-sitter warning traversal did not align with cache misses"
     )
 
     print(
         "[Tracker_HUD] Tree-sitter warning traversal: "
-            .. tostring(warning_nodes)
+            .. tostring(
+                warning_nodes.total
+            )
             .. " nodes across "
-            .. tostring(warning_scans)
+            .. tostring(
+                warning_scans.total
+            )
             .. " scan(s), "
-            .. tostring(warning_candidates)
+            .. tostring(
+                warning_candidates.total
+            )
             .. " ERROR/MISSING candidate(s)"
     )
 
