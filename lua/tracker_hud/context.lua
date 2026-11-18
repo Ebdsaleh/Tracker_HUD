@@ -314,19 +314,44 @@ local function get_range_scope_name(
 end
 
 
-local function collect_nodes_by_type(node, node_type, result)
+local function collect_nodes_by_type(
+    node,
+    node_type,
+    result,
+    measurement
+)
     result = result or {}
 
-    if not node or type(node_type) ~= "string" or node_type == "" then
+    if not node
+        or type(node_type) ~= "string"
+        or node_type == ""
+    then
         return result
+    end
+
+    if type(measurement) == "table" then
+        measurement.nodes_visited =
+            (measurement.nodes_visited or 0)
+            + 1
     end
 
     if node:type() == node_type then
         table.insert(result, node)
+
+        if type(measurement) == "table" then
+            measurement.nodes_matched =
+                (measurement.nodes_matched or 0)
+                + 1
+        end
     end
 
     for child in node:iter_children() do
-        collect_nodes_by_type(child, node_type, result)
+        collect_nodes_by_type(
+            child,
+            node_type,
+            result,
+            measurement
+        )
     end
 
     return result
@@ -397,8 +422,19 @@ local function scope_entry_exists(scopes, candidate)
 end
 
 
-local function collect_range_scope_entries(bufnr, root_node, adapter, cursor_line)
+local function collect_range_scope_entries(
+    bufnr,
+    root_node,
+    adapter,
+    cursor_line,
+    profile_token
+)
     local entries = {}
+    local measurement = {
+        scans = 0,
+        nodes_visited = 0,
+        nodes_matched = 0,
+    }
 
     if not root_node or type(adapter) ~= "table" or type(adapter.range_scopes) ~= "table" then
         return entries
@@ -420,9 +456,14 @@ local function collect_range_scope_entries(bufnr, root_node, adapter, cursor_lin
             and range_scope_spec.range_strategy == "until_next_peer"
             and type(node_type) == "string"
         then
+            measurement.scans =
+                measurement.scans + 1
+
             local nodes = collect_nodes_by_type(
                 root_node,
-                node_type
+                node_type,
+                nil,
+                measurement
             )
 
             for index, node in ipairs(nodes) do
@@ -450,6 +491,28 @@ local function collect_range_scope_entries(bufnr, root_node, adapter, cursor_lin
                 end
             end
         end
+    end
+
+    if profile_token
+        and measurement.scans > 0
+    then
+        analysis_profile.add_counter(
+            profile_token,
+            "context.scopes.range_scope_scans",
+            measurement.scans
+        )
+
+        analysis_profile.add_counter(
+            profile_token,
+            "context.scopes.range_scope_nodes_visited",
+            measurement.nodes_visited
+        )
+
+        analysis_profile.add_counter(
+            profile_token,
+            "context.scopes.range_scope_nodes_matched",
+            measurement.nodes_matched
+        )
     end
 
     return entries
@@ -1055,7 +1118,8 @@ function M.get_cursor_context(
             bufnr,
             root_node,
             adapter,
-            cursor.line
+            cursor.line,
+            profile_token
         )
 
         append_missing_range_scopes(context.scopes, range_scopes)
@@ -1115,7 +1179,8 @@ function M.get_cursor_context(
         bufnr,
         root_node,
         adapter,
-        cursor.line
+        cursor.line,
+        profile_token
     )
 
     append_missing_range_scopes(scopes, range_scopes)

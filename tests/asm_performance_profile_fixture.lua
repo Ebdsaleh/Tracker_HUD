@@ -339,6 +339,9 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.members_emitted",
+        "context.scopes.range_scope_scans",
+        "context.scopes.range_scope_nodes_visited",
+        "context.scopes.range_scope_nodes_matched",
     }
 
     for _, name in ipairs(
@@ -480,6 +483,47 @@ local function run()
                 scope_checks.total
             )
             .. " spec checks feed current/all views"
+    )
+
+    local range_scope_scans =
+        snapshot.counters[
+            "context.scopes.range_scope_scans"
+        ]
+
+    local range_scope_nodes =
+        snapshot.counters[
+            "context.scopes.range_scope_nodes_visited"
+        ]
+
+    local range_scope_matches =
+        snapshot.counters[
+            "context.scopes.range_scope_nodes_matched"
+        ]
+
+    assert(
+        range_scope_scans.count
+            == snapshot.refresh_count
+            and range_scope_nodes.count
+                == snapshot.refresh_count
+            and range_scope_matches.count
+                == snapshot.refresh_count,
+        "range-scope traversal measurement lost refresh coverage"
+    )
+
+    print(
+        "[Tracker_HUD] Range-scope traversal: "
+            .. tostring(
+                range_scope_nodes.total
+            )
+            .. " nodes visited across "
+            .. tostring(
+                range_scope_scans.total
+            )
+            .. " scan(s), "
+            .. tostring(
+                range_scope_matches.total
+            )
+            .. " matching node(s)"
     )
 
     assert(
