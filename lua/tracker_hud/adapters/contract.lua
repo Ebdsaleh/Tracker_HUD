@@ -1504,6 +1504,7 @@ local reusable_validation_components = {
     register_effects = true,
     instruction_events = true,
     stack_effects = true,
+    range_scopes = true,
 }
 
 
@@ -1891,16 +1892,28 @@ function M.validate_adapter(
         return false, err
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "range_scopes",
+        adapter.range_scopes
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.range_scopes",
-            validate_range_scopes,
-            adapter.range_scopes
+            "context.configure.validate.range_scopes_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.range_scopes",
+                validate_range_scopes,
+                adapter.range_scopes
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     ok, err =

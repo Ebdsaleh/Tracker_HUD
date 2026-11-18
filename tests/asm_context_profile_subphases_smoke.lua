@@ -205,6 +205,16 @@ local function run()
         "initial Scope Member discovery did not record a fresh-cache miss"
     )
 
+    assert(
+        snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_miss"
+        ]
+            and snapshot.counters[
+                "context.scopes.range_scope_cross_refresh_reuse_miss"
+            ].total == 1,
+        "initial Range Scope discovery did not record a fresh-cache miss"
+    )
+
     local expected = {
         "context.parser",
         "context.configure",
@@ -662,6 +672,183 @@ local function run()
     print(
         "PASS ASM context profile: "
             .. "scope-member spec identity invalidates persistent discovery"
+    )
+
+    local helper_one_line = nil
+    local helper_two_line = nil
+
+    for line_number, line in ipairs(
+        source
+    ) do
+        if line == "helper_one:" then
+            helper_one_line =
+                line_number
+        elseif line == "helper_two:" then
+            helper_two_line =
+                line_number
+        end
+    end
+
+    assert(
+        helper_one_line
+            and helper_two_line,
+        "ASM range-scope cache fixture labels changed"
+    )
+
+    local context_module =
+        require("tracker_hud.context")
+    local range_cache_config = {}
+
+    local function profiled_context_at(
+        line_number
+    )
+        vim.api.nvim_win_set_cursor(
+            0,
+            {
+                line_number,
+                0,
+            }
+        )
+
+        profile.reset()
+
+        local refresh_token =
+            profile.begin_refresh(
+                "CursorMoved",
+                buffer,
+                {
+                    line_number,
+                    0,
+                }
+            )
+
+        assert(
+            refresh_token,
+            "range-scope cache probe could not start profile refresh"
+        )
+
+        local current_context =
+            context_module
+                .get_cursor_context(
+                    buffer,
+                    range_cache_config,
+                    {
+                        profile_token =
+                            refresh_token,
+                    }
+                )
+
+        profile.finish_refresh(
+            refresh_token,
+            {
+                updated = true,
+            }
+        )
+
+        return current_context,
+            profile.snapshot()
+    end
+
+    local edited_range_context,
+        edited_range_snapshot =
+        profiled_context_at(
+            helper_one_line + 1
+        )
+
+    assert(
+        edited_range_snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_miss"
+        ]
+            and edited_range_snapshot.counters[
+                "context.scopes.range_scope_cross_refresh_reuse_miss"
+            ].total == 1
+            and edited_range_snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ]
+            and edited_range_snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ].total > 0
+            and edited_range_context.member_scope
+            and edited_range_context.member_scope
+                .raw_label
+                == "Label helper_one",
+        "buffer edit did not invalidate Range Scope discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "buffer edit invalidates persistent Range Scope discovery"
+    )
+
+    local reused_range_context,
+        reused_range_snapshot =
+        profiled_context_at(
+            helper_two_line + 1
+        )
+
+    assert(
+        reused_range_snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_applied"
+        ]
+            and reused_range_snapshot.counters[
+                "context.scopes.range_scope_cross_refresh_reuse_applied"
+            ].total == 1
+            and reused_range_snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ] == nil
+            and reused_range_context.member_scope
+            and reused_range_context.member_scope
+                .raw_label
+                == "Label helper_two",
+        "unchanged source did not reuse Range Scope discovery with fresh cursor selection"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "unchanged source reuses immutable Range Scope discovery "
+            .. "with fresh cursor selection"
+    )
+
+    local original_range_scopes =
+        adapter.range_scopes
+
+    adapter.range_scopes =
+        vim.deepcopy(
+            original_range_scopes
+        )
+
+    local identity_range_context,
+        identity_range_snapshot =
+        profiled_context_at(
+            helper_one_line + 1
+        )
+
+    adapter.range_scopes =
+        original_range_scopes
+
+    assert(
+        identity_range_snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_miss"
+        ]
+            and identity_range_snapshot.counters[
+                "context.scopes.range_scope_cross_refresh_reuse_miss"
+            ].total == 1
+            and identity_range_snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ]
+            and identity_range_snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ].total > 0
+            and identity_range_context.member_scope
+            and identity_range_context.member_scope
+                .raw_label
+                == "Label helper_one",
+        "range-scope spec identity change did not invalidate discovery"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "range-scope spec identity invalidates persistent discovery"
     )
 
     print(

@@ -339,6 +339,9 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.members_emitted",
+        "context.scopes.range_scope_cross_refresh_reuse_possible",
+        "context.scopes.range_scope_cross_refresh_reuse_applied",
+        "context.scopes.range_scope_cross_refresh_reuse_miss",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -485,6 +488,46 @@ local function run()
             .. " spec checks feed current/all views"
     )
 
+    local range_scope_reuse_possible =
+        snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_possible"
+        ]
+
+    local range_scope_reuse_applied =
+        snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_applied"
+        ]
+
+    local range_scope_reuse_miss =
+        snapshot.counters[
+            "context.scopes.range_scope_cross_refresh_reuse_miss"
+        ]
+
+    assert(
+        range_scope_reuse_possible.total
+            == 4
+            and range_scope_reuse_applied.total
+                == 4
+            and range_scope_reuse_miss.total
+                == 5
+            and range_scope_reuse_possible.total
+                + range_scope_reuse_miss.total
+                == snapshot.refresh_count,
+        "Range Scope persistent discovery reuse changed"
+    )
+
+    print(
+        "[Tracker_HUD] Cross-refresh Range-scope discovery: "
+            .. tostring(
+                range_scope_reuse_applied.total
+            )
+            .. " reused / "
+            .. tostring(
+                snapshot.refresh_count
+            )
+            .. " refreshes"
+    )
+
     local range_scope_scans =
         snapshot.counters[
             "context.scopes.range_scope_scans"
@@ -502,12 +545,14 @@ local function run()
 
     assert(
         range_scope_scans.count
-            == snapshot.refresh_count
+            == range_scope_reuse_miss.total
             and range_scope_nodes.count
-                == snapshot.refresh_count
+                == range_scope_reuse_miss.total
             and range_scope_matches.count
-                == snapshot.refresh_count,
-        "range-scope traversal measurement lost refresh coverage"
+                == range_scope_reuse_miss.total
+            and range_scope_scans.total
+                == range_scope_reuse_miss.total,
+        "fresh Range Scope traversal did not align with cache misses"
     )
 
     print(

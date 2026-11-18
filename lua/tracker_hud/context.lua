@@ -17,6 +17,166 @@ local c_memory_facts = require("tracker_hud.adapters.c.memory_facts")
 local analysis_profile = require("tracker_hud.analysis_profile")
 
 
+-- Range-scope discovery is source-derived and cursor-independent. Keep one
+-- conservative persistent entry for the active HUD path, then select the
+-- cursor-visible range freshly on every refresh.
+local persistent_range_scope_cache = nil
+local range_scope_module_token = tostring({})
+local range_scope_buffer_token_serial = 0
+local issued_range_scope_buffer_tokens = {}
+
+
+local function range_scopes_are_stable(
+    adapter
+)
+    return type(adapter) == "table"
+        and type(
+            adapter.validation_stable_components
+        ) == "table"
+        and adapter
+            .validation_stable_components
+            .range_scopes == true
+        and type(adapter.range_scopes)
+            == "table"
+end
+
+
+local function get_range_scope_buffer_revision(
+    bufnr
+)
+    if not vim
+        or not vim.api
+        or type(
+            vim.api.nvim_buf_get_changedtick
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_get_var
+        ) ~= "function"
+        or type(
+            vim.api.nvim_buf_set_var
+        ) ~= "function"
+    then
+        return nil
+    end
+
+    local ok_tick, changedtick =
+        pcall(
+            vim.api.nvim_buf_get_changedtick,
+            bufnr
+        )
+
+    if not ok_tick then
+        return nil
+    end
+
+    local variable_name =
+        "tracker_hud_range_scope_cache_token"
+
+    local ok_token, token =
+        pcall(
+            vim.api.nvim_buf_get_var,
+            bufnr,
+            variable_name
+        )
+
+    local expected_prefix =
+        range_scope_module_token
+        .. ":"
+
+    if not ok_token
+        or type(token) ~= "string"
+        or token:sub(
+            1,
+            #expected_prefix
+        ) ~= expected_prefix
+        or issued_range_scope_buffer_tokens[
+            token
+        ] ~= true
+    then
+        range_scope_buffer_token_serial =
+            range_scope_buffer_token_serial
+            + 1
+
+        token =
+            expected_prefix
+            .. tostring(
+                range_scope_buffer_token_serial
+            )
+
+        issued_range_scope_buffer_tokens[
+            token
+        ] = true
+
+        local ok_set =
+            pcall(
+                vim.api.nvim_buf_set_var,
+                bufnr,
+                variable_name,
+                token
+            )
+
+        if not ok_set then
+            return nil
+        end
+    end
+
+    return {
+        token = token,
+        changedtick = changedtick,
+    }
+end
+
+
+local function persistent_range_scope_matches(
+    bufnr,
+    adapter,
+    revision
+)
+    local cached =
+        persistent_range_scope_cache
+
+    return type(cached) == "table"
+        and type(revision) == "table"
+        and cached.bufnr == bufnr
+        and cached.buffer_token
+            == revision.token
+        and cached.changedtick
+            == revision.changedtick
+        and cached.adapter == adapter
+        and cached.range_scopes
+            == adapter.range_scopes
+        and type(cached.entries)
+            == "table"
+end
+
+
+local function remember_persistent_range_scopes(
+    bufnr,
+    adapter,
+    revision,
+    entries
+)
+    if not range_scopes_are_stable(
+        adapter
+    )
+        or type(revision) ~= "table"
+        or type(entries) ~= "table"
+    then
+        persistent_range_scope_cache =
+            nil
+        return
+    end
+
+    persistent_range_scope_cache = {
+        bufnr = bufnr,
+        buffer_token = revision.token,
+        changedtick = revision.changedtick,
+        adapter = adapter,
+        range_scopes =
+            adapter.range_scopes,
+        entries = entries,
+    }
+end
 
 
 local function profile_begin(
@@ -422,11 +582,10 @@ local function scope_entry_exists(scopes, candidate)
 end
 
 
-local function collect_range_scope_entries(
+local function discover_range_scope_entries(
     bufnr,
     root_node,
     adapter,
-    cursor_line,
     profile_token
 )
     local entries = {}
@@ -436,48 +595,110 @@ local function collect_range_scope_entries(
         nodes_matched = 0,
     }
 
-    if not root_node or type(adapter) ~= "table" or type(adapter.range_scopes) ~= "table" then
+    if not root_node
+        or type(adapter) ~= "table"
+        or type(adapter.range_scopes)
+            ~= "table"
+    then
         return entries
     end
 
-    if type(cursor_line) ~= "number" then
-        return entries
+    local revision = nil
+    local reuse_unchanged_source =
+        range_scopes_are_stable(
+            adapter
+        )
+
+    if reuse_unchanged_source then
+        revision =
+            get_range_scope_buffer_revision(
+                bufnr
+            )
+
+        if persistent_range_scope_matches(
+            bufnr,
+            adapter,
+            revision
+        ) then
+            if profile_token then
+                analysis_profile.add_counter(
+                    profile_token,
+                    "context.scopes.range_scope_cross_refresh_reuse_possible",
+                    1
+                )
+
+                analysis_profile.add_counter(
+                    profile_token,
+                    "context.scopes.range_scope_cross_refresh_reuse_applied",
+                    1
+                )
+            end
+
+            return persistent_range_scope_cache
+                .entries
+        end
+
+        if profile_token
+            and type(revision) == "table"
+        then
+            analysis_profile.add_counter(
+                profile_token,
+                "context.scopes.range_scope_cross_refresh_reuse_miss",
+                1
+            )
+        end
     end
 
-    local file_end_line = vim.api.nvim_buf_line_count(bufnr)
+    local file_end_line =
+        vim.api.nvim_buf_line_count(
+            bufnr
+        )
 
-    for _, range_scope_spec in ipairs(adapter.range_scopes) do
+    for _, range_scope_spec in ipairs(
+        adapter.range_scopes
+    ) do
         local node_type =
             get_syntax_node_type(
                 range_scope_spec
             )
 
-        if type(range_scope_spec) == "table"
-            and range_scope_spec.range_strategy == "until_next_peer"
-            and type(node_type) == "string"
+        if type(range_scope_spec)
+                == "table"
+            and range_scope_spec
+                .range_strategy
+                == "until_next_peer"
+            and type(node_type)
+                == "string"
         then
             measurement.scans =
                 measurement.scans + 1
 
-            local nodes = collect_nodes_by_type(
-                root_node,
-                node_type,
-                nil,
-                measurement
-            )
+            local nodes =
+                collect_nodes_by_type(
+                    root_node,
+                    node_type,
+                    nil,
+                    measurement
+                )
 
-            for index, node in ipairs(nodes) do
-                local start_line = node:start() + 1
-                local end_line = file_end_line
+            for index, node in ipairs(
+                nodes
+            ) do
+                local start_line =
+                    node:start() + 1
+                local end_line =
+                    file_end_line
 
-                local next_node = nodes[index + 1]
+                local next_node =
+                    nodes[index + 1]
 
                 if next_node then
-                    end_line = next_node:start()
+                    end_line =
+                        next_node:start()
                 end
 
-                if cursor_line >= start_line and cursor_line <= end_line then
-                    local entry = make_range_scope_entry(
+                local entry =
+                    make_range_scope_entry(
                         bufnr,
                         node,
                         range_scope_spec,
@@ -485,9 +706,11 @@ local function collect_range_scope_entries(
                         end_line
                     )
 
-                    if entry then
-                        table.insert(entries, entry)
-                    end
+                if entry then
+                    table.insert(
+                        entries,
+                        entry
+                    )
                 end
             end
         end
@@ -515,9 +738,70 @@ local function collect_range_scope_entries(
         )
     end
 
+    if reuse_unchanged_source then
+        remember_persistent_range_scopes(
+            bufnr,
+            adapter,
+            revision,
+            entries
+        )
+    end
+
     return entries
 end
 
+
+local function select_range_scope_entries(
+    entries,
+    cursor_line
+)
+    local result = {}
+
+    if type(cursor_line) ~= "number" then
+        return result
+    end
+
+    for _, entry in ipairs(
+        entries or {}
+    ) do
+        if type(entry) == "table"
+            and type(entry.start_line)
+                == "number"
+            and type(entry.end_line)
+                == "number"
+            and cursor_line
+                >= entry.start_line
+            and cursor_line
+                <= entry.end_line
+        then
+            table.insert(
+                result,
+                entry
+            )
+        end
+    end
+
+    return result
+end
+
+
+local function collect_range_scope_entries(
+    bufnr,
+    root_node,
+    adapter,
+    cursor_line,
+    profile_token
+)
+    return select_range_scope_entries(
+        discover_range_scope_entries(
+            bufnr,
+            root_node,
+            adapter,
+            profile_token
+        ),
+        cursor_line
+    )
+end
 
 local function append_missing_range_scopes(scopes, range_scopes)
     for _, range_scope in ipairs(range_scopes or {}) do

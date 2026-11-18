@@ -81,6 +81,7 @@ M.validation_stable_components = {
     register_effects = true,
     instruction_events = true,
     stack_effects = true,
+    range_scopes = true,
 }
 
 

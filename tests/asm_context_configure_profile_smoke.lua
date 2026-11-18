@@ -159,7 +159,7 @@ local function run()
         "context.configure.validate.filetypes",
         "context.configure.validate.construct_specs",
         "context.configure.validate.scope_members",
-        "context.configure.validate.range_scopes",
+        "context.configure.validate.range_scopes_reuse",
         "context.configure.validate.capabilities",
         "context.configure.validate.sections",
         "context.configure.validate.presentation",
@@ -235,6 +235,16 @@ local function run()
         "stable ASM stack-effect table was redundantly revalidated"
     )
 
+    assert(
+        snapshot.phases[
+            "context.configure.validate.range_scopes"
+        ] == nil
+            and snapshot.phases[
+                "context.configure.validate.range_scopes_reuse"
+            ] ~= nil,
+        "stable ASM range-scope table was redundantly revalidated"
+    )
+
     print(
         "PASS ASM configure profile: "
             .. "stable register-effect validation is reused by identity"
@@ -248,6 +258,11 @@ local function run()
     print(
         "PASS ASM configure profile: "
             .. "stable stack-effect validation is reused by identity"
+    )
+
+    print(
+        "PASS ASM configure profile: "
+            .. "stable range-scope validation is reused by identity"
     )
 
     print(
