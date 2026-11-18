@@ -59,6 +59,32 @@ local function count_measurement(
 end
 
 
+local function with_scope_depth_filter(
+    state,
+    enabled
+)
+    state = state or {
+        opts = {},
+        scope_depth = 0,
+        structural_depth = 0,
+    }
+
+    return {
+        opts = state.opts,
+        scope_depth = state.scope_depth,
+        scope_range = state.scope_range,
+        structural_depth =
+            state.structural_depth,
+        structural_range =
+            state.structural_range,
+        measurement =
+            state.measurement,
+        scope_depth_filter =
+            enabled ~= false,
+    }
+end
+
+
 local function get_syntax(member_spec)
     if not core.is_table(member_spec)
         or not core.is_table(member_spec.syntax)
@@ -708,14 +734,20 @@ local function make_structural_member_state(state)
         return make_state()
     end
 
-    return make_state(
-        state.opts,
-        state.scope_depth,
-        state.structural_range or state.scope_range,
-        state.structural_depth,
-        state.structural_range,
-        state.measurement
-    )
+    local result =
+        make_state(
+            state.opts,
+            state.scope_depth,
+            state.structural_range or state.scope_range,
+            state.structural_depth,
+            state.structural_range,
+            state.measurement
+        )
+
+    result.scope_depth_filter =
+        state.scope_depth_filter
+
+    return result
 end
 
 
@@ -988,15 +1020,30 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
 
     collector = collector or collect_member_spec
 
+    local group_state =
+        with_scope_depth_filter(
+            state,
+            collector
+                ~= collect_field_member_spec
+        )
+
     for _, member_spec in ipairs(specs) do
         count_measurement(
-            state,
+            group_state,
             "spec_checks",
             1
         )
 
         if not should_collect_before_scope_enter(member_spec) then
-            collector(node, bufnr, member_spec, members, seen, state, adapter)
+            collector(
+                node,
+                bufnr,
+                member_spec,
+                members,
+                seen,
+                group_state,
+                adapter
+            )
         end
     end
 end
@@ -1016,15 +1063,29 @@ local function collect_member_group_before_scope_enter(
         return
     end
 
+    local group_state =
+        with_scope_depth_filter(
+            state,
+            true
+        )
+
     for _, member_spec in ipairs(specs) do
         count_measurement(
-            state,
+            group_state,
             "spec_checks",
             1
         )
 
         if should_collect_before_scope_enter(member_spec) then
-            collector(node, bufnr, member_spec, members, seen, state, adapter)
+            collector(
+                node,
+                bufnr,
+                member_spec,
+                members,
+                seen,
+                group_state,
+                adapter
+            )
         end
     end
 end
@@ -1190,7 +1251,12 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 end
 
 
-function M.collect(bufnr, root_node, adapter, opts)
+local function collect_internal(
+    bufnr,
+    root_node,
+    adapter,
+    opts
+)
     local members = {}
     local seen = {}
     local measurement = {
@@ -1269,5 +1335,136 @@ function M.collect(bufnr, root_node, adapter, opts)
 
     return members
 end
+
+
+function M.collect(
+    bufnr,
+    root_node,
+    adapter,
+    opts
+)
+    return collect_internal(
+        bufnr,
+        root_node,
+        adapter,
+        opts
+    )
+end
+
+
+local function discovery_profile_options(
+    opts
+)
+    if not core.is_table(opts) then
+        return {}
+    end
+
+    return {
+        profile_prefix =
+            opts.profile_prefix,
+        profile_counter =
+            opts.profile_counter,
+    }
+end
+
+
+function M.discover(
+    bufnr,
+    root_node,
+    adapter,
+    opts
+)
+    return {
+        members =
+            collect_internal(
+                bufnr,
+                root_node,
+                adapter,
+                discovery_profile_options(
+                    opts
+                )
+            ),
+    }
+end
+
+
+local function member_matches_view(
+    member,
+    opts
+)
+    opts = opts or {}
+
+    local line =
+        scope_member_model.get_line(
+            member
+        )
+
+    if opts.start_line
+        and line
+        and line < opts.start_line
+    then
+        return false
+    end
+
+    if opts.end_line
+        and line
+        and line > opts.end_line
+    then
+        return false
+    end
+
+    if opts.cursor_line
+        and line
+        and line > opts.cursor_line
+    then
+        return false
+    end
+
+    if opts.scope_depth ~= nil
+        and scope_member_model
+            .scope_depth_filter_enabled(
+                member
+            )
+        and member.scope_depth
+            ~= opts.scope_depth
+    then
+        return false
+    end
+
+    return true
+end
+
+
+function M.select(
+    discovery,
+    opts
+)
+    local result = {}
+
+    if not core.is_table(discovery)
+        or not core.is_table(
+            discovery.members
+        )
+    then
+        return result
+    end
+
+    for _, member in ipairs(
+        discovery.members
+    ) do
+        if member_matches_view(
+            member,
+            opts
+        ) then
+            table.insert(
+                result,
+                member
+            )
+        end
+    end
+
+    return result
+end
+
 
 return M

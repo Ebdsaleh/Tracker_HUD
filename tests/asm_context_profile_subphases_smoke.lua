@@ -92,6 +92,82 @@ local function run()
         }
     )
 
+    local scope_collector =
+        require(
+            "tracker_hud.scope_members"
+        )
+
+    local discovery =
+        scope_collector.discover(
+            buffer,
+            root,
+            adapter
+        )
+
+    local current_opts = {
+        cursor_line =
+            context.cursor
+                and context.cursor.line,
+    }
+
+    if context.member_scope then
+        current_opts.start_line =
+            context.member_scope.start_line
+        current_opts.end_line =
+            context.member_scope.end_line
+    else
+        current_opts.scope_depth = 0
+    end
+
+    local function member_ids(
+        members
+    )
+        local result = {}
+
+        for _, member in ipairs(
+            members or {}
+        ) do
+            table.insert(
+                result,
+                tostring(member.id)
+            )
+        end
+
+        return table.concat(
+            result,
+            "\n"
+        )
+    end
+
+    assert(
+        member_ids(
+            scope_collector.select(
+                discovery,
+                current_opts
+            )
+        ) == member_ids(
+            context.scope_members
+        ),
+        "ASM shared scope-member discovery changed current-scope view"
+    )
+
+    assert(
+        member_ids(
+            scope_collector.select(
+                discovery,
+                {}
+            )
+        ) == member_ids(
+            context.all_scope_members
+        ),
+        "ASM shared scope-member discovery changed all-members view"
+    )
+
+    print(
+        "PASS ASM context profile: "
+            .. "shared scope-member discovery preserves current/all views"
+    )
+
     local snapshot =
         profile.snapshot()
 

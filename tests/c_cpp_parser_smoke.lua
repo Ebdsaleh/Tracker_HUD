@@ -112,6 +112,95 @@ local function run()
         local all = collector.collect(buffer, root, adapter, {
             cursor_line = #lines,
         })
+
+        local discovery =
+            collector.discover(
+                buffer,
+                root,
+                adapter
+            )
+
+        local function normalize_members(
+            members
+        )
+            local result = {}
+
+            for _, member in ipairs(
+                members or {}
+            ) do
+                table.insert(
+                    result,
+                    table.concat({
+                        tostring(member.id or ""),
+                        tostring(member.name or ""),
+                        tostring(member.kind or ""),
+                        tostring(member.line or ""),
+                        tostring(member.scope_depth or ""),
+                        tostring(member.scope_start_line or ""),
+                        tostring(member.scope_end_line or ""),
+                        tostring(member.source_start_column or ""),
+                        tostring(member.source_end_column or ""),
+                        tostring(member.value_text or ""),
+                        tostring(member.value_kind or ""),
+                        tostring(member.type_label or ""),
+                    }, "|")
+                )
+            end
+
+            return table.concat(
+                result,
+                "\n"
+            )
+        end
+
+        assert(
+            normalize_members(
+                collector.select(
+                    discovery,
+                    {
+                        cursor_line = #lines,
+                    }
+                )
+            )
+                == normalize_members(all),
+            fixture.ft
+                .. " shared scope-member discovery changed all visible members"
+        )
+
+        local legacy_global =
+            collector.collect(
+                buffer,
+                root,
+                adapter,
+                {
+                    cursor_line = #lines,
+                    scope_depth = 0,
+                }
+            )
+
+        assert(
+            normalize_members(
+                collector.select(
+                    discovery,
+                    {
+                        cursor_line = #lines,
+                        scope_depth = 0,
+                    }
+                )
+            )
+                == normalize_members(
+                    legacy_global
+                ),
+            fixture.ft
+                .. " shared scope-member discovery changed global-depth semantics"
+        )
+
+        print(
+            "PASS "
+                .. fixture.ft
+                .. " shared scope-member discovery preserves visible/global views"
+        )
+
         local by_name = {}
         for _, item in ipairs(all) do
             by_name[item.name] = by_name[item.name] or {}
@@ -258,6 +347,37 @@ local function run()
         local at = collector.collect(buffer, root, adapter, {
             cursor_line = declaration_line,
         })
+
+        assert(
+            normalize_members(
+                collector.select(
+                    discovery,
+                    {
+                        cursor_line =
+                            declaration_line - 1,
+                    }
+                )
+            )
+                == normalize_members(before),
+            fixture.ft
+                .. " shared scope-member discovery changed pre-cursor visibility"
+        )
+
+        assert(
+            normalize_members(
+                collector.select(
+                    discovery,
+                    {
+                        cursor_line =
+                            declaration_line,
+                    }
+                )
+            )
+                == normalize_members(at),
+            fixture.ft
+                .. " shared scope-member discovery changed ON-cursor visibility"
+        )
+
         local function has_name(members, wanted)
             for _, item in ipairs(members) do
                 if item.name == wanted then

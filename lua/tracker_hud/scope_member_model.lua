@@ -10,6 +10,13 @@ local core = require("tracker_hud.core")
 local M = {}
 
 
+local scope_depth_filter_by_member =
+    setmetatable(
+        {},
+        { __mode = "k" }
+    )
+
+
 local member_kind_labels = {
     parameter = "param",
 }
@@ -29,6 +36,15 @@ function M.get_line(member)
     end
 
     return member.line
+end
+
+
+function M.scope_depth_filter_enabled(
+    member
+)
+    return scope_depth_filter_by_member[
+        member
+    ] ~= false
 end
 
 
@@ -141,6 +157,12 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
     }, ":")
 
     member.label = M.build_label(member)
+
+    scope_depth_filter_by_member[
+        member
+    ] =
+        state.scope_depth_filter
+        ~= false
 
     table.insert(members, member)
 end
