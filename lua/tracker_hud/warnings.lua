@@ -41,6 +41,10 @@ function M.collect(context, adapter, opts)
 
             filetype = opts.filetype,
             comments = core.is_table(adapter) and adapter.comments or nil,
+            profile_prefix =
+                opts.profile_prefix,
+            profile_counter =
+                opts.profile_counter,
         })
     )
 

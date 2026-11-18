@@ -748,6 +748,36 @@ local function run()
             )
     )
 
+    local warning_scans =
+        counter_total(
+            "context.warnings.syntax.scans"
+        )
+    local warning_nodes =
+        counter_total(
+            "context.warnings.syntax.nodes_visited"
+        )
+    local warning_candidates =
+        counter_total(
+            "context.warnings.syntax.candidates"
+        )
+
+    assert(
+        warning_scans
+            == snapshot.refresh_count
+            and warning_nodes > 0,
+        "Tree-sitter warning traversal measurement lost coverage"
+    )
+
+    print(
+        "[Tracker_HUD] Tree-sitter warning traversal: "
+            .. tostring(warning_nodes)
+            .. " nodes across "
+            .. tostring(warning_scans)
+            .. " scan(s), "
+            .. tostring(warning_candidates)
+            .. " ERROR/MISSING candidate(s)"
+    )
+
     assert(
         snapshot.counters[
             "context.registers_before.dynamic.process.processed_entries"

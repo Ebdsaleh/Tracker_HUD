@@ -1252,12 +1252,19 @@ local function attach_context_sections(
         warnings.collect(
             context,
             adapter,
-            {
-                bufnr = bufnr,
-                root_node = root_node,
-                filetype =
-                    vim.bo[bufnr].filetype,
-            }
+            vim.tbl_extend(
+                "force",
+                {
+                    bufnr = bufnr,
+                    root_node = root_node,
+                    filetype =
+                        vim.bo[bufnr].filetype,
+                },
+                nested_profile_options(
+                    profile_token,
+                    "context.warnings"
+                )
+            )
         )
 
     profile_end(

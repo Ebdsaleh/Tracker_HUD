@@ -7,6 +7,31 @@ local core = require("tracker_hud.core")
 local M = {}
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return
+    end
+
+    local prefix =
+        opts.profile_prefix
+        or "context.warnings"
+
+    opts.profile_counter(
+        prefix
+            .. ".syntax."
+            .. suffix,
+        delta
+    )
+end
+
+
 local function node_is_missing(node)
     if not node then
         return false
@@ -179,11 +204,23 @@ local function collect_from_node(node, warnings, opts)
 
     opts = opts or {}
 
+    profile_counter(
+        opts,
+        "nodes_visited",
+        1
+    )
+
     local node_type = node:type()
     local is_error = node_type == "ERROR"
     local is_missing = node_is_missing(node)
 
     if is_error or is_missing then
+        profile_counter(
+            opts,
+            "candidates",
+            1
+        )
+
         local range = node_range(node)
 
         if not warning_is_inside_comment(opts.bufnr, range, opts)
@@ -212,6 +249,12 @@ function M.collect(bufnr, root_node, opts)
         return warnings
     end
 
+    profile_counter(
+        opts,
+        "scans",
+        1
+    )
+
     collect_from_node(root_node, warnings, {
         bufnr = bufnr,
         cursor_line = opts.cursor_line,
@@ -219,6 +262,10 @@ function M.collect(bufnr, root_node, opts)
         scope_end_line = opts.scope_end_line,
         filetype = opts.filetype,
         comments = opts.comments,
+        profile_prefix =
+            opts.profile_prefix,
+        profile_counter =
+            opts.profile_counter,
     })
 
     return warnings
