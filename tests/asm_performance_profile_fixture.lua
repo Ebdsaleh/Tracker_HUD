@@ -345,6 +345,10 @@ local function run()
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
+        "context.stack.dynamic.nodes.lookup_attempts",
+        "context.boundary.nodes.lookup_attempts",
+        "context.instruction_events.nodes.lookup_attempts",
+        "context.source_memory.nodes.lookup_attempts",
     }
 
     for _, name in ipairs(
@@ -569,6 +573,102 @@ local function run()
                 range_scope_matches.total
             )
             .. " matching node(s)"
+    )
+
+    local function counter_total(
+        name
+    )
+        local counter =
+            snapshot.counters[name]
+
+        return type(counter) == "table"
+            and counter.total
+            or 0
+    end
+
+    local prepared_node_consumers = {
+        {
+            label = "stack",
+            prefix =
+                "context.stack.dynamic.nodes",
+            phase =
+                "context.stack.dynamic.nodes",
+        },
+        {
+            label = "boundary",
+            prefix =
+                "context.boundary.nodes",
+            phase =
+                "context.boundary.nodes",
+        },
+        {
+            label = "events",
+            prefix =
+                "context.instruction_events.nodes",
+            phase =
+                "context.instruction_events.nodes",
+        },
+        {
+            label = "memory",
+            prefix =
+                "context.source_memory.nodes",
+            phase =
+                "context.source_memory.nodes",
+        },
+    }
+
+    local prepared_node_summary = {}
+
+    for _, consumer in ipairs(
+        prepared_node_consumers
+    ) do
+        local attempts =
+            counter_total(
+                consumer.prefix
+                    .. ".lookup_attempts"
+            )
+        local hits =
+            counter_total(
+                consumer.prefix
+                    .. ".prepared_hits"
+            )
+        local fallbacks =
+            counter_total(
+                consumer.prefix
+                    .. ".prepared_fallbacks"
+            )
+        local phase =
+            snapshot.phases[
+                consumer.phase
+            ]
+
+        assert(
+            attempts
+                == hits + fallbacks
+                and type(phase) == "table"
+                and attempts
+                    == phase.count,
+            "prepared instruction-node measurement lost coverage for "
+                .. consumer.label
+        )
+
+        table.insert(
+            prepared_node_summary,
+            consumer.label
+                .. "="
+                .. tostring(hits)
+                .. " hit/"
+                .. tostring(fallbacks)
+                .. " fallback"
+        )
+    end
+
+    print(
+        "[Tracker_HUD] Prepared instruction-node reuse: "
+            .. table.concat(
+                prepared_node_summary,
+                ", "
+            )
     )
 
     assert(

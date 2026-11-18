@@ -40,6 +40,28 @@ local function profile_begin(
 end
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return nil
+    end
+
+    return opts.profile_counter(
+        (opts.profile_prefix
+            or "context.instruction_events")
+            .. "."
+            .. suffix,
+        delta
+    )
+end
+
+
 local function profile_end(
     opts,
     suffix,
@@ -129,13 +151,31 @@ function M.collect(
                     )
 
             if nodes == nil then
+                profile_counter(
+                    opts,
+                    "nodes.prepared_fallbacks",
+                    1
+                )
+
                 nodes =
                     instruction_source
                         .collect_nodes_by_type(
                             opts.root_node,
                             node_type
                         )
+            else
+                profile_counter(
+                    opts,
+                    "nodes.prepared_hits",
+                    1
+                )
             end
+
+            profile_counter(
+                opts,
+                "nodes.lookup_attempts",
+                1
+            )
 
             profile_end(
                 opts,

@@ -246,13 +246,31 @@ function M.collect(
                     )
 
             if nodes == nil then
+                profile_counter(
+                    opts,
+                    "nodes.prepared_fallbacks",
+                    1
+                )
+
                 nodes =
                     instruction_source
                         .collect_nodes_by_type(
                             opts.root_node,
                             node_type
                         )
+            else
+                profile_counter(
+                    opts,
+                    "nodes.prepared_hits",
+                    1
+                )
             end
+
+            profile_counter(
+                opts,
+                "nodes.lookup_attempts",
+                1
+            )
 
             profile_end(
                 opts,
