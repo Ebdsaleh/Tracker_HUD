@@ -622,6 +622,11 @@ local function run()
     for _, consumer in ipairs(
         prepared_node_consumers
     ) do
+        local attempt_counter =
+            snapshot.counters[
+                consumer.prefix
+                    .. ".lookup_attempts"
+            ]
         local attempts =
             counter_total(
                 consumer.prefix
@@ -645,8 +650,11 @@ local function run()
         assert(
             attempts
                 == hits + fallbacks
+                and type(
+                    attempt_counter
+                ) == "table"
                 and type(phase) == "table"
-                and attempts
+                and attempt_counter.count
                     == phase.count,
             "prepared instruction-node measurement lost coverage for "
                 .. consumer.label
