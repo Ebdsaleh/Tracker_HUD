@@ -339,6 +339,8 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.construct_scope_lookups",
+        "context.scope_members.group_candidate_lookup_requests",
+        "context.scope_members.active_group_candidate_lookup_requests",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -566,6 +568,46 @@ local function run()
                 scope_nodes.total
             )
             .. " visited node(s); lexical + structural decisions share one lookup"
+    )
+
+    local scope_group_lookup_requests =
+        snapshot.counters[
+            "context.scope_members.group_candidate_lookup_requests"
+        ]
+
+    local scope_active_group_lookup_requests =
+        snapshot.counters[
+            "context.scope_members.active_group_candidate_lookup_requests"
+        ]
+
+    assert(
+        type(scope_group_lookup_requests) == "table"
+            and type(scope_active_group_lookup_requests) == "table"
+            and scope_group_lookup_requests.count
+                == scope_reuse_miss.total
+            and scope_group_lookup_requests.total
+                == 50310
+            and scope_active_group_lookup_requests.count
+                == scope_reuse_miss.total
+            and scope_active_group_lookup_requests.total
+                == 11180,
+        "Scope Member empty-group candidate lookup opportunity changed"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member empty-group lookup opportunity: "
+            .. tostring(
+                scope_group_lookup_requests.total
+            )
+            .. " candidate-group lookup(s) vs "
+            .. tostring(
+                scope_active_group_lookup_requests.total
+            )
+            .. " lookup(s) for non-empty groups across "
+            .. tostring(
+                scope_reuse_miss.total
+            )
+            .. " fresh discoverie(s)"
     )
 
     local range_scope_reuse_possible =
