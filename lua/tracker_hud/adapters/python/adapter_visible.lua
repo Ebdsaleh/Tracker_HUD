@@ -468,6 +468,27 @@ M.construct_specs = {
         ),
 
 
+    ["type_alias_statement"] =
+        construct_schema.rule(
+            "type_alias_statement",
+            "declaration",
+            {
+                language_term =
+                    "type alias",
+                label =
+                    "Type Alias",
+                fields = {
+                    left = "left",
+                    right = "right",
+                },
+                tokens = {
+                    start = "type",
+                    operator = "=",
+                },
+            }
+        ),
+
+
     ["assignment"] =
         construct_schema.rule(
             "assignment",
@@ -934,6 +955,22 @@ M.scope_members = {
                 },
                 binding_mutability =
                     "conditional",
+            }
+        ),
+        scope_member_schema.rule(
+            "type_alias_statement",
+            "symbol",
+            {
+                language_term =
+                    "type alias",
+                children = {
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                binding_mutability =
+                    "mutable",
             }
         ),
     },

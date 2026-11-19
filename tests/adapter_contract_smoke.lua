@@ -805,6 +805,26 @@ local function run()
         "Python direct match-capture contract changed"
     )
 
+    local python_type_alias =
+        python_adapter.scope_members
+            .symbols[9]
+
+    assert(
+        python_type_alias.syntax.node_type
+            == "type_alias_statement"
+            and python_type_alias.syntax.children
+                .name.node_type
+                == "identifier"
+            and python_type_alias.member.kind
+                == "symbol"
+            and python_type_alias.member.language_term
+                == "type alias"
+            and python_type_alias.member.mutability
+                .binding
+                == "mutable",
+        "Python type-alias binding contract changed"
+    )
+
     local python_return =
         python_adapter.scope_members
             .returns[1]
@@ -921,6 +941,29 @@ local function run()
             and python_call_construct.value.type_label
                 == "call",
         "Python simple construct migration changed call semantics"
+    )
+
+    local python_type_alias_construct =
+        python_adapter.construct_specs[
+            "type_alias_statement"
+        ]
+
+    assert(
+        python_type_alias_construct.syntax.node_type
+            == "type_alias_statement"
+            and python_type_alias_construct.syntax.fields.left
+                == "left"
+            and python_type_alias_construct.syntax.fields.right
+                == "right"
+            and python_type_alias_construct.syntax.tokens.start
+                == "type"
+            and python_type_alias_construct.syntax.tokens.operator
+                == "="
+            and python_type_alias_construct.construct.kind
+                == "declaration"
+            and python_type_alias_construct.construct.language_term
+                == "type alias",
+        "Python type-alias construct contract changed"
     )
 
     local python_named_expression_construct =

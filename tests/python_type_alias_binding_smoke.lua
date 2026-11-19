@@ -6,26 +6,6 @@
 -- type parameters are intentionally not modeled as ordinary alias bindings
 -- by this tranche.
 
-local function alias_members(members)
-    local result = {}
-
-    for _, member in ipairs(members or {}) do
-        if member.kind == "symbol"
-            and member.value_kind == nil
-        then
-            local term =
-                member.language_term
-
-            if term == "type alias" then
-                table.insert(result, member)
-            end
-        end
-    end
-
-    return result
-end
-
-
 local function run()
     vim.opt.runtimepath:prepend(
         vim.fn.getcwd()
@@ -123,28 +103,12 @@ local function run()
 
     local aliases = {}
 
+    -- This fixture contains no imports, classes, or other symbol-producing
+    -- syntax. Every symbol emitted here must therefore be a type-alias binding.
+    -- That makes accidental T/K/V leakage visible as an unexpected member.
     for _, member in ipairs(all) do
-        if member.member_language_term == "type alias"
-            or member.language_term == "type alias"
-        then
+        if member.kind == "symbol" then
             table.insert(aliases, member)
-        end
-    end
-
-    -- Scope Member records do not currently persist language_term. Select the
-    -- expected alias names from symbol members so this test stays grounded in
-    -- runtime output while the Adapter Contract separately locks the rule term.
-    if #aliases == 0 then
-        for _, member in ipairs(all) do
-            if member.kind == "symbol"
-                and (
-                    member.name == "UserId"
-                    or member.name == "Pair"
-                    or member.name == "LocalMap"
-                )
-            then
-                table.insert(aliases, member)
-            end
         end
     end
 
