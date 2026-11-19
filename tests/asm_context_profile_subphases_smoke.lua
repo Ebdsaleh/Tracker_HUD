@@ -763,11 +763,20 @@ local function run()
                 "context.scopes.range_scope_cross_refresh_reuse_miss"
             ].total == 1
             and edited_range_snapshot.counters[
-                "context.scopes.range_scope_nodes_visited"
+                "context.scopes.range_scope_shared_snapshot_hits"
             ]
             and edited_range_snapshot.counters[
+                "context.scopes.range_scope_shared_snapshot_hits"
+            ].total == 1
+            and edited_range_snapshot.counters[
+                "context.source_nodes.walks"
+            ]
+            and edited_range_snapshot.counters[
+                "context.source_nodes.walks"
+            ].total == 1
+            and edited_range_snapshot.counters[
                 "context.scopes.range_scope_nodes_visited"
-            ].total > 0
+            ] == nil
             and edited_range_context.member_scope
             and edited_range_context.member_scope
                 .raw_label
@@ -834,11 +843,20 @@ local function run()
                 "context.scopes.range_scope_cross_refresh_reuse_miss"
             ].total == 1
             and identity_range_snapshot.counters[
-                "context.scopes.range_scope_nodes_visited"
+                "context.scopes.range_scope_shared_snapshot_hits"
             ]
             and identity_range_snapshot.counters[
+                "context.scopes.range_scope_shared_snapshot_hits"
+            ].total == 1
+            and identity_range_snapshot.counters[
+                "context.source_nodes.walks"
+            ]
+            and identity_range_snapshot.counters[
+                "context.source_nodes.walks"
+            ].total == 1
+            and identity_range_snapshot.counters[
                 "context.scopes.range_scope_nodes_visited"
-            ].total > 0
+            ] == nil
             and identity_range_context.member_scope
             and identity_range_context.member_scope
                 .raw_label
