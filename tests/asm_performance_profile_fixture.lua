@@ -338,7 +338,7 @@ local function run()
         "context.scope_members.cross_refresh_reuse_miss",
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
-        "context.scope_members.construct_scope_lookup_requests",
+        "context.scope_members.construct_scope_lookups",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -537,32 +537,35 @@ local function run()
             .. " fresh discoverie(s)"
     )
 
-    local scope_construct_lookup_requests =
+    local scope_construct_lookups =
         snapshot.counters[
-            "context.scope_members.construct_scope_lookup_requests"
+            "context.scope_members.construct_scope_lookups"
         ]
 
     assert(
-        type(scope_construct_lookup_requests) == "table"
-            and scope_construct_lookup_requests.count
+        type(scope_construct_lookups) == "table"
+            and scope_construct_lookups.count
                 == scope_reuse_miss.total
-            and scope_construct_lookup_requests.total
-                == 11180
+            and scope_construct_lookups.total
+                == 5590
             and scope_nodes.total
-                == 5590,
-        "Scope Member construct-scope lookup opportunity changed"
+                == 5590
+            and snapshot.counters[
+                "context.scope_members.construct_scope_lookup_requests"
+            ] == nil,
+        "Scope Member shared construct-scope lookup changed"
     )
 
     print(
-        "[Tracker_HUD] Scope-member construct-scope lookup opportunity: "
+        "[Tracker_HUD] Scope-member construct-scope lookup reuse: "
             .. tostring(
-                scope_construct_lookup_requests.total
+                scope_construct_lookups.total
             )
-            .. " lookup request(s) across "
+            .. " construct-spec lookup(s) across "
             .. tostring(
                 scope_nodes.total
             )
-            .. " visited node(s); one construct-spec lookup per node can serve both scope-kind decisions"
+            .. " visited node(s); lexical + structural decisions share one lookup"
     )
 
     local range_scope_reuse_possible =

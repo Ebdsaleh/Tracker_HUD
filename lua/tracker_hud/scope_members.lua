@@ -1602,13 +1602,35 @@ local function walk_node(
         adapter
     )
 
+    local construct_spec =
+        construct_utils.get_construct_spec(
+            node,
+            adapter
+        )
+
     count_measurement(
         state,
-        "construct_scope_lookup_requests",
+        "construct_scope_lookups",
         1
     )
 
-    if construct_utils.node_creates_lexical_scope(node, adapter) then
+    local construct_scope =
+        core.is_table(construct_spec)
+        and core.is_table(
+            construct_spec.scope
+        )
+        and construct_spec.scope
+        or nil
+
+    local creates_lexical_scope =
+        core.is_table(construct_scope)
+        and construct_scope.kind
+            == "lexical"
+        and construct_scope
+            .affects_visibility
+            == true
+
+    if creates_lexical_scope then
         current_state = make_state(
             state.opts,
             state.scope_depth + 1,
@@ -1619,13 +1641,15 @@ local function walk_node(
         )
     end
 
-    count_measurement(
-        state,
-        "construct_scope_lookup_requests",
-        1
-    )
+    local creates_structural_scope =
+        core.is_table(construct_scope)
+        and construct_scope.kind
+            == "structural"
+        and construct_scope
+            .owns_members
+            == true
 
-    if construct_utils.node_creates_structural_scope(node, adapter) then
+    if creates_structural_scope then
         current_state = make_state(
             current_state.opts,
             current_state.scope_depth,
@@ -1671,7 +1695,7 @@ local function collect_internal(
     local measurement = {
         nodes_visited = 0,
         spec_checks = 0,
-        construct_scope_lookup_requests = 0,
+        construct_scope_lookups = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1718,8 +1742,8 @@ local function collect_internal(
 
     profile_counter(
         opts,
-        "construct_scope_lookup_requests",
-        measurement.construct_scope_lookup_requests
+        "construct_scope_lookups",
+        measurement.construct_scope_lookups
     )
 
     profile_counter(
