@@ -1360,7 +1360,10 @@ local function collect_member_group(
     collector,
     adapter
 )
-    if not core.is_table(group_index) then
+    if not core.is_table(group_index)
+        or (group_index.spec_count or 0)
+            == 0
+    then
         return
     end
 
@@ -1377,17 +1380,9 @@ local function collect_member_group(
 
     count_measurement(
         group_state,
-        "group_candidate_lookup_requests",
+        "group_candidate_lookups",
         1
     )
-
-    if (group_index.spec_count or 0) > 0 then
-        count_measurement(
-            group_state,
-            "active_group_candidate_lookup_requests",
-            1
-        )
-    end
 
     for _, entry in ipairs(
         member_group_candidates(
@@ -1431,7 +1426,10 @@ local function collect_member_group_before_scope_enter(
     collector,
     adapter
 )
-    if not core.is_table(group_index) then
+    if not core.is_table(group_index)
+        or (group_index.spec_count or 0)
+            == 0
+    then
         return
     end
 
@@ -1443,17 +1441,9 @@ local function collect_member_group_before_scope_enter(
 
     count_measurement(
         group_state,
-        "group_candidate_lookup_requests",
+        "group_candidate_lookups",
         1
     )
-
-    if (group_index.spec_count or 0) > 0 then
-        count_measurement(
-            group_state,
-            "active_group_candidate_lookup_requests",
-            1
-        )
-    end
 
     for _, entry in ipairs(
         member_group_candidates(
@@ -1728,8 +1718,7 @@ local function collect_internal(
         nodes_visited = 0,
         spec_checks = 0,
         construct_scope_lookups = 0,
-        group_candidate_lookup_requests = 0,
-        active_group_candidate_lookup_requests = 0,
+        group_candidate_lookups = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1782,14 +1771,8 @@ local function collect_internal(
 
     profile_counter(
         opts,
-        "group_candidate_lookup_requests",
-        measurement.group_candidate_lookup_requests
-    )
-
-    profile_counter(
-        opts,
-        "active_group_candidate_lookup_requests",
-        measurement.active_group_candidate_lookup_requests
+        "group_candidate_lookups",
+        measurement.group_candidate_lookups
     )
 
     profile_counter(

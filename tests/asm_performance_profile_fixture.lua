@@ -339,8 +339,7 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.construct_scope_lookups",
-        "context.scope_members.group_candidate_lookup_requests",
-        "context.scope_members.active_group_candidate_lookup_requests",
+        "context.scope_members.group_candidate_lookups",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -570,44 +569,36 @@ local function run()
             .. " visited node(s); lexical + structural decisions share one lookup"
     )
 
-    local scope_group_lookup_requests =
+    local scope_group_lookups =
         snapshot.counters[
-            "context.scope_members.group_candidate_lookup_requests"
-        ]
-
-    local scope_active_group_lookup_requests =
-        snapshot.counters[
-            "context.scope_members.active_group_candidate_lookup_requests"
+            "context.scope_members.group_candidate_lookups"
         ]
 
     assert(
-        type(scope_group_lookup_requests) == "table"
-            and type(scope_active_group_lookup_requests) == "table"
-            and scope_group_lookup_requests.count
+        type(scope_group_lookups) == "table"
+            and scope_group_lookups.count
                 == scope_reuse_miss.total
-            and scope_group_lookup_requests.total
-                == 50310
-            and scope_active_group_lookup_requests.count
-                == scope_reuse_miss.total
-            and scope_active_group_lookup_requests.total
-                == 11180,
-        "Scope Member empty-group candidate lookup opportunity changed"
+            and scope_group_lookups.total
+                == 11180
+            and snapshot.counters[
+                "context.scope_members.group_candidate_lookup_requests"
+            ] == nil
+            and snapshot.counters[
+                "context.scope_members.active_group_candidate_lookup_requests"
+            ] == nil,
+        "Scope Member empty-group lookup elimination changed"
     )
 
     print(
-        "[Tracker_HUD] Scope-member empty-group lookup opportunity: "
+        "[Tracker_HUD] Scope-member empty-group lookup elimination: "
             .. tostring(
-                scope_group_lookup_requests.total
+                scope_group_lookups.total
             )
-            .. " candidate-group lookup(s) vs "
-            .. tostring(
-                scope_active_group_lookup_requests.total
-            )
-            .. " lookup(s) for non-empty groups across "
+            .. " candidate-group lookup(s) remain across "
             .. tostring(
                 scope_reuse_miss.total
             )
-            .. " fresh discoverie(s)"
+            .. " fresh discoverie(s); empty groups return before candidate lookup"
     )
 
     local range_scope_reuse_possible =
