@@ -14,6 +14,9 @@
 -- blocks such as if/for/try are visible constructs, but they do not create a
 -- new local/member scope in Python.
 
+local scope_member_schema =
+    require("tracker_hud.adapters.scope_member_schema")
+
 local M = {}
 
 M.contract_version = 1
@@ -470,38 +473,29 @@ M.construct_specs = {
 
 M.scope_members = {
     functions = {
-        {
-            syntax = {
-                node_type = "class_definition",
-                fields = {
-                    name = "name",
-                },
-            },
-            member = {
-                kind = "symbol",
+        scope_member_schema.named(
+            "class_definition",
+            "name",
+            "symbol",
+            {
                 language_term = "class",
-                owner_scope = "parent_lexical",
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
-        {
-            syntax = {
-                node_type = "function_definition",
-                fields = {
-                    name = "name",
-                },
-            },
-            member = {
-                kind = "function",
-                language_term = "function",
-                owner_scope = "parent_lexical",
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                owner_scope =
+                    "parent_lexical",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
+        scope_member_schema.named(
+            "function_definition",
+            "name",
+            "function",
+            {
+                owner_scope =
+                    "parent_lexical",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
     parameters = {

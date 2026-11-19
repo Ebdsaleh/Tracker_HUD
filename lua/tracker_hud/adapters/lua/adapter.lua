@@ -40,6 +40,9 @@
 --
 -- Adapters describe language facts. They are not linters or LSPs.
 
+local scope_member_schema =
+    require("tracker_hud.adapters.scope_member_schema")
+
 local M = {}
 
 M.contract_version = 1
@@ -883,41 +886,29 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     functions = {
-        {
-            syntax = {
-                node_type = "function_declaration",
+        scope_member_schema.named(
+            "function_declaration",
+            "name",
+            "function",
+            {
+                owner_scope =
+                    "parent_lexical",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
 
-                fields = {
-                    name = "name",
-                },
-            },
-
-            member = {
-                kind = "function",
-                language_term = "function",
-                owner_scope = "parent_lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
-
-        {
-            syntax = {
-                node_type = "function_definition",
-            },
-
-            member = {
-                kind = "function",
-                language_term = "function",
-                owner_scope = "parent_lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+        scope_member_schema.named(
+            "function_definition",
+            nil,
+            "function",
+            {
+                owner_scope =
+                    "parent_lexical",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
 

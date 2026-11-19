@@ -187,6 +187,130 @@ local function run()
         "PASS shared Scope Member adapter schema + named builder"
     )
 
+    local lua_adapter =
+        registry.get_adapter("lua")
+    local python_adapter =
+        registry.get_adapter("python")
+
+    local function expect_named_member(
+        adapter,
+        group_name,
+        node_type,
+        expected
+    )
+        local found = nil
+
+        for _, spec in ipairs(
+            adapter.scope_members[
+                group_name
+            ] or {}
+        ) do
+            if spec.syntax.node_type
+                == node_type
+            then
+                found = spec
+                break
+            end
+        end
+
+        assert(
+            found ~= nil,
+            adapter.name
+                .. " missing "
+                .. group_name
+                .. " member "
+                .. node_type
+        )
+
+        local fields =
+            found.syntax.fields
+            or {}
+
+        assert(
+            fields.name
+                == expected.name_field
+            and found.member.kind
+                == expected.kind
+            and found.member.language_term
+                == expected.language_term
+            and found.member.owner_scope
+                == expected.owner_scope
+            and (
+                found.member.mutability
+                and found.member.mutability
+                    .binding
+                or nil
+            ) == expected.binding_mutability,
+            adapter.name
+                .. " shared named member shape changed: "
+                .. node_type
+        )
+    end
+
+    expect_named_member(
+        lua_adapter,
+        "functions",
+        "function_declaration",
+        {
+            name_field = "name",
+            kind = "function",
+            language_term = "function",
+            owner_scope =
+                "parent_lexical",
+            binding_mutability =
+                "mutable",
+        }
+    )
+
+    expect_named_member(
+        lua_adapter,
+        "functions",
+        "function_definition",
+        {
+            name_field = nil,
+            kind = "function",
+            language_term = "function",
+            owner_scope =
+                "parent_lexical",
+            binding_mutability =
+                "mutable",
+        }
+    )
+
+    expect_named_member(
+        python_adapter,
+        "functions",
+        "class_definition",
+        {
+            name_field = "name",
+            kind = "symbol",
+            language_term = "class",
+            owner_scope =
+                "parent_lexical",
+            binding_mutability =
+                "mutable",
+        }
+    )
+
+    expect_named_member(
+        python_adapter,
+        "functions",
+        "function_definition",
+        {
+            name_field = "name",
+            kind = "function",
+            language_term = "function",
+            owner_scope =
+                "parent_lexical",
+            binding_mutability =
+                "mutable",
+        }
+    )
+
+    print(
+        "PASS Lua/Python shared named Scope Member declarations"
+    )
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.
