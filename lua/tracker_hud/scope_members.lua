@@ -1391,12 +1391,24 @@ local function collect_member_group(
     collector,
     adapter
 )
+    count_measurement(
+        state,
+        "group_dispatch_calls",
+        1
+    )
+
     if not core.is_table(group_index)
         or (group_index.spec_count or 0)
             == 0
     then
         return
     end
+
+    count_measurement(
+        state,
+        "nonempty_group_dispatch_calls",
+        1
+    )
 
     collector =
         collector
@@ -1477,12 +1489,24 @@ local function collect_member_group_before_scope_enter(
     collector,
     adapter
 )
+    count_measurement(
+        state,
+        "group_dispatch_calls",
+        1
+    )
+
     if not core.is_table(group_index)
         or (group_index.spec_count or 0)
             == 0
     then
         return
     end
+
+    count_measurement(
+        state,
+        "nonempty_group_dispatch_calls",
+        1
+    )
 
     if not member_group_can_match_node(
         group_index,
@@ -1789,6 +1813,8 @@ local function collect_internal(
         nodes_visited = 0,
         spec_checks = 0,
         construct_scope_lookups = 0,
+        group_dispatch_calls = 0,
+        nonempty_group_dispatch_calls = 0,
         group_candidate_lookups = 0,
         scope_filter_state_builds = 0,
     }
@@ -1839,6 +1865,18 @@ local function collect_internal(
         opts,
         "construct_scope_lookups",
         measurement.construct_scope_lookups
+    )
+
+    profile_counter(
+        opts,
+        "group_dispatch_calls",
+        measurement.group_dispatch_calls
+    )
+
+    profile_counter(
+        opts,
+        "nonempty_group_dispatch_calls",
+        measurement.nonempty_group_dispatch_calls
     )
 
     profile_counter(
