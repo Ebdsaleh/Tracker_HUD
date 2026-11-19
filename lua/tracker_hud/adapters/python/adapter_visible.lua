@@ -16,6 +16,8 @@
 
 local scope_member_schema =
     require("tracker_hud.adapters.scope_member_schema")
+local construct_schema =
+    require("tracker_hud.adapters.construct_schema")
 
 local M = {}
 
@@ -190,24 +192,23 @@ M.construct_specs = {
         },
     },
 
-    ["import_statement"] = {
-        syntax = {
-            node_type = "import_statement",
-            tokens = {
-                start = "import",
-            },
-        },
-        construct = {
-            kind = "declaration",
-            language_term = "import",
-            label = "Import",
-        },
-        value = {
-            kind = "reference",
-            language_term = "import",
-            type_label = "import",
-        },
-    },
+    ["import_statement"] =
+        construct_schema.rule(
+            "import_statement",
+            "declaration",
+            {
+                language_term = "import",
+                label = "Import",
+                tokens = {
+                    start = "import",
+                },
+                value = {
+                    kind = "reference",
+                    language_term = "import",
+                    type_label = "import",
+                },
+            }
+        ),
 
     ["import_from_statement"] = {
         syntax = {
@@ -332,143 +333,153 @@ M.construct_specs = {
         },
     },
 
-    ["assignment"] = {
-        syntax = {
-            node_type = "assignment",
-            fields = {
-                left = "left",
-                right = "right",
-            },
-            tokens = {
-                operator = "=",
-            },
-        },
-        construct = {
-            kind = "assignment",
-            language_term = "assignment",
-            label = "Assignment",
-        },
-    },
+    ["assignment"] =
+        construct_schema.rule(
+            "assignment",
+            "assignment",
+            {
+                language_term =
+                    "assignment",
+                label = "Assignment",
+                fields = {
+                    left = "left",
+                    right = "right",
+                },
+                tokens = {
+                    operator = "=",
+                },
+            }
+        ),
 
-    ["augmented_assignment"] = {
-        syntax = {
-            node_type = "augmented_assignment",
-            fields = {
-                left = "left",
-                operator = "operator",
-                right = "right",
-            },
-        },
-        construct = {
-            kind = "assignment",
-            language_term = "augmented assignment",
-            label = "Augmented Assignment",
-        },
-    },
 
-    ["return_statement"] = {
-        syntax = {
-            node_type = "return_statement",
-            tokens = {
-                start = "return",
-            },
-        },
-        construct = {
-            kind = "return",
-            language_term = "return",
-            label = "Return",
-        },
-    },
+    ["augmented_assignment"] =
+        construct_schema.rule(
+            "augmented_assignment",
+            "assignment",
+            {
+                language_term =
+                    "augmented assignment",
+                label =
+                    "Augmented Assignment",
+                fields = {
+                    left = "left",
+                    operator = "operator",
+                    right = "right",
+                },
+            }
+        ),
 
-    ["raise_statement"] = {
-        syntax = {
-            node_type = "raise_statement",
-            tokens = {
-                start = "raise",
-            },
-        },
-        construct = {
-            kind = "call",
-            language_term = "raise",
-            label = "Raise",
-        },
-    },
 
-    ["call"] = {
-        syntax = {
-            node_type = "call",
-            fields = {
-                function_name = "function",
-                arguments = "arguments",
-            },
-        },
-        construct = {
-            kind = "call",
-            language_term = "function call",
-            label = "Call",
-        },
-        value = {
-            kind = "call",
-            language_term = "function call",
-            type_label = "call",
-        },
-    },
+    ["return_statement"] =
+        construct_schema.rule(
+            "return_statement",
+            "return",
+            {
+                language_term = "return",
+                label = "Return",
+                tokens = {
+                    start = "return",
+                },
+            }
+        ),
 
-    ["identifier"] = {
-        syntax = {
-            node_type = "identifier",
-        },
-        construct = {
-            kind = "symbol",
-            language_term = "identifier",
-            label = "Identifier",
-        },
-        value = {
-            kind = "reference",
-            language_term = "identifier",
-            type_label = "identifier",
-        },
-    },
 
-    ["string"] = {
-        syntax = {
-            node_type = "string",
-        },
-        construct = {
-            kind = "literal",
-            language_term = "string",
-            label = "String",
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-        value = {
-            kind = "scalar",
-            language_term = "string",
-            type_label = "string",
-        },
-    },
+    ["raise_statement"] =
+        construct_schema.rule(
+            "raise_statement",
+            "call",
+            {
+                language_term = "raise",
+                label = "Raise",
+                tokens = {
+                    start = "raise",
+                },
+            }
+        ),
 
-    ["integer"] = {
-        syntax = {
-            node_type = "integer",
-        },
-        construct = {
-            kind = "literal",
-            language_term = "integer",
-            label = "Integer",
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-        value = {
-            kind = "scalar",
-            language_term = "integer",
-            type_label = "integer",
-        },
-    },
+
+    ["call"] =
+        construct_schema.rule(
+            "call",
+            "call",
+            {
+                language_term =
+                    "function call",
+                label = "Call",
+                fields = {
+                    function_name =
+                        "function",
+                    arguments =
+                        "arguments",
+                },
+                value = {
+                    kind = "call",
+                    language_term =
+                        "function call",
+                    type_label = "call",
+                },
+            }
+        ),
+
+
+    ["identifier"] =
+        construct_schema.rule(
+            "identifier",
+            "symbol",
+            {
+                language_term =
+                    "identifier",
+                label = "Identifier",
+                value = {
+                    kind = "reference",
+                    language_term =
+                        "identifier",
+                    type_label =
+                        "identifier",
+                },
+            }
+        ),
+
+
+    ["string"] =
+        construct_schema.rule(
+            "string",
+            "literal",
+            {
+                language_term = "string",
+                label = "String",
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "string",
+                    type_label = "string",
+                },
+            }
+        ),
+
+
+    ["integer"] =
+        construct_schema.rule(
+            "integer",
+            "literal",
+            {
+                language_term = "integer",
+                label = "Integer",
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "integer",
+                    type_label = "integer",
+                },
+            }
+        ),
+
 }
 
 M.scope_members = {

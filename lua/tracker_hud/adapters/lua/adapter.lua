@@ -42,6 +42,8 @@
 
 local scope_member_schema =
     require("tracker_hud.adapters.scope_member_schema")
+local construct_schema =
+    require("tracker_hud.adapters.construct_schema")
 
 local M = {}
 
@@ -434,250 +436,213 @@ M.construct_specs = {
     -- Statements / operations
     --------------------------------------------------------------------------
 
-    ["return_statement"] = {
-        syntax = {
-            node_type = "return_statement",
-
-            children = {
-                values = {
-                    node_type = "expression_list",
-                    optional = true,
+    ["return_statement"] =
+        construct_schema.rule(
+            "return_statement",
+            "return",
+            {
+                language_term = "return",
+                label = "Return",
+                children = {
+                    values = {
+                        node_type =
+                            "expression_list",
+                        optional = true,
+                    },
                 },
-            },
-
-            tokens = {
-                start = "return",
-            },
-        },
-
-        construct = {
-            kind = "return",
-            language_term = "return",
-            label = "Return",
-        },
-    },
-
-
-    ["assignment_statement"] = {
-        syntax = {
-            node_type = "assignment_statement",
-
-            fields = {
-                operator = "operator",
-            },
-
-            children = {
-                names = {
-                    node_type = "variable_list",
+                tokens = {
+                    start = "return",
                 },
+            }
+        ),
 
-                values = {
-                    node_type = "expression_list",
+
+    ["assignment_statement"] =
+        construct_schema.rule(
+            "assignment_statement",
+            "assignment",
+            {
+                language_term =
+                    "assignment",
+                label = "Assignment",
+                fields = {
+                    operator = "operator",
                 },
-            },
+                children = {
+                    names = {
+                        node_type =
+                            "variable_list",
+                    },
+                    values = {
+                        node_type =
+                            "expression_list",
+                    },
+                },
+                tokens = {
+                    operator = "=",
+                },
+            }
+        ),
 
-            tokens = {
-                operator = "=",
-            },
-        },
 
-        construct = {
-            kind = "assignment",
-            language_term = "assignment",
-            label = "Assignment",
-        },
-    },
-
-
-    ["function_call"] = {
-        syntax = {
-            node_type = "function_call",
-
-            fields = {
-                name = "name",
-                arguments = "arguments",
-            },
-        },
-
-        construct = {
-            kind = "call",
-            language_term = "function call",
-            label = "Call",
-        },
-
-        value = {
-            kind = "call",
-            language_term = "function call",
-            type_label = "call",
-        },
-    },
+    ["function_call"] =
+        construct_schema.rule(
+            "function_call",
+            "call",
+            {
+                language_term =
+                    "function call",
+                label = "Call",
+                fields = {
+                    name = "name",
+                    arguments = "arguments",
+                },
+                value = {
+                    kind = "call",
+                    language_term =
+                        "function call",
+                    type_label = "call",
+                },
+            }
+        ),
 
 
     --------------------------------------------------------------------------
     -- Scalar literals
     --------------------------------------------------------------------------
 
-    ["string"] = {
-        syntax = {
-            node_type = "string",
-
-            fields = {
-                start = "start",
-                content = "content",
-                finish = "end",
-            },
-        },
-
-        construct = {
-            kind = "literal",
-            language_term = "string",
-            label = "String",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        value = {
-            kind = "scalar",
-            language_term = "string",
-            type_label = "string",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-    },
+    ["string"] =
+        construct_schema.rule(
+            "string",
+            "literal",
+            {
+                language_term = "string",
+                label = "String",
+                fields = {
+                    start = "start",
+                    content = "content",
+                    finish = "end",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "string",
+                    type_label = "string",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+            }
+        ),
 
 
-    ["number"] = {
-        syntax = {
-            node_type = "number",
-        },
-
-        construct = {
-            kind = "literal",
-            language_term = "number",
-            label = "Number",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        value = {
-            kind = "scalar",
-            language_term = "number",
-            type_label = "number",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-    },
+    ["number"] =
+        construct_schema.rule(
+            "number",
+            "literal",
+            {
+                language_term = "number",
+                label = "Number",
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "number",
+                    type_label = "number",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+            }
+        ),
 
 
-    ["nil"] = {
-        syntax = {
-            node_type = "nil",
-
-            tokens = {
-                literal = "nil",
-            },
-        },
-
-        construct = {
-            kind = "literal",
-            language_term = "nil",
-            label = "Nil",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        value = {
-            kind = "scalar",
-            language_term = "nil",
-            type_label = "nil",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-    },
+    ["nil"] =
+        construct_schema.rule(
+            "nil",
+            "literal",
+            {
+                language_term = "nil",
+                label = "Nil",
+                tokens = {
+                    literal = "nil",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "nil",
+                    type_label = "nil",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+            }
+        ),
 
 
-    ["true"] = {
-        syntax = {
-            node_type = "true",
-
-            tokens = {
-                literal = "true",
-            },
-        },
-
-        construct = {
-            kind = "literal",
-            language_term = "boolean",
-            label = "Boolean",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        value = {
-            kind = "scalar",
-            language_term = "boolean",
-            type_label = "boolean",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-    },
+    ["true"] =
+        construct_schema.rule(
+            "true",
+            "literal",
+            {
+                language_term = "boolean",
+                label = "Boolean",
+                tokens = {
+                    literal = "true",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "boolean",
+                    type_label = "boolean",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+            }
+        ),
 
 
-    ["false"] = {
-        syntax = {
-            node_type = "false",
-
-            tokens = {
-                literal = "false",
-            },
-        },
-
-        construct = {
-            kind = "literal",
-            language_term = "boolean",
-            label = "Boolean",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        value = {
-            kind = "scalar",
-            language_term = "boolean",
-            type_label = "boolean",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-    },
+    ["false"] =
+        construct_schema.rule(
+            "false",
+            "literal",
+            {
+                language_term = "boolean",
+                label = "Boolean",
+                tokens = {
+                    literal = "false",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "boolean",
+                    type_label = "boolean",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+            }
+        ),
 
 
     --------------------------------------------------------------------------

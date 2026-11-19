@@ -11,6 +11,8 @@ local function run()
     local registry = require("tracker_hud.adapters.registry")
     local scope_member_schema =
         require("tracker_hud.adapters.scope_member_schema")
+    local construct_schema =
+        require("tracker_hud.adapters.construct_schema")
     local adapters = {
         { filetype = "lua", module = "tracker_hud.adapters.lua.init" },
         { filetype = "python", module = "tracker_hud.adapters.python.init" },
@@ -557,6 +559,108 @@ local function run()
 
     print(
         "PASS Python general Scope Member rules + value semantics"
+    )
+
+    local construct_probe =
+        construct_schema.rule(
+            "number",
+            "literal",
+            {
+                language_term = "number",
+                label = "Number",
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                value = {
+                    kind = "scalar",
+                    language_term = "number",
+                    type_label = "number",
+                },
+            }
+        )
+
+    assert(
+        construct_probe.syntax.node_type
+            == "number"
+            and construct_probe.construct.kind
+                == "literal"
+            and construct_probe.construct.language_term
+                == "number"
+            and construct_probe.construct.label
+                == "Number"
+            and construct_probe.construct.mutability.state
+                == "immutable"
+            and construct_probe.construct.mutability.shape
+                == "fixed"
+            and construct_probe.value.kind
+                == "scalar"
+            and construct_probe.value.type_label
+                == "number",
+        "shared construct rule builder changed simple construct semantics"
+    )
+
+    local lua_number =
+        lua_adapter.construct_specs[
+            "number"
+        ]
+
+    assert(
+        lua_number.syntax.node_type
+            == "number"
+            and lua_number.construct.kind
+                == "literal"
+            and lua_number.construct.mutability.state
+                == "immutable"
+            and lua_number.value.kind
+                == "scalar"
+            and lua_number.value.mutability.state
+                == "immutable",
+        "Lua simple construct migration changed literal semantics"
+    )
+
+    local python_import_construct =
+        python_adapter.construct_specs[
+            "import_statement"
+        ]
+
+    assert(
+        python_import_construct.syntax.node_type
+            == "import_statement"
+            and python_import_construct.syntax.tokens.start
+                == "import"
+            and python_import_construct.construct.kind
+                == "declaration"
+            and python_import_construct.construct.language_term
+                == "import"
+            and python_import_construct.value.kind
+                == "reference"
+            and python_import_construct.value.type_label
+                == "import",
+        "Python simple construct migration changed import semantics"
+    )
+
+    local python_call_construct =
+        python_adapter.construct_specs[
+            "call"
+        ]
+
+    assert(
+        python_call_construct.syntax.fields.function_name
+            == "function"
+            and python_call_construct.syntax.fields.arguments
+                == "arguments"
+            and python_call_construct.construct.kind
+                == "call"
+            and python_call_construct.value.kind
+                == "call"
+            and python_call_construct.value.type_label
+                == "call",
+        "Python simple construct migration changed call semantics"
+    )
+
+    print(
+        "PASS shared construct rule builder + Lua/Python simple constructs"
     )
 
     -- Permanent panels are presentation sections, not claims about a
