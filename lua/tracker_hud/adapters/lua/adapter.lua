@@ -740,37 +740,29 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     declarations = {
-        {
-            syntax = {
-                node_type = "variable_declaration",
-
+        scope_member_schema.rule(
+            "variable_declaration",
+            "local",
+            {
                 children = {
                     names = {
-                        node_type = "variable_list",
+                        node_type =
+                            "variable_list",
                     },
-
                     values = {
-                        node_type = "expression_list",
+                        node_type =
+                            "expression_list",
                         optional = true,
                     },
                 },
-
                 tokens = {
                     declaration = "local",
                     operator = "=",
                 },
-            },
-
-            member = {
-                kind = "local",
-                language_term = "local",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
 
@@ -779,46 +771,36 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     assignments = {
-        {
-            syntax = {
-                node_type = "assignment_statement",
-
+        scope_member_schema.rule(
+            "assignment_statement",
+            "assignment",
+            {
                 children = {
                     names = {
-                        node_type = "variable_list",
+                        node_type =
+                            "variable_list",
                     },
-
                     values = {
-                        node_type = "expression_list",
+                        node_type =
+                            "expression_list",
                     },
                 },
-
                 fields = {
                     operator = "operator",
                 },
-
                 exclusions = {
                     ancestor_node_types = {
                         "variable_declaration",
                         "local_declaration",
                     },
                 },
-
                 tokens = {
                     operator = "=",
                 },
-            },
-
-            member = {
-                kind = "assignment",
-                language_term = "assignment",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
 
@@ -827,57 +809,43 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     parameters = {
-        {
-            syntax = {
-                node_type = "function_declaration",
-
+        scope_member_schema.rule(
+            "function_declaration",
+            "parameter",
+            {
                 children = {
                     names = {
-                        node_type = "parameters",
+                        node_type =
+                            "parameters",
                     },
                 },
-
                 fields = {
-                    parameters = "parameters",
+                    parameters =
+                        "parameters",
                 },
-            },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
 
-            member = {
-                kind = "parameter",
-                language_term = "parameter",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
-
-        {
-            syntax = {
-                node_type = "function_definition",
-
+        scope_member_schema.rule(
+            "function_definition",
+            "parameter",
+            {
                 children = {
                     names = {
-                        node_type = "parameters",
+                        node_type =
+                            "parameters",
                     },
                 },
-
                 fields = {
-                    parameters = "parameters",
+                    parameters =
+                        "parameters",
                 },
-            },
-
-            member = {
-                kind = "parameter",
-                language_term = "parameter",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
 
@@ -917,10 +885,12 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     loops = {
-        {
-            syntax = {
-                node_type = "for_numeric_clause",
-
+        scope_member_schema.rule(
+            "for_numeric_clause",
+            "loop_variable",
+            {
+                language_term =
+                    "loop variable",
                 fields = {
                     name = "name",
                     operator = "operator",
@@ -928,53 +898,38 @@ M.scope_members = {
                     finish = "end",
                     step = "step",
                 },
-
                 tokens = {
                     operator = "=",
                     separator = ",",
                 },
-            },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
 
-            member = {
-                kind = "loop_variable",
-                language_term = "loop variable",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "conditional",
-                },
-            },
-        },
-
-        {
-            syntax = {
-                node_type = "for_generic_clause",
-
+        scope_member_schema.rule(
+            "for_generic_clause",
+            "loop_variable",
+            {
+                language_term =
+                    "loop variable",
                 children = {
                     names = {
-                        node_type = "variable_list",
+                        node_type =
+                            "variable_list",
                     },
-
                     values = {
-                        node_type = "expression_list",
+                        node_type =
+                            "expression_list",
                     },
                 },
-
                 tokens = {
                     iterator = "in",
                 },
-            },
-
-            member = {
-                kind = "loop_variable",
-                language_term = "loop variable",
-                owner_scope = "lexical",
-
-                mutability = {
-                    binding = "conditional",
-                },
-            },
-        },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
     },
 
 
@@ -983,28 +938,24 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     returns = {
-        {
-            syntax = {
-                node_type = "return_statement",
-
+        scope_member_schema.rule(
+            "return_statement",
+            "return_value",
+            {
+                language_term =
+                    "return value",
                 children = {
                     values = {
-                        node_type = "expression_list",
+                        node_type =
+                            "expression_list",
                         optional = true,
                     },
                 },
-
                 tokens = {
                     start = "return",
                 },
-            },
-
-            member = {
-                kind = "return_value",
-                language_term = "return value",
-                owner_scope = "lexical",
-            },
-        },
+            }
+        ),
     },
 
 
@@ -1013,31 +964,24 @@ M.scope_members = {
     --------------------------------------------------------------------------
 
     fields = {
-        {
-            syntax = {
-                node_type = "field",
-
+        scope_member_schema.rule(
+            "field",
+            "field",
+            {
                 fields = {
                     name = "name",
                     operator = "operator",
                     value = "value",
                 },
-
                 tokens = {
                     operator = "=",
                 },
-            },
-
-            member = {
-                kind = "field",
-                language_term = "field",
-                owner_scope = "structural",
-
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                owner_scope =
+                    "structural",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 }
 

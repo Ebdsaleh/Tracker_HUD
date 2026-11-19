@@ -43,23 +43,12 @@ function M.supported_groups_text()
 end
 
 
--- Common named-binding declaration helper.
+-- General Scope Member declaration helper.
 --
--- Example:
--- scope_member_schema.named(
---     "function_definition",
---     "declarator",
---     "function",
---     {
---         owner_scope = "parent_lexical",
---         fallback_node_type = "identifier",
---     }
--- )
---
--- The returned value is a normal Adapter Contract v1 member spec.
-function M.named(
+-- Syntax descriptors remain ordinary Adapter Contract v1 tables. The helper
+-- only removes repeated wrapper boilerplate from adapter source.
+function M.rule(
     node_type,
-    name_field,
     kind,
     opts
 )
@@ -71,19 +60,15 @@ function M.named(
         node_type = node_type,
     }
 
-    if name_field ~= nil then
-        syntax.fields = {
-            name = name_field,
-        }
-    end
-
-    if opts.fallback_node_type ~= nil then
-        syntax.children = {
-            name = {
-                node_type =
-                    opts.fallback_node_type,
-            },
-        }
+    for _, key in ipairs({
+        "fields",
+        "children",
+        "tokens",
+        "exclusions",
+    }) do
+        if opts[key] ~= nil then
+            syntax[key] = opts[key]
+        end
     end
 
     local member = {
@@ -107,6 +92,55 @@ function M.named(
         syntax = syntax,
         member = member,
     }
+end
+
+
+-- Common named-binding declaration helper.
+--
+-- The returned value is a normal Adapter Contract v1 member spec.
+function M.named(
+    node_type,
+    name_field,
+    kind,
+    opts
+)
+    opts = type(opts) == "table"
+        and opts
+        or {}
+
+    local fields = nil
+
+    if name_field ~= nil then
+        fields = {
+            name = name_field,
+        }
+    end
+
+    local children = nil
+
+    if opts.fallback_node_type ~= nil then
+        children = {
+            name = {
+                node_type =
+                    opts.fallback_node_type,
+            },
+        }
+    end
+
+    return M.rule(
+        node_type,
+        kind,
+        {
+            fields = fields,
+            children = children,
+            language_term =
+                opts.language_term,
+            owner_scope =
+                opts.owner_scope,
+            binding_mutability =
+                opts.binding_mutability,
+        }
+    )
 end
 
 

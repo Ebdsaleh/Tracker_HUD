@@ -311,6 +311,114 @@ local function run()
         "PASS Lua/Python shared named Scope Member declarations"
     )
 
+    local general_rule_probe =
+        scope_member_schema.rule(
+            "assignment_statement",
+            "assignment",
+            {
+                fields = {
+                    operator = "operator",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "variable_list",
+                    },
+                },
+                tokens = {
+                    operator = "=",
+                },
+                exclusions = {
+                    ancestor_node_types = {
+                        "variable_declaration",
+                    },
+                },
+                binding_mutability =
+                    "mutable",
+            }
+        )
+
+    assert(
+        general_rule_probe.syntax.node_type
+            == "assignment_statement"
+            and general_rule_probe.syntax.fields.operator
+                == "operator"
+            and general_rule_probe.syntax.children
+                .names.node_type
+                == "variable_list"
+            and general_rule_probe.syntax.tokens.operator
+                == "="
+            and general_rule_probe.syntax.exclusions
+                .ancestor_node_types[1]
+                == "variable_declaration"
+            and general_rule_probe.member.kind
+                == "assignment"
+            and general_rule_probe.member.language_term
+                == "assignment"
+            and general_rule_probe.member.owner_scope
+                == "lexical"
+            and general_rule_probe.member.mutability
+                .binding
+                == "mutable",
+        "shared general Scope Member rule builder changed declaration shape"
+    )
+
+    local lua_assignment =
+        lua_adapter.scope_members
+            .assignments[1]
+
+    assert(
+        lua_assignment.syntax.node_type
+            == "assignment_statement"
+            and lua_assignment.syntax.fields.operator
+                == "operator"
+            and lua_assignment.syntax.children
+                .names.node_type
+                == "variable_list"
+            and lua_assignment.syntax.children
+                .values.node_type
+                == "expression_list"
+            and lua_assignment.syntax.exclusions
+                .ancestor_node_types[1]
+                == "variable_declaration"
+            and lua_assignment.syntax.exclusions
+                .ancestor_node_types[2]
+                == "local_declaration"
+            and lua_assignment.member.kind
+                == "assignment"
+            and lua_assignment.member.mutability
+                .binding
+                == "mutable",
+        "Lua general Scope Member declaration migration changed assignment semantics"
+    )
+
+    local lua_field =
+        lua_adapter.scope_members
+            .fields[1]
+
+    assert(
+        lua_field.syntax.node_type
+            == "field"
+            and lua_field.syntax.fields.name
+                == "name"
+            and lua_field.syntax.fields.value
+                == "value"
+            and lua_field.syntax.tokens.operator
+                == "="
+            and lua_field.member.kind
+                == "field"
+            and lua_field.member.owner_scope
+                == "structural"
+            and lua_field.member.mutability
+                .binding
+                == "mutable",
+        "Lua general Scope Member declaration migration changed field semantics"
+    )
+
+    print(
+        "PASS shared general Scope Member rule builder + Lua migration"
+    )
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.
