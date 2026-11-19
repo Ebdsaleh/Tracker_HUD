@@ -801,6 +801,8 @@ local function get_prepared_register_source(
             opts.profile_begin,
         profile_end =
             opts.profile_end,
+        profile_counter =
+            opts.profile_counter,
     }
 
     local prepared_source =
