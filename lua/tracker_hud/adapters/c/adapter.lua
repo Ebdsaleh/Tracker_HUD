@@ -396,7 +396,7 @@ construct_schema.define(
     }
 )
 
--- Keep the named AST field as primary evidence.-- Keep the named AST field as primary evidence. Parser versions can differ
+-- Keep the named AST field as primary evidence. Parser versions can differ
 -- in direct field exposure, so named-binding specs can declare an exact AST
 -- fallback without duplicating the Adapter Contract table shape here.
 

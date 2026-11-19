@@ -194,7 +194,7 @@ construct_schema.define(
     }
 )
 
--- C++ class, namespace, and alias declarations add visible source symbols.-- C++ class, namespace, and alias declarations add visible source symbols.
+-- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
 
 -- C++ adds defaulted and variadic parameter syntax nodes beyond C's
