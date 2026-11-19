@@ -340,7 +340,6 @@ local function run()
         "context.scope_members.spec_checks",
         "context.scope_members.construct_scope_lookups",
         "context.scope_members.group_dispatch_calls",
-        "context.scope_members.nonempty_group_dispatch_calls",
         "context.scope_members.group_candidate_lookups",
         "context.scope_members.scope_filter_state_builds",
         "context.scope_members.members_emitted",
@@ -609,39 +608,28 @@ local function run()
             "context.scope_members.group_dispatch_calls"
         ]
 
-    local scope_nonempty_group_dispatch_calls =
-        snapshot.counters[
-            "context.scope_members.nonempty_group_dispatch_calls"
-        ]
-
     assert(
         type(scope_group_dispatch_calls) == "table"
-            and type(scope_nonempty_group_dispatch_calls) == "table"
             and scope_group_dispatch_calls.count
                 == scope_reuse_miss.total
             and scope_group_dispatch_calls.total
-                == 50310
-            and scope_nonempty_group_dispatch_calls.count
-                == scope_reuse_miss.total
-            and scope_nonempty_group_dispatch_calls.total
-                == 11180,
-        "Scope Member active-group dispatch opportunity changed"
+                == 11180
+            and snapshot.counters[
+                "context.scope_members.nonempty_group_dispatch_calls"
+            ] == nil,
+        "Scope Member active-group dispatch elimination changed"
     )
 
     print(
-        "[Tracker_HUD] Scope-member active-group dispatch opportunity: "
+        "[Tracker_HUD] Scope-member active-group dispatch elimination: "
             .. tostring(
                 scope_group_dispatch_calls.total
             )
-            .. " dispatch call(s) vs "
-            .. tostring(
-                scope_nonempty_group_dispatch_calls.total
-            )
-            .. " non-empty-group dispatch call(s) across "
+            .. " dispatch call(s) remain across "
             .. tostring(
                 scope_reuse_miss.total
             )
-            .. " fresh discoverie(s)"
+            .. " fresh discoverie(s); inactive groups are skipped before dispatcher entry"
     )
 
     local scope_filter_state_builds =

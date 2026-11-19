@@ -330,7 +330,9 @@ end
 local function build_member_spec_index(
     scope_member_spec
 )
-    local index = {}
+    local index = {
+        active_group_names = {},
+    }
 
     scope_member_spec =
         core.is_table(scope_member_spec)
@@ -340,12 +342,22 @@ local function build_member_spec_index(
     for _, group_name in ipairs(
         member_group_names
     ) do
-        index[group_name] =
+        local group_index =
             build_member_group_index(
                 scope_member_spec[
                     group_name
                 ]
             )
+
+        index[group_name] =
+            group_index
+
+        if (group_index.spec_count or 0) > 0 then
+            table.insert(
+                index.active_group_names,
+                group_name
+            )
+        end
     end
 
     return index
@@ -1404,12 +1416,6 @@ local function collect_member_group(
         return
     end
 
-    count_measurement(
-        state,
-        "nonempty_group_dispatch_calls",
-        1
-    )
-
     collector =
         collector
         or collect_member_spec
@@ -1502,12 +1508,6 @@ local function collect_member_group_before_scope_enter(
         return
     end
 
-    count_measurement(
-        state,
-        "nonempty_group_dispatch_calls",
-        1
-    )
-
     if not member_group_can_match_node(
         group_index,
         node
@@ -1590,98 +1590,51 @@ local function collect_from_node(
         return
     end
 
-    -- declarations
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.declarations,
-        members,
-        seen,
-        state,
-        collect_declaration_member_spec,
-        adapter
-    )
+    local group_collectors = {
+        declarations =
+            collect_declaration_member_spec,
+        assignments =
+            collect_declaration_member_spec,
+        functions =
+            collect_function_member_spec,
+        loops =
+            collect_loop_member_spec,
+        returns =
+            collect_return_member_spec,
+        fields =
+            collect_field_member_spec,
+        symbols =
+            collect_symbol_member_spec,
+    }
 
-    -- assignments
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.assignments,
-        members,
-        seen,
-        state,
-        collect_declaration_member_spec,
-        adapter
-    )
+    local active_group_names =
+        member_spec_index.active_group_names
 
-    -- parameters
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.parameters,
-        members,
-        seen,
-        state
-    )
+    if not core.is_table(
+        active_group_names
+    ) then
+        active_group_names =
+            member_group_names
+    end
 
-    -- functions
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.functions,
-        members,
-        seen,
-        state,
-        collect_function_member_spec,
-        adapter
-    )
-
-    -- loops
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.loops,
-        members,
-        seen,
-        state,
-        collect_loop_member_spec
-    )
-
-    -- returns
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.returns,
-        members,
-        seen,
-        state,
-        collect_return_member_spec,
-        adapter
-    )
-
-    -- fields
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.fields,
-        members,
-        seen,
-        state,
-        collect_field_member_spec,
-        adapter
-    )
-
-    -- symbols
-    collect_member_group(
-        node,
-        bufnr,
-        member_spec_index.symbols,
-        members,
-        seen,
-        state,
-        collect_symbol_member_spec,
-        adapter
-    )
+    for _, group_name in ipairs(
+        active_group_names
+    ) do
+        collect_member_group(
+            node,
+            bufnr,
+            member_spec_index[
+                group_name
+            ],
+            members,
+            seen,
+            state,
+            group_collectors[
+                group_name
+            ],
+            adapter
+        )
+    end
 end
 
 
@@ -1708,16 +1661,24 @@ local function walk_node(
 
     local current_state = state
 
-    collect_member_group_before_scope_enter(
-        node,
-        bufnr,
-        member_spec_index.functions,
-        members,
-        seen,
-        state,
-        collect_function_member_spec,
-        adapter
-    )
+    local function_group_index =
+        member_spec_index.functions
+
+    if core.is_table(function_group_index)
+        and (function_group_index.spec_count or 0)
+            > 0
+    then
+        collect_member_group_before_scope_enter(
+            node,
+            bufnr,
+            function_group_index,
+            members,
+            seen,
+            state,
+            collect_function_member_spec,
+            adapter
+        )
+    end
 
     local construct_spec =
         construct_utils.get_construct_spec(
@@ -1814,7 +1775,6 @@ local function collect_internal(
         spec_checks = 0,
         construct_scope_lookups = 0,
         group_dispatch_calls = 0,
-        nonempty_group_dispatch_calls = 0,
         group_candidate_lookups = 0,
         scope_filter_state_builds = 0,
     }
@@ -1871,12 +1831,6 @@ local function collect_internal(
         opts,
         "group_dispatch_calls",
         measurement.group_dispatch_calls
-    )
-
-    profile_counter(
-        opts,
-        "nonempty_group_dispatch_calls",
-        measurement.nonempty_group_dispatch_calls
     )
 
     profile_counter(
