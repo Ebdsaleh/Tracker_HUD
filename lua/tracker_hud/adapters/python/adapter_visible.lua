@@ -499,33 +499,33 @@ M.scope_members = {
     },
 
     parameters = {
-        {
-            syntax = {
-                node_type = "function_definition",
+        scope_member_schema.rule(
+            "function_definition",
+            "parameter",
+            {
                 fields = {
-                    parameters = "parameters",
+                    parameters =
+                        "parameters",
                 },
                 children = {
                     names = {
-                        node_type = "parameters",
+                        node_type =
+                            "parameters",
                     },
                 },
-            },
-            member = {
-                kind = "parameter",
-                language_term = "parameter",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
     loops = {
-        {
-            syntax = {
-                node_type = "for_statement",
+        scope_member_schema.rule(
+            "for_statement",
+            "loop_variable",
+            {
+                language_term =
+                    "loop variable",
                 fields = {
                     name = "left",
                     iterable = "right",
@@ -533,22 +533,18 @@ M.scope_members = {
                 tokens = {
                     iterator = "in",
                 },
-            },
-            member = {
-                kind = "loop_variable",
-                language_term = "loop variable",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "conditional",
-                },
-            },
-        },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
     },
 
     symbols = {
-        {
-            syntax = {
-                node_type = "import_statement",
+        scope_member_schema.rule(
+            "import_statement",
+            "symbol",
+            {
+                language_term = "import",
                 children = {
                     name = {
                         node_types = {
@@ -561,24 +557,21 @@ M.scope_members = {
                 tokens = {
                     declaration = "import",
                 },
-            },
-            member = {
-                kind = "symbol",
-                language_term = "import",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "immutable",
+                binding_mutability =
+                    "immutable",
+                value = {
+                    kind = "reference",
+                    language_term = "import",
+                    type_label = "import",
                 },
-            },
-            value = {
-                kind = "reference",
-                language_term = "import",
-                type_label = "import",
-            },
-        },
-        {
-            syntax = {
-                node_type = "import_from_statement",
+            }
+        ),
+        scope_member_schema.rule(
+            "import_from_statement",
+            "symbol",
+            {
+                language_term =
+                    "from import",
                 children = {
                     name = {
                         node_types = {
@@ -592,24 +585,20 @@ M.scope_members = {
                     declaration = "from",
                     import_token = "import",
                 },
-            },
-            member = {
-                kind = "symbol",
-                language_term = "from import",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "immutable",
+                binding_mutability =
+                    "immutable",
+                value = {
+                    kind = "reference",
+                    language_term =
+                        "from import",
+                    type_label = "import",
                 },
-            },
-            value = {
-                kind = "reference",
-                language_term = "from import",
-                type_label = "import",
-            },
-        },
-        {
-            syntax = {
-                node_type = "assignment",
+            }
+        ),
+        scope_member_schema.rule(
+            "assignment",
+            "assignment",
+            {
                 fields = {
                     name = "left",
                     value = "right",
@@ -617,50 +606,39 @@ M.scope_members = {
                 tokens = {
                     operator = "=",
                 },
-            },
-            member = {
-                kind = "assignment",
-                language_term = "assignment",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
-        {
-            syntax = {
-                node_type = "augmented_assignment",
+                binding_mutability =
+                    "mutable",
+            }
+        ),
+        scope_member_schema.rule(
+            "augmented_assignment",
+            "assignment",
+            {
+                language_term =
+                    "augmented assignment",
                 fields = {
                     name = "left",
                     operator = "operator",
                     value = "right",
                 },
-            },
-            member = {
-                kind = "assignment",
-                language_term = "augmented assignment",
-                owner_scope = "lexical",
-                mutability = {
-                    binding = "mutable",
-                },
-            },
-        },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
     returns = {
-        {
-            syntax = {
-                node_type = "return_statement",
+        scope_member_schema.rule(
+            "return_statement",
+            "return_value",
+            {
+                language_term =
+                    "return value",
                 tokens = {
                     start = "return",
                 },
-            },
-            member = {
-                kind = "return_value",
-                language_term = "return value",
-                owner_scope = "lexical",
-            },
-        },
+            }
+        ),
     },
 }
 

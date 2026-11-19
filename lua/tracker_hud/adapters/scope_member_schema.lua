@@ -88,10 +88,16 @@ function M.rule(
         }
     end
 
-    return {
+    local result = {
         syntax = syntax,
         member = member,
     }
+
+    if opts.value ~= nil then
+        result.value = opts.value
+    end
+
+    return result
 end
 
 
@@ -139,6 +145,8 @@ function M.named(
                 opts.owner_scope,
             binding_mutability =
                 opts.binding_mutability,
+            value =
+                opts.value,
         }
     )
 end

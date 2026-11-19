@@ -419,6 +419,146 @@ local function run()
         "PASS shared general Scope Member rule builder + Lua migration"
     )
 
+    local value_rule_probe =
+        scope_member_schema.rule(
+            "import_statement",
+            "symbol",
+            {
+                language_term = "import",
+                value = {
+                    kind = "reference",
+                    language_term = "import",
+                    type_label = "import",
+                },
+            }
+        )
+
+    assert(
+        value_rule_probe.value
+            and value_rule_probe.value.kind
+                == "reference"
+            and value_rule_probe.value.language_term
+                == "import"
+            and value_rule_probe.value.type_label
+                == "import",
+        "shared general Scope Member rule builder changed value semantics"
+    )
+
+    local python_parameter =
+        python_adapter.scope_members
+            .parameters[1]
+
+    assert(
+        python_parameter.syntax.node_type
+            == "function_definition"
+            and python_parameter.syntax.fields
+                .parameters
+                == "parameters"
+            and python_parameter.syntax.children
+                .names.node_type
+                == "parameters"
+            and python_parameter.member.kind
+                == "parameter"
+            and python_parameter.member.mutability
+                .binding
+                == "mutable",
+        "Python parameter migration changed Scope Member semantics"
+    )
+
+    local python_loop =
+        python_adapter.scope_members
+            .loops[1]
+
+    assert(
+        python_loop.syntax.node_type
+            == "for_statement"
+            and python_loop.syntax.fields.name
+                == "left"
+            and python_loop.syntax.fields.iterable
+                == "right"
+            and python_loop.syntax.tokens.iterator
+                == "in"
+            and python_loop.member.kind
+                == "loop_variable"
+            and python_loop.member.language_term
+                == "loop variable"
+            and python_loop.member.mutability
+                .binding
+                == "conditional",
+        "Python loop migration changed Scope Member semantics"
+    )
+
+    local python_import =
+        python_adapter.scope_members
+            .symbols[1]
+
+    assert(
+        python_import.syntax.node_type
+            == "import_statement"
+            and python_import.syntax.children
+                .name.node_types[1]
+                == "dotted_name"
+            and python_import.syntax.children
+                .name.node_types[2]
+                == "aliased_import"
+            and python_import.syntax.children
+                .name.node_types[3]
+                == "identifier"
+            and python_import.syntax.tokens.declaration
+                == "import"
+            and python_import.member.kind
+                == "symbol"
+            and python_import.member.mutability
+                .binding
+                == "immutable"
+            and python_import.value.kind
+                == "reference"
+            and python_import.value.type_label
+                == "import",
+        "Python import migration changed member/value semantics"
+    )
+
+    local python_assignment =
+        python_adapter.scope_members
+            .symbols[3]
+
+    assert(
+        python_assignment.syntax.node_type
+            == "assignment"
+            and python_assignment.syntax.fields.name
+                == "left"
+            and python_assignment.syntax.fields.value
+                == "right"
+            and python_assignment.syntax.tokens.operator
+                == "="
+            and python_assignment.member.kind
+                == "assignment"
+            and python_assignment.member.mutability
+                .binding
+                == "mutable",
+        "Python assignment migration changed Scope Member semantics"
+    )
+
+    local python_return =
+        python_adapter.scope_members
+            .returns[1]
+
+    assert(
+        python_return.syntax.node_type
+            == "return_statement"
+            and python_return.syntax.tokens.start
+                == "return"
+            and python_return.member.kind
+                == "return_value"
+            and python_return.member.language_term
+                == "return value",
+        "Python return migration changed Scope Member semantics"
+    )
+
+    print(
+        "PASS Python general Scope Member rules + value semantics"
+    )
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.
