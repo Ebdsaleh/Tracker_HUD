@@ -341,7 +341,6 @@ local function run()
         "context.scope_members.construct_scope_lookups",
         "context.scope_members.group_candidate_lookups",
         "context.scope_members.scope_filter_state_builds",
-        "context.scope_members.candidate_bearing_group_lookups",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -608,39 +607,28 @@ local function run()
             "context.scope_members.scope_filter_state_builds"
         ]
 
-    local scope_candidate_group_lookups =
-        snapshot.counters[
-            "context.scope_members.candidate_bearing_group_lookups"
-        ]
-
     assert(
         type(scope_filter_state_builds) == "table"
-            and type(scope_candidate_group_lookups) == "table"
             and scope_filter_state_builds.count
                 == scope_reuse_miss.total
             and scope_filter_state_builds.total
-                == 11180
-            and scope_candidate_group_lookups.count
-                == scope_reuse_miss.total
-            and scope_candidate_group_lookups.total
-                == 1315,
-        "Scope Member scope-filter state opportunity changed"
+                == 1315
+            and snapshot.counters[
+                "context.scope_members.candidate_bearing_group_lookups"
+            ] == nil,
+        "Scope Member delayed scope-filter state build changed"
     )
 
     print(
-        "[Tracker_HUD] Scope-member scope-filter state opportunity: "
+        "[Tracker_HUD] Scope-member scope-filter state elimination: "
             .. tostring(
                 scope_filter_state_builds.total
             )
-            .. " filtered-state build(s) vs "
-            .. tostring(
-                scope_candidate_group_lookups.total
-            )
-            .. " candidate-bearing group lookup(s) across "
+            .. " filtered-state build(s) remain across "
             .. tostring(
                 scope_reuse_miss.total
             )
-            .. " fresh discoverie(s)"
+            .. " fresh discoverie(s); empty candidate lists return before state wrapping"
     )
 
     local range_scope_reuse_possible =

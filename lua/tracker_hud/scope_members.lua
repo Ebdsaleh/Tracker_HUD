@@ -1371,6 +1371,22 @@ local function collect_member_group(
         collector
         or collect_member_spec
 
+    count_measurement(
+        state,
+        "group_candidate_lookups",
+        1
+    )
+
+    local candidates =
+        member_group_candidates(
+            group_index,
+            node
+        )
+
+    if #candidates == 0 then
+        return
+    end
+
     local group_state =
         with_scope_depth_filter(
             state,
@@ -1383,26 +1399,6 @@ local function collect_member_group(
         "scope_filter_state_builds",
         1
     )
-
-    count_measurement(
-        group_state,
-        "group_candidate_lookups",
-        1
-    )
-
-    local candidates =
-        member_group_candidates(
-            group_index,
-            node
-        )
-
-    if #candidates > 0 then
-        count_measurement(
-            group_state,
-            "candidate_bearing_group_lookups",
-            1
-        )
-    end
 
     for _, entry in ipairs(
         candidates
@@ -1450,6 +1446,22 @@ local function collect_member_group_before_scope_enter(
         return
     end
 
+    count_measurement(
+        state,
+        "group_candidate_lookups",
+        1
+    )
+
+    local candidates =
+        member_group_candidates(
+            group_index,
+            node
+        )
+
+    if #candidates == 0 then
+        return
+    end
+
     local group_state =
         with_scope_depth_filter(
             state,
@@ -1461,26 +1473,6 @@ local function collect_member_group_before_scope_enter(
         "scope_filter_state_builds",
         1
     )
-
-    count_measurement(
-        group_state,
-        "group_candidate_lookups",
-        1
-    )
-
-    local candidates =
-        member_group_candidates(
-            group_index,
-            node
-        )
-
-    if #candidates > 0 then
-        count_measurement(
-            group_state,
-            "candidate_bearing_group_lookups",
-            1
-        )
-    end
 
     for _, entry in ipairs(
         candidates
@@ -1754,7 +1746,6 @@ local function collect_internal(
         construct_scope_lookups = 0,
         group_candidate_lookups = 0,
         scope_filter_state_builds = 0,
-        candidate_bearing_group_lookups = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1815,12 +1806,6 @@ local function collect_internal(
         opts,
         "scope_filter_state_builds",
         measurement.scope_filter_state_builds
-    )
-
-    profile_counter(
-        opts,
-        "candidate_bearing_group_lookups",
-        measurement.candidate_bearing_group_lookups
     )
 
     profile_counter(
