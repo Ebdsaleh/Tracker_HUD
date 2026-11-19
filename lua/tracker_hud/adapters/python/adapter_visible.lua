@@ -306,6 +306,38 @@ M.construct_specs = {
         ),
 
 
+    ["while_statement"] =
+        construct_schema.rule(
+            "while_statement",
+            "loop",
+            {
+                language_term = "while",
+                label = "While",
+                fields = {
+                    condition = "condition",
+                    body = "body",
+                    alternative = "alternative",
+                },
+                tokens = {
+                    start = "while",
+                    body_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "body_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
     ["for_statement"] =
         construct_schema.rule(
             "for_statement",
@@ -363,6 +395,72 @@ M.construct_specs = {
                     required = {
                         "start",
                         "body_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
+    ["with_statement"] =
+        construct_schema.rule(
+            "with_statement",
+            "block",
+            {
+                language_term = "with",
+                label = "With",
+                fields = {
+                    body = "body",
+                },
+                children = {
+                    clause = {
+                        node_type = "with_clause",
+                    },
+                },
+                tokens = {
+                    start = "with",
+                    body_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "body_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
+    ["match_statement"] =
+        construct_schema.rule(
+            "match_statement",
+            "branch",
+            {
+                language_term = "match",
+                label = "Match",
+                fields = {
+                    subject = "subject",
+                    body = "body",
+                },
+                tokens = {
+                    start = "match",
+                    branch_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "branch_open",
                     },
                     total_required = 2,
                 },

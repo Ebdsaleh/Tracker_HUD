@@ -980,11 +980,24 @@ local function run()
         python_adapter.construct_specs[
             "for_statement"
         ]
+    local python_while_construct =
+        python_adapter.construct_specs[
+            "while_statement"
+        ]
+    local python_with_construct =
+        python_adapter.construct_specs[
+            "with_statement"
+        ]
+    local python_match_construct =
+        python_adapter.construct_specs[
+            "match_statement"
+        ]
 
     -- The active Python adapter is adapter_targeted, which deliberately
-    -- upgrades if/for/try structural scopes into member-owning structural
-    -- scopes after loading adapter_visible. Assert the registered adapter's
-    -- real policy here rather than adapter_visible's pre-wrapper defaults.
+    -- upgrades Python block constructs that do not create namespaces into
+    -- member-owning structural scopes after loading adapter_visible. Assert
+    -- the registered adapter's real policy here rather than adapter_visible's
+    -- pre-wrapper defaults.
     assert(
         python_for_construct.scope.kind
             == "structural"
@@ -996,7 +1009,44 @@ local function run()
                 == true
             and python_for_construct.markers
                 .required[2]
-                == "iterator",
+                == "iterator"
+            and python_while_construct.syntax.fields
+                .condition
+                == "condition"
+            and python_while_construct.scope.kind
+                == "structural"
+            and python_while_construct.scope
+                .affects_visibility
+                == true
+            and python_while_construct.scope
+                .owns_members
+                == true
+            and python_with_construct.syntax.children
+                .clause.node_type
+                == "with_clause"
+            and python_with_construct.syntax.fields.body
+                == "body"
+            and python_with_construct.scope.kind
+                == "structural"
+            and python_with_construct.scope
+                .affects_visibility
+                == true
+            and python_with_construct.scope
+                .owns_members
+                == true
+            and python_match_construct.syntax.fields
+                .subject
+                == "subject"
+            and python_match_construct.syntax.fields.body
+                == "body"
+            and python_match_construct.scope.kind
+                == "structural"
+            and python_match_construct.scope
+                .affects_visibility
+                == true
+            and python_match_construct.scope
+                .owns_members
+                == true,
         "Python targeted structural-member scope policy changed"
     )
 
