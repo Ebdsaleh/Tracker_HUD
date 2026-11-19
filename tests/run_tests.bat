@@ -34,8 +34,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [Tracker_HUD] Running 149 tests...
->> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 149 tests...
+echo [Tracker_HUD] Running 150 tests...
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 150 tests...
 >> "%TRACKER_HUD_RESULTS%" echo.
 
 call :run_none "tests/architecture_registry_smoke.lua"
@@ -337,8 +337,11 @@ if errorlevel 1 goto :fail
 call :run_none "tests/treesitter_warning_cache_smoke.lua"
 if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 149/149
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 149/149
+echo [GREEN] Tracker_HUD test suite passed: 150/150
+>> "%TRACKER_HUD_RESULTS%" call :run_none "tests/adapter_authoring_starter_smoke.lua"
+if errorlevel 1 goto :fail
+
+echo [GREEN] Tracker_HUD test suite passed: 150/150
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
