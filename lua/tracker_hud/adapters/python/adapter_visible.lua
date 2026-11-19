@@ -527,6 +527,10 @@ M.scope_members = {
                         node_type =
                             "parameters",
                     },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
                 },
                 binding_mutability =
                     "mutable",
@@ -587,6 +591,9 @@ M.scope_members = {
             {
                 language_term =
                     "from import",
+                fields = {
+                    name = "name",
+                },
                 children = {
                     name = {
                         node_types = {

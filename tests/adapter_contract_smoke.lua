@@ -459,6 +459,9 @@ local function run()
             and python_parameter.syntax.children
                 .names.node_type
                 == "parameters"
+            and python_parameter.syntax.children
+                .name.node_type
+                == "identifier"
             and python_parameter.member.kind
                 == "parameter"
             and python_parameter.member.mutability
@@ -518,6 +521,30 @@ local function run()
             and python_import.value.type_label
                 == "import",
         "Python import migration changed member/value semantics"
+    )
+
+    local python_from_import =
+        python_adapter.scope_members
+            .symbols[2]
+
+    assert(
+        python_from_import.syntax.node_type
+            == "import_from_statement"
+            and python_from_import.syntax.fields.name
+                == "name"
+            and python_from_import.syntax.children
+                .name.node_types[1]
+                == "dotted_name"
+            and python_from_import.member.kind
+                == "symbol"
+            and python_from_import.member.mutability
+                .binding
+                == "immutable"
+            and python_from_import.value.kind
+                == "reference"
+            and python_from_import.value.type_label
+                == "import",
+        "Python from-import migration changed binding semantics"
     )
 
     local python_assignment =

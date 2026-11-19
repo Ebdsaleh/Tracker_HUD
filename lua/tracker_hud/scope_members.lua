@@ -853,27 +853,116 @@ local function collect_names_with_values_from_list_nodes(
 end
 
 
-local function collect_names_from_list_node(list_node, bufnr, members, seen, kind, source_range, state)
+local function get_list_member_name(
+    node,
+    bufnr,
+    member_spec
+)
+    if not node then
+        return nil
+    end
+
+    -- List containers (for example function parameters) may contain richer
+    -- binding nodes. Reuse the adapter-authorized syntax.children.name
+    -- fallback instead of teaching shared core about language-specific nodes.
+    for _, name_node_type in ipairs(
+        get_syntax_child_node_types(
+            member_spec,
+            "name"
+        )
+    ) do
+        local name_node =
+            ts_utils.find_first_descendant_by_type(
+                node,
+                name_node_type
+            )
+
+        if name_node then
+            local name =
+                ts_utils.get_node_text(
+                    name_node,
+                    bufnr
+                )
+
+            if core.is_non_empty_string(name) then
+                return strip_quotes(name)
+            end
+        end
+    end
+
+    return ts_utils.get_node_text(
+        node,
+        bufnr
+    )
+end
+
+
+local function collect_names_from_list_node(
+    list_node,
+    bufnr,
+    members,
+    seen,
+    kind,
+    source_range,
+    state,
+    member_spec
+)
     if not list_node then
         return
     end
 
     for i = 0, list_node:named_child_count() - 1 do
-        local variable = list_node:named_child(i)
-        local name = ts_utils.get_node_text(variable, bufnr)
+        local variable =
+            list_node:named_child(i)
 
-        scope_member_model.add(members, seen, name, kind, source_range, state)
+        local name =
+            get_list_member_name(
+                variable,
+                bufnr,
+                member_spec
+            )
+
+        scope_member_model.add(
+            members,
+            seen,
+            name,
+            kind,
+            source_range,
+            state
+        )
     end
 end
 
 
-local function collect_list_nodes_recursive(node, bufnr, list_node_type, members, seen, kind, source_range, state)
+local function collect_list_nodes_recursive(
+    node,
+    bufnr,
+    list_node_type,
+    members,
+    seen,
+    kind,
+    source_range,
+    state,
+    member_spec
+)
     if not node then
         return
     end
 
-    if ts_utils.node_type_matches(node, list_node_type) then
-        collect_names_from_list_node(node, bufnr, members, seen, kind, source_range, state)
+    if ts_utils.node_type_matches(
+        node,
+        list_node_type
+    ) then
+        collect_names_from_list_node(
+            node,
+            bufnr,
+            members,
+            seen,
+            kind,
+            source_range,
+            state,
+            member_spec
+        )
         return
     end
 
@@ -886,7 +975,8 @@ local function collect_list_nodes_recursive(node, bufnr, list_node_type, members
             seen,
             kind,
             source_range,
-            state
+            state,
+            member_spec
         )
     end
 end
@@ -1162,7 +1252,8 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
         seen,
         kind,
         source_range,
-        state
+        state,
+        member_spec
     )
 end
 
@@ -1196,7 +1287,8 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
         seen,
         member_spec.member and member_spec.member.kind,
         source_range,
-        state
+        state,
+        member_spec
     )
 end
 
