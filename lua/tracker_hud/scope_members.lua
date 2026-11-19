@@ -922,6 +922,98 @@ local function should_skip_member_spec_node(
 end
 
 
+local function node_type_is_in_list(
+    node_type,
+    allowed_node_types
+)
+    if not core.is_non_empty_string(
+        node_type
+    )
+        or not core.is_table(
+            allowed_node_types
+        )
+    then
+        return false
+    end
+
+    for _, allowed in ipairs(
+        allowed_node_types
+    ) do
+        if node_type == allowed then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function member_spec_constraints_match(
+    node,
+    member_spec
+)
+    local syntax =
+        get_syntax(member_spec)
+    local constraints =
+        syntax.constraints
+
+    if constraints == nil then
+        return true
+    end
+
+    if not core.is_table(constraints)
+        or not node
+    then
+        return false
+    end
+
+    local ancestor_node_types =
+        constraints.ancestor_node_types
+
+    if core.is_table(
+        ancestor_node_types
+    )
+        and #ancestor_node_types > 0
+        and not ts_utils.node_has_ancestor_type(
+            node,
+            ancestor_node_types
+        )
+    then
+        return false
+    end
+
+    local parent_node_types =
+        constraints.parent_node_types
+
+    if core.is_table(
+        parent_node_types
+    )
+        and #parent_node_types > 0
+    then
+        local parent = node:parent()
+
+        if not parent
+            or not node_type_is_in_list(
+                parent:type(),
+                parent_node_types
+            )
+        then
+            return false
+        end
+    end
+
+    if constraints.named_child_count
+        ~= nil
+        and node:named_child_count()
+            ~= constraints.named_child_count
+    then
+        return false
+    end
+
+    return true
+end
+
+
 local function collect_names_with_values_from_list_nodes(
     name_list_node,
     value_list_node,
@@ -1640,6 +1732,18 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
         return
     end
 
+    if should_skip_member_spec_node(
+        node,
+        member_spec
+    )
+        or not member_spec_constraints_match(
+            node,
+            member_spec
+        )
+    then
+        return
+    end
+
     local name = nil
 
     -- A single syntax node may declare several bindings (for example import
@@ -1760,12 +1864,23 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
                     "name"
                 )
             ) do
-                name =
-                    get_first_descendant_text_by_type(
-                        node,
-                        bufnr,
-                        name_node_type
-                    )
+                if ts_utils.node_type_matches(
+                    node,
+                    name_node_type
+                ) then
+                    name =
+                        ts_utils.get_node_text(
+                            node,
+                            bufnr
+                        )
+                else
+                    name =
+                        get_first_descendant_text_by_type(
+                            node,
+                            bufnr,
+                            name_node_type
+                        )
+                end
 
                 if core.is_non_empty_string(name) then
                     break

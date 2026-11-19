@@ -65,6 +65,7 @@ function M.rule(
         "children",
         "tokens",
         "exclusions",
+        "constraints",
     }) do
         if opts[key] ~= nil then
             syntax[key] = opts[key]

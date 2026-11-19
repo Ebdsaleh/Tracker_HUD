@@ -348,6 +348,58 @@ local function validate_exclusions(exclusions, path)
 end
 
 
+local function validate_constraints(constraints, path)
+    if constraints == nil then
+        return true, nil
+    end
+
+    if not core.is_table(constraints) then
+        return path_error(
+            path,
+            "must be a table when provided"
+        )
+    end
+
+    for _, key in ipairs({
+        "ancestor_node_types",
+        "parent_node_types",
+    }) do
+        if constraints[key] ~= nil then
+            local ok, err =
+                validate_string_list(
+                    constraints[key],
+                    path .. "." .. key,
+                    {
+                        non_empty = true,
+                        unique = true,
+                    }
+                )
+
+            if not ok then
+                return false, err
+            end
+        end
+    end
+
+    if constraints.named_child_count ~= nil then
+        local count =
+            constraints.named_child_count
+
+        if type(count) ~= "number"
+            or count < 0
+            or count ~= math.floor(count)
+        then
+            return path_error(
+                path .. ".named_child_count",
+                "must be a non-negative integer when provided"
+            )
+        end
+    end
+
+    return true, nil
+end
+
+
 function M.validate_syntax(syntax, path)
     path = path or "syntax"
 
@@ -389,9 +441,18 @@ function M.validate_syntax(syntax, path)
         return false, err
     end
 
-    return validate_exclusions(
+    ok, err = validate_exclusions(
         syntax.exclusions,
         path .. ".exclusions"
+    )
+
+    if not ok then
+        return false, err
+    end
+
+    return validate_constraints(
+        syntax.constraints,
+        path .. ".constraints"
     )
 end
 

@@ -335,6 +335,15 @@ local function run()
                         "variable_declaration",
                     },
                 },
+                constraints = {
+                    ancestor_node_types = {
+                        "case_clause",
+                    },
+                    parent_node_types = {
+                        "case_pattern",
+                    },
+                    named_child_count = 1,
+                },
                 binding_mutability =
                     "mutable",
             }
@@ -353,6 +362,15 @@ local function run()
             and general_rule_probe.syntax.exclusions
                 .ancestor_node_types[1]
                 == "variable_declaration"
+            and general_rule_probe.syntax.constraints
+                .ancestor_node_types[1]
+                == "case_clause"
+            and general_rule_probe.syntax.constraints
+                .parent_node_types[1]
+                == "case_pattern"
+            and general_rule_probe.syntax.constraints
+                .named_child_count
+                == 1
             and general_rule_probe.member.kind
                 == "assignment"
             and general_rule_probe.member.language_term
@@ -415,6 +433,48 @@ local function run()
                 .binding
                 == "mutable",
         "Lua general Scope Member declaration migration changed field semantics"
+    )
+
+    local valid_constraints_ok,
+        valid_constraints_error =
+        contract.validate_syntax(
+            general_rule_probe.syntax,
+            "probe.syntax"
+        )
+
+    assert(
+        valid_constraints_ok,
+        "contract rejected valid syntax constraints: "
+            .. tostring(
+                valid_constraints_error
+            )
+    )
+
+    local invalid_constraints =
+        vim.deepcopy(
+            general_rule_probe.syntax
+        )
+
+    invalid_constraints.constraints
+        .named_child_count = -1
+
+    local invalid_constraints_ok,
+        invalid_constraints_error =
+        contract.validate_syntax(
+            invalid_constraints,
+            "probe.syntax"
+        )
+
+    assert(
+        not invalid_constraints_ok
+            and tostring(
+                invalid_constraints_error
+            ):find(
+                "named_child_count",
+                1,
+                true
+            ),
+        "contract accepted invalid syntax named-child constraint"
     )
 
     print(
