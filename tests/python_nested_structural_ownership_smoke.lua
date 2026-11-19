@@ -104,27 +104,27 @@ local function run()
         outer_seen = {
             kind = "assignment",
             structural_depth = 1,
-            structural_start_line = 10,
+            structural_start_line = 11,
         },
         handle = {
             kind = "assignment",
             structural_depth = 2,
-            structural_start_line = 12,
+            structural_start_line = 13,
         },
         managed = {
             kind = "assignment",
             structural_depth = 2,
-            structural_start_line = 12,
+            structural_start_line = 13,
         },
         payload = {
             kind = "pattern_binding",
             structural_depth = 4,
-            structural_start_line = 15,
+            structural_start_line = 16,
         },
         nested = {
             kind = "assignment",
             structural_depth = 4,
-            structural_start_line = 15,
+            structural_start_line = 16,
         },
     }
 
