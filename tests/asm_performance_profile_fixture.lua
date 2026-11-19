@@ -352,6 +352,12 @@ local function run()
         "context.configure.adapter.directive_scans.shared",
         "context.configure.adapter.variant.identity_checks",
         "context.configure.adapter.variant.same_identity",
+        "context.configure.adapter.validation_identity.construct_specs.unchanged",
+        "context.configure.adapter.validation_identity.scope_members.unchanged",
+        "context.configure.adapter.validation_identity.presentation.unchanged",
+        "context.configure.adapter.validation_identity.instruction_parser.unchanged",
+        "context.configure.adapter.validation_identity.memory_accesses.unchanged",
+        "context.configure.adapter.validation_identity.boundary_effects.unchanged",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -937,6 +943,53 @@ local function run()
             .. " configuration miss(es), "
             .. "0 static reapplies, "
             .. "0 presentation rebuilds"
+    )
+
+    local validation_identity_components = {
+        "construct_specs",
+        "scope_members",
+        "presentation",
+        "instruction_parser",
+        "memory_accesses",
+        "boundary_effects",
+    }
+
+    local stable_validation_identities = {}
+
+    for _, component in ipairs(
+        validation_identity_components
+    ) do
+        local prefix =
+            "context.configure.adapter.validation_identity."
+            .. component
+
+        local unchanged =
+            counter_total(
+                prefix .. ".unchanged"
+            )
+
+        assert(
+            unchanged == 5
+                and snapshot.counters[
+                    prefix .. ".changed"
+                ] == nil,
+            "ASM validation input identity changed unexpectedly: "
+                .. component
+        )
+
+        table.insert(
+            stable_validation_identities,
+            component
+        )
+    end
+
+    print(
+        "[Tracker_HUD] ASM validation identity stability: "
+            .. table.concat(
+                stable_validation_identities,
+                ", "
+            )
+            .. " unchanged across 5 configuration miss(es)"
     )
 
     assert(
