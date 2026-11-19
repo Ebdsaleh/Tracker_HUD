@@ -4,7 +4,8 @@
 --
 -- This starts from actual Tree-sitter syntax and prints the collected binding
 -- evidence before assertions. A RED run therefore tells us whether the Python
--- adapter already exposes context-manager aliases as semantic members.
+-- adapter already exposes context-manager aliases as semantic members. The fixture
+-- also guards parenthesized/async forms and the match/case as-pattern collision.
 
 local function with_assignments(members)
     local result = {}
@@ -148,6 +149,9 @@ local function run()
         "handle",
         "left",
         "right",
+        "wrapped_left",
+        "wrapped_right",
+        "stream",
     }
 
     assert(
@@ -177,6 +181,10 @@ local function run()
         "primary_factory() as handle",
         "left_factory() as left",
         "right_factory() as right",
+        "left_factory() as wrapped_left",
+        "right_factory() as wrapped_right",
+        "async_factory() as stream",
+        "matched",
     }) do
         for _, actual in ipairs(
             assignment_names(all)
