@@ -254,6 +254,28 @@ local function get_syntax_node_type(member_spec)
 end
 
 
+local function member_spec_is_node_type_candidate(
+    node,
+    member_spec
+)
+    local node_type =
+        get_syntax_node_type(
+            member_spec
+        )
+
+    if not core.is_non_empty_string(
+        node_type
+    ) then
+        return true
+    end
+
+    return ts_utils.node_type_matches(
+        node,
+        node_type
+    )
+end
+
+
 local function get_syntax_field(member_spec, key)
     local syntax = get_syntax(member_spec)
     local fields = syntax.fields or {}
@@ -1177,6 +1199,17 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
             1
         )
 
+        if member_spec_is_node_type_candidate(
+            node,
+            member_spec
+        ) then
+            count_measurement(
+                group_state,
+                "node_type_candidate_checks",
+                1
+            )
+        end
+
         if not should_collect_before_scope_enter(member_spec) then
             collector(
                 node,
@@ -1218,6 +1251,17 @@ local function collect_member_group_before_scope_enter(
             "spec_checks",
             1
         )
+
+        if member_spec_is_node_type_candidate(
+            node,
+            member_spec
+        ) then
+            count_measurement(
+                group_state,
+                "node_type_candidate_checks",
+                1
+            )
+        end
 
         if should_collect_before_scope_enter(member_spec) then
             collector(
@@ -1405,6 +1449,7 @@ local function collect_internal(
     local measurement = {
         nodes_visited = 0,
         spec_checks = 0,
+        node_type_candidate_checks = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1441,6 +1486,12 @@ local function collect_internal(
         opts,
         "spec_checks",
         measurement.spec_checks
+    )
+
+    profile_counter(
+        opts,
+        "node_type_candidate_checks",
+        measurement.node_type_candidate_checks
     )
 
     profile_counter(

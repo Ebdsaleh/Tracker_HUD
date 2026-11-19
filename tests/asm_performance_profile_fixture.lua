@@ -338,6 +338,7 @@ local function run()
         "context.scope_members.cross_refresh_reuse_miss",
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
+        "context.scope_members.node_type_candidate_checks",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -503,6 +504,45 @@ local function run()
                 scope_checks.total
             )
             .. " spec checks feed current/all views"
+    )
+
+    local scope_node_type_candidates =
+        snapshot.counters[
+            "context.scope_members.node_type_candidate_checks"
+        ]
+
+    assert(
+        type(scope_node_type_candidates) == "table"
+            and scope_node_type_candidates.count
+                == scope_reuse_miss.total
+            and scope_node_type_candidates.total
+                == 1315
+            and scope_checks.total
+                == 16770,
+        "Scope Member node-type indexing opportunity changed"
+    )
+
+    assert(
+        snapshot.counters[
+            "context.scope_members_all.node_type_candidate_checks"
+        ] == nil,
+        "all-members view unexpectedly repeated Scope Member candidate measurement"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member node-type index opportunity: "
+            .. tostring(
+                scope_node_type_candidates.total
+            )
+            .. " candidate check(s) vs "
+            .. tostring(
+                scope_checks.total
+            )
+            .. " current spec check(s) across "
+            .. tostring(
+                scope_reuse_miss.total
+            )
+            .. " fresh discoverie(s)"
     )
 
     local range_scope_reuse_possible =
