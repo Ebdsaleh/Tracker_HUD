@@ -45,6 +45,11 @@ local function printed_assignments(members)
                     member.scope_depth
                     or "?"
                 )
+                .. ",struct="
+                .. tostring(
+                    member.structural_depth
+                    or "?"
+                )
                 .. ")"
         )
     end
@@ -238,10 +243,26 @@ local function run()
     )
 
     local expected = {
-        "loop_seen",
-        "handle",
-        "managed",
-        "matched",
+        {
+            name = "loop_seen",
+            structural_depth = 1,
+            structural_start_line = 11,
+        },
+        {
+            name = "handle",
+            structural_depth = 1,
+            structural_start_line = 15,
+        },
+        {
+            name = "managed",
+            structural_depth = 1,
+            structural_start_line = 15,
+        },
+        {
+            name = "matched",
+            structural_depth = 2,
+            structural_start_line = 19,
+        },
     }
 
     assert(
@@ -250,7 +271,7 @@ local function run()
             .. tostring(#assignments)
     )
 
-    for index, expected_name in ipairs(
+    for index, wanted in ipairs(
         expected
     ) do
         local actual =
@@ -259,11 +280,11 @@ local function run()
         assert(
             actual
                 and actual.name
-                    == expected_name,
+                    == wanted.name,
             "python structural-block binding order changed at position "
                 .. tostring(index)
                 .. ": expected "
-                .. expected_name
+                .. wanted.name
                 .. ", got "
                 .. tostring(
                     actual
@@ -273,14 +294,44 @@ local function run()
         )
 
         -- Python module depth is 1 and this fixture's function depth is 2.
-        -- Structural blocks must not create a third lexical namespace.
+        -- Structural blocks must not create another lexical namespace.
         assert(
             actual.scope_depth == 2,
             "python structural block changed lexical depth for "
-                .. expected_name
+                .. wanted.name
                 .. ": expected 2, got "
                 .. tostring(
                     actual.scope_depth
+                )
+        )
+
+        assert(
+            actual.structural_depth
+                == wanted.structural_depth,
+            "python structural block changed structural depth for "
+                .. wanted.name
+                .. ": expected "
+                .. tostring(
+                    wanted.structural_depth
+                )
+                .. ", got "
+                .. tostring(
+                    actual.structural_depth
+                )
+        )
+
+        assert(
+            actual.structural_scope_start_line
+                == wanted.structural_start_line,
+            "python structural block changed structural owner for "
+                .. wanted.name
+                .. ": expected start line "
+                .. tostring(
+                    wanted.structural_start_line
+                )
+                .. ", got "
+                .. tostring(
+                    actual.structural_scope_start_line
                 )
         )
     end
