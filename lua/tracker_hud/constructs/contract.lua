@@ -103,6 +103,7 @@ M.member_kinds = {
     return_value = true,
     assignment = true,
     loop_variable = true,
+    pattern_binding = true,
 
     -- Low-level / ASM-friendly members.
     label = true,

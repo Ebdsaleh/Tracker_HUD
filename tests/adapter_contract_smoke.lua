@@ -13,6 +13,8 @@ local function run()
         require("tracker_hud.adapters.scope_member_schema")
     local construct_schema =
         require("tracker_hud.adapters.construct_schema")
+    local construct_contract =
+        require("tracker_hud.constructs.contract")
     local adapters = {
         { filetype = "lua", module = "tracker_hud.adapters.lua.init" },
         { filetype = "python", module = "tracker_hud.adapters.python.init" },
@@ -183,6 +185,13 @@ local function run()
                 true
             ),
         "contract accepted a Scope Member group the runtime cannot collect"
+    )
+
+    assert(
+        construct_contract.validate_member_kind(
+            "pattern_binding"
+        ),
+        "shared construct contract must admit structural pattern bindings"
     )
 
     print(
