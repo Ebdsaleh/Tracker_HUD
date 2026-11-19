@@ -332,6 +332,7 @@ local function build_member_spec_index(
 )
     local index = {
         active_group_names = {},
+        eligible_group_names_by_node_type = {},
     }
 
     scope_member_spec =
@@ -491,6 +492,101 @@ local function member_group_can_match_node(
 
     return core.is_table(typed)
         and #typed > 0
+end
+
+
+local function member_group_names_for_node_type(
+    member_spec_index,
+    node_type
+)
+    if not core.is_table(
+        member_spec_index
+    ) then
+        return {}
+    end
+
+    local active_group_names =
+        member_spec_index.active_group_names
+
+    if not core.is_table(
+        active_group_names
+    ) then
+        active_group_names =
+            member_group_names
+    end
+
+    if not core.is_non_empty_string(
+        node_type
+    ) then
+        local untyped_group_names = {}
+
+        for _, group_name in ipairs(
+            active_group_names
+        ) do
+            local group_index =
+                member_spec_index[
+                    group_name
+                ]
+
+            local untyped =
+                core.is_table(group_index)
+                and group_index.untyped
+                or {}
+
+            if #untyped > 0 then
+                table.insert(
+                    untyped_group_names,
+                    group_name
+                )
+            end
+        end
+
+        return untyped_group_names
+    end
+
+    local cache =
+        member_spec_index
+            .eligible_group_names_by_node_type
+
+    if not core.is_table(cache) then
+        cache = {}
+        member_spec_index
+            .eligible_group_names_by_node_type =
+                cache
+    end
+
+    local cached =
+        cache[node_type]
+
+    if core.is_table(cached) then
+        return cached
+    end
+
+    local eligible_group_names = {}
+
+    for _, group_name in ipairs(
+        active_group_names
+    ) do
+        local group_index =
+            member_spec_index[
+                group_name
+            ]
+
+        if member_group_can_match_node(
+            group_index,
+            node_type
+        ) then
+            table.insert(
+                eligible_group_names,
+                group_name
+            )
+        end
+    end
+
+    cache[node_type] =
+        eligible_group_names
+
+    return eligible_group_names
 end
 
 
@@ -1614,18 +1710,14 @@ local function collect_from_node(
         return
     end
 
-    local active_group_names =
-        member_spec_index.active_group_names
-
-    if not core.is_table(
-        active_group_names
-    ) then
-        active_group_names =
-            member_group_names
-    end
+    local eligible_group_names =
+        member_group_names_for_node_type(
+            member_spec_index,
+            node_type
+        )
 
     for _, group_name in ipairs(
-        active_group_names
+        eligible_group_names
     ) do
         collect_member_group(
             node,
@@ -1684,6 +1776,10 @@ local function walk_node(
     if core.is_table(function_group_index)
         and (function_group_index.spec_count or 0)
             > 0
+        and member_group_can_match_node(
+            function_group_index,
+            node_type
+        )
     then
         collect_member_group_before_scope_enter(
             node,

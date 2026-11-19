@@ -614,15 +614,17 @@ local function run()
             and scope_group_dispatch_calls.count
                 == scope_reuse_miss.total
             and scope_group_dispatch_calls.total
-                == 11180
+                == 1315
+            and scope_group_dispatch_calls.total
+                == scope_group_lookups.total
             and snapshot.counters[
                 "context.scope_members.nonempty_group_dispatch_calls"
             ] == nil,
-        "Scope Member active-group dispatch elimination changed"
+        "Scope Member node-type dispatcher elimination changed"
     )
 
     print(
-        "[Tracker_HUD] Scope-member active-group dispatch elimination: "
+        "[Tracker_HUD] Scope-member node-type dispatcher elimination: "
             .. tostring(
                 scope_group_dispatch_calls.total
             )
@@ -630,7 +632,7 @@ local function run()
             .. tostring(
                 scope_reuse_miss.total
             )
-            .. " fresh discoverie(s); inactive groups are skipped before dispatcher entry"
+            .. " fresh discoverie(s); only node-type-eligible groups enter the dispatcher"
     )
 
     local scope_node_type_requests =
