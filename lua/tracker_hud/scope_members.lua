@@ -1428,9 +1428,34 @@ local function collect_member_spec(node, bufnr, member_spec, members, seen, stat
     end
 
     local source_range = ts_utils.get_node_range_fields(node)
+    local list_owner = node
+    local parameters_field =
+        get_syntax_field(
+            member_spec,
+            "parameters"
+        )
+
+    -- Parameter-style list members may declare the exact syntax field that
+    -- owns their list container. Restrict discovery to that field so nested
+    -- lexical declarations cannot leak their parameter lists into the outer
+    -- owner's scope. Adapters without a container field retain the legacy
+    -- recursive behavior.
+    if core.is_non_empty_string(
+        parameters_field
+    ) then
+        list_owner =
+            ts_utils.get_child_by_field_name(
+                node,
+                parameters_field
+            )
+
+        if not list_owner then
+            return
+        end
+    end
 
     collect_list_nodes_recursive(
-        node,
+        list_owner,
         bufnr,
         get_syntax_child_node_type(
             member_spec,
