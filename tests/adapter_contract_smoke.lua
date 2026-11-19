@@ -663,6 +663,156 @@ local function run()
         "PASS shared construct rule builder + Lua/Python simple constructs"
     )
 
+    local rich_construct_probe =
+        construct_schema.rule(
+            "function_definition",
+            "function",
+            {
+                fields = {
+                    name = "name",
+                },
+                tokens = {
+                    start = "def",
+                    body_open = ":",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                signature = {
+                    strategy = "first_line",
+                    name_pattern =
+                        "^%s*def%s+([%w_]+)",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "body_open",
+                    },
+                    total_required = 2,
+                },
+                branch = {
+                    grouped = false,
+                },
+            }
+        )
+
+    assert(
+        rich_construct_probe.scope.kind
+            == "lexical"
+            and rich_construct_probe.scope
+                .affects_visibility
+                == true
+            and rich_construct_probe.scope
+                .owns_members
+                == true
+            and rich_construct_probe.signature
+                .strategy
+                == "first_line"
+            and rich_construct_probe.markers
+                .required[1]
+                == "start"
+            and rich_construct_probe.markers
+                .total_required
+                == 2
+            and rich_construct_probe.branch
+                .grouped
+                == false,
+        "shared construct rule builder changed rich contract passthrough"
+    )
+
+    local lua_function_construct =
+        lua_adapter.construct_specs[
+            "function_declaration"
+        ]
+
+    assert(
+        lua_function_construct.scope.kind
+            == "lexical"
+            and lua_function_construct.signature
+                .strategy
+                == "first_line"
+            and lua_function_construct.signature
+                .local_name_pattern
+                ~= nil
+            and lua_function_construct.markers
+                .required[4]
+                == "scope_close"
+            and lua_function_construct.markers
+                .optional[1]
+                == "local_prefix"
+            and lua_function_construct.value.kind
+                == "function"
+            and lua_function_construct.construct
+                .mutability.state
+                == "immutable",
+        "Lua scoped construct migration changed function semantics"
+    )
+
+    local lua_branch_construct =
+        lua_adapter.construct_specs[
+            "if_statement"
+        ]
+
+    assert(
+        lua_branch_construct.branch.grouped
+            == true
+            and lua_branch_construct.branch
+                .alternatives[1].syntax.node_type
+                == "elseif_statement"
+            and lua_branch_construct.branch
+                .alternatives[2].syntax.node_type
+                == "else_statement"
+            and lua_branch_construct.scope.kind
+                == "lexical",
+        "Lua scoped construct migration changed branch semantics"
+    )
+
+    local python_function_construct =
+        python_adapter.construct_specs[
+            "function_definition"
+        ]
+
+    assert(
+        python_function_construct.scope.kind
+            == "lexical"
+            and python_function_construct.scope
+                .owns_members
+                == true
+            and python_function_construct.signature
+                .name_pattern
+                == "^%s*def%s+([%w_]+)"
+            and python_function_construct.markers
+                .total_required
+                == 4,
+        "Python scoped construct migration changed function semantics"
+    )
+
+    local python_for_construct =
+        python_adapter.construct_specs[
+            "for_statement"
+        ]
+
+    assert(
+        python_for_construct.scope.kind
+            == "structural"
+            and python_for_construct.scope
+                .affects_visibility
+                == false
+            and python_for_construct.scope
+                .owns_members
+                == false
+            and python_for_construct.markers
+                .required[2]
+                == "iterator",
+        "Python scoped construct migration changed structural-scope semantics"
+    )
+
+    print(
+        "PASS shared rich construct schema + Lua/Python scoped constructs"
+    )
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.

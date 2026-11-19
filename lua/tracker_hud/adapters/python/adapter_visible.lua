@@ -83,114 +83,116 @@ M.range_scopes = {
 }
 
 M.construct_specs = {
-    ["module"] = {
-        syntax = {
-            node_type = "module",
-        },
-        construct = {
-            kind = "module",
-            language_term = "module",
-            label = "Module",
-        },
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-    },
+    ["module"] =
+        construct_schema.rule(
+            "module",
+            "module",
+            {
+                language_term = "module",
+                label = "Module",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        ),
 
-    ["class_definition"] = {
-        syntax = {
-            node_type = "class_definition",
-            fields = {
-                name = "name",
-                body = "body",
-            },
-            tokens = {
-                start = "class",
-                body_open = ":",
-            },
-        },
-        construct = {
-            kind = "class",
-            language_term = "class",
-            label = "Class",
-            mutability = {
-                state = "mutable",
-                shape = "extensible",
-            },
-        },
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-        value = {
-            kind = "object",
-            language_term = "class",
-            type_label = "class",
-        },
-        signature = {
-            strategy = "first_line",
-            name_pattern = "^%s*class%s+([%w_]+)",
-        },
-        markers = {
-            required = {
-                "start",
-                "body_open",
-            },
-            total_required = 2,
-        },
-    },
 
-    ["function_definition"] = {
-        syntax = {
-            node_type = "function_definition",
-            fields = {
-                name = "name",
-                parameters = "parameters",
-                body = "body",
-            },
-            tokens = {
-                start = "def",
-                args_open = "(",
-                args_close = ")",
-                body_open = ":",
-            },
-        },
-        construct = {
-            kind = "function",
-            language_term = "function",
-            label = "Function",
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-        value = {
-            kind = "function",
-            language_term = "function",
-            type_label = "function",
-        },
-        signature = {
-            strategy = "first_line",
-            name_pattern = "^%s*def%s+([%w_]+)",
-        },
-        markers = {
-            required = {
-                "start",
-                "args_open",
-                "args_close",
-                "body_open",
-            },
-            total_required = 4,
-        },
-    },
+    ["class_definition"] =
+        construct_schema.rule(
+            "class_definition",
+            "class",
+            {
+                language_term = "class",
+                label = "Class",
+                fields = {
+                    name = "name",
+                    body = "body",
+                },
+                tokens = {
+                    start = "class",
+                    body_open = ":",
+                },
+                construct_mutability = {
+                    state = "mutable",
+                    shape = "extensible",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "object",
+                    language_term = "class",
+                    type_label = "class",
+                },
+                signature = {
+                    strategy = "first_line",
+                    name_pattern =
+                        "^%s*class%s+([%w_]+)",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "body_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
+    ["function_definition"] =
+        construct_schema.rule(
+            "function_definition",
+            "function",
+            {
+                language_term = "function",
+                label = "Function",
+                fields = {
+                    name = "name",
+                    parameters = "parameters",
+                    body = "body",
+                },
+                tokens = {
+                    start = "def",
+                    args_open = "(",
+                    args_close = ")",
+                    body_open = ":",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "function",
+                    language_term = "function",
+                    type_label = "function",
+                },
+                signature = {
+                    strategy = "first_line",
+                    name_pattern =
+                        "^%s*def%s+([%w_]+)",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "args_open",
+                        "args_close",
+                        "body_open",
+                    },
+                    total_required = 4,
+                },
+            }
+        ),
+
 
     ["import_statement"] =
         construct_schema.rule(
@@ -210,128 +212,130 @@ M.construct_specs = {
             }
         ),
 
-    ["import_from_statement"] = {
-        syntax = {
-            node_type = "import_from_statement",
-            tokens = {
-                start = "from",
-                import_token = "import",
-            },
-        },
-        construct = {
-            kind = "declaration",
-            language_term = "from import",
-            label = "From Import",
-        },
-        value = {
-            kind = "reference",
-            language_term = "from import",
-            type_label = "import",
-        },
-        markers = {
-            required = {
-                "start",
-                "import_token",
-            },
-            total_required = 2,
-        },
-    },
+    ["import_from_statement"] =
+        construct_schema.rule(
+            "import_from_statement",
+            "declaration",
+            {
+                language_term =
+                    "from import",
+                label = "From Import",
+                tokens = {
+                    start = "from",
+                    import_token = "import",
+                },
+                value = {
+                    kind = "reference",
+                    language_term =
+                        "from import",
+                    type_label = "import",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "import_token",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
 
-    ["if_statement"] = {
-        syntax = {
-            node_type = "if_statement",
-            fields = {
-                condition = "condition",
-                consequence = "consequence",
-                alternative = "alternative",
-            },
-            tokens = {
-                start = "if",
-                branch_open = ":",
-            },
-        },
-        construct = {
-            kind = "branch",
-            language_term = "if",
-            label = "If",
-        },
-        scope = {
-            kind = "structural",
-            affects_visibility = false,
-            owns_members = false,
-        },
-        markers = {
-            required = {
-                "start",
-                "branch_open",
-            },
-            total_required = 2,
-        },
-    },
 
-    ["for_statement"] = {
-        syntax = {
-            node_type = "for_statement",
-            fields = {
-                left = "left",
-                right = "right",
-                body = "body",
-            },
-            tokens = {
-                start = "for",
-                iterator = "in",
-                body_open = ":",
-            },
-        },
-        construct = {
-            kind = "loop",
-            language_term = "for",
-            label = "For",
-        },
-        scope = {
-            kind = "structural",
-            affects_visibility = false,
-            owns_members = false,
-        },
-        markers = {
-            required = {
-                "start",
-                "iterator",
-                "body_open",
-            },
-            total_required = 3,
-        },
-    },
+    ["if_statement"] =
+        construct_schema.rule(
+            "if_statement",
+            "branch",
+            {
+                language_term = "if",
+                label = "If",
+                fields = {
+                    condition = "condition",
+                    consequence = "consequence",
+                    alternative = "alternative",
+                },
+                tokens = {
+                    start = "if",
+                    branch_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "branch_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
 
-    ["try_statement"] = {
-        syntax = {
-            node_type = "try_statement",
-            fields = {
-                body = "body",
-            },
-            tokens = {
-                start = "try",
-                body_open = ":",
-            },
-        },
-        construct = {
-            kind = "block",
-            language_term = "try",
-            label = "Try",
-        },
-        scope = {
-            kind = "structural",
-            affects_visibility = false,
-            owns_members = false,
-        },
-        markers = {
-            required = {
-                "start",
-                "body_open",
-            },
-            total_required = 2,
-        },
-    },
+
+    ["for_statement"] =
+        construct_schema.rule(
+            "for_statement",
+            "loop",
+            {
+                language_term = "for",
+                label = "For",
+                fields = {
+                    left = "left",
+                    right = "right",
+                    body = "body",
+                },
+                tokens = {
+                    start = "for",
+                    iterator = "in",
+                    body_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "iterator",
+                        "body_open",
+                    },
+                    total_required = 3,
+                },
+            }
+        ),
+
+
+    ["try_statement"] =
+        construct_schema.rule(
+            "try_statement",
+            "block",
+            {
+                language_term = "try",
+                label = "Try",
+                fields = {
+                    body = "body",
+                },
+                tokens = {
+                    start = "try",
+                    body_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "body_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
 
     ["assignment"] =
         construct_schema.rule(

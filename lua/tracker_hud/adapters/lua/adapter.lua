@@ -83,353 +83,296 @@ M.construct_specs = {
     -- Functions
     --------------------------------------------------------------------------
 
-    ["function_declaration"] = {
-        syntax = {
-            node_type = "function_declaration",
-
-            fields = {
-                name = "name",
-                parameters = "parameters",
-                body = "body",
-            },
-
-            tokens = {
-                start = "function",
-                local_prefix = "local",
-                args_open = "(",
-                args_close = ")",
-                scope_close = "end",
-            },
-        },
-
-        construct = {
-            kind = "function",
-            language_term = "function",
-            label = "Function",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        value = {
-            kind = "function",
-            language_term = "function",
-            type_label = "function",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        signature = {
-            strategy = "first_line",
-
-            name_pattern =
-                "^%s*function%s+([%w_%.:]+)",
-
-            local_name_pattern =
-                "^%s*local%s+function%s+([%w_%.:]+)",
-        },
-
-        markers = {
-            required = {
-                "start",
-                "args_open",
-                "args_close",
-                "scope_close",
-            },
-
-            optional = {
-                "local_prefix",
-            },
-
-            total_required = 4,
-        },
-    },
+    ["function_declaration"] =
+        construct_schema.rule(
+            "function_declaration",
+            "function",
+            {
+                language_term = "function",
+                label = "Function",
+                fields = {
+                    name = "name",
+                    parameters = "parameters",
+                    body = "body",
+                },
+                tokens = {
+                    start = "function",
+                    local_prefix = "local",
+                    args_open = "(",
+                    args_close = ")",
+                    scope_close = "end",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "function",
+                    language_term = "function",
+                    type_label = "function",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+                signature = {
+                    strategy = "first_line",
+                    name_pattern =
+                        "^%s*function%s+([%w_%.:]+)",
+                    local_name_pattern =
+                        "^%s*local%s+function%s+([%w_%.:]+)",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "args_open",
+                        "args_close",
+                        "scope_close",
+                    },
+                    optional = {
+                        "local_prefix",
+                    },
+                    total_required = 4,
+                },
+            }
+        ),
 
 
-    ["function_definition"] = {
-        syntax = {
-            node_type = "function_definition",
-
-            fields = {
-                parameters = "parameters",
-                body = "body",
-            },
-
-            tokens = {
-                start = "function",
-                args_open = "(",
-                args_close = ")",
-                scope_close = "end",
-            },
-        },
-
-        construct = {
-            kind = "function",
-            language_term = "function",
-            label = "Function",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        value = {
-            kind = "function",
-            language_term = "function",
-            type_label = "function",
-
-            mutability = {
-                state = "immutable",
-                shape = "fixed",
-            },
-        },
-
-        signature = {
-            strategy = "first_line",
-        },
-
-        markers = {
-            required = {
-                "start",
-                "args_open",
-                "args_close",
-                "scope_close",
-            },
-
-            total_required = 4,
-        },
-    },
+    ["function_definition"] =
+        construct_schema.rule(
+            "function_definition",
+            "function",
+            {
+                language_term = "function",
+                label = "Function",
+                fields = {
+                    parameters = "parameters",
+                    body = "body",
+                },
+                tokens = {
+                    start = "function",
+                    args_open = "(",
+                    args_close = ")",
+                    scope_close = "end",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "function",
+                    language_term = "function",
+                    type_label = "function",
+                    mutability = {
+                        state = "immutable",
+                        shape = "fixed",
+                    },
+                },
+                signature = {
+                    strategy = "first_line",
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "args_open",
+                        "args_close",
+                        "scope_close",
+                    },
+                    total_required = 4,
+                },
+            }
+        ),
 
 
     --------------------------------------------------------------------------
     -- Branches
     --------------------------------------------------------------------------
 
-    ["if_statement"] = {
-        syntax = {
-            node_type = "if_statement",
-
-            fields = {
-                condition = "condition",
-                consequence = "consequence",
-                alternative = "alternative",
-            },
-
-            children = {
-                alternatives = {
-                    node_types = {
-                        "elseif_statement",
-                        "else_statement",
-                    },
-                    multiple = true,
+    ["if_statement"] =
+        construct_schema.rule(
+            "if_statement",
+            "branch",
+            {
+                language_term = "if",
+                label = "If",
+                fields = {
+                    condition = "condition",
+                    consequence = "consequence",
+                    alternative = "alternative",
                 },
-            },
-
-            tokens = {
-                start = "if",
-                branch_open = "then",
-                alternative_if = "elseif",
-                alternative = "else",
-                branch_close = "end",
-            },
-        },
-
-        construct = {
-            kind = "branch",
-            language_term = "if",
-            label = "If",
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        branch = {
-            grouped = true,
-
-            alternatives = {
-                {
-                    syntax = {
-                        node_type = "elseif_statement",
+                children = {
+                    alternatives = {
+                        node_types = {
+                            "elseif_statement",
+                            "else_statement",
+                        },
+                        multiple = true,
                     },
-                    label = "Else-If",
                 },
-
-                {
-                    syntax = {
-                        node_type = "else_statement",
+                tokens = {
+                    start = "if",
+                    branch_open = "then",
+                    alternative_if = "elseif",
+                    alternative = "else",
+                    branch_close = "end",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                branch = {
+                    grouped = true,
+                    alternatives = {
+                        {
+                            syntax = {
+                                node_type =
+                                    "elseif_statement",
+                            },
+                            label = "Else-If",
+                        },
+                        {
+                            syntax = {
+                                node_type =
+                                    "else_statement",
+                            },
+                            label = "Else",
+                        },
                     },
-                    label = "Else",
                 },
-            },
-        },
-
-        markers = {
-            required = {
-                "start",
-                "branch_open",
-                "branch_close",
-            },
-
-            optional = {
-                "alternative_if",
-                "alternative",
-            },
-
-            total_required = 3,
-        },
-    },
+                markers = {
+                    required = {
+                        "start",
+                        "branch_open",
+                        "branch_close",
+                    },
+                    optional = {
+                        "alternative_if",
+                        "alternative",
+                    },
+                    total_required = 3,
+                },
+            }
+        ),
 
 
     --------------------------------------------------------------------------
     -- Loops
     --------------------------------------------------------------------------
 
-    ["for_statement"] = {
-        syntax = {
-            node_type = "for_statement",
-
-            fields = {
-                clause = "clause",
-                body = "body",
-            },
-
-            children = {
-                clause = {
-                    node_types = {
-                        "for_generic_clause",
-                        "for_numeric_clause",
+    ["for_statement"] =
+        construct_schema.rule(
+            "for_statement",
+            "loop",
+            {
+                language_term = "for",
+                label = "For",
+                fields = {
+                    clause = "clause",
+                    body = "body",
+                },
+                children = {
+                    clause = {
+                        node_types = {
+                            "for_generic_clause",
+                            "for_numeric_clause",
+                        },
                     },
                 },
-            },
-
-            tokens = {
-                start = "for",
-                loop_open = "do",
-                scope_close = "end",
-            },
-        },
-
-        construct = {
-            kind = "loop",
-            language_term = "for",
-            label = "For",
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        markers = {
-            required = {
-                "start",
-                "loop_open",
-                "scope_close",
-            },
-
-            total_required = 3,
-        },
-    },
+                tokens = {
+                    start = "for",
+                    loop_open = "do",
+                    scope_close = "end",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "loop_open",
+                        "scope_close",
+                    },
+                    total_required = 3,
+                },
+            }
+        ),
 
 
-    ["while_statement"] = {
-        syntax = {
-            node_type = "while_statement",
-
-            fields = {
-                condition = "condition",
-                body = "body",
-            },
-
-            tokens = {
-                start = "while",
-                loop_open = "do",
-                scope_close = "end",
-            },
-        },
-
-        construct = {
-            kind = "loop",
-            language_term = "while",
-            label = "While",
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        markers = {
-            required = {
-                "start",
-                "loop_open",
-                "scope_close",
-            },
-
-            total_required = 3,
-        },
-    },
+    ["while_statement"] =
+        construct_schema.rule(
+            "while_statement",
+            "loop",
+            {
+                language_term = "while",
+                label = "While",
+                fields = {
+                    condition = "condition",
+                    body = "body",
+                },
+                tokens = {
+                    start = "while",
+                    loop_open = "do",
+                    scope_close = "end",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "loop_open",
+                        "scope_close",
+                    },
+                    total_required = 3,
+                },
+            }
+        ),
 
 
-    ["repeat_statement"] = {
-        syntax = {
-            node_type = "repeat_statement",
-
-            fields = {
-                body = "body",
-                condition = "condition",
-            },
-
-            tokens = {
-                start = "repeat",
-                scope_close = "until",
-            },
-        },
-
-        construct = {
-            kind = "loop",
-            language_term = "repeat",
-            label = "Repeat",
-        },
-
-        scope = {
-            kind = "lexical",
-            affects_visibility = true,
-            owns_members = true,
-        },
-
-        markers = {
-            required = {
-                "start",
-                "scope_close",
-            },
-
-            total_required = 2,
-        },
-    },
+    ["repeat_statement"] =
+        construct_schema.rule(
+            "repeat_statement",
+            "loop",
+            {
+                language_term = "repeat",
+                label = "Repeat",
+                fields = {
+                    body = "body",
+                    condition = "condition",
+                },
+                tokens = {
+                    start = "repeat",
+                    scope_close = "until",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "scope_close",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
 
 
     --------------------------------------------------------------------------
@@ -649,52 +592,45 @@ M.construct_specs = {
     -- Tables
     --------------------------------------------------------------------------
 
-    ["table_constructor"] = {
-        syntax = {
-            node_type = "table_constructor",
-
-            children = {
-                fields = {
-                    node_type = "field",
-                    multiple = true,
-                    optional = true,
+    ["table_constructor"] =
+        construct_schema.rule(
+            "table_constructor",
+            "table",
+            {
+                language_term = "table",
+                label = "Table",
+                children = {
+                    fields = {
+                        node_type = "field",
+                        multiple = true,
+                        optional = true,
+                    },
                 },
-            },
+                tokens = {
+                    open = "{",
+                    close = "}",
+                },
+                construct_mutability = {
+                    state = "mutable",
+                    shape = "extensible",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "table",
+                    language_term = "table",
+                    type_label = "table",
+                    mutability = {
+                        state = "mutable",
+                        shape = "extensible",
+                    },
+                },
+            }
+        ),
 
-            tokens = {
-                open = "{",
-                close = "}",
-            },
-        },
-
-        construct = {
-            kind = "table",
-            language_term = "table",
-            label = "Table",
-
-            mutability = {
-                state = "mutable",
-                shape = "extensible",
-            },
-        },
-
-        scope = {
-            kind = "structural",
-            affects_visibility = false,
-            owns_members = true,
-        },
-
-        value = {
-            kind = "table",
-            language_term = "table",
-            type_label = "table",
-
-            mutability = {
-                state = "mutable",
-                shape = "extensible",
-            },
-        },
-    },
 }
 
 

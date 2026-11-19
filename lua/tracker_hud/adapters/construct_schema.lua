@@ -55,8 +55,16 @@ function M.rule(
         construct = construct,
     }
 
-    if opts.value ~= nil then
-        result.value = opts.value
+    for _, key in ipairs({
+        "scope",
+        "value",
+        "signature",
+        "markers",
+        "branch",
+    }) do
+        if opts[key] ~= nil then
+            result[key] = opts[key]
+        end
     end
 
     return result
