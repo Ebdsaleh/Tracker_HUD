@@ -500,14 +500,25 @@ local function run()
     assert(
         python_import.syntax.node_type
             == "import_statement"
-            and python_import.syntax.children
-                .name.node_types[1]
+            and python_import.syntax.fields
+                .bindings.field
+                == "name"
+            and python_import.syntax.fields
+                .bindings.multiple
+                == true
+            and python_import.syntax.fields
+                .bindings.node_types[1]
                 == "dotted_name"
-            and python_import.syntax.children
-                .name.node_types[2]
+            and python_import.syntax.fields
+                .bindings.node_types[2]
                 == "aliased_import"
+            and python_import.syntax.fields
+                .bindings.node_types[3]
+                == "identifier"
+            and python_import.syntax.fields.name
+                == "alias"
             and python_import.syntax.children
-                .name.node_types[3]
+                .name.node_type
                 == "identifier"
             and python_import.syntax.tokens.declaration
                 == "import"
@@ -530,11 +541,26 @@ local function run()
     assert(
         python_from_import.syntax.node_type
             == "import_from_statement"
-            and python_from_import.syntax.fields.name
+            and python_from_import.syntax.fields
+                .bindings.field
                 == "name"
-            and python_from_import.syntax.children
-                .name.node_types[1]
+            and python_from_import.syntax.fields
+                .bindings.multiple
+                == true
+            and python_from_import.syntax.fields
+                .bindings.node_types[1]
                 == "dotted_name"
+            and python_from_import.syntax.fields
+                .bindings.node_types[2]
+                == "aliased_import"
+            and python_from_import.syntax.fields
+                .bindings.node_types[3]
+                == "identifier"
+            and python_from_import.syntax.fields.name
+                == "alias"
+            and python_from_import.syntax.children
+                .name.node_type
+                == "identifier"
             and python_from_import.member.kind
                 == "symbol"
             and python_from_import.member.mutability

@@ -583,22 +583,130 @@ local function member_group_names_for_node_type(
 end
 
 
-local function get_syntax_field(member_spec, key)
+local function get_syntax_field_descriptor(
+    member_spec,
+    key
+)
     local syntax = get_syntax(member_spec)
     local fields = syntax.fields or {}
-    local field_name = fields[key]
+    local field_spec = fields[key]
 
-    if core.is_non_empty_string(field_name) then
-        return field_name
+    if core.is_non_empty_string(field_spec) then
+        return {
+            field = field_spec,
+        }
     end
 
-    if core.is_table(field_name)
-        and core.is_non_empty_string(field_name.field)
+    if core.is_table(field_spec)
+        and core.is_non_empty_string(
+            field_spec.field
+        )
     then
-        return field_name.field
+        return field_spec
     end
 
     return nil
+end
+
+
+local function get_syntax_field(member_spec, key)
+    local field_spec =
+        get_syntax_field_descriptor(
+            member_spec,
+            key
+        )
+
+    return field_spec
+        and field_spec.field
+        or nil
+end
+
+
+local function syntax_field_node_matches(
+    node,
+    field_spec
+)
+    if not node or not core.is_table(field_spec) then
+        return false
+    end
+
+    local has_filter = false
+
+    if core.is_non_empty_string(
+        field_spec.node_type
+    ) then
+        has_filter = true
+
+        if ts_utils.node_type_matches(
+            node,
+            field_spec.node_type
+        ) then
+            return true
+        end
+    end
+
+    for _, node_type in ipairs(
+        field_spec.node_types or {}
+    ) do
+        if core.is_non_empty_string(
+            node_type
+        ) then
+            has_filter = true
+
+            if ts_utils.node_type_matches(
+                node,
+                node_type
+            ) then
+                return true
+            end
+        end
+    end
+
+    return not has_filter
+end
+
+
+local function get_syntax_field_nodes(
+    node,
+    member_spec,
+    key
+)
+    local field_spec =
+        get_syntax_field_descriptor(
+            member_spec,
+            key
+        )
+
+    if not field_spec or not node then
+        return {}
+    end
+
+    local result = {}
+
+    for _, field_node in ipairs(
+        ts_utils.get_children_by_field_name(
+            node,
+            field_spec.field
+        )
+    ) do
+        if syntax_field_node_matches(
+            field_node,
+            field_spec
+        ) then
+            table.insert(
+                result,
+                field_node
+            )
+
+            if field_spec.multiple
+                ~= true
+            then
+                break
+            end
+        end
+    end
+
+    return result
 end
 
 
@@ -1463,6 +1571,67 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
     end
 
     local name = nil
+
+    -- A single syntax node may declare several bindings (for example import
+    -- lists). Adapter Contract field descriptors already carry multiple=true
+    -- and optional node-type filters; consume that generic declaration here.
+    -- Name resolution remains adapter-owned through syntax.fields.name and
+    -- syntax.children.name, evaluated relative to each binding node.
+    local binding_field =
+        get_syntax_field_descriptor(
+            member_spec,
+            "bindings"
+        )
+
+    if binding_field then
+        local source_range =
+            ts_utils.get_node_range_fields(
+                node
+            )
+
+        local kind =
+            member_spec.member
+            and member_spec.member.kind
+
+        for _, binding_node in ipairs(
+            get_syntax_field_nodes(
+                node,
+                member_spec,
+                "bindings"
+            )
+        ) do
+            local binding_name =
+                get_field_name(
+                    binding_node,
+                    bufnr,
+                    member_spec
+                )
+
+            if core.is_non_empty_string(
+                binding_name
+            ) then
+                local metadata =
+                    build_symbol_metadata(
+                        binding_node,
+                        bufnr,
+                        binding_name,
+                        member_spec
+                    )
+
+                scope_member_model.add(
+                    members,
+                    seen,
+                    binding_name,
+                    kind,
+                    source_range,
+                    state,
+                    metadata
+                )
+            end
+        end
+
+        return
+    end
 
     if core.is_non_empty_string(member_spec.mnemonic) then
         local instruction =

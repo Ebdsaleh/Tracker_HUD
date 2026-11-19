@@ -82,37 +82,44 @@ function M.get_node_text(node, bufnr)
 end
 
 
-function M.get_child_by_field_name(node, field_name)
+function M.get_children_by_field_name(node, field_name)
     if not node or not core.is_non_empty_string(field_name) then
-        return nil
+        return {}
     end
 
-    -- Neovim's TSNode API is node:field(name), which returns a LIST of
-    -- children. child_by_field_name is not a Neovim TSNode method. Returning
-    -- the first child preserves our single-node helper contract without
-    -- silently dropping fields in C/C++ (or other Tree-sitter adapters).
+    -- Neovim's TSNode API is node:field(name), which returns every child
+    -- carrying that field. Preserve the full list so Adapter Contract entries
+    -- marked multiple=true can consume repeated grammar bindings.
     local ok, children = pcall(function()
         return node:field(field_name)
     end)
 
-    if ok then
-        if type(children) == "table" then
-            return children[1]
-        end
-        return nil
+    if ok and type(children) == "table" then
+        return children
     end
 
-    -- Retain compatibility with older mocked node fixtures which expose
-    -- child_by_field_name instead of the real TSNode:field method.
+    -- Retain compatibility with older mocked node fixtures which expose only
+    -- child_by_field_name. Such fixtures can still represent a single field.
     local legacy_ok, child = pcall(function()
         return node:child_by_field_name(field_name)
     end)
 
-    if legacy_ok then
-        return child
+    if legacy_ok and child then
+        return { child }
     end
 
-    return nil
+    return {}
+end
+
+
+function M.get_child_by_field_name(node, field_name)
+    local children =
+        M.get_children_by_field_name(
+            node,
+            field_name
+        )
+
+    return children[1]
 end
 
 

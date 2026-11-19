@@ -564,13 +564,22 @@ M.scope_members = {
             "symbol",
             {
                 language_term = "import",
-                children = {
-                    name = {
+                fields = {
+                    bindings = {
+                        field = "name",
                         node_types = {
                             "dotted_name",
                             "aliased_import",
                             "identifier",
                         },
+                        multiple = true,
+                    },
+                    name = "alias",
+                },
+                children = {
+                    name = {
+                        node_type =
+                            "identifier",
                     },
                 },
                 tokens = {
@@ -592,15 +601,21 @@ M.scope_members = {
                 language_term =
                     "from import",
                 fields = {
-                    name = "name",
-                },
-                children = {
-                    name = {
+                    bindings = {
+                        field = "name",
                         node_types = {
                             "dotted_name",
                             "aliased_import",
                             "identifier",
                         },
+                        multiple = true,
+                    },
+                    name = "alias",
+                },
+                children = {
+                    name = {
+                        node_type =
+                            "identifier",
                     },
                 },
                 tokens = {
