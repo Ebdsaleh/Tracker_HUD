@@ -1572,6 +1572,24 @@ local function collect_member_group_before_scope_enter(
 end
 
 
+local member_group_collectors = {
+    declarations =
+        collect_declaration_member_spec,
+    assignments =
+        collect_declaration_member_spec,
+    functions =
+        collect_function_member_spec,
+    loops =
+        collect_loop_member_spec,
+    returns =
+        collect_return_member_spec,
+    fields =
+        collect_field_member_spec,
+    symbols =
+        collect_symbol_member_spec,
+}
+
+
 local function collect_from_node(
     node,
     bufnr,
@@ -1589,23 +1607,6 @@ local function collect_from_node(
     then
         return
     end
-
-    local group_collectors = {
-        declarations =
-            collect_declaration_member_spec,
-        assignments =
-            collect_declaration_member_spec,
-        functions =
-            collect_function_member_spec,
-        loops =
-            collect_loop_member_spec,
-        returns =
-            collect_return_member_spec,
-        fields =
-            collect_field_member_spec,
-        symbols =
-            collect_symbol_member_spec,
-    }
 
     local active_group_names =
         member_spec_index.active_group_names
@@ -1629,7 +1630,7 @@ local function collect_from_node(
             members,
             seen,
             state,
-            group_collectors[
+            member_group_collectors[
                 group_name
             ],
             adapter
