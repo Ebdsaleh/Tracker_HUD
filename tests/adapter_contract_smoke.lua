@@ -733,6 +733,69 @@ local function run()
         "Python named-expression binding contract changed"
     )
 
+    local python_match_dotted_capture =
+        python_adapter.scope_members
+            .symbols[7]
+    local python_match_direct_capture =
+        python_adapter.scope_members
+            .symbols[8]
+
+    assert(
+        python_match_dotted_capture.syntax.node_type
+            == "dotted_name"
+            and python_match_dotted_capture.syntax.children
+                .name.node_type
+                == "identifier"
+            and python_match_dotted_capture.syntax.constraints
+                .ancestor_node_types[1]
+                == "case_clause"
+            and python_match_dotted_capture.syntax.constraints
+                .parent_node_types[1]
+                == "case_pattern"
+            and python_match_dotted_capture.syntax.constraints
+                .parent_node_types[2]
+                == "keyword_pattern"
+            and python_match_dotted_capture.syntax.constraints
+                .named_child_count
+                == 1
+            and python_match_dotted_capture.member.kind
+                == "pattern_binding"
+            and python_match_dotted_capture.member.language_term
+                == "match capture"
+            and python_match_dotted_capture.member.mutability
+                .binding
+                == "conditional",
+        "Python dotted match-capture contract changed"
+    )
+
+    assert(
+        python_match_direct_capture.syntax.node_type
+            == "identifier"
+            and python_match_direct_capture.syntax.children
+                .name.node_type
+                == "identifier"
+            and python_match_direct_capture.syntax.constraints
+                .ancestor_node_types[1]
+                == "case_clause"
+            and python_match_direct_capture.syntax.constraints
+                .parent_node_types[1]
+                == "splat_pattern"
+            and python_match_direct_capture.syntax.constraints
+                .parent_node_types[2]
+                == "as_pattern"
+            and python_match_direct_capture.syntax.constraints
+                .named_child_count
+                == 0
+            and python_match_direct_capture.member.kind
+                == "pattern_binding"
+            and python_match_direct_capture.member.language_term
+                == "match capture"
+            and python_match_direct_capture.member.mutability
+                .binding
+                == "conditional",
+        "Python direct match-capture contract changed"
+    )
+
     local python_return =
         python_adapter.scope_members
             .returns[1]

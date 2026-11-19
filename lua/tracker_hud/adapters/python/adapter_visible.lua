@@ -884,6 +884,58 @@ M.scope_members = {
                     "mutable",
             }
         ),
+        scope_member_schema.rule(
+            "dotted_name",
+            "pattern_binding",
+            {
+                language_term =
+                    "match capture",
+                children = {
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                constraints = {
+                    ancestor_node_types = {
+                        "case_clause",
+                    },
+                    parent_node_types = {
+                        "case_pattern",
+                        "keyword_pattern",
+                    },
+                    named_child_count = 1,
+                },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
+        scope_member_schema.rule(
+            "identifier",
+            "pattern_binding",
+            {
+                language_term =
+                    "match capture",
+                children = {
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                constraints = {
+                    ancestor_node_types = {
+                        "case_clause",
+                    },
+                    parent_node_types = {
+                        "splat_pattern",
+                        "as_pattern",
+                    },
+                    named_child_count = 0,
+                },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
     },
 
     returns = {
