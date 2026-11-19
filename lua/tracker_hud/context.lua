@@ -971,6 +971,8 @@ local function attach_context_sections(
                             config = config,
                             register_source_cache =
                                 register_source_cache,
+                            source_node_snapshot =
+                                shared_source_nodes,
                         },
                         nested_profile_options(
                             profile_token,
@@ -1000,6 +1002,8 @@ local function attach_context_sections(
                         config = config,
                         register_source_cache =
                             register_source_cache,
+                        source_node_snapshot =
+                            shared_source_nodes,
                     },
                     nested_profile_options(
                         profile_token,
@@ -1040,6 +1044,8 @@ local function attach_context_sections(
                     config = config,
                     register_source_cache =
                         register_source_cache,
+                    source_node_snapshot =
+                        shared_source_nodes,
                     limit_position = {
                         line =
                             context.cursor.line,

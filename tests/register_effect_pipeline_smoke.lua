@@ -5,6 +5,8 @@ vim.opt.runtimepath:prepend(vim.fn.getcwd())
 
 local pipeline =
     require("tracker_hud.low_level.register_effect_pipeline")
+local source_node_snapshot =
+    require("tracker_hud.source_node_snapshot")
 
 local function fake_node(id, row, column)
     return {
@@ -258,6 +260,104 @@ assert(
     "register pipeline carried register read changed"
 )
 print("PASS register pipeline: carried register copy preserved")
+
+local prepared_counters = {}
+
+local snapshot =
+    source_node_snapshot.new(
+        root,
+        {
+            profile_prefix =
+                "context.source_nodes",
+            profile_counter =
+                function(name, delta)
+                    prepared_counters[name] =
+                        (prepared_counters[name] or 0)
+                        + delta
+                end,
+        }
+    )
+
+local prepared =
+    pipeline.prepare_source(
+        adapter,
+        {
+            root_node = root,
+            source_node_snapshot =
+                snapshot,
+            profile_prefix =
+                "context.registers",
+            profile_counter =
+                function(name, delta)
+                    prepared_counters[name] =
+                        (prepared_counters[name] or 0)
+                        + delta
+                end,
+        }
+    )
+
+assert(
+    prepared
+        and #prepared.nodes == 2
+        and prepared.nodes[1].node
+            == first
+        and prepared.nodes[2].node
+            == second
+        and prepared_counters[
+            "context.source_nodes.walks"
+        ] == 1
+        and prepared_counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.shared_snapshot_hits"
+        ] == 1
+        and prepared_counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans"
+        ] == nil,
+    "register prepared-source shared snapshot changed node semantics or repeated traversal"
+)
+
+print(
+    "PASS register pipeline: "
+        .. "prepared source reuses refresh-local Tree-sitter snapshot"
+)
+
+local fallback_counters = {}
+
+local fallback_prepared =
+    pipeline.prepare_source(
+        adapter,
+        {
+            root_node = root,
+            profile_prefix =
+                "context.registers",
+            profile_counter =
+                function(name, delta)
+                    fallback_counters[name] =
+                        (fallback_counters[name] or 0)
+                        + delta
+                end,
+        }
+    )
+
+assert(
+    fallback_prepared
+        and #fallback_prepared.nodes == 2
+        and fallback_prepared.nodes[1].node
+            == first
+        and fallback_prepared.nodes[2].node
+            == second
+        and fallback_counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans"
+        ] == 1
+        and fallback_counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.shared_snapshot_hits"
+        ] == nil,
+    "register prepared-source recursive fallback changed"
+)
+
+print(
+    "PASS register pipeline: "
+        .. "prepared-source recursive fallback preserved"
+)
 
 assert(
     #pipeline.collect(

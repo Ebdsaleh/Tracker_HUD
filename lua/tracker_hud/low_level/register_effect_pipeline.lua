@@ -22,6 +22,8 @@ local register_effect_index =
     require("tracker_hud.low_level.register_effect_index")
 local register_effect_processing =
     require("tracker_hud.low_level.register_effect_processing")
+local source_node_snapshot =
+    require("tracker_hud.source_node_snapshot")
 local register_infer =
     require("tracker_hud.low_level.register_infer")
 local register_state_read =
@@ -235,18 +237,33 @@ local function collect_nodes(
         collect_nodes = function(
             node_type
         )
-            profile_counter(
-                opts,
-                "prepare_source.collect_nodes.full_tree_scans",
-                1
-            )
-
             local nodes =
-                instruction_source
-                    .collect_nodes_by_type(
-                        opts.root_node,
+                source_node_snapshot
+                    .nodes_by_type(
+                        opts.source_node_snapshot,
                         node_type
                     )
+
+            if type(nodes) == "table" then
+                profile_counter(
+                    opts,
+                    "prepare_source.collect_nodes.shared_snapshot_hits",
+                    1
+                )
+            else
+                profile_counter(
+                    opts,
+                    "prepare_source.collect_nodes.full_tree_scans",
+                    1
+                )
+
+                nodes =
+                    instruction_source
+                        .collect_nodes_by_type(
+                            opts.root_node,
+                            node_type
+                        )
+            end
 
             profile_counter(
                 opts,

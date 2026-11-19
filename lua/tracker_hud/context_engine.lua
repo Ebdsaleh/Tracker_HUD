@@ -803,6 +803,8 @@ local function get_prepared_register_source(
             opts.profile_end,
         profile_counter =
             opts.profile_counter,
+        source_node_snapshot =
+            opts.source_node_snapshot,
     }
 
     local prepared_source =

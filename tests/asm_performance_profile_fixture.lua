@@ -349,7 +349,7 @@ local function run()
         "context.warnings.syntax.candidates",
         "context.source_nodes.walks",
         "context.source_nodes.nodes_visited",
-        "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans",
+        "context.registers.dynamic.prepare_source.collect_nodes.shared_snapshot_hits",
         "context.registers.dynamic.prepare_source.collect_nodes.nodes_matched",
         "context.configure.adapter.directive_scans",
         "context.configure.adapter.directive_scans.shared",
@@ -880,9 +880,9 @@ local function run()
             .. " node visit(s); Range Scopes + syntax warnings both reused it on 5 source revision(s)"
     )
 
-    local register_source_scans =
+    local register_source_snapshot_hits =
         snapshot.counters[
-            "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans"
+            "context.registers.dynamic.prepare_source.collect_nodes.shared_snapshot_hits"
         ]
 
     local register_source_matches =
@@ -891,23 +891,30 @@ local function run()
         ]
 
     assert(
-        type(register_source_scans) == "table"
+        type(register_source_snapshot_hits) == "table"
             and type(register_source_matches) == "table"
-            and register_source_scans.count == 5
-            and register_source_scans.total == 5
+            and register_source_snapshot_hits.count == 5
+            and register_source_snapshot_hits.total == 5
             and register_source_matches.count == 5
+            and register_source_matches.total == 645
+            and snapshot.counters[
+                "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans"
+            ] == nil
             and shared_source_walks.total == 5
             and shared_source_nodes.total == 5590,
-        "Register prepared-source Tree-sitter walk opportunity changed"
+        "Register prepared-source shared snapshot reuse changed"
     )
 
     print(
-        "[Tracker_HUD] Register prepared-source walk opportunity: "
+        "[Tracker_HUD] Register prepared-source shared source: "
             .. tostring(
-                register_source_scans.total
+                register_source_snapshot_hits.total
             )
-            .. " additional full-tree scan(s) across the same 5 source revision(s); "
-            .. "shared snapshot already indexes the complete 5590-node traversal"
+            .. " snapshot hit(s), "
+            .. tostring(
+                register_source_matches.total
+            )
+            .. " matching instruction node(s); 0 recursive full-tree scans"
     )
 
     local directive_scan_counter =
