@@ -1409,13 +1409,6 @@ local function collect_member_group(
         return
     end
 
-    if not member_group_can_match_node(
-        group_index,
-        node
-    ) then
-        return
-    end
-
     count_measurement(
         state,
         "group_candidate_lookups",
@@ -1488,6 +1481,13 @@ local function collect_member_group_before_scope_enter(
         or (group_index.spec_count or 0)
             == 0
     then
+        return
+    end
+
+    if not member_group_can_match_node(
+        group_index,
+        node
+    ) then
         return
     end
 
