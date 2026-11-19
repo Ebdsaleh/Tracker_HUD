@@ -336,12 +336,11 @@ call :run_config "tests/asm_context_configure_profile_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_none "tests/treesitter_warning_cache_smoke.lua"
 if errorlevel 1 goto :fail
-
-echo [GREEN] Tracker_HUD test suite passed: 150/150
->> "%TRACKER_HUD_RESULTS%" call :run_none "tests/adapter_authoring_starter_smoke.lua"
+call :run_none "tests/adapter_authoring_starter_smoke.lua"
 if errorlevel 1 goto :fail
 
 echo [GREEN] Tracker_HUD test suite passed: 150/150
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 150/150
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
