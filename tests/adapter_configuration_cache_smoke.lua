@@ -294,10 +294,22 @@ print(
 registry.clear()
 
 adapter.validation_stable_components = {
+    construct_specs = true,
+    scope_members = true,
+    presentation = true,
+    instruction_parser = true,
+    memory_accesses = true,
+    boundary_effects = true,
     register_effects = true,
     instruction_events = true,
     stack_effects = true,
 }
+adapter.instruction_parser = {
+    module = "tracker_hud.tests.synthetic_parser",
+    function_name = "parse",
+}
+adapter.memory_accesses = {}
+adapter.boundary_effects = {}
 adapter.register_effects = {}
 adapter.instruction_events = {}
 adapter.stack_effects = {}
@@ -355,6 +367,42 @@ assert(
         ] == 1
         and profile_counts[
             "context.configure.validate.stack_effects"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.construct_specs_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.construct_specs"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.scope_members_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.scope_members"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.presentation_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.presentation"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.instruction_parser_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.instruction_parser"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.memory_accesses_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.memory_accesses"
+        ] == nil
+        and profile_counts[
+            "context.configure.validate.boundary_effects_reuse"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.boundary_effects"
         ] == nil,
     "stable component identity did not reuse prior successful validation"
 )
@@ -384,6 +432,24 @@ assert(
         ] == 1
         and profile_counts[
             "context.configure.validate.stack_effects"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.construct_specs"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.scope_members"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.presentation"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.instruction_parser"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.memory_accesses"
+        ] == 1
+        and profile_counts[
+            "context.configure.validate.boundary_effects"
         ] == 1,
     "revoked stable-component declaration still reused validation"
 )
@@ -546,6 +612,109 @@ assert(
 print(
     "PASS adapter validation reuse: "
         .. "stack-effect replacement identity forces contract validation"
+)
+
+adapter.stack_effects = {}
+
+local reusable_validation_baseline = {
+    construct_specs = adapter.construct_specs,
+    scope_members = adapter.scope_members,
+    presentation = adapter.presentation,
+    instruction_parser = adapter.instruction_parser,
+    memory_accesses = adapter.memory_accesses,
+    boundary_effects = adapter.boundary_effects,
+}
+
+local reusable_validation_replacements = {
+    {
+        component = "construct_specs",
+        invalid = {},
+    },
+    {
+        component = "scope_members",
+        invalid = "invalid",
+    },
+    {
+        component = "presentation",
+        invalid = "invalid",
+    },
+    {
+        component = "instruction_parser",
+        invalid = {},
+    },
+    {
+        component = "memory_accesses",
+        invalid = "invalid",
+    },
+    {
+        component = "boundary_effects",
+        invalid = "invalid",
+    },
+}
+
+adapter.validation_stable_components = {
+    construct_specs = true,
+    scope_members = true,
+    presentation = true,
+    instruction_parser = true,
+    memory_accesses = true,
+    boundary_effects = true,
+}
+
+for _, case in ipairs(
+    reusable_validation_replacements
+) do
+    for component, value in pairs(
+        reusable_validation_baseline
+    ) do
+        adapter[component] = value
+    end
+
+    registry.clear()
+
+    registered,
+        register_error =
+        registry.register(
+            adapter
+        )
+
+    assert(
+        registered,
+        tostring(register_error)
+    )
+
+    profile_counts = {}
+
+    adapter[case.component] =
+        case.invalid
+
+    ok, err =
+        registry.configure_adapter_for_buffer(
+            "lua",
+            buffer_a,
+            config_b,
+            profile_opts
+        )
+
+    local phase =
+        "context.configure.validate."
+        .. case.component
+
+    assert(
+        ok == false
+            and profile_counts[phase]
+                == 1
+            and profile_counts[
+                phase .. "_reuse"
+            ] == nil,
+        "replacement stable component did not force full validation: "
+            .. case.component
+    )
+end
+
+print(
+    "PASS adapter validation reuse: "
+        .. "extended replacement identities force contract validation"
 )
 
 

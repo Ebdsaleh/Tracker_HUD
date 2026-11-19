@@ -78,6 +78,12 @@ M.target_directives = {
 -- Configuration replaces these tables when the architecture variant changes;
 -- it does not mutate a selected variant's rule tables in place.
 M.validation_stable_components = {
+    construct_specs = true,
+    scope_members = true,
+    presentation = true,
+    instruction_parser = true,
+    memory_accesses = true,
+    boundary_effects = true,
     register_effects = true,
     instruction_events = true,
     stack_effects = true,
@@ -934,15 +940,6 @@ function M.configure_adapter_for_buffer(
     config,
     profile_opts
 )
-    local validation_identity_before = {
-        construct_specs = M.construct_specs,
-        scope_members = M.scope_members,
-        presentation = M.presentation,
-        instruction_parser = M.instruction_parser,
-        memory_accesses = M.memory_accesses,
-        boundary_effects = M.boundary_effects,
-    }
-
     local config_targets = normalize_target_table(config and config.targets)
 
     local source_scan =
@@ -977,23 +974,6 @@ function M.configure_adapter_for_buffer(
             variant or {},
             M.active_targets.syntax
         )
-
-    for component, before in pairs(
-        validation_identity_before
-    ) do
-        local suffix =
-            M[component] == before
-            and ".unchanged"
-            or ".changed"
-
-        profile_config_counter(
-            profile_opts,
-            "context.configure.adapter.validation_identity."
-                .. component
-                .. suffix,
-            1
-        )
-    end
 end
 
 -- Default variant so the adapter still exposes useful specs before

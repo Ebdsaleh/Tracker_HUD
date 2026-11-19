@@ -352,12 +352,6 @@ local function run()
         "context.configure.adapter.directive_scans.shared",
         "context.configure.adapter.variant.identity_checks",
         "context.configure.adapter.variant.same_identity",
-        "context.configure.adapter.validation_identity.construct_specs.unchanged",
-        "context.configure.adapter.validation_identity.scope_members.unchanged",
-        "context.configure.adapter.validation_identity.presentation.unchanged",
-        "context.configure.adapter.validation_identity.instruction_parser.unchanged",
-        "context.configure.adapter.validation_identity.memory_accesses.unchanged",
-        "context.configure.adapter.validation_identity.boundary_effects.unchanged",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -945,7 +939,7 @@ local function run()
             .. "0 presentation rebuilds"
     )
 
-    local validation_identity_components = {
+    local reusable_validation_components = {
         "construct_specs",
         "scope_members",
         "presentation",
@@ -954,42 +948,44 @@ local function run()
         "boundary_effects",
     }
 
-    local stable_validation_identities = {}
-
     for _, component in ipairs(
-        validation_identity_components
+        reusable_validation_components
     ) do
-        local prefix =
-            "context.configure.adapter.validation_identity."
-            .. component
+        local full_phase =
+            snapshot.phases[
+                "context.configure.validate."
+                    .. component
+            ]
 
-        local unchanged =
-            counter_total(
-                prefix .. ".unchanged"
-            )
+        local reuse_phase =
+            snapshot.phases[
+                "context.configure.validate."
+                    .. component
+                    .. "_reuse"
+            ]
 
         assert(
-            unchanged == 5
-                and snapshot.counters[
-                    prefix .. ".changed"
-                ] == nil,
-            "ASM validation input identity changed unexpectedly: "
+            full_phase == nil
+                and type(reuse_phase)
+                    == "table"
+                and reuse_phase.count
+                    == configure_adapter_phase.count,
+            "ASM stable validation reuse changed: "
                 .. component
-        )
-
-        table.insert(
-            stable_validation_identities,
-            component
         )
     end
 
     print(
-        "[Tracker_HUD] ASM validation identity stability: "
+        "[Tracker_HUD] ASM validation reuse: "
             .. table.concat(
-                stable_validation_identities,
+                reusable_validation_components,
                 ", "
             )
-            .. " unchanged across 5 configuration miss(es)"
+            .. " reused across "
+            .. tostring(
+                configure_adapter_phase.count
+            )
+            .. " configuration miss(es)"
     )
 
     assert(

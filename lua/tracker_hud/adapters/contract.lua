@@ -1501,6 +1501,12 @@ end
 
 
 local reusable_validation_components = {
+    construct_specs = true,
+    scope_members = true,
+    presentation = true,
+    instruction_parser = true,
+    memory_accesses = true,
+    boundary_effects = true,
     register_effects = true,
     instruction_events = true,
     stack_effects = true,
@@ -1876,28 +1882,52 @@ function M.validate_adapter(
         return false, err
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "construct_specs",
+        adapter.construct_specs
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.construct_specs",
-            validate_construct_specs,
-            adapter.construct_specs
+            "context.configure.validate.construct_specs_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.construct_specs",
+                validate_construct_specs,
+                adapter.construct_specs
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "scope_members",
+        adapter.scope_members
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.scope_members",
-            validate_scope_members,
-            adapter.scope_members
+            "context.configure.validate.scope_members_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.scope_members",
+                validate_scope_members,
+                adapter.scope_members
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     if validation_component_is_reusable(
@@ -1948,40 +1978,76 @@ function M.validate_adapter(
         return false, err
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "presentation",
+        adapter.presentation
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.presentation",
-            validate_presentation,
-            adapter.presentation
+            "context.configure.validate.presentation_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.presentation",
+                validate_presentation,
+                adapter.presentation
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "instruction_parser",
+        adapter.instruction_parser
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.instruction_parser",
-            validate_instruction_parser,
-            adapter.instruction_parser
+            "context.configure.validate.instruction_parser_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.instruction_parser",
+                validate_instruction_parser,
+                adapter.instruction_parser
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
-    ok, err =
-        validate_phase(
+    if validation_component_is_reusable(
+        opts,
+        "memory_accesses",
+        adapter.memory_accesses
+    )
+    then
+        profile_reused_component(
             opts,
-            "context.configure.validate.memory_accesses",
-            validate_memory_accesses,
-            adapter.memory_accesses
+            "context.configure.validate.memory_accesses_reuse"
         )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.memory_accesses",
+                validate_memory_accesses,
+                adapter.memory_accesses
+            )
 
-    if not ok then
-        return false, err
+        if not ok then
+            return false, err
+        end
     end
 
     if validation_component_is_reusable(
@@ -2063,6 +2129,20 @@ function M.validate_adapter(
         if not ok then
             return false, err
         end
+    end
+
+    if validation_component_is_reusable(
+        opts,
+        "boundary_effects",
+        adapter.boundary_effects
+    )
+    then
+        profile_reused_component(
+            opts,
+            "context.configure.validate.boundary_effects_reuse"
+        )
+
+        return true, nil
     end
 
     return validate_phase(

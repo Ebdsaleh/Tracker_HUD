@@ -157,18 +157,18 @@ local function run()
         "context.configure.adapter",
         "context.configure.validate",
         "context.configure.validate.filetypes",
-        "context.configure.validate.construct_specs",
-        "context.configure.validate.scope_members",
+        "context.configure.validate.construct_specs_reuse",
+        "context.configure.validate.scope_members_reuse",
         "context.configure.validate.range_scopes_reuse",
         "context.configure.validate.capabilities",
         "context.configure.validate.sections",
-        "context.configure.validate.presentation",
-        "context.configure.validate.instruction_parser",
-        "context.configure.validate.memory_accesses",
+        "context.configure.validate.presentation_reuse",
+        "context.configure.validate.instruction_parser_reuse",
+        "context.configure.validate.memory_accesses_reuse",
         "context.configure.validate.register_effects_reuse",
         "context.configure.validate.instruction_events_reuse",
         "context.configure.validate.stack_effects_reuse",
-        "context.configure.validate.boundary_effects",
+        "context.configure.validate.boundary_effects_reuse",
         "context.configure.remember",
     }
 
@@ -263,6 +263,38 @@ local function run()
     print(
         "PASS ASM configure profile: "
             .. "stable range-scope validation is reused by identity"
+    )
+
+    local extended_reuse_components = {
+        "construct_specs",
+        "scope_members",
+        "presentation",
+        "instruction_parser",
+        "memory_accesses",
+        "boundary_effects",
+    }
+
+    for _, component in ipairs(
+        extended_reuse_components
+    ) do
+        assert(
+            snapshot.phases[
+                "context.configure.validate."
+                    .. component
+            ] == nil
+                and snapshot.phases[
+                    "context.configure.validate."
+                        .. component
+                        .. "_reuse"
+                ] ~= nil,
+            "stable ASM validation component was redundantly revalidated: "
+                .. component
+        )
+    end
+
+    print(
+        "PASS ASM configure profile: "
+            .. "extended stable validation is reused by identity"
     )
 
     print(
