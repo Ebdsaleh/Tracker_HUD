@@ -972,12 +972,18 @@ local function get_list_member_name(
 
     -- List containers (for example function parameters) may contain richer
     -- binding nodes. Reuse the adapter-authorized syntax.children.name
-    -- fallback instead of teaching shared core about language-specific nodes.
-    for _, name_node_type in ipairs(
+    -- declaration instead of teaching shared core about language-specific
+    -- syntax. When an adapter declares allowed name-node types, a list child
+    -- without one is not a binding and must not fall through to whole-node
+    -- text (for example a grammar separator node).
+    local name_node_types =
         get_syntax_child_node_types(
             member_spec,
             "name"
         )
+
+    for _, name_node_type in ipairs(
+        name_node_types
     ) do
         local name_node =
             ts_utils.find_first_descendant_by_type(
@@ -996,6 +1002,10 @@ local function get_list_member_name(
                 return strip_quotes(name)
             end
         end
+    end
+
+    if #name_node_types > 0 then
+        return nil
     end
 
     return ts_utils.get_node_text(
@@ -1030,12 +1040,18 @@ local function collect_names_from_list_node(
                 member_spec
             )
 
+        local member_source_range =
+            ts_utils.get_node_range_fields(
+                variable
+            )
+            or source_range
+
         scope_member_model.add(
             members,
             seen,
             name,
             kind,
-            source_range,
+            member_source_range,
             state
         )
     end
