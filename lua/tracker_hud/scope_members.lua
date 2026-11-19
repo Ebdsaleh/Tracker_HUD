@@ -1584,11 +1584,6 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
         )
 
     if binding_field then
-        local source_range =
-            ts_utils.get_node_range_fields(
-                node
-            )
-
         local kind =
             member_spec.member
             and member_spec.member.kind
@@ -1600,6 +1595,10 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
                 "bindings"
             )
         ) do
+            local source_range =
+                ts_utils.get_node_range_fields(
+                    binding_node
+                )
             local binding_name =
                 get_field_name(
                     binding_node,

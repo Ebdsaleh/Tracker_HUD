@@ -237,6 +237,25 @@ local function run()
             )
     )
 
+    for index, expected_name in ipairs(
+        expected_bindings
+    ) do
+        local actual =
+            all[index]
+            and all[index].name
+            or nil
+
+        assert(
+            actual == expected_name,
+            "python import binding order changed at position "
+                .. tostring(index)
+                .. ": expected "
+                .. expected_name
+                .. ", got "
+                .. tostring(actual)
+        )
+    end
+
     local discovery =
         collector.discover(
             buffer,
