@@ -1214,10 +1214,6 @@ local function collect_declaration_member_spec(node, bufnr, member_spec, members
         return
     end
 
-    if should_skip_member_spec_node(node, member_spec) then
-        return
-    end
-
     local name_list_node = ts_utils.find_first_descendant_by_type(
         node,
         get_syntax_child_node_type(
@@ -1732,18 +1728,6 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
         return
     end
 
-    if should_skip_member_spec_node(
-        node,
-        member_spec
-    )
-        or not member_spec_constraints_match(
-            node,
-            member_spec
-        )
-    then
-        return
-    end
-
     local name = nil
 
     -- A single syntax node may declare several bindings (for example import
@@ -2006,9 +1990,18 @@ local function collect_member_group(
             1
         )
 
-        if not should_collect_before_scope_enter(
+        if not should_skip_member_spec_node(
+            node,
             member_spec
-        ) then
+        )
+            and member_spec_constraints_match(
+                node,
+                member_spec
+            )
+            and not should_collect_before_scope_enter(
+                member_spec
+            )
+        then
             collector(
                 node,
                 bufnr,
@@ -2094,9 +2087,18 @@ local function collect_member_group_before_scope_enter(
             1
         )
 
-        if should_collect_before_scope_enter(
+        if not should_skip_member_spec_node(
+            node,
             member_spec
-        ) then
+        )
+            and member_spec_constraints_match(
+                node,
+                member_spec
+            )
+            and should_collect_before_scope_enter(
+                member_spec
+            )
+        then
             collector(
                 node,
                 bufnr,
