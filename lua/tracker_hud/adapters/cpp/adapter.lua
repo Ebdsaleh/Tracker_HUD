@@ -4,6 +4,7 @@
 
 local M = vim.deepcopy(require("tracker_hud.adapters.c.adapter"))
 local target_directives = require("tracker_hud.adapters.c.target_directives")
+local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
 
 M.name = "cpp"
 M.filetypes = { "cpp" }
@@ -74,41 +75,92 @@ add_construct("co_return_statement", "return", "co_return", "Co Return", nil, ni
 
 -- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
-local function member(node_type, name_field, kind, language_term, owner_scope, fallback)
-    return {
-        syntax = {
-            node_type = node_type,
-            fields = { name = name_field },
-            children = fallback and { name = { node_type = fallback } } or nil,
-        },
-        member = {
-            kind = kind,
-            language_term = language_term,
-            owner_scope = owner_scope,
-        },
-    }
-end
 
 -- C++ adds defaulted and variadic parameter syntax nodes beyond C's
 -- parameter_declaration. Extract just the declared binding from each one.
-table.insert(M.scope_members.symbols,
-    member("optional_parameter_declaration", "declarator",
-        "parameter", "defaulted parameter", "lexical", "identifier"))
-table.insert(M.scope_members.symbols,
-    member("variadic_parameter_declaration", "declarator",
-        "parameter", "variadic parameter", "lexical", "identifier"))
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "optional_parameter_declaration",
+        "declarator",
+        "parameter",
+        {
+            language_term =
+                "defaulted parameter",
+            fallback_node_type =
+                "identifier",
+        }
+    )
+)
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "variadic_parameter_declaration",
+        "declarator",
+        "parameter",
+        {
+            language_term =
+                "variadic parameter",
+            fallback_node_type =
+                "identifier",
+        }
+    )
+)
 
 -- The generic symbols collector runs after entering lexical scopes and
 -- skips parent_lexical specs. Until the shared contract grows explicit
 -- ownership handling, keep these declarations discoverable locally instead.
-table.insert(M.scope_members.symbols,
-    member("class_specifier", "name", "symbol", "class", "lexical", "type_identifier"))
-table.insert(M.scope_members.symbols,
-    member("alias_declaration", "name", "symbol", "type alias", "lexical", "type_identifier"))
-table.insert(M.scope_members.symbols,
-    member("namespace_definition", "name", "symbol", "namespace", "lexical", "namespace_identifier"))
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "class_specifier",
+        "name",
+        "symbol",
+        {
+            language_term = "class",
+            fallback_node_type =
+                "type_identifier",
+        }
+    )
+)
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "alias_declaration",
+        "name",
+        "symbol",
+        {
+            language_term = "type alias",
+            fallback_node_type =
+                "type_identifier",
+        }
+    )
+)
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "namespace_definition",
+        "name",
+        "symbol",
+        {
+            language_term = "namespace",
+            fallback_node_type =
+                "namespace_identifier",
+        }
+    )
+)
 M.scope_members.loops = {
-    member("for_range_loop", "declarator", "loop_variable", "range-for variable", "lexical", "identifier"),
+    scope_member_schema.named(
+        "for_range_loop",
+        "declarator",
+        "loop_variable",
+        {
+            language_term =
+                "range-for variable",
+            fallback_node_type =
+                "identifier",
+        }
+    ),
 }
 
 return M

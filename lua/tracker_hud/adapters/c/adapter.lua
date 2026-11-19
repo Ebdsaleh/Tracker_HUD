@@ -4,6 +4,7 @@
 -- C and C++ share grammar constructs; the C++ adapter extends this base.
 
 local target_directives = require("tracker_hud.adapters.c.target_directives")
+local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
 
 local M = {
     contract_version = 1,
@@ -110,28 +111,24 @@ add_construct("char_literal", "literal", "character literal", "Character", nil, 
 add_construct("pointer_declarator", "declaration", "pointer declarator", "Pointer Declarator", { declarator = "declarator" }, nil, false)
 
 -- Keep the named AST field as primary evidence. Parser versions can differ
--- in direct field exposure: precise named-node-type fallbacks are permitted
--- by each rule and used only when the field lookup doesn't produce a name.
-local function member(node_type, name_field, kind, language_term, owner_scope, fallback)
-    return {
-        syntax = {
-            node_type = node_type,
-            fields = name_field and { name = name_field } or nil,
-            children = fallback and { name = { node_type = fallback } } or nil,
-        },
-        member = {
-            kind = kind,
-            language_term = language_term,
-            owner_scope = owner_scope,
-        },
-    }
-end
+-- in direct field exposure, so named-binding specs can declare an exact AST
+-- fallback without duplicating the Adapter Contract table shape here.
 
 -- A declaration can also be a function prototype. Keep its meaning neutral.
 -- Do not claim inferred types, pointer values, or runtime state here.
 M.scope_members = {
     functions = {
-        member("function_definition", "declarator", "function", "function", "parent_lexical", "identifier"),
+        scope_member_schema.named(
+            "function_definition",
+            "declarator",
+            "function",
+            {
+                owner_scope =
+                    "parent_lexical",
+                fallback_node_type =
+                    "identifier",
+            }
+        ),
     },
     -- The generic parameters/list collector renders a whole declaration
     -- (e.g. "int amount") as a name, and can accidentally include the type.
@@ -141,21 +138,105 @@ M.scope_members = {
     -- The shared symbol collector consumes named Tree-sitter fields.
     -- C declarations include prototypes, so don't assume every one is a variable.
     symbols = {
-        member("parameter_declaration", "declarator", "parameter", "parameter", "lexical", "identifier"),
-        member("declaration", "declarator", "symbol", "declaration", "lexical", "identifier"),
-        member("init_declarator", "declarator", "variable", "initialized variable", "lexical", "identifier"),
-        member("type_definition", "declarator", "symbol", "typedef", "lexical"),
+        scope_member_schema.named(
+            "parameter_declaration",
+            "declarator",
+            "parameter",
+            {
+                fallback_node_type =
+                    "identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "declaration",
+            "declarator",
+            "symbol",
+            {
+                language_term =
+                    "declaration",
+                fallback_node_type =
+                    "identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "init_declarator",
+            "declarator",
+            "variable",
+            {
+                language_term =
+                    "initialized variable",
+                fallback_node_type =
+                    "identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "type_definition",
+            "declarator",
+            "symbol",
+            {
+                language_term =
+                    "typedef",
+            }
+        ),
         -- The symbols collector currently collects inside the lexical scope.
         -- parent_lexical is only processed pre-scope for the functions group;
         -- on symbols it silently drops the entry. Keep struct/union names
         -- visible here without changing the shared collector.
-        member("struct_specifier", "name", "symbol", "struct", "lexical", "type_identifier"),
-        member("union_specifier", "name", "symbol", "union", "lexical", "type_identifier"),
-        member("enum_specifier", "name", "symbol", "enum", "lexical", "type_identifier"),
-        member("preproc_def", "name", "symbol", "macro", "lexical", "identifier"),
+        scope_member_schema.named(
+            "struct_specifier",
+            "name",
+            "symbol",
+            {
+                language_term =
+                    "struct",
+                fallback_node_type =
+                    "type_identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "union_specifier",
+            "name",
+            "symbol",
+            {
+                language_term =
+                    "union",
+                fallback_node_type =
+                    "type_identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "enum_specifier",
+            "name",
+            "symbol",
+            {
+                language_term =
+                    "enum",
+                fallback_node_type =
+                    "type_identifier",
+            }
+        ),
+        scope_member_schema.named(
+            "preproc_def",
+            "name",
+            "symbol",
+            {
+                language_term =
+                    "macro",
+                fallback_node_type =
+                    "identifier",
+            }
+        ),
     },
     fields = {
-        member("field_declaration", "declarator", "field", "field", "lexical", "field_identifier"),
+        scope_member_schema.named(
+            "field_declaration",
+            "declarator",
+            "field",
+            {
+                fallback_node_type =
+                    "field_identifier",
+            }
+        ),
         {
             syntax = {
                 node_type = "assignment_expression",

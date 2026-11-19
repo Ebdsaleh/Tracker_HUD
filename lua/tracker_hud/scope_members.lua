@@ -9,6 +9,7 @@ local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local construct_utils = require("tracker_hud.construct_utils")
 local scope_member_model = require("tracker_hud.scope_member_model")
+local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
 
 local M = {}
 
@@ -254,16 +255,8 @@ local function get_syntax_node_type(member_spec)
 end
 
 
-local member_group_names = {
-    "declarations",
-    "assignments",
-    "parameters",
-    "functions",
-    "loops",
-    "returns",
-    "fields",
-    "symbols",
-}
+local member_group_names =
+    scope_member_schema.group_names
 
 
 local function build_member_group_index(

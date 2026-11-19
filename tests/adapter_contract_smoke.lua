@@ -9,6 +9,8 @@ local function run()
 
     local contract = require("tracker_hud.adapters.contract")
     local registry = require("tracker_hud.adapters.registry")
+    local scope_member_schema =
+        require("tracker_hud.adapters.scope_member_schema")
     local adapters = {
         { filetype = "lua", module = "tracker_hud.adapters.lua.init" },
         { filetype = "python", module = "tracker_hud.adapters.python.init" },
@@ -43,17 +45,18 @@ local function run()
         "C++ namespace grammar rule missing")
     assert(cpp.construct_specs["for_range_loop"] ~= nil,
         "C++ range-for grammar rule missing")
-    -- Contract v1 allows arbitrary group keys, but the current member
-    -- collector renders only these groups. Fail early on silently dead groups.
-    local supported = {
-        declarations = true, assignments = true, parameters = true,
-        functions = true, loops = true, returns = true,
-        fields = true, symbols = true,
-    }
+    -- Scope Member group vocabulary is shared by the runtime and contract,
+    -- so custom adapters cannot validate a group the collector will ignore.
     for _, adapter in ipairs({ c, cpp }) do
         for group_name in pairs(adapter.scope_members or {}) do
-            assert(supported[group_name],
-                adapter.name .. " has unrendered member group: " .. group_name)
+            assert(
+                scope_member_schema.is_supported_group(
+                    group_name
+                ),
+                adapter.name
+                    .. " has unsupported member group: "
+                    .. group_name
+            )
         end
         local parameter_spec = nil
         for _, spec in ipairs(adapter.scope_members.symbols or {}) do
@@ -121,6 +124,68 @@ local function run()
     expect_name_fallback(cpp, "symbols",
         "optional_parameter_declaration", "identifier")
     print("PASS C/C++ grammar-specific member fallback contracts")
+
+    local named_probe =
+        scope_member_schema.named(
+            "function_definition",
+            "declarator",
+            "function",
+            {
+                owner_scope =
+                    "parent_lexical",
+                fallback_node_type =
+                    "identifier",
+            }
+        )
+
+    assert(
+        named_probe.syntax.node_type
+            == "function_definition"
+            and named_probe.syntax.fields.name
+                == "declarator"
+            and named_probe.syntax.children
+                .name.node_type
+                == "identifier"
+            and named_probe.member.kind
+                == "function"
+            and named_probe.member.language_term
+                == "function"
+            and named_probe.member.owner_scope
+                == "parent_lexical",
+        "shared named Scope Member builder changed declaration shape"
+    )
+
+    local invalid_group_probe =
+        vim.deepcopy(c)
+
+    invalid_group_probe.scope_members
+        .not_a_real_group = {
+            vim.deepcopy(
+                c.scope_members.symbols[1]
+            ),
+        }
+
+    local invalid_group_ok,
+        invalid_group_error =
+        contract.validate_adapter(
+            invalid_group_probe
+        )
+
+    assert(
+        not invalid_group_ok
+            and tostring(
+                invalid_group_error
+            ):find(
+                "not a supported Scope Member group",
+                1,
+                true
+            ),
+        "contract accepted a Scope Member group the runtime cannot collect"
+    )
+
+    print(
+        "PASS shared Scope Member adapter schema + named builder"
+    )
 
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.

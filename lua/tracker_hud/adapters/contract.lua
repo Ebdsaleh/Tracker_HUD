@@ -15,6 +15,7 @@
 
 local core = require("tracker_hud.core")
 local construct_contract = require("tracker_hud.constructs.contract")
+local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
 
 local M = {}
 
@@ -1089,6 +1090,16 @@ local function validate_scope_members(scope_members)
     for group_name, entries in pairs(scope_members) do
         if not core.is_non_empty_string(group_name) then
             return false, "adapter.scope_members keys must be non-empty strings"
+        end
+
+        if not scope_member_schema.is_supported_group(
+            group_name
+        ) then
+            return false,
+                "adapter.scope_members."
+                .. tostring(group_name)
+                .. " is not a supported Scope Member group; expected one of: "
+                .. scope_member_schema.supported_groups_text()
         end
 
         if not core.is_table(entries) then
