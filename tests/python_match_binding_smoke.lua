@@ -40,6 +40,11 @@ local function printed_bindings(members)
                     member.scope_depth
                     or "?"
                 )
+                .. ",struct="
+                .. tostring(
+                    member.structural_depth
+                    or "?"
+                )
                 .. ")"
         )
     end
@@ -60,6 +65,10 @@ local function run()
     local collector =
         require(
             "tracker_hud.scope_members"
+        )
+    local ts_utils =
+        require(
+            "tracker_hud.treesitter_utils"
         )
     local adapter =
         require(
@@ -133,6 +142,37 @@ local function run()
         "Python match-binding fixture contains parser ERROR nodes"
     )
 
+    local case_node =
+        ts_utils.find_first_descendant_by_type(
+            root,
+            "case_clause"
+        )
+
+    assert(
+        case_node,
+        "Python match-binding fixture missing case_clause"
+    )
+
+    local case_construct, case_err =
+        registry.parse_node(
+            "python",
+            case_node,
+            buffer
+        )
+
+    assert(
+        case_construct
+            and case_construct.scope
+            and case_construct.scope.kind
+                == "structural"
+            and case_construct.scope.affects_visibility
+                == true
+            and case_construct.scope.owns_members
+                == true,
+        "Python case_clause structural scope policy changed: "
+            .. tostring(case_err)
+    )
+
     local all =
         collector.collect(
             buffer,
@@ -164,15 +204,15 @@ local function run()
     )
 
     local expected = {
-        "payload",
-        "head",
-        "tail",
-        "name",
-        "rest",
-        "x",
-        "label",
-        "point",
-        "item",
+        { name = "payload", case_line = 12 },
+        { name = "head", case_line = 15 },
+        { name = "tail", case_line = 15 },
+        { name = "name", case_line = 18 },
+        { name = "rest", case_line = 18 },
+        { name = "x", case_line = 21 },
+        { name = "label", case_line = 21 },
+        { name = "point", case_line = 21 },
+        { name = "item", case_line = 27 },
     }
 
     assert(
@@ -181,7 +221,7 @@ local function run()
             .. tostring(#captures)
     )
 
-    for index, expected_name in ipairs(
+    for index, wanted in ipairs(
         expected
     ) do
         local actual =
@@ -190,11 +230,11 @@ local function run()
         assert(
             actual
                 and actual.name
-                    == expected_name,
+                    == wanted.name,
             "python match binding order changed at position "
                 .. tostring(index)
                 .. ": expected "
-                .. expected_name
+                .. wanted.name
                 .. ", got "
                 .. tostring(
                     actual
@@ -206,10 +246,33 @@ local function run()
         assert(
             actual.scope_depth == 2,
             "python match capture changed lexical depth for "
-                .. expected_name
+                .. wanted.name
                 .. ": expected 2, got "
                 .. tostring(
                     actual.scope_depth
+                )
+        )
+
+        assert(
+            actual.structural_depth == 2,
+            "python match capture changed structural depth for "
+                .. wanted.name
+                .. ": expected 2, got "
+                .. tostring(
+                    actual.structural_depth
+                )
+        )
+
+        assert(
+            actual.structural_scope_start_line
+                == wanted.case_line,
+            "python match capture lost case-clause ownership for "
+                .. wanted.name
+                .. ": expected structural start line "
+                .. tostring(wanted.case_line)
+                .. ", got "
+                .. tostring(
+                    actual.structural_scope_start_line
                 )
         )
     end
