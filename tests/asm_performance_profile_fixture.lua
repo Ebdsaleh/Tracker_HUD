@@ -339,6 +339,9 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.construct_scope_lookups",
+        "context.scope_members.construct_node_type_requests",
+        "context.scope_members.group_eligibility_node_type_requests",
+        "context.scope_members.candidate_node_type_requests",
         "context.scope_members.group_dispatch_calls",
         "context.scope_members.group_candidate_lookups",
         "context.scope_members.scope_filter_state_builds",
@@ -630,6 +633,60 @@ local function run()
                 scope_reuse_miss.total
             )
             .. " fresh discoverie(s); inactive groups are skipped before dispatcher entry"
+    )
+
+    local scope_construct_node_type_requests =
+        snapshot.counters[
+            "context.scope_members.construct_node_type_requests"
+        ]
+
+    local scope_group_eligibility_node_type_requests =
+        snapshot.counters[
+            "context.scope_members.group_eligibility_node_type_requests"
+        ]
+
+    local scope_candidate_node_type_requests =
+        snapshot.counters[
+            "context.scope_members.candidate_node_type_requests"
+        ]
+
+    assert(
+        type(scope_construct_node_type_requests) == "table"
+            and type(scope_group_eligibility_node_type_requests) == "table"
+            and type(scope_candidate_node_type_requests) == "table"
+            and scope_construct_node_type_requests.count
+                == scope_reuse_miss.total
+            and scope_construct_node_type_requests.total
+                == 5590
+            and scope_group_eligibility_node_type_requests.count
+                == scope_reuse_miss.total
+            and scope_group_eligibility_node_type_requests.total
+                == 11180
+            and scope_candidate_node_type_requests.count
+                == scope_reuse_miss.total
+            and scope_candidate_node_type_requests.total
+                == 1315,
+        "Scope Member node-type request overlap changed"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member node-type request overlap: "
+            .. tostring(
+                scope_construct_node_type_requests.total
+            )
+            .. " construct + "
+            .. tostring(
+                scope_group_eligibility_node_type_requests.total
+            )
+            .. " eligibility + "
+            .. tostring(
+                scope_candidate_node_type_requests.total
+            )
+            .. " candidate request(s) across "
+            .. tostring(
+                scope_reuse_miss.total
+            )
+            .. " fresh discoverie(s)"
     )
 
     local scope_filter_state_builds =
