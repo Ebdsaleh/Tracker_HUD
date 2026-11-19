@@ -817,6 +817,118 @@ local function run()
         "PASS shared rich construct schema + Lua/Python scoped constructs"
     )
 
+    local define_probe_specs = {}
+
+    local define_probe =
+        construct_schema.define(
+            define_probe_specs,
+            "compound_statement",
+            "block",
+            {
+                language_term =
+                    "compound block",
+                label = "Block",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        )
+
+    assert(
+        define_probe_specs.compound_statement
+            == define_probe
+            and define_probe.syntax.node_type
+                == "compound_statement"
+            and define_probe.construct.kind
+                == "block"
+            and define_probe.scope.kind
+                == "lexical",
+        "shared construct define helper changed incremental authoring semantics"
+    )
+
+    local c_function_construct =
+        c.construct_specs[
+            "function_definition"
+        ]
+
+    assert(
+        c_function_construct.syntax.fields
+            .declarator
+            == "declarator"
+            and c_function_construct.scope.kind
+                == "lexical"
+            and c_function_construct.scope
+                .affects_visibility
+                == true
+            and c_function_construct.scope
+                .owns_members
+                == true
+            and c_function_construct.signature
+                .strategy
+                == "first_line",
+        "C shared construct migration changed function semantics"
+    )
+
+    local c_if_construct =
+        c.construct_specs[
+            "if_statement"
+        ]
+
+    assert(
+        c_if_construct.scope.kind
+            == "structural"
+            and c_if_construct.scope
+                .affects_visibility
+                == true
+            and c_if_construct.scope
+                .owns_members
+                == false,
+        "C shared construct migration changed structural scope semantics"
+    )
+
+    local cpp_namespace_construct =
+        cpp.construct_specs[
+            "namespace_definition"
+        ]
+
+    assert(
+        cpp_namespace_construct.syntax.fields
+            .name
+            == "name"
+            and cpp_namespace_construct.scope.kind
+                == "lexical"
+            and cpp_namespace_construct.scope
+                .owns_members
+                == true,
+        "C++ shared construct migration changed namespace semantics"
+    )
+
+    local cpp_range_for_construct =
+        cpp.construct_specs[
+            "for_range_loop"
+        ]
+
+    assert(
+        cpp_range_for_construct.syntax.fields
+            .declarator
+            == "declarator"
+            and cpp_range_for_construct.scope.kind
+                == "structural"
+            and cpp_range_for_construct.scope
+                .affects_visibility
+                == true
+            and cpp_range_for_construct.scope
+                .owns_members
+                == false,
+        "C++ shared construct migration changed range-for semantics"
+    )
+
+    print(
+        "PASS shared construct define helper + C/C++ migration"
+    )
+
     -- Permanent panels are presentation sections, not claims about a
     -- program's compiled architecture, live stack, or allocated objects.
     -- Both adapters must keep the ASM section order, including empty panels.

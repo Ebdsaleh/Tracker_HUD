@@ -5,6 +5,7 @@
 
 local target_directives = require("tracker_hud.adapters.c.target_directives")
 local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
+local construct_schema = require("tracker_hud.adapters.construct_schema")
 
 local M = {
     contract_version = 1,
@@ -54,63 +55,348 @@ function M.configure_adapter_for_buffer(bufnr, config)
     M.active_targets = target_directives.resolve(bufnr, config, "c")
 end
 
-local function add_construct(node_type, kind, language_term, label, fields, scope_kind, signature)
-    local spec = {
-        syntax = { node_type = node_type },
-        construct = {
-            kind = kind,
-            language_term = language_term,
-            label = label,
+construct_schema.define(
+    M.construct_specs,
+    "translation_unit",
+    "module",
+    {
+        language_term = "translation unit",
+        label = "Translation Unit",
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
         },
     }
-    if fields then
-        spec.syntax.fields = fields
-    end
-    if scope_kind then
-        spec.scope = {
-            kind = scope_kind,
+)
+construct_schema.define(
+    M.construct_specs,
+    "function_definition",
+    "function",
+    {
+        language_term = "function",
+        label = "Function",
+        fields = {
+            declarator = "declarator",
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
             affects_visibility = true,
-            owns_members = scope_kind == "lexical",
+            owns_members = true,
+        },
+        signature = {
+            strategy = "first_line",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "compound_statement",
+    "block",
+    {
+        language_term = "compound block",
+        label = "Block",
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "struct_specifier",
+    "struct",
+    {
+        language_term = "struct",
+        label = "Struct",
+        fields = {
+            name = "name",
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+        signature = {
+            strategy = "first_line",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "union_specifier",
+    "union",
+    {
+        language_term = "union",
+        label = "Union",
+        fields = {
+            name = "name",
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+        signature = {
+            strategy = "first_line",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "enum_specifier",
+    "enum",
+    {
+        language_term = "enum",
+        label = "Enum",
+        fields = {
+            name = "name",
+            body = "body",
+        },
+        signature = {
+            strategy = "first_line",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "type_definition",
+    "type",
+    {
+        language_term = "typedef",
+        label = "Typedef",
+        fields = {
+            declarator = "declarator",
+        },
+        signature = {
+            strategy = "first_line",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "declaration",
+    "declaration",
+    {
+        language_term = "declaration",
+        label = "Declaration",
+        fields = {
+            declarator = "declarator",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "init_declarator",
+    "declaration",
+    {
+        language_term = "initializer",
+        label = "Initializer",
+        fields = {
+            declarator = "declarator",
+            value = "value",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "field_declaration",
+    "field",
+    {
+        language_term = "field",
+        label = "Field",
+        fields = {
+            declarator = "declarator",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "parameter_declaration",
+    "parameter",
+    {
+        language_term = "parameter",
+        label = "Parameter",
+        fields = {
+            declarator = "declarator",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "if_statement",
+    "branch",
+    {
+        language_term = "if",
+        label = "If",
+        fields = {
+            condition = "condition",
+            consequence = "consequence",
+        },
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
+for _, definition in ipairs({
+    { "else_clause", "branch", "else", "Else" },
+    { "switch_statement", "branch", "switch", "Switch" },
+    { "case_statement", "branch", "case", "Case" },
+}) do
+    construct_schema.define(
+        M.construct_specs,
+        definition[1],
+        definition[2],
+        {
+            language_term = definition[3],
+            label = definition[4],
+            scope = {
+                kind = "structural",
+                affects_visibility = true,
+                owns_members = false,
+            },
         }
-    end
-    if signature then
-        spec.signature = { strategy = "first_line" }
-    end
-    M.construct_specs[node_type] = spec
+    )
 end
+construct_schema.define(
+    M.construct_specs,
+    "for_statement",
+    "loop",
+    {
+        language_term = "for",
+        label = "For",
+        fields = {
+            body = "body",
+        },
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "while_statement",
+    "loop",
+    {
+        language_term = "while",
+        label = "While",
+        fields = {
+            condition = "condition",
+            body = "body",
+        },
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "do_statement",
+    "loop",
+    {
+        language_term = "do while",
+        label = "Do While",
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "assignment_expression",
+    "assignment",
+    {
+        language_term = "assignment",
+        label = "Assignment",
+        fields = {
+            left = "left",
+            right = "right",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "call_expression",
+    "call",
+    {
+        language_term = "function call",
+        label = "Call",
+        fields = {
+            function_name = "function",
+            arguments = "arguments",
+        },
+    }
+)
+for _, definition in ipairs({
+    { "return_statement", "return", "return", "Return" },
+    { "identifier", "symbol", "identifier", "Identifier" },
+    { "field_identifier", "symbol", "field identifier", "Field Identifier" },
+    { "type_identifier", "type", "type identifier", "Type Identifier" },
+    { "number_literal", "literal", "number literal", "Number" },
+    { "string_literal", "literal", "string literal", "String" },
+    { "char_literal", "literal", "character literal", "Character" },
+}) do
+    construct_schema.define(
+        M.construct_specs,
+        definition[1],
+        definition[2],
+        {
+            language_term = definition[3],
+            label = definition[4],
+        }
+    )
+end
+construct_schema.define(
+    M.construct_specs,
+    "preproc_include",
+    "declaration",
+    {
+        language_term = "include",
+        label = "Include",
+        fields = {
+            path = "path",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "preproc_def",
+    "declaration",
+    {
+        language_term = "macro definition",
+        label = "Macro",
+        fields = {
+            name = "name",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "pointer_declarator",
+    "declaration",
+    {
+        language_term =
+            "pointer declarator",
+        label = "Pointer Declarator",
+        fields = {
+            declarator = "declarator",
+        },
+    }
+)
 
-add_construct("translation_unit", "module", "translation unit", "Translation Unit", nil, "lexical", false)
-add_construct("function_definition", "function", "function", "Function", { declarator = "declarator", body = "body" }, "lexical", true)
-add_construct("compound_statement", "block", "compound block", "Block", nil, "lexical", false)
-add_construct("struct_specifier", "struct", "struct", "Struct", { name = "name", body = "body" }, "lexical", true)
-add_construct("union_specifier", "union", "union", "Union", { name = "name", body = "body" }, "lexical", true)
-add_construct("enum_specifier", "enum", "enum", "Enum", { name = "name", body = "body" }, nil, true)
-add_construct("type_definition", "type", "typedef", "Typedef", { declarator = "declarator" }, nil, true)
-add_construct("declaration", "declaration", "declaration", "Declaration", { declarator = "declarator" }, nil, false)
-add_construct("init_declarator", "declaration", "initializer", "Initializer", { declarator = "declarator", value = "value" }, nil, false)
-add_construct("field_declaration", "field", "field", "Field", { declarator = "declarator" }, nil, false)
-add_construct("parameter_declaration", "parameter", "parameter", "Parameter", { declarator = "declarator" }, nil, false)
-add_construct("if_statement", "branch", "if", "If", { condition = "condition", consequence = "consequence" }, "structural", false)
-add_construct("else_clause", "branch", "else", "Else", nil, "structural", false)
-add_construct("switch_statement", "branch", "switch", "Switch", nil, "structural", false)
-add_construct("case_statement", "branch", "case", "Case", nil, "structural", false)
-add_construct("for_statement", "loop", "for", "For", { body = "body" }, "structural", false)
-add_construct("while_statement", "loop", "while", "While", { condition = "condition", body = "body" }, "structural", false)
-add_construct("do_statement", "loop", "do while", "Do While", nil, "structural", false)
-add_construct("assignment_expression", "assignment", "assignment", "Assignment", { left = "left", right = "right" }, nil, false)
-add_construct("call_expression", "call", "function call", "Call", { function_name = "function", arguments = "arguments" }, nil, false)
-add_construct("return_statement", "return", "return", "Return", nil, nil, false)
-add_construct("preproc_include", "declaration", "include", "Include", { path = "path" }, nil, false)
-add_construct("preproc_def", "declaration", "macro definition", "Macro", { name = "name" }, nil, false)
-add_construct("identifier", "symbol", "identifier", "Identifier", nil, nil, false)
-add_construct("field_identifier", "symbol", "field identifier", "Field Identifier", nil, nil, false)
-add_construct("type_identifier", "type", "type identifier", "Type Identifier", nil, nil, false)
-add_construct("number_literal", "literal", "number literal", "Number", nil, nil, false)
-add_construct("string_literal", "literal", "string literal", "String", nil, nil, false)
-add_construct("char_literal", "literal", "character literal", "Character", nil, nil, false)
-add_construct("pointer_declarator", "declaration", "pointer declarator", "Pointer Declarator", { declarator = "declarator" }, nil, false)
-
--- Keep the named AST field as primary evidence. Parser versions can differ
+-- Keep the named AST field as primary evidence.-- Keep the named AST field as primary evidence. Parser versions can differ
 -- in direct field exposure, so named-binding specs can declare an exact AST
 -- fallback without duplicating the Adapter Contract table shape here.
 

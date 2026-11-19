@@ -71,4 +71,27 @@ function M.rule(
 end
 
 
+-- Incremental adapter authoring helper.
+--
+-- This is intentionally only a convenience around rule(): it creates the
+-- same plain Adapter Contract table and stores it by Tree-sitter node type.
+function M.define(
+    construct_specs,
+    node_type,
+    kind,
+    opts
+)
+    local spec =
+        M.rule(
+            node_type,
+            kind,
+            opts
+        )
+
+    construct_specs[node_type] = spec
+
+    return spec
+end
+
+
 return M

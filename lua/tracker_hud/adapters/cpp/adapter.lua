@@ -5,6 +5,7 @@
 local M = vim.deepcopy(require("tracker_hud.adapters.c.adapter"))
 local target_directives = require("tracker_hud.adapters.c.target_directives")
 local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
+local construct_schema = require("tracker_hud.adapters.construct_schema")
 
 M.name = "cpp"
 M.filetypes = { "cpp" }
@@ -22,58 +23,178 @@ function M.configure_adapter_for_buffer(bufnr, config)
     M.active_targets = target_directives.resolve(bufnr, config, "cpp")
 end
 
-local function add_construct(node_type, kind, language_term, label, fields, scope_kind)
-    local spec = {
-        syntax = { node_type = node_type },
-        construct = {
-            kind = kind,
-            language_term = language_term,
-            label = label,
+construct_schema.define(
+    M.construct_specs,
+    "namespace_definition",
+    "namespace",
+    {
+        language_term = "namespace",
+        label = "Namespace",
+        fields = {
+            name = "name",
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
         },
     }
-    if fields then
-        spec.syntax.fields = fields
-    end
-    if scope_kind then
-        spec.scope = {
-            kind = scope_kind,
+)
+construct_schema.define(
+    M.construct_specs,
+    "class_specifier",
+    "class",
+    {
+        language_term = "class",
+        label = "Class",
+        fields = {
+            name = "name",
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
             affects_visibility = true,
-            owns_members = scope_kind == "lexical",
+            owns_members = true,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "template_declaration",
+    "declaration",
+    {
+        language_term = "template",
+        label = "Template",
+        fields = {
+            parameters = "parameters",
+        },
+    }
+)
+for _, definition in ipairs({
+    { "access_specifier", "declaration", "access specifier", "Access" },
+    { "using_declaration", "declaration", "using declaration", "Using" },
+    { "delete_expression", "call", "delete expression", "Delete" },
+    { "reference_declarator", "declaration", "reference declarator", "Reference" },
+    { "throw_statement", "call", "throw", "Throw" },
+    { "co_return_statement", "return", "co_return", "Co Return" },
+}) do
+    construct_schema.define(
+        M.construct_specs,
+        definition[1],
+        definition[2],
+        {
+            language_term = definition[3],
+            label = definition[4],
         }
-    end
-    M.construct_specs[node_type] = spec
+    )
 end
+construct_schema.define(
+    M.construct_specs,
+    "alias_declaration",
+    "type",
+    {
+        language_term = "type alias",
+        label = "Type Alias",
+        fields = {
+            name = "name",
+            type = "type",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "lambda_expression",
+    "function",
+    {
+        language_term = "lambda",
+        label = "Lambda",
+        fields = {
+            body = "body",
+        },
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "new_expression",
+    "call",
+    {
+        language_term =
+            "new expression",
+        label = "New",
+        fields = {
+            type = "type",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "optional_parameter_declaration",
+    "parameter",
+    {
+        language_term =
+            "defaulted parameter",
+        label = "Defaulted Parameter",
+        fields = {
+            declarator = "declarator",
+            default_value =
+                "default_value",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "variadic_parameter_declaration",
+    "parameter",
+    {
+        language_term =
+            "variadic parameter",
+        label = "Variadic Parameter",
+        fields = {
+            declarator = "declarator",
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "for_range_loop",
+    "loop",
+    {
+        language_term = "range-for",
+        label = "Range For",
+        fields = {
+            declarator = "declarator",
+            right = "right",
+            body = "body",
+        },
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
+construct_schema.define(
+    M.construct_specs,
+    "try_statement",
+    "block",
+    {
+        language_term = "try",
+        label = "Try",
+        scope = {
+            kind = "structural",
+            affects_visibility = true,
+            owns_members = false,
+        },
+    }
+)
 
-add_construct("namespace_definition", "namespace", "namespace", "Namespace",
-    { name = "name", body = "body" }, "lexical")
-add_construct("class_specifier", "class", "class", "Class",
-    { name = "name", body = "body" }, "lexical")
-add_construct("template_declaration", "declaration", "template", "Template",
-    { parameters = "parameters" }, nil)
-add_construct("access_specifier", "declaration", "access specifier", "Access", nil, nil)
-add_construct("alias_declaration", "type", "type alias", "Type Alias",
-    { name = "name", type = "type" }, nil)
-add_construct("using_declaration", "declaration", "using declaration", "Using", nil, nil)
-add_construct("lambda_expression", "function", "lambda", "Lambda",
-    { body = "body" }, "lexical")
-add_construct("new_expression", "call", "new expression", "New",
-    { type = "type" }, nil)
-add_construct("delete_expression", "call", "delete expression", "Delete", nil, nil)
-add_construct("optional_parameter_declaration", "parameter",
-    "defaulted parameter", "Defaulted Parameter",
-    { declarator = "declarator", default_value = "default_value" }, nil)
-add_construct("variadic_parameter_declaration", "parameter",
-    "variadic parameter", "Variadic Parameter",
-    { declarator = "declarator" }, nil)
-add_construct("reference_declarator", "declaration", "reference declarator", "Reference",
-    nil, nil)
-add_construct("for_range_loop", "loop", "range-for", "Range For",
-    { declarator = "declarator", right = "right", body = "body" }, "structural")
-add_construct("throw_statement", "call", "throw", "Throw", nil, nil)
-add_construct("try_statement", "block", "try", "Try", nil, "structural")
-add_construct("co_return_statement", "return", "co_return", "Co Return", nil, nil)
-
--- C++ class, namespace, and alias declarations add visible source symbols.
+-- C++ class, namespace, and alias declarations add visible source symbols.-- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
 
 -- C++ adds defaulted and variadic parameter syntax nodes beyond C's
