@@ -374,6 +374,26 @@ M.construct_specs = {
         ),
 
 
+    ["named_expression"] =
+        construct_schema.rule(
+            "named_expression",
+            "assignment",
+            {
+                language_term =
+                    "named expression",
+                label =
+                    "Named Expression",
+                fields = {
+                    name = "name",
+                    value = "value",
+                },
+                tokens = {
+                    operator = ":=",
+                },
+            }
+        ),
+
+
     ["return_statement"] =
         construct_schema.rule(
             "return_statement",
@@ -689,6 +709,23 @@ M.scope_members = {
                     ancestor_node_types = {
                         "case_clause",
                     },
+                },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
+        scope_member_schema.rule(
+            "named_expression",
+            "assignment",
+            {
+                language_term =
+                    "named expression",
+                fields = {
+                    name = "name",
+                    value = "value",
+                },
+                tokens = {
+                    operator = ":=",
                 },
                 binding_mutability =
                     "mutable",

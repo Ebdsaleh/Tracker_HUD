@@ -626,6 +626,29 @@ local function run()
         "Python with-alias binding contract changed"
     )
 
+    local python_named_expression =
+        python_adapter.scope_members
+            .symbols[6]
+
+    assert(
+        python_named_expression.syntax.node_type
+            == "named_expression"
+            and python_named_expression.syntax.fields.name
+                == "name"
+            and python_named_expression.syntax.fields.value
+                == "value"
+            and python_named_expression.syntax.tokens.operator
+                == ":="
+            and python_named_expression.member.kind
+                == "assignment"
+            and python_named_expression.member.language_term
+                == "named expression"
+            and python_named_expression.member.mutability
+                .binding
+                == "mutable",
+        "Python named-expression binding contract changed"
+    )
+
     local python_return =
         python_adapter.scope_members
             .returns[1]
@@ -742,6 +765,27 @@ local function run()
             and python_call_construct.value.type_label
                 == "call",
         "Python simple construct migration changed call semantics"
+    )
+
+    local python_named_expression_construct =
+        python_adapter.construct_specs[
+            "named_expression"
+        ]
+
+    assert(
+        python_named_expression_construct.syntax.node_type
+            == "named_expression"
+            and python_named_expression_construct.syntax.fields.name
+                == "name"
+            and python_named_expression_construct.syntax.fields.value
+                == "value"
+            and python_named_expression_construct.syntax.tokens.operator
+                == ":="
+            and python_named_expression_construct.construct.kind
+                == "assignment"
+            and python_named_expression_construct.construct.language_term
+                == "named expression",
+        "Python named-expression construct contract changed"
     )
 
     print(
