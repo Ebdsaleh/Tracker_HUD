@@ -676,6 +676,24 @@ M.scope_members = {
                     "mutable",
             }
         ),
+        scope_member_schema.rule(
+            "as_pattern",
+            "assignment",
+            {
+                language_term =
+                    "context manager alias",
+                fields = {
+                    name = "alias",
+                },
+                exclusions = {
+                    ancestor_node_types = {
+                        "case_clause",
+                    },
+                },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
     },
 
     returns = {

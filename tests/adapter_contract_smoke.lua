@@ -604,6 +604,28 @@ local function run()
         "Python assignment migration changed Scope Member semantics"
     )
 
+    local python_with_binding =
+        python_adapter.scope_members
+            .symbols[5]
+
+    assert(
+        python_with_binding.syntax.node_type
+            == "as_pattern"
+            and python_with_binding.syntax.fields.name
+                == "alias"
+            and python_with_binding.syntax.exclusions
+                .ancestor_node_types[1]
+                == "case_clause"
+            and python_with_binding.member.kind
+                == "assignment"
+            and python_with_binding.member.language_term
+                == "context manager alias"
+            and python_with_binding.member.mutability
+                .binding
+                == "mutable",
+        "Python with-alias binding contract changed"
+    )
+
     local python_return =
         python_adapter.scope_members
             .returns[1]
