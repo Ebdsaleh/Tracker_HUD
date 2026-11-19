@@ -21,6 +21,39 @@ local member_kind_labels = {
     parameter = "param",
 }
 
+
+local function copy_structural_path(path)
+    local result = {}
+
+    for _, frame in ipairs(path or {}) do
+        if core.is_table(frame) then
+            table.insert(
+                result,
+                {
+                    depth = frame.depth,
+                    node_type = frame.node_type,
+                    construct_kind =
+                        frame.construct_kind,
+                    language_term =
+                        frame.language_term,
+                    label = frame.label,
+
+                    start_line =
+                        frame.start_line,
+                    start_column =
+                        frame.start_column,
+                    end_line =
+                        frame.end_line,
+                    end_column =
+                        frame.end_column,
+                }
+            )
+        end
+    end
+
+    return result
+end
+
 function M.get_kind_label(kind)
     if not core.is_non_empty_string(kind) then
         return nil
@@ -135,6 +168,10 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         scope_end_column = scope_range and scope_range.end_column,
 
         structural_depth = structural_depth,
+        structural_path =
+            copy_structural_path(
+                state.structural_path
+            ),
         structural_scope_start_line =
             structural_range
             and structural_range.start_line,

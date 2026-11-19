@@ -221,6 +221,8 @@ local function with_scope_depth_filter(
             state.structural_depth,
         structural_range =
             state.structural_range,
+        structural_path =
+            state.structural_path,
         measurement =
             state.measurement,
         scope_depth_filter =
@@ -797,7 +799,8 @@ local function make_state(
     scope_range,
     structural_depth,
     structural_range,
-    measurement
+    measurement,
+    structural_path
 )
     return {
         opts = opts or {},
@@ -806,9 +809,28 @@ local function make_state(
 
         structural_depth = structural_depth or 0,
         structural_range = structural_range,
+        structural_path = structural_path or {},
 
         measurement = measurement,
     }
+end
+
+
+local function append_structural_path(
+    path,
+    frame
+)
+    local result = {}
+
+    for index, existing in ipairs(
+        path or {}
+    ) do
+        result[index] = existing
+    end
+
+    table.insert(result, frame)
+
+    return result
 end
 
 
@@ -1571,7 +1593,8 @@ local function make_structural_member_state(state)
             state.structural_range or state.scope_range,
             state.structural_depth,
             state.structural_range,
-            state.measurement
+            state.measurement,
+            state.structural_path
         )
 
     result.scope_depth_filter =
@@ -2325,7 +2348,8 @@ local function walk_node(
             ts_utils.get_node_range(node),
             state.structural_depth,
             state.structural_range,
-            state.measurement
+            state.measurement,
+            state.structural_path
         )
     end
 
@@ -2338,13 +2362,55 @@ local function walk_node(
             == true
 
     if creates_structural_scope then
+        local structural_range =
+            ts_utils.get_node_range(node)
+
+        local construct =
+            core.is_table(
+                construct_spec.construct
+            )
+            and construct_spec.construct
+            or {}
+
+        local structural_depth =
+            current_state.structural_depth
+            + 1
+
+        local structural_path =
+            append_structural_path(
+                current_state.structural_path,
+                {
+                    depth = structural_depth,
+                    node_type = node_type,
+                    construct_kind =
+                        construct.kind,
+                    language_term =
+                        construct.language_term,
+                    label = construct.label,
+
+                    start_line =
+                        structural_range
+                        and structural_range.start_line,
+                    start_column =
+                        structural_range
+                        and structural_range.start_column,
+                    end_line =
+                        structural_range
+                        and structural_range.end_line,
+                    end_column =
+                        structural_range
+                        and structural_range.end_column,
+                }
+            )
+
         current_state = make_state(
             current_state.opts,
             current_state.scope_depth,
             current_state.scope_range,
-            current_state.structural_depth + 1,
-            ts_utils.get_node_range(node),
-            current_state.measurement
+            structural_depth,
+            structural_range,
+            current_state.measurement,
+            structural_path
         )
     end
 
