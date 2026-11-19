@@ -1768,6 +1768,41 @@ local function walk_node(
     local node_type =
         node:type()
 
+    local measurement =
+        state.measurement
+
+    if core.is_table(measurement)
+        and core.is_non_empty_string(
+            node_type
+        )
+    then
+        local seen_node_types =
+            measurement.seen_node_types
+
+        if not core.is_table(
+            seen_node_types
+        ) then
+            seen_node_types = {}
+            measurement.seen_node_types =
+                seen_node_types
+        end
+
+        if seen_node_types[
+            node_type
+        ] ~= true
+        then
+            seen_node_types[
+                node_type
+            ] = true
+
+            count_measurement(
+                state,
+                "distinct_node_types",
+                1
+            )
+        end
+    end
+
     local current_state = state
 
     local function_group_index =
@@ -1807,6 +1842,16 @@ local function walk_node(
         1
     )
 
+    if core.is_table(
+        construct_spec
+    ) then
+        count_measurement(
+            state,
+            "construct_spec_hits",
+            1
+        )
+    end
+
     local construct_scope =
         core.is_table(construct_spec)
         and core.is_table(
@@ -1814,6 +1859,16 @@ local function walk_node(
         )
         and construct_spec.scope
         or nil
+
+    if core.is_table(
+        construct_scope
+    ) then
+        count_measurement(
+            state,
+            "construct_scope_hits",
+            1
+        )
+    end
 
     local creates_lexical_scope =
         core.is_table(construct_scope)
@@ -1890,6 +1945,10 @@ local function collect_internal(
         nodes_visited = 0,
         spec_checks = 0,
         construct_scope_lookups = 0,
+        construct_spec_hits = 0,
+        construct_scope_hits = 0,
+        distinct_node_types = 0,
+        seen_node_types = {},
         node_type_requests = 0,
         group_dispatch_calls = 0,
         group_candidate_lookups = 0,
@@ -1942,6 +2001,24 @@ local function collect_internal(
         opts,
         "construct_scope_lookups",
         measurement.construct_scope_lookups
+    )
+
+    profile_counter(
+        opts,
+        "construct_spec_hits",
+        measurement.construct_spec_hits
+    )
+
+    profile_counter(
+        opts,
+        "construct_scope_hits",
+        measurement.construct_scope_hits
+    )
+
+    profile_counter(
+        opts,
+        "distinct_node_types",
+        measurement.distinct_node_types
     )
 
     profile_counter(

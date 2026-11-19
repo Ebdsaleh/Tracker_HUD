@@ -339,6 +339,9 @@ local function run()
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
         "context.scope_members.construct_scope_lookups",
+        "context.scope_members.construct_spec_hits",
+        "context.scope_members.construct_scope_hits",
+        "context.scope_members.distinct_node_types",
         "context.scope_members.node_type_requests",
         "context.scope_members.group_dispatch_calls",
         "context.scope_members.group_candidate_lookups",
@@ -570,6 +573,66 @@ local function run()
                 scope_nodes.total
             )
             .. " visited node(s); lexical + structural decisions share one lookup"
+    )
+
+    local scope_construct_spec_hits =
+        snapshot.counters[
+            "context.scope_members.construct_spec_hits"
+        ]
+
+    local scope_construct_scope_hits =
+        snapshot.counters[
+            "context.scope_members.construct_scope_hits"
+        ]
+
+    local scope_distinct_node_types =
+        snapshot.counters[
+            "context.scope_members.distinct_node_types"
+        ]
+
+    assert(
+        type(scope_construct_spec_hits) == "table"
+            and type(scope_construct_scope_hits) == "table"
+            and type(scope_distinct_node_types) == "table"
+            and scope_construct_spec_hits.count
+                == scope_reuse_miss.total
+            and scope_construct_scope_hits.count
+                == scope_reuse_miss.total
+            and scope_distinct_node_types.count
+                == scope_reuse_miss.total
+            and scope_construct_spec_hits.total
+                <= scope_construct_lookups.total
+            and scope_construct_scope_hits.total
+                <= scope_construct_spec_hits.total
+            and scope_distinct_node_types.total
+                > 0
+            and scope_distinct_node_types.total
+                <= scope_construct_lookups.total,
+        "Scope Member construct classification opportunity changed"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member construct classification opportunity: "
+            .. tostring(
+                scope_construct_lookups.total
+            )
+            .. " lookup(s) across "
+            .. tostring(
+                scope_distinct_node_types.total
+            )
+            .. " distinct node-type occurrence(s) over "
+            .. tostring(
+                scope_reuse_miss.total
+            )
+            .. " fresh discoverie(s); "
+            .. tostring(
+                scope_construct_spec_hits.total
+            )
+            .. " construct-spec hit(s), "
+            .. tostring(
+                scope_construct_scope_hits.total
+            )
+            .. " scope-bearing hit(s)"
     )
 
     local scope_group_lookups =
