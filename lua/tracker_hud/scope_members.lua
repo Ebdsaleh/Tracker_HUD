@@ -366,23 +366,18 @@ end
 
 local function member_group_candidates(
     group_index,
-    node,
-    state
+    node_type
 )
-    if not core.is_table(group_index)
-        or not node
-    then
+    if not core.is_table(group_index) then
         return {}
     end
 
-    count_measurement(
-        state,
-        "candidate_node_type_requests",
-        1
-    )
-
-    local node_type =
-        node:type()
+    if not core.is_non_empty_string(
+        node_type
+    ) then
+        return group_index.untyped
+            or {}
+    end
 
     local cached =
         group_index
@@ -469,12 +464,9 @@ end
 
 local function member_group_can_match_node(
     group_index,
-    node,
-    state
+    node_type
 )
-    if not core.is_table(group_index)
-        or not node
-    then
+    if not core.is_table(group_index) then
         return false
     end
 
@@ -486,14 +478,11 @@ local function member_group_can_match_node(
         return true
     end
 
-    count_measurement(
-        state,
-        "group_eligibility_node_type_requests",
-        1
-    )
-
-    local node_type =
-        node:type()
+    if not core.is_non_empty_string(
+        node_type
+    ) then
+        return false
+    end
 
     local typed =
         group_index.by_node_type[
@@ -1415,7 +1404,8 @@ local function collect_member_group(
     seen,
     state,
     collector,
-    adapter
+    adapter,
+    node_type
 )
     count_measurement(
         state,
@@ -1436,8 +1426,7 @@ local function collect_member_group(
 
     if not member_group_can_match_node(
         group_index,
-        node,
-        state
+        node_type
     ) then
         return
     end
@@ -1451,8 +1440,7 @@ local function collect_member_group(
     local candidates =
         member_group_candidates(
             group_index,
-            node,
-            state
+            node_type
         )
 
     if #candidates == 0 then
@@ -1509,7 +1497,8 @@ local function collect_member_group_before_scope_enter(
     seen,
     state,
     collector,
-    adapter
+    adapter,
+    node_type
 )
     count_measurement(
         state,
@@ -1526,8 +1515,7 @@ local function collect_member_group_before_scope_enter(
 
     if not member_group_can_match_node(
         group_index,
-        node,
-        state
+        node_type
     ) then
         return
     end
@@ -1541,8 +1529,7 @@ local function collect_member_group_before_scope_enter(
     local candidates =
         member_group_candidates(
             group_index,
-            node,
-            state
+            node_type
         )
 
     if #candidates == 0 then
@@ -1615,7 +1602,8 @@ local function collect_from_node(
     member_spec_index,
     members,
     seen,
-    state
+    state,
+    node_type
 )
     if not node
         or not core.is_table(adapter)
@@ -1651,7 +1639,8 @@ local function collect_from_node(
             member_group_collectors[
                 group_name
             ],
-            adapter
+            adapter,
+            node_type
         )
     end
 end
@@ -1678,6 +1667,15 @@ local function walk_node(
         1
     )
 
+    count_measurement(
+        state,
+        "node_type_requests",
+        1
+    )
+
+    local node_type =
+        node:type()
+
     local current_state = state
 
     local function_group_index =
@@ -1695,20 +1693,16 @@ local function walk_node(
             seen,
             state,
             collect_function_member_spec,
-            adapter
+            adapter,
+            node_type
         )
     end
-
-    count_measurement(
-        state,
-        "construct_node_type_requests",
-        1
-    )
 
     local construct_spec =
         construct_utils.get_construct_spec(
             node,
-            adapter
+            adapter,
+            node_type
         )
 
     count_measurement(
@@ -1770,7 +1764,8 @@ local function walk_node(
         member_spec_index,
         members,
         seen,
-        current_state
+        current_state,
+        node_type
     )
 
     for child in node:iter_children() do
@@ -1799,11 +1794,9 @@ local function collect_internal(
         nodes_visited = 0,
         spec_checks = 0,
         construct_scope_lookups = 0,
-        construct_node_type_requests = 0,
+        node_type_requests = 0,
         group_dispatch_calls = 0,
-        group_eligibility_node_type_requests = 0,
         group_candidate_lookups = 0,
-        candidate_node_type_requests = 0,
         scope_filter_state_builds = 0,
     }
 
@@ -1857,20 +1850,8 @@ local function collect_internal(
 
     profile_counter(
         opts,
-        "construct_node_type_requests",
-        measurement.construct_node_type_requests
-    )
-
-    profile_counter(
-        opts,
-        "group_eligibility_node_type_requests",
-        measurement.group_eligibility_node_type_requests
-    )
-
-    profile_counter(
-        opts,
-        "candidate_node_type_requests",
-        measurement.candidate_node_type_requests
+        "node_type_requests",
+        measurement.node_type_requests
     )
 
     profile_counter(

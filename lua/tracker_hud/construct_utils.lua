@@ -11,12 +11,33 @@ local ts_utils = require("tracker_hud.treesitter_utils")
 local M = {}
 
 
-function M.get_construct_spec(node, adapter)
-    if not node or not core.is_table(adapter) or not core.is_table(adapter.construct_specs) then
+function M.get_construct_spec(
+    node,
+    adapter,
+    node_type
+)
+    if not node
+        or not core.is_table(adapter)
+        or not core.is_table(
+            adapter.construct_specs
+        )
+    then
         return nil
     end
 
-    return adapter.construct_specs[node:type()]
+    local resolved_node_type =
+        node_type
+
+    if not core.is_non_empty_string(
+        resolved_node_type
+    ) then
+        resolved_node_type =
+            node:type()
+    end
+
+    return adapter.construct_specs[
+        resolved_node_type
+    ]
 end
 
 
