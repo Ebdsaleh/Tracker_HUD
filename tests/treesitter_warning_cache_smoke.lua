@@ -13,6 +13,11 @@ local provider =
         "tracker_hud.treesitter_errors"
     )
 
+local source_node_snapshot =
+    require(
+        "tracker_hud.source_node_snapshot"
+    )
+
 
 local function fake_node(
     node_type,
@@ -212,6 +217,77 @@ assert(
     "syntax-warning discovery retained parser node identity"
 )
 
+local shared_counters = {}
+
+local function add_shared_counter(
+    name,
+    delta
+)
+    shared_counters[name] =
+        (shared_counters[name] or 0)
+        + (delta or 1)
+end
+
+local shared_snapshot =
+    source_node_snapshot.new(
+        root,
+        {
+            profile_prefix =
+                "context.source_nodes",
+            profile_counter =
+                add_shared_counter,
+        }
+    )
+
+local shared_descriptors =
+    provider.discover(
+        root,
+        {
+            source_node_snapshot =
+                shared_snapshot,
+            profile_counter =
+                add_shared_counter,
+        }
+    )
+
+local shared_descriptors_again =
+    provider.discover(
+        root,
+        {
+            source_node_snapshot =
+                shared_snapshot,
+            profile_counter =
+                add_shared_counter,
+        }
+    )
+
+assert(
+    #shared_descriptors == 1
+        and #shared_descriptors_again == 1
+        and shared_descriptors[1].node_type
+            == descriptors[1].node_type
+        and shared_descriptors[1].range.source_line
+            == descriptors[1].range.source_line
+        and shared_descriptors[1].node
+            == nil
+        and shared_counters[
+            "context.source_nodes.walks"
+        ] == 1
+        and shared_counters[
+            "context.source_nodes.nodes_visited"
+        ] == 2
+        and shared_counters[
+            "context.warnings.syntax.shared_snapshot_hits"
+        ] == 2
+        and shared_counters[
+            "context.warnings.syntax.scans"
+        ] == nil
+        and shared_counters[
+            "context.warnings.syntax.nodes_visited"
+        ] == nil,
+    "shared Tree-sitter snapshot warning discovery changed semantics or repeated the source walk"
+)
+
 vim.api.nvim_buf_set_lines(
     buffer,
     0,
@@ -306,6 +382,11 @@ print(
 print(
     "PASS Tree-sitter warning cache: "
         .. "edits and buffer identity invalidate safely"
+)
+
+print(
+    "PASS Tree-sitter warning cache: "
+        .. "refresh-local source snapshot preserves discovery semantics"
 )
 
 print(

@@ -345,15 +345,16 @@ local function run()
         "context.warnings.syntax.cross_refresh_reuse_possible",
         "context.warnings.syntax.cross_refresh_reuse_applied",
         "context.warnings.syntax.cross_refresh_reuse_miss",
-        "context.warnings.syntax.scans",
-        "context.warnings.syntax.nodes_visited",
+        "context.warnings.syntax.shared_snapshot_hits",
         "context.warnings.syntax.candidates",
+        "context.source_nodes.walks",
+        "context.source_nodes.nodes_visited",
         "context.configure.adapter.directive_scans",
         "context.configure.adapter.directive_scans.shared",
         "context.configure.adapter.variant.identity_checks",
         "context.configure.adapter.variant.same_identity",
         "context.scopes.range_scope_scans",
-        "context.scopes.range_scope_nodes_visited",
+        "context.scopes.range_scope_shared_snapshot_hits",
         "context.scopes.range_scope_nodes_matched",
         "context.stack.dynamic.nodes.lookup_attempts",
         "context.boundary.nodes.lookup_attempts",
@@ -547,9 +548,9 @@ local function run()
             "context.scopes.range_scope_scans"
         ]
 
-    local range_scope_nodes =
+    local range_scope_snapshot_hits =
         snapshot.counters[
-            "context.scopes.range_scope_nodes_visited"
+            "context.scopes.range_scope_shared_snapshot_hits"
         ]
 
     local range_scope_matches =
@@ -560,25 +561,30 @@ local function run()
     assert(
         range_scope_scans.count
             == range_scope_reuse_miss.total
-            and range_scope_nodes.count
+            and range_scope_snapshot_hits.count
                 == range_scope_reuse_miss.total
             and range_scope_matches.count
                 == range_scope_reuse_miss.total
             and range_scope_scans.total
-                == range_scope_reuse_miss.total,
-        "fresh Range Scope traversal did not align with cache misses"
+                == range_scope_reuse_miss.total
+            and range_scope_snapshot_hits.total
+                == range_scope_reuse_miss.total
+            and snapshot.counters[
+                "context.scopes.range_scope_nodes_visited"
+            ] == nil,
+        "fresh Range Scope discovery did not reuse shared source nodes"
     )
 
     print(
-        "[Tracker_HUD] Range-scope traversal: "
+        "[Tracker_HUD] Range-scope shared source: "
             .. tostring(
-                range_scope_nodes.total
+                range_scope_snapshot_hits.total
             )
-            .. " nodes visited across "
+            .. " snapshot hit(s) across "
             .. tostring(
                 range_scope_scans.total
             )
-            .. " scan(s), "
+            .. " discovery scan(s), "
             .. tostring(
                 range_scope_matches.total
             )
@@ -798,14 +804,9 @@ local function run()
             .. " refreshes"
     )
 
-    local warning_scans =
+    local warning_snapshot_hits =
         snapshot.counters[
-            "context.warnings.syntax.scans"
-        ]
-
-    local warning_nodes =
-        snapshot.counters[
-            "context.warnings.syntax.nodes_visited"
+            "context.warnings.syntax.shared_snapshot_hits"
         ]
 
     local warning_candidates =
@@ -814,68 +815,67 @@ local function run()
         ]
 
     assert(
-        warning_scans.count
+        warning_snapshot_hits.count
             == warning_reuse_miss.total
-            and warning_nodes.count
+            and warning_snapshot_hits.total
                 == warning_reuse_miss.total
             and warning_candidates.count
                 == warning_reuse_miss.total
-            and warning_scans.total
-                == warning_reuse_miss.total
-            and warning_nodes.total
-                == 5590
             and warning_candidates.total
-                == 15,
-        "fresh Tree-sitter warning traversal did not align with cache misses"
+                == 15
+            and snapshot.counters[
+                "context.warnings.syntax.scans"
+            ] == nil
+            and snapshot.counters[
+                "context.warnings.syntax.nodes_visited"
+            ] == nil,
+        "fresh Tree-sitter warning discovery did not reuse shared source nodes"
     )
 
     print(
-        "[Tracker_HUD] Tree-sitter warning traversal: "
+        "[Tracker_HUD] Tree-sitter warning shared source: "
             .. tostring(
-                warning_nodes.total
+                warning_snapshot_hits.total
             )
-            .. " nodes across "
-            .. tostring(
-                warning_scans.total
-            )
-            .. " scan(s), "
+            .. " snapshot hit(s), "
             .. tostring(
                 warning_candidates.total
             )
             .. " ERROR/MISSING candidate(s)"
     )
 
-    local stateless_source_walks =
-        range_scope_scans.total
-        + warning_scans.total
+    local shared_source_walks =
+        snapshot.counters[
+            "context.source_nodes.walks"
+        ]
 
-    local stateless_source_node_visits =
-        range_scope_nodes.total
-        + warning_nodes.total
+    local shared_source_nodes =
+        snapshot.counters[
+            "context.source_nodes.nodes_visited"
+        ]
 
     assert(
         range_scope_reuse_miss.total == 5
             and warning_reuse_miss.total == 5
-            and range_scope_scans.total == 5
-            and warning_scans.total == 5
-            and range_scope_nodes.total == 5590
-            and warning_nodes.total == 5590
-            and stateless_source_walks == 10
-            and stateless_source_node_visits == 11180,
-        "stateless shared Tree-sitter walk opportunity changed"
+            and shared_source_walks.count == 5
+            and shared_source_walks.total == 5
+            and shared_source_nodes.count == 5
+            and shared_source_nodes.total == 5590
+            and range_scope_snapshot_hits.total == 5
+            and warning_snapshot_hits.total == 5,
+        "shared Tree-sitter source snapshot work changed"
     )
 
     print(
-        "[Tracker_HUD] Stateless source-walk opportunity: "
+        "[Tracker_HUD] Shared Tree-sitter source snapshot: "
             .. tostring(
-                stateless_source_walks
+                shared_source_walks.total
             )
             .. " full-tree walk(s), "
             .. tostring(
-                stateless_source_node_visits
+                shared_source_nodes.total
             )
-            .. " node visit(s) across Range Scopes + syntax warnings; "
-            .. "same 5 source revisions could share 5 walk(s) / 5590 visits"
+            .. " node visit(s); Range Scopes + syntax warnings both reused it on 5 source revision(s)"
     )
 
     local directive_scan_counter =

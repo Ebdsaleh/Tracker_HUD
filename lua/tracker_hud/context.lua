@@ -14,6 +14,7 @@ local section_layout = require("tracker_hud.section_layout")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local target_diagnostics = require("tracker_hud.target_diagnostics")
 local c_memory_facts = require("tracker_hud.adapters.c.memory_facts")
+local source_node_snapshot = require("tracker_hud.source_node_snapshot")
 local analysis_profile = require("tracker_hud.analysis_profile")
 
 
@@ -586,13 +587,15 @@ local function discover_range_scope_entries(
     bufnr,
     root_node,
     adapter,
-    profile_token
+    profile_token,
+    shared_source_nodes
 )
     local entries = {}
     local measurement = {
         scans = 0,
         nodes_visited = 0,
         nodes_matched = 0,
+        shared_snapshot_hits = 0,
     }
 
     if not root_node
@@ -674,12 +677,27 @@ local function discover_range_scope_entries(
                 measurement.scans + 1
 
             local nodes =
-                collect_nodes_by_type(
-                    root_node,
-                    node_type,
-                    nil,
-                    measurement
-                )
+                source_node_snapshot
+                    .nodes_by_type(
+                        shared_source_nodes,
+                        node_type
+                    )
+
+            if type(nodes) == "table" then
+                measurement.shared_snapshot_hits =
+                    1
+                measurement.nodes_matched =
+                    measurement.nodes_matched
+                    + #nodes
+            else
+                nodes =
+                    collect_nodes_by_type(
+                        root_node,
+                        node_type,
+                        nil,
+                        measurement
+                    )
+            end
 
             for index, node in ipairs(
                 nodes
@@ -725,11 +743,21 @@ local function discover_range_scope_entries(
             measurement.scans
         )
 
-        analysis_profile.add_counter(
-            profile_token,
-            "context.scopes.range_scope_nodes_visited",
-            measurement.nodes_visited
-        )
+        if measurement.nodes_visited > 0 then
+            analysis_profile.add_counter(
+                profile_token,
+                "context.scopes.range_scope_nodes_visited",
+                measurement.nodes_visited
+            )
+        end
+
+        if measurement.shared_snapshot_hits > 0 then
+            analysis_profile.add_counter(
+                profile_token,
+                "context.scopes.range_scope_shared_snapshot_hits",
+                measurement.shared_snapshot_hits
+            )
+        end
 
         analysis_profile.add_counter(
             profile_token,
@@ -790,14 +818,16 @@ local function collect_range_scope_entries(
     root_node,
     adapter,
     cursor_line,
-    profile_token
+    profile_token,
+    shared_source_nodes
 )
     return select_range_scope_entries(
         discover_range_scope_entries(
             bufnr,
             root_node,
             adapter,
-            profile_token
+            profile_token,
+            shared_source_nodes
         ),
         cursor_line
     )
@@ -821,7 +851,8 @@ local function attach_context_sections(
     adapter,
     scope_member_opts,
     config,
-    profile_token
+    profile_token,
+    shared_source_nodes
 )
     local phase =
         profile_begin(
@@ -1259,6 +1290,8 @@ local function attach_context_sections(
                     root_node = root_node,
                     filetype =
                         vim.bo[bufnr].filetype,
+                    source_node_snapshot =
+                        shared_source_nodes,
                 },
                 nested_profile_options(
                     profile_token,
@@ -1405,6 +1438,15 @@ function M.get_cursor_context(
     local cursor = context_engine.get_cursor_location()
     local node = vim.treesitter.get_node()
 
+    local shared_source_nodes =
+        source_node_snapshot.new(
+            root_node,
+            nested_profile_options(
+                profile_token,
+                "context.source_nodes"
+            )
+        )
+
     local scopes_phase =
         profile_begin(
             profile_token,
@@ -1418,7 +1460,8 @@ function M.get_cursor_context(
             root_node,
             adapter,
             cursor.line,
-            profile_token
+            profile_token,
+            shared_source_nodes
         )
 
         append_missing_range_scopes(context.scopes, range_scopes)
@@ -1454,7 +1497,8 @@ function M.get_cursor_context(
             adapter,
             scope_member_opts,
             config,
-            profile_token
+            profile_token,
+            shared_source_nodes
         )
     end
 
@@ -1479,7 +1523,8 @@ function M.get_cursor_context(
         root_node,
         adapter,
         cursor.line,
-        profile_token
+        profile_token,
+        shared_source_nodes
     )
 
     append_missing_range_scopes(scopes, range_scopes)
@@ -1514,7 +1559,8 @@ function M.get_cursor_context(
         adapter,
         scope_member_opts,
         config,
-        profile_token
+        profile_token,
+        shared_source_nodes
     )
 end
 

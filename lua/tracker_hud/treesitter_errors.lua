@@ -3,6 +3,7 @@
 -- Generic Tree-sitter syntax warning provider.
 
 local core = require("tracker_hud.core")
+local source_node_snapshot = require("tracker_hud.source_node_snapshot")
 
 local M = {}
 
@@ -439,6 +440,43 @@ function M.discover(
     local candidates = {}
 
     if not root_node then
+        return candidates
+    end
+
+    local shared_candidates =
+        source_node_snapshot
+            .syntax_candidates(
+                opts.source_node_snapshot
+            )
+
+    if type(shared_candidates)
+        == "table"
+    then
+        profile_counter(
+            opts,
+            "shared_snapshot_hits",
+            1
+        )
+
+        for _, entry in ipairs(
+            shared_candidates
+        ) do
+            profile_counter(
+                opts,
+                "candidates",
+                1
+            )
+
+            table.insert(
+                candidates,
+                candidate_from_node(
+                    entry.node,
+                    entry.node_type,
+                    entry.missing
+                )
+            )
+        end
+
         return candidates
     end
 
