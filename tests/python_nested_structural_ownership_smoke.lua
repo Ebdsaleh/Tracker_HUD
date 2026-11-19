@@ -5,6 +5,29 @@
 -- Python while/with/match/case constructs do not add lexical namespaces, but
 -- Tracker_HUD must retain their nested structural ownership for HUD hierarchy.
 
+local function structural_path_text(member)
+    local result = {}
+
+    for _, frame in ipairs(
+        member.structural_path or {}
+    ) do
+        table.insert(
+            result,
+            tostring(frame.node_type or "?")
+                .. "@"
+                .. tostring(
+                    frame.start_line
+                    or "?"
+                )
+        )
+    end
+
+    return #result > 0
+        and table.concat(result, ">")
+        or "<none>"
+end
+
+
 local function run()
     vim.opt.runtimepath:prepend(
         vim.fn.getcwd()
@@ -100,31 +123,80 @@ local function run()
             }
         )
 
+    local while_path = {
+        {
+            node_type = "while_statement",
+            label = "While",
+            start_line = 11,
+        },
+    }
+
+    local with_path = {
+        {
+            node_type = "while_statement",
+            label = "While",
+            start_line = 11,
+        },
+        {
+            node_type = "with_statement",
+            label = "With",
+            start_line = 13,
+        },
+    }
+
+    local case_path = {
+        {
+            node_type = "while_statement",
+            label = "While",
+            start_line = 11,
+        },
+        {
+            node_type = "with_statement",
+            label = "With",
+            start_line = 13,
+        },
+        {
+            node_type = "match_statement",
+            label = "Match",
+            start_line = 15,
+        },
+        {
+            node_type = "case_clause",
+            label = "Case",
+            start_line = 16,
+        },
+    }
+
     local wanted_by_name = {
         outer_seen = {
             kind = "assignment",
             structural_depth = 1,
             structural_start_line = 11,
+            structural_path = while_path,
         },
         handle = {
             kind = "assignment",
             structural_depth = 2,
             structural_start_line = 13,
+            structural_path = with_path,
         },
         managed = {
             kind = "assignment",
             structural_depth = 2,
             structural_start_line = 13,
+            structural_path = with_path,
         },
         payload = {
             kind = "pattern_binding",
             structural_depth = 4,
             structural_start_line = 16,
+            structural_path = case_path,
         },
         nested = {
             kind = "assignment",
             structural_depth = 4,
             structural_start_line = 16,
+            structural_path = case_path,
         },
     }
 
@@ -171,6 +243,10 @@ local function run()
                 .. tostring(
                     member.structural_scope_start_line
                     or "?"
+                )
+                .. ",path="
+                .. structural_path_text(
+                    member
                 )
                 .. ")"
         )
@@ -272,6 +348,69 @@ local function run()
                     actual.structural_scope_start_line
                 )
         )
+
+        assert(
+            type(actual.structural_path)
+                == "table"
+                and #actual.structural_path
+                    == #wanted.structural_path,
+            "python nested structural path length changed for "
+                .. expected_name
+                .. ": expected "
+                .. tostring(
+                    #wanted.structural_path
+                )
+                .. ", got "
+                .. tostring(
+                    type(actual.structural_path)
+                        == "table"
+                        and #actual.structural_path
+                        or nil
+                )
+        )
+
+        for path_index, wanted_frame in ipairs(
+            wanted.structural_path
+        ) do
+            local actual_frame =
+                actual.structural_path[
+                    path_index
+                ]
+
+            assert(
+                actual_frame
+                    and actual_frame.depth
+                        == path_index
+                    and actual_frame.node_type
+                        == wanted_frame.node_type
+                    and actual_frame.label
+                        == wanted_frame.label
+                    and actual_frame.start_line
+                        == wanted_frame.start_line,
+                "python nested structural path changed for "
+                    .. expected_name
+                    .. " at frame "
+                    .. tostring(path_index)
+                    .. ": expected "
+                    .. wanted_frame.node_type
+                    .. "@"
+                    .. tostring(
+                        wanted_frame.start_line
+                    )
+                    .. ", got "
+                    .. tostring(
+                        actual_frame
+                        and actual_frame.node_type
+                        or nil
+                    )
+                    .. "@"
+                    .. tostring(
+                        actual_frame
+                        and actual_frame.start_line
+                        or nil
+                    )
+            )
+        end
     end
 
     print(
