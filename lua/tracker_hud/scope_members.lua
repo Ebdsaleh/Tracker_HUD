@@ -448,6 +448,37 @@ local function member_group_candidates(
 end
 
 
+local function member_group_can_match_node(
+    group_index,
+    node
+)
+    if not core.is_table(group_index)
+        or not node
+    then
+        return false
+    end
+
+    local untyped =
+        group_index.untyped
+        or {}
+
+    if #untyped > 0 then
+        return true
+    end
+
+    local node_type =
+        node:type()
+
+    local typed =
+        group_index.by_node_type[
+            node_type
+        ]
+
+    return core.is_table(typed)
+        and #typed > 0
+end
+
+
 local function get_syntax_field(member_spec, key)
     local syntax = get_syntax(member_spec)
     local fields = syntax.fields or {}
@@ -1370,6 +1401,20 @@ local function collect_member_group(
     collector =
         collector
         or collect_member_spec
+
+    if not member_group_can_match_node(
+        group_index,
+        node
+    ) then
+        return
+    end
+
+    if not member_group_can_match_node(
+        group_index,
+        node
+    ) then
+        return
+    end
 
     count_measurement(
         state,

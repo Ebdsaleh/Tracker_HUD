@@ -580,7 +580,7 @@ local function run()
             and scope_group_lookups.count
                 == scope_reuse_miss.total
             and scope_group_lookups.total
-                == 11180
+                == 1315
             and snapshot.counters[
                 "context.scope_members.group_candidate_lookup_requests"
             ] == nil
@@ -591,7 +591,7 @@ local function run()
     )
 
     print(
-        "[Tracker_HUD] Scope-member empty-group lookup elimination: "
+        "[Tracker_HUD] Scope-member node-type group dispatch: "
             .. tostring(
                 scope_group_lookups.total
             )
@@ -599,7 +599,7 @@ local function run()
             .. tostring(
                 scope_reuse_miss.total
             )
-            .. " fresh discoverie(s); empty groups return before candidate lookup"
+            .. " fresh discoverie(s); non-matching node/group pairs return before candidate lookup"
     )
 
     local scope_filter_state_builds =
@@ -613,6 +613,8 @@ local function run()
                 == scope_reuse_miss.total
             and scope_filter_state_builds.total
                 == 1315
+            and scope_group_lookups.total
+                == scope_filter_state_builds.total
             and snapshot.counters[
                 "context.scope_members.candidate_bearing_group_lookups"
             ] == nil,
