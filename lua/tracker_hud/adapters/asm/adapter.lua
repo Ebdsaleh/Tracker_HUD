@@ -839,20 +839,6 @@ local function apply_variant(
         1
     )
 
-    if M.active_variant == variant then
-        profile_config_counter(
-            profile_opts,
-            "context.configure.adapter.variant.same_identity",
-            1
-        )
-    else
-        profile_config_counter(
-            profile_opts,
-            "context.configure.adapter.variant.changed_identity",
-            1
-        )
-    end
-
     M.active_variant = variant
     M.active_variant_name = variant.name or M.default_variant
 
@@ -904,6 +890,45 @@ local function apply_variant(
 end
 
 
+local function ensure_variant_applied(
+    variant,
+    profile_opts
+)
+    if type(variant) ~= "table" then
+        return false
+    end
+
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.variant.identity_checks",
+        1
+    )
+
+    if M.active_variant == variant then
+        profile_config_counter(
+            profile_opts,
+            "context.configure.adapter.variant.same_identity",
+            1
+        )
+
+        return false
+    end
+
+    profile_config_counter(
+        profile_opts,
+        "context.configure.adapter.variant.changed_identity",
+        1
+    )
+
+    apply_variant(
+        variant,
+        profile_opts
+    )
+
+    return true
+end
+
+
 function M.configure_adapter_for_buffer(
     bufnr,
     config,
@@ -926,7 +951,7 @@ function M.configure_adapter_for_buffer(
 
     local variant = load_variant(variant_name)
 
-    apply_variant(
+    ensure_variant_applied(
         variant,
         profile_opts
     )

@@ -350,9 +350,8 @@ local function run()
         "context.warnings.syntax.candidates",
         "context.configure.adapter.directive_scans",
         "context.configure.adapter.directive_scans.shared",
-        "context.configure.adapter.variant.apply_calls",
+        "context.configure.adapter.variant.identity_checks",
         "context.configure.adapter.variant.same_identity",
-        "context.configure.adapter.variant.presentation_rebuilds",
         "context.scopes.range_scope_scans",
         "context.scopes.range_scope_nodes_visited",
         "context.scopes.range_scope_nodes_matched",
@@ -893,48 +892,51 @@ local function run()
             .. " configuration miss(es)"
     )
 
-    local variant_apply_calls =
-        counter_total(
-            "context.configure.adapter.variant.apply_calls"
-        )
+    local variant_identity_checks =
+        snapshot.counters[
+            "context.configure.adapter.variant.identity_checks"
+        ]
 
     local variant_same_identity =
-        counter_total(
-            "context.configure.adapter.variant.same_identity"
-        )
-
-    local variant_presentation_rebuilds =
-        counter_total(
-            "context.configure.adapter.variant.presentation_rebuilds"
-        )
-
-    local variant_changed_identity =
         snapshot.counters[
-            "context.configure.adapter.variant.changed_identity"
+            "context.configure.adapter.variant.same_identity"
         ]
 
     assert(
-        variant_apply_calls == 5
-            and variant_same_identity == 5
-            and variant_presentation_rebuilds == 5
-            and variant_changed_identity == nil,
-        "ASM variant reapplication measurement changed"
+        type(variant_identity_checks)
+            == "table"
+            and type(variant_same_identity)
+                == "table"
+            and variant_identity_checks.count
+                == configure_adapter_phase.count
+            and variant_identity_checks.total
+                == 5
+            and variant_same_identity.total
+                == 5
+            and snapshot.counters[
+                "context.configure.adapter.variant.changed_identity"
+            ] == nil
+            and snapshot.counters[
+                "context.configure.adapter.variant.apply_calls"
+            ] == nil
+            and snapshot.counters[
+                "context.configure.adapter.variant.presentation_rebuilds"
+            ] == nil,
+        "ASM same-identity variant reuse changed"
     )
 
     print(
-        "[Tracker_HUD] ASM variant reapplication: "
+        "[Tracker_HUD] ASM variant reuse: "
             .. tostring(
-                variant_apply_calls
+                variant_same_identity.total
             )
-            .. " apply call(s), "
+            .. " same-identity skip(s) across "
             .. tostring(
-                variant_same_identity
+                configure_adapter_phase.count
             )
-            .. " same-identity, 0 changed, "
-            .. tostring(
-                variant_presentation_rebuilds
-            )
-            .. " presentation rebuild(s)"
+            .. " configuration miss(es), "
+            .. "0 static reapplies, "
+            .. "0 presentation rebuilds"
     )
 
     assert(

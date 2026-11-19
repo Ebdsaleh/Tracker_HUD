@@ -392,6 +392,96 @@ print(
         .. "one shared directive scan per cache miss"
 )
 
+assert(
+    scan_counters[
+        "context.configure.adapter.variant.identity_checks"
+    ] == 6
+        and scan_counters[
+            "context.configure.adapter.variant.same_identity"
+        ] == 6
+        and scan_counters[
+            "context.configure.adapter.variant.changed_identity"
+        ] == nil
+        and scan_counters[
+            "context.configure.adapter.variant.apply_calls"
+        ] == nil
+        and scan_counters[
+            "context.configure.adapter.variant.presentation_rebuilds"
+        ] == nil,
+    "same-identity ASM configuration reapplied static variant state"
+)
+
+print(
+    "PASS ASM configuration cache: "
+        .. "same variant skips static reapplication"
+)
+
+local canonical_variant =
+    require(
+        "tracker_hud.adapters.asm.arch.x86_64"
+    )
+
+adapter.active_variant = {
+    name = "sentinel",
+}
+
+adapter.presentation = {
+    sentinel = true,
+}
+
+ok, err =
+    registry.configure_adapter_for_buffer(
+        "asm",
+        buffer_linux,
+        config,
+        configure_profile_opts
+    )
+
+assert(
+    ok,
+    tostring(err)
+)
+
+assert(
+    adapter.active_variant
+        == canonical_variant
+        and adapter.presentation.sentinel
+            == nil
+        and adapter.active_targets.platform
+            == "windows",
+    "variant identity mismatch did not restore canonical ASM variant state"
+)
+
+assert(
+    scan_counters[
+        "context.configure.adapter.directive_scans"
+    ] == 7
+        and scan_counters[
+            "context.configure.adapter.directive_scans.shared"
+        ] == 7
+        and scan_counters[
+            "context.configure.adapter.variant.identity_checks"
+        ] == 7
+        and scan_counters[
+            "context.configure.adapter.variant.same_identity"
+        ] == 6
+        and scan_counters[
+            "context.configure.adapter.variant.changed_identity"
+        ] == 1
+        and scan_counters[
+            "context.configure.adapter.variant.apply_calls"
+        ] == 1
+        and scan_counters[
+            "context.configure.adapter.variant.presentation_rebuilds"
+        ] == 1,
+    "variant identity mismatch did not trigger exactly one static reapplication"
+)
+
+print(
+    "PASS ASM configuration cache: "
+        .. "identity mismatch reapplies static variant state"
+)
+
 print(
     "PASS Tracker_HUD ASM "
         .. "adapter-configuration cache smoke"
