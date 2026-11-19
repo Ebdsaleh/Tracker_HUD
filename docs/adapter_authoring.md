@@ -344,6 +344,41 @@ shape
 
 Only declare facts the language guarantees.
 
+## Check adapter readiness in the current buffer
+
+After installing the parser and placing the adapter on runtimepath, run:
+
+```vim
+:HudAdapterStatus
+```
+
+The command follows the same public namespace prefix as the other Tracker_HUD
+commands, so a custom prefix such as `Tutor` produces
+`:TutorAdapterStatus`.
+
+The diagnostic checks the current buffer in dependency order:
+
+```text
+filetype known?
+Tree-sitter language resolved?
+parser available?
+root syntax node available?
+adapter registered for this filetype?
+registered adapter still Contract v1 valid?
+```
+
+A healthy buffer ends with:
+
+```text
+[READY] adapter pipeline is ready
+```
+
+A failure stops being a vague "HUD does not work" problem. Fix the first
+missing or invalid item in the report, then run the command again.
+
+This diagnostic is on-demand authoring tooling. It does not run during normal
+cursor refreshes and adds no hot-path parser or validation work.
+
 ## Validation errors are part of the authoring API
 
 Validate the adapter through:

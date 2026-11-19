@@ -7,6 +7,7 @@ local state = require("tracker_hud.state")
 local context = require("tracker_hud.context")
 local hud = require("tracker_hud.hud")
 local adapter_loader = require("tracker_hud.adapters.loader")
+local adapter_readiness = require("tracker_hud.adapters.readiness")
 local namespace = require("tracker_hud.namespace")
 local highlights = require("tracker_hud.highlights")
 local visual_language = require("tracker_hud.visual_language")
@@ -635,6 +636,21 @@ local function profile_command(
 end
 
 
+local function adapter_status_command()
+    local result =
+        adapter_readiness.inspect(0)
+
+    vim.notify(
+        adapter_readiness.message(
+            result
+        ),
+        result.ready
+            and vim.log.levels.INFO
+            or vim.log.levels.WARN
+    )
+end
+
+
 local function cache_limit_usage()
     return analysis_cache.usage(command_name("CacheLimit"))
 end
@@ -802,6 +818,15 @@ function M.setup(opts)
         end,
         force = true,
     })
+
+    register_user_command(
+        "AdapterStatus",
+        adapter_status_command,
+        {
+            nargs = 0,
+            force = true,
+        }
+    )
 
     setup_keymaps()
 
