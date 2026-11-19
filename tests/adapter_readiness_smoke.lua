@@ -149,8 +149,15 @@ local function run()
             and invalid_status.adapter_valid
                 == false
             and invalid_status.adapter_error
-                == "adapter.construct_specs[function_declaration].construct.kind is invalid or missing",
-        "readiness diagnostic did not surface exact registered-adapter contract failure"
+                == "adapter.construct_specs[function_declaration].construct.kind is invalid or missing"
+            and readiness.message(
+                invalid_status
+            ):find(
+                "[INVALID] contract:",
+                1,
+                true
+            ),
+        "readiness diagnostic did not distinguish an invalid registered adapter"
     )
 
 

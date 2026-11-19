@@ -229,11 +229,19 @@ end
 
 
 local function status_word(
-    ok
+    ok,
+    failure_label
 )
-    return ok
-        and "[OK]"
-        or "[MISSING]"
+    if ok then
+        return "[OK]"
+    end
+
+    return "["
+        .. tostring(
+            failure_label
+            or "MISSING"
+        )
+        .. "]"
 end
 
 
@@ -291,7 +299,10 @@ function M.lines(result)
                 or "<not registered>"
             ),
         status_word(
-            result.adapter_valid
+            result.adapter_valid,
+            result.adapter_registered
+                and "INVALID"
+                or "MISSING"
         )
             .. " contract: "
             .. (
