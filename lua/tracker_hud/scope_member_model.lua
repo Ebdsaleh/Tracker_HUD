@@ -79,6 +79,10 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
     local opts = state.opts or {}
     local scope_depth = state.scope_depth or 0
     local scope_range = state.scope_range
+    local structural_depth =
+        state.structural_depth or 0
+    local structural_range =
+        state.structural_range
 
     local line = nil
     local source_start_column = nil
@@ -129,6 +133,20 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         scope_start_column = scope_range and scope_range.start_column,
         scope_end_line = scope_range and scope_range.end_line,
         scope_end_column = scope_range and scope_range.end_column,
+
+        structural_depth = structural_depth,
+        structural_scope_start_line =
+            structural_range
+            and structural_range.start_line,
+        structural_scope_start_column =
+            structural_range
+            and structural_range.start_column,
+        structural_scope_end_line =
+            structural_range
+            and structural_range.end_line,
+        structural_scope_end_column =
+            structural_range
+            and structural_range.end_column,
 
         source_start_line = line,
         source_start_column = source_start_column,

@@ -1167,6 +1167,10 @@ local function run()
         python_adapter.construct_specs[
             "match_statement"
         ]
+    local python_case_construct =
+        python_adapter.construct_specs[
+            "case_clause"
+        ]
 
     -- The active Python adapter is adapter_targeted, which deliberately
     -- upgrades Python block constructs that do not create namespaces into
@@ -1220,6 +1224,25 @@ local function run()
                 .affects_visibility
                 == true
             and python_match_construct.scope
+                .owns_members
+                == true
+            and python_case_construct.syntax.fields.guard
+                == "guard"
+            and python_case_construct.syntax.fields.consequence
+                == "consequence"
+            and python_case_construct.syntax.children.pattern
+                .node_type
+                == "case_pattern"
+            and python_case_construct.syntax.tokens.start
+                == "case"
+            and python_case_construct.syntax.tokens.branch_open
+                == ":"
+            and python_case_construct.scope.kind
+                == "structural"
+            and python_case_construct.scope
+                .affects_visibility
+                == true
+            and python_case_construct.scope
                 .owns_members
                 == true,
         "Python targeted structural-member scope policy changed"

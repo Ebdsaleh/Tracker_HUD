@@ -468,6 +468,42 @@ M.construct_specs = {
         ),
 
 
+    ["case_clause"] =
+        construct_schema.rule(
+            "case_clause",
+            "branch",
+            {
+                language_term = "case",
+                label = "Case",
+                fields = {
+                    guard = "guard",
+                    consequence = "consequence",
+                },
+                children = {
+                    pattern = {
+                        node_type = "case_pattern",
+                    },
+                },
+                tokens = {
+                    start = "case",
+                    branch_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "branch_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
     ["type_alias_statement"] =
         construct_schema.rule(
             "type_alias_statement",
