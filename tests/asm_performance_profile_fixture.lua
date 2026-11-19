@@ -845,6 +845,39 @@ local function run()
             .. " ERROR/MISSING candidate(s)"
     )
 
+    local stateless_source_walks =
+        range_scope_scans.total
+        + warning_scans.total
+
+    local stateless_source_node_visits =
+        range_scope_nodes.total
+        + warning_nodes.total
+
+    assert(
+        range_scope_reuse_miss.total == 5
+            and warning_reuse_miss.total == 5
+            and range_scope_scans.total == 5
+            and warning_scans.total == 5
+            and range_scope_nodes.total == 5590
+            and warning_nodes.total == 5590
+            and stateless_source_walks == 10
+            and stateless_source_node_visits == 11180,
+        "stateless shared Tree-sitter walk opportunity changed"
+    )
+
+    print(
+        "[Tracker_HUD] Stateless source-walk opportunity: "
+            .. tostring(
+                stateless_source_walks
+            )
+            .. " full-tree walk(s), "
+            .. tostring(
+                stateless_source_node_visits
+            )
+            .. " node visit(s) across Range Scopes + syntax warnings; "
+            .. "same 5 source revisions could share 5 walk(s) / 5590 visits"
+    )
+
     local directive_scan_counter =
         snapshot.counters[
             "context.configure.adapter.directive_scans"
