@@ -338,7 +338,6 @@ local function run()
         "context.scope_members.cross_refresh_reuse_miss",
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
-        "context.scope_members.node_type_candidate_checks",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -506,39 +505,31 @@ local function run()
             .. " spec checks feed current/all views"
     )
 
-    local scope_node_type_candidates =
-        snapshot.counters[
-            "context.scope_members.node_type_candidate_checks"
-        ]
-
     assert(
-        type(scope_node_type_candidates) == "table"
-            and scope_node_type_candidates.count
-                == scope_reuse_miss.total
-            and scope_node_type_candidates.total
-                == 1315
-            and scope_checks.total
-                == 16770,
-        "Scope Member node-type indexing opportunity changed"
+        scope_checks.total == 1315,
+        "Scope Member node-type indexed spec work changed"
     )
 
     assert(
         snapshot.counters[
-            "context.scope_members_all.node_type_candidate_checks"
-        ] == nil,
-        "all-members view unexpectedly repeated Scope Member candidate measurement"
+            "context.scope_members.node_type_candidate_checks"
+        ] == nil
+            and snapshot.counters[
+                "context.scope_members_all.node_type_candidate_checks"
+            ] == nil,
+        "Scope Member opportunity-only candidate counter leaked into production"
     )
 
     print(
-        "[Tracker_HUD] Scope-member node-type index opportunity: "
+        "[Tracker_HUD] Scope-member node-type index: "
             .. tostring(
-                scope_node_type_candidates.total
+                scope_nodes.total
             )
-            .. " candidate check(s) vs "
+            .. " nodes + "
             .. tostring(
                 scope_checks.total
             )
-            .. " current spec check(s) across "
+            .. " indexed spec check(s) across "
             .. tostring(
                 scope_reuse_miss.total
             )

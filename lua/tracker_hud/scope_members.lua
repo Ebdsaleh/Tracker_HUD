@@ -254,25 +254,193 @@ local function get_syntax_node_type(member_spec)
 end
 
 
-local function member_spec_is_node_type_candidate(
-    node,
-    member_spec
-)
-    local node_type =
-        get_syntax_node_type(
-            member_spec
-        )
+local member_group_names = {
+    "declarations",
+    "assignments",
+    "parameters",
+    "functions",
+    "loops",
+    "returns",
+    "fields",
+    "symbols",
+}
 
-    if not core.is_non_empty_string(
-        node_type
-    ) then
-        return true
+
+local function build_member_group_index(
+    specs
+)
+    local index = {
+        by_node_type = {},
+        untyped = {},
+        candidates_by_node_type = {},
+    }
+
+    if not core.is_table(specs) then
+        return index
     end
 
-    return ts_utils.node_type_matches(
-        node,
-        node_type
-    )
+    for position, member_spec in ipairs(
+        specs
+    ) do
+        local entry = {
+            position = position,
+            spec = member_spec,
+        }
+
+        local node_type =
+            get_syntax_node_type(
+                member_spec
+            )
+
+        if core.is_non_empty_string(
+            node_type
+        ) then
+            local bucket =
+                index.by_node_type[
+                    node_type
+                ]
+
+            if not core.is_table(bucket) then
+                bucket = {}
+                index.by_node_type[
+                    node_type
+                ] = bucket
+            end
+
+            table.insert(
+                bucket,
+                entry
+            )
+        else
+            table.insert(
+                index.untyped,
+                entry
+            )
+        end
+    end
+
+    return index
+end
+
+
+local function build_member_spec_index(
+    scope_member_spec
+)
+    local index = {}
+
+    scope_member_spec =
+        core.is_table(scope_member_spec)
+        and scope_member_spec
+        or {}
+
+    for _, group_name in ipairs(
+        member_group_names
+    ) do
+        index[group_name] =
+            build_member_group_index(
+                scope_member_spec[
+                    group_name
+                ]
+            )
+    end
+
+    return index
+end
+
+
+local function member_group_candidates(
+    group_index,
+    node
+)
+    if not core.is_table(group_index)
+        or not node
+    then
+        return {}
+    end
+
+    local node_type =
+        node:type()
+
+    local cached =
+        group_index
+            .candidates_by_node_type[
+                node_type
+            ]
+
+    if core.is_table(cached) then
+        return cached
+    end
+
+    local typed =
+        group_index.by_node_type[
+            node_type
+        ]
+        or {}
+
+    local untyped =
+        group_index.untyped
+        or {}
+
+    if #untyped == 0 then
+        group_index
+            .candidates_by_node_type[
+                node_type
+            ] = typed
+
+        return typed
+    end
+
+    if #typed == 0 then
+        group_index
+            .candidates_by_node_type[
+                node_type
+            ] = untyped
+
+        return untyped
+    end
+
+    local candidates = {}
+    local typed_index = 1
+    local untyped_index = 1
+
+    while typed_index <= #typed
+        or untyped_index <= #untyped
+    do
+        local typed_entry =
+            typed[typed_index]
+
+        local untyped_entry =
+            untyped[untyped_index]
+
+        if untyped_entry == nil
+            or (
+                typed_entry ~= nil
+                and typed_entry.position
+                    < untyped_entry.position
+            )
+        then
+            table.insert(
+                candidates,
+                typed_entry
+            )
+            typed_index =
+                typed_index + 1
+        else
+            table.insert(
+                candidates,
+                untyped_entry
+            )
+            untyped_index =
+                untyped_index + 1
+        end
+    end
+
+    group_index
+        .candidates_by_node_type[
+            node_type
+        ] = candidates
+
+    return candidates
 end
 
 
@@ -1178,12 +1346,23 @@ local function should_collect_before_scope_enter(member_spec)
 end
 
 
-local function collect_member_group(node, bufnr, specs, members, seen, state, collector, adapter)
-    if not core.is_table(specs) then
+local function collect_member_group(
+    node,
+    bufnr,
+    group_index,
+    members,
+    seen,
+    state,
+    collector,
+    adapter
+)
+    if not core.is_table(group_index) then
         return
     end
 
-    collector = collector or collect_member_spec
+    collector =
+        collector
+        or collect_member_spec
 
     local group_state =
         with_scope_depth_filter(
@@ -1192,25 +1371,24 @@ local function collect_member_group(node, bufnr, specs, members, seen, state, co
                 ~= collect_field_member_spec
         )
 
-    for _, member_spec in ipairs(specs) do
+    for _, entry in ipairs(
+        member_group_candidates(
+            group_index,
+            node
+        )
+    ) do
+        local member_spec =
+            entry.spec
+
         count_measurement(
             group_state,
             "spec_checks",
             1
         )
 
-        if member_spec_is_node_type_candidate(
-            node,
+        if not should_collect_before_scope_enter(
             member_spec
         ) then
-            count_measurement(
-                group_state,
-                "node_type_candidate_checks",
-                1
-            )
-        end
-
-        if not should_collect_before_scope_enter(member_spec) then
             collector(
                 node,
                 bufnr,
@@ -1228,14 +1406,14 @@ end
 local function collect_member_group_before_scope_enter(
     node,
     bufnr,
-    specs,
+    group_index,
     members,
     seen,
     state,
     collector,
     adapter
 )
-    if not core.is_table(specs) then
+    if not core.is_table(group_index) then
         return
     end
 
@@ -1245,25 +1423,24 @@ local function collect_member_group_before_scope_enter(
             true
         )
 
-    for _, member_spec in ipairs(specs) do
+    for _, entry in ipairs(
+        member_group_candidates(
+            group_index,
+            node
+        )
+    ) do
+        local member_spec =
+            entry.spec
+
         count_measurement(
             group_state,
             "spec_checks",
             1
         )
 
-        if member_spec_is_node_type_candidate(
-            node,
+        if should_collect_before_scope_enter(
             member_spec
         ) then
-            count_measurement(
-                group_state,
-                "node_type_candidate_checks",
-                1
-            )
-        end
-
-        if should_collect_before_scope_enter(member_spec) then
             collector(
                 node,
                 bufnr,
@@ -1278,18 +1455,29 @@ local function collect_member_group_before_scope_enter(
 end
 
 
-local function collect_from_node(node, bufnr, adapter, members, seen, state)
-    if not node or not core.is_table(adapter) then
+local function collect_from_node(
+    node,
+    bufnr,
+    adapter,
+    member_spec_index,
+    members,
+    seen,
+    state
+)
+    if not node
+        or not core.is_table(adapter)
+        or not core.is_table(
+            member_spec_index
+        )
+    then
         return
     end
-
-    local scope_member_spec = adapter.scope_members or {}
 
     -- declarations
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.declarations,
+        member_spec_index.declarations,
         members,
         seen,
         state,
@@ -1301,7 +1489,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.assignments,
+        member_spec_index.assignments,
         members,
         seen,
         state,
@@ -1313,7 +1501,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.parameters,
+        member_spec_index.parameters,
         members,
         seen,
         state
@@ -1323,7 +1511,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.functions,
+        member_spec_index.functions,
         members,
         seen,
         state,
@@ -1335,7 +1523,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.loops,
+        member_spec_index.loops,
         members,
         seen,
         state,
@@ -1346,7 +1534,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.returns,
+        member_spec_index.returns,
         members,
         seen,
         state,
@@ -1358,7 +1546,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.fields,
+        member_spec_index.fields,
         members,
         seen,
         state,
@@ -1370,7 +1558,7 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
     collect_member_group(
         node,
         bufnr,
-        scope_member_spec.symbols,
+        member_spec_index.symbols,
         members,
         seen,
         state,
@@ -1380,7 +1568,15 @@ local function collect_from_node(node, bufnr, adapter, members, seen, state)
 end
 
 
-local function walk_node(node, bufnr, adapter, members, seen, state)
+local function walk_node(
+    node,
+    bufnr,
+    adapter,
+    member_spec_index,
+    members,
+    seen,
+    state
+)
     if not node then
         return
     end
@@ -1395,12 +1591,10 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
 
     local current_state = state
 
-    local scope_member_spec = adapter.scope_members or {}
-
     collect_member_group_before_scope_enter(
         node,
         bufnr,
-        scope_member_spec.functions,
+        member_spec_index.functions,
         members,
         seen,
         state,
@@ -1430,10 +1624,26 @@ local function walk_node(node, bufnr, adapter, members, seen, state)
         )
     end
 
-    collect_from_node(node, bufnr, adapter, members, seen, current_state)
+    collect_from_node(
+        node,
+        bufnr,
+        adapter,
+        member_spec_index,
+        members,
+        seen,
+        current_state
+    )
 
     for child in node:iter_children() do
-        walk_node(child, bufnr, adapter, members, seen, current_state)
+        walk_node(
+            child,
+            bufnr,
+            adapter,
+            member_spec_index,
+            members,
+            seen,
+            current_state
+        )
     end
 end
 
@@ -1449,7 +1659,6 @@ local function collect_internal(
     local measurement = {
         nodes_visited = 0,
         spec_checks = 0,
-        node_type_candidate_checks = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1460,10 +1669,16 @@ local function collect_internal(
         return members
     end
 
+    local member_spec_index =
+        build_member_spec_index(
+            adapter.scope_members
+        )
+
     walk_node(
         root_node,
         bufnr,
         adapter,
+        member_spec_index,
         members,
         seen,
         make_state(
@@ -1486,12 +1701,6 @@ local function collect_internal(
         opts,
         "spec_checks",
         measurement.spec_checks
-    )
-
-    profile_counter(
-        opts,
-        "node_type_candidate_checks",
-        measurement.node_type_candidate_checks
     )
 
     profile_counter(
