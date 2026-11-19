@@ -1602,6 +1602,12 @@ local function walk_node(
         adapter
     )
 
+    count_measurement(
+        state,
+        "construct_scope_lookup_requests",
+        1
+    )
+
     if construct_utils.node_creates_lexical_scope(node, adapter) then
         current_state = make_state(
             state.opts,
@@ -1612,6 +1618,12 @@ local function walk_node(
             state.measurement
         )
     end
+
+    count_measurement(
+        state,
+        "construct_scope_lookup_requests",
+        1
+    )
 
     if construct_utils.node_creates_structural_scope(node, adapter) then
         current_state = make_state(
@@ -1659,6 +1671,7 @@ local function collect_internal(
     local measurement = {
         nodes_visited = 0,
         spec_checks = 0,
+        construct_scope_lookup_requests = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1701,6 +1714,12 @@ local function collect_internal(
         opts,
         "spec_checks",
         measurement.spec_checks
+    )
+
+    profile_counter(
+        opts,
+        "construct_scope_lookup_requests",
+        measurement.construct_scope_lookup_requests
     )
 
     profile_counter(

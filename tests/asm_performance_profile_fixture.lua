@@ -338,6 +338,7 @@ local function run()
         "context.scope_members.cross_refresh_reuse_miss",
         "context.scope_members.nodes_visited",
         "context.scope_members.spec_checks",
+        "context.scope_members.construct_scope_lookup_requests",
         "context.scope_members.members_emitted",
         "context.scopes.range_scope_cross_refresh_reuse_possible",
         "context.scopes.range_scope_cross_refresh_reuse_applied",
@@ -534,6 +535,34 @@ local function run()
                 scope_reuse_miss.total
             )
             .. " fresh discoverie(s)"
+    )
+
+    local scope_construct_lookup_requests =
+        snapshot.counters[
+            "context.scope_members.construct_scope_lookup_requests"
+        ]
+
+    assert(
+        type(scope_construct_lookup_requests) == "table"
+            and scope_construct_lookup_requests.count
+                == scope_reuse_miss.total
+            and scope_construct_lookup_requests.total
+                == 11180
+            and scope_nodes.total
+                == 5590,
+        "Scope Member construct-scope lookup opportunity changed"
+    )
+
+    print(
+        "[Tracker_HUD] Scope-member construct-scope lookup opportunity: "
+            .. tostring(
+                scope_construct_lookup_requests.total
+            )
+            .. " lookup request(s) across "
+            .. tostring(
+                scope_nodes.total
+            )
+            .. " visited node(s); one construct-spec lookup per node can serve both scope-kind decisions"
     )
 
     local range_scope_reuse_possible =
