@@ -162,15 +162,18 @@ local function run()
             )
     )
 
+    -- Tracker_HUD models the Python module itself as lexical depth 1.
+    -- Top-level lambdas therefore own parameters at depth 2, and a lambda
+    -- nested inside another lambda owns its parameters at depth 3.
     local expected = {
-        { name = "value", depth = 1 },
-        { name = "source", depth = 1 },
-        { name = "count", depth = 1 },
-        { name = "items", depth = 1 },
-        { name = "enabled", depth = 1 },
-        { name = "options", depth = 1 },
-        { name = "outer", depth = 1 },
-        { name = "inner", depth = 2 },
+        { name = "value", depth = 2 },
+        { name = "source", depth = 2 },
+        { name = "count", depth = 2 },
+        { name = "items", depth = 2 },
+        { name = "enabled", depth = 2 },
+        { name = "options", depth = 2 },
+        { name = "outer", depth = 2 },
+        { name = "inner", depth = 3 },
     }
 
     assert(
