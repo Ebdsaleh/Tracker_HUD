@@ -546,8 +546,22 @@ M.scope_members = {
                 language_term =
                     "loop variable",
                 fields = {
-                    name = "left",
+                    name = {
+                        field = "left",
+                        node_type =
+                            "identifier",
+                    },
                     iterable = "right",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "pattern_list",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
                 },
                 tokens = {
                     iterator = "in",

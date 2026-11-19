@@ -478,9 +478,19 @@ local function run()
         python_loop.syntax.node_type
             == "for_statement"
             and python_loop.syntax.fields.name
+                .field
                 == "left"
+            and python_loop.syntax.fields.name
+                .node_type
+                == "identifier"
             and python_loop.syntax.fields.iterable
                 == "right"
+            and python_loop.syntax.children
+                .names.node_type
+                == "pattern_list"
+            and python_loop.syntax.children
+                .name.node_type
+                == "identifier"
             and python_loop.syntax.tokens.iterator
                 == "in"
             and python_loop.member.kind

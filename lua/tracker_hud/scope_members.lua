@@ -1328,42 +1328,71 @@ local function collect_loop_member_spec(node, bufnr, member_spec, members, seen,
     local source_range = ts_utils.get_node_range_fields(node)
     local kind = member_spec.member and member_spec.member.kind
 
-    local name_field =
-        get_syntax_field(
+    local name_field_spec =
+        get_syntax_field_descriptor(
             member_spec,
             "name"
         )
 
-    if core.is_non_empty_string(name_field) then
-        local name_node =
-            ts_utils.get_child_by_field_name(
+    if name_field_spec then
+        local name_nodes =
+            get_syntax_field_nodes(
                 node,
-                name_field
+                member_spec,
+                "name"
             )
 
-        if name_node then
-            local name = ts_utils.get_node_text(name_node, bufnr)
+        if #name_nodes > 0 then
+            for _, name_node in ipairs(
+                name_nodes
+            ) do
+                local name =
+                    ts_utils.get_node_text(
+                        name_node,
+                        bufnr
+                    )
 
-            scope_member_model.add(
-                members,
-                seen,
-                name,
-                kind,
-                source_range,
-                state
-            )
+                scope_member_model.add(
+                    members,
+                    seen,
+                    name,
+                    kind,
+                    ts_utils.get_node_range_fields(
+                        name_node
+                    )
+                        or source_range,
+                    state
+                )
+            end
+
+            return
         end
 
-        return
+        if not get_syntax_child_node_type(
+            member_spec,
+            "names"
+        ) then
+            return
+        end
     end
 
-    local name_list_node = ts_utils.find_first_descendant_by_type(
-        node,
+    local name_list_node_type =
         get_syntax_child_node_type(
             member_spec,
             "names"
         )
-    )
+
+    if not core.is_non_empty_string(
+        name_list_node_type
+    ) then
+        return
+    end
+
+    local name_list_node =
+        ts_utils.find_first_descendant_by_type(
+            node,
+            name_list_node_type
+        )
 
     if not name_list_node then
         return
