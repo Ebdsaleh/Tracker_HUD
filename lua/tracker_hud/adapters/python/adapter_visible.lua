@@ -194,6 +194,39 @@ M.construct_specs = {
         ),
 
 
+    ["lambda"] =
+        construct_schema.rule(
+            "lambda",
+            "function",
+            {
+                language_term = "lambda",
+                label = "Lambda",
+                fields = {
+                    parameters = "parameters",
+                    body = "body",
+                },
+                tokens = {
+                    start = "lambda",
+                    body_open = ":",
+                },
+                construct_mutability = {
+                    state = "immutable",
+                    shape = "fixed",
+                },
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+                value = {
+                    kind = "function",
+                    language_term = "lambda",
+                    type_label = "function",
+                },
+            }
+        ),
+
+
     ["import_statement"] =
         construct_schema.rule(
             "import_statement",
@@ -546,6 +579,28 @@ M.scope_members = {
                     names = {
                         node_type =
                             "parameters",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                binding_mutability =
+                    "mutable",
+            }
+        ),
+        scope_member_schema.rule(
+            "lambda",
+            "parameter",
+            {
+                fields = {
+                    parameters =
+                        "parameters",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "lambda_parameters",
                     },
                     name = {
                         node_type =

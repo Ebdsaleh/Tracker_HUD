@@ -470,6 +470,30 @@ local function run()
         "Python parameter migration changed Scope Member semantics"
     )
 
+    local python_lambda_parameter =
+        python_adapter.scope_members
+            .parameters[2]
+
+    assert(
+        python_lambda_parameter.syntax.node_type
+            == "lambda"
+            and python_lambda_parameter.syntax.fields
+                .parameters
+                == "parameters"
+            and python_lambda_parameter.syntax.children
+                .names.node_type
+                == "lambda_parameters"
+            and python_lambda_parameter.syntax.children
+                .name.node_type
+                == "identifier"
+            and python_lambda_parameter.member.kind
+                == "parameter"
+            and python_lambda_parameter.member.mutability
+                .binding
+                == "mutable",
+        "Python lambda parameter contract changed"
+    )
+
     local python_loop =
         python_adapter.scope_members
             .loops[1]
@@ -916,6 +940,40 @@ local function run()
                 .total_required
                 == 4,
         "Python scoped construct migration changed function semantics"
+    )
+
+    local python_lambda_construct =
+        python_adapter.construct_specs[
+            "lambda"
+        ]
+
+    assert(
+        python_lambda_construct.syntax.node_type
+            == "lambda"
+            and python_lambda_construct.syntax.fields
+                .parameters
+                == "parameters"
+            and python_lambda_construct.syntax.fields.body
+                == "body"
+            and python_lambda_construct.syntax.tokens.start
+                == "lambda"
+            and python_lambda_construct.syntax.tokens.body_open
+                == ":"
+            and python_lambda_construct.construct.kind
+                == "function"
+            and python_lambda_construct.construct.language_term
+                == "lambda"
+            and python_lambda_construct.scope.kind
+                == "lexical"
+            and python_lambda_construct.scope
+                .affects_visibility
+                == true
+            and python_lambda_construct.scope
+                .owns_members
+                == true
+            and python_lambda_construct.value.kind
+                == "function",
+        "Python lambda construct contract changed"
     )
 
     local python_for_construct =
