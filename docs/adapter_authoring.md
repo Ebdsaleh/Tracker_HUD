@@ -132,6 +132,103 @@ local result =
 This means adapter #5 can live outside the Tracker_HUD repository. The core
 registry, loader, and context engine do not need language-specific edits.
 
+## Discover the grammar before writing declarations
+
+Do not guess Tree-sitter node types or field names from source-language syntax.
+
+Open a small representative source file with the parser installed, then use
+Neovim's built-in Tree-sitter inspection tools.
+
+### Interactive tree view
+
+Run:
+
+```vim
+:InspectTree
+```
+
+This opens the parsed syntax tree for the current buffer. In the tree window:
+
+```text
+a       toggle anonymous nodes/tokens
+<Enter> jump between a tree node and its source
+zo / zc expand or collapse tree folds
+```
+
+Anonymous nodes matter because literal grammar tokens such as `function`,
+`(`, `)`, `:`, `end`, or `=` may become Adapter Contract markers.
+
+### Parser vocabulary
+
+For the current filetype, inspect the parser metadata:
+
+```lua
+local lang =
+    vim.treesitter.language.get_lang(
+        vim.bo.filetype
+    )
+
+print(
+    vim.inspect(
+        vim.treesitter.language.inspect(
+            lang
+        )
+    )
+)
+```
+
+This is useful for checking that a proposed node or field name actually exists
+in the installed grammar.
+
+### Inspect exact child fields
+
+When a construct is still ambiguous, inspect the real node rather than
+inventing a field mapping:
+
+```lua
+local node =
+    vim.treesitter.get_node({
+        include_anonymous = true,
+    })
+
+for child, field_name in node:iter_children() do
+    local sr, sc, er, ec =
+        child:range()
+
+    print(
+        tostring(field_name or "-"),
+        child:type(),
+        child:named(),
+        sr,
+        sc,
+        er,
+        ec,
+        vim.treesitter.get_node_text(
+            child,
+            0
+        )
+    )
+end
+```
+
+The adapter authoring questions then become mechanical:
+
+```text
+What node type represents the construct?
+Which named child carries the name?
+Which field carries parameters/body/value?
+Which anonymous tokens mark the construct?
+Does the language give this construct lexical or structural scope?
+What shared construct/member kind describes its meaning?
+```
+
+The first four answers come from the parser. The last two are semantic decisions
+that belong in the adapter.
+
+The cumulative test suite exercises this workflow against Neovim's bundled Lua
+parser so the documented node/field/token inspection assumptions cannot drift
+silently.
+
 ## Construct authoring
 
 Use `construct_schema.rule(...)` when building a table literal, or
