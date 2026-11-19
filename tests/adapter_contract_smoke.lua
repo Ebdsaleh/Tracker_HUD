@@ -794,19 +794,23 @@ local function run()
             "for_statement"
         ]
 
+    -- The active Python adapter is adapter_targeted, which deliberately
+    -- upgrades if/for/try structural scopes into member-owning structural
+    -- scopes after loading adapter_visible. Assert the registered adapter's
+    -- real policy here rather than adapter_visible's pre-wrapper defaults.
     assert(
         python_for_construct.scope.kind
             == "structural"
             and python_for_construct.scope
                 .affects_visibility
-                == false
+                == true
             and python_for_construct.scope
                 .owns_members
-                == false
+                == true
             and python_for_construct.markers
                 .required[2]
                 == "iterator",
-        "Python scoped construct migration changed structural-scope semantics"
+        "Python targeted structural-member scope policy changed"
     )
 
     print(
