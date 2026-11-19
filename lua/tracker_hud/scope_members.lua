@@ -1380,15 +1380,32 @@ local function collect_member_group(
 
     count_measurement(
         group_state,
+        "scope_filter_state_builds",
+        1
+    )
+
+    count_measurement(
+        group_state,
         "group_candidate_lookups",
         1
     )
 
-    for _, entry in ipairs(
+    local candidates =
         member_group_candidates(
             group_index,
             node
         )
+
+    if #candidates > 0 then
+        count_measurement(
+            group_state,
+            "candidate_bearing_group_lookups",
+            1
+        )
+    end
+
+    for _, entry in ipairs(
+        candidates
     ) do
         local member_spec =
             entry.spec
@@ -1441,15 +1458,32 @@ local function collect_member_group_before_scope_enter(
 
     count_measurement(
         group_state,
+        "scope_filter_state_builds",
+        1
+    )
+
+    count_measurement(
+        group_state,
         "group_candidate_lookups",
         1
     )
 
-    for _, entry in ipairs(
+    local candidates =
         member_group_candidates(
             group_index,
             node
         )
+
+    if #candidates > 0 then
+        count_measurement(
+            group_state,
+            "candidate_bearing_group_lookups",
+            1
+        )
+    end
+
+    for _, entry in ipairs(
+        candidates
     ) do
         local member_spec =
             entry.spec
@@ -1719,6 +1753,8 @@ local function collect_internal(
         spec_checks = 0,
         construct_scope_lookups = 0,
         group_candidate_lookups = 0,
+        scope_filter_state_builds = 0,
+        candidate_bearing_group_lookups = 0,
     }
 
     if not root_node or not core.is_table(adapter) then
@@ -1773,6 +1809,18 @@ local function collect_internal(
         opts,
         "group_candidate_lookups",
         measurement.group_candidate_lookups
+    )
+
+    profile_counter(
+        opts,
+        "scope_filter_state_builds",
+        measurement.scope_filter_state_builds
+    )
+
+    profile_counter(
+        opts,
+        "candidate_bearing_group_lookups",
+        measurement.candidate_bearing_group_lookups
     )
 
     profile_counter(
