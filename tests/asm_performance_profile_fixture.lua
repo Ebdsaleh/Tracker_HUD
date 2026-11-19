@@ -349,6 +349,8 @@ local function run()
         "context.warnings.syntax.candidates",
         "context.source_nodes.walks",
         "context.source_nodes.nodes_visited",
+        "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans",
+        "context.registers.dynamic.prepare_source.collect_nodes.nodes_matched",
         "context.configure.adapter.directive_scans",
         "context.configure.adapter.directive_scans.shared",
         "context.configure.adapter.variant.identity_checks",
@@ -876,6 +878,36 @@ local function run()
                 shared_source_nodes.total
             )
             .. " node visit(s); Range Scopes + syntax warnings both reused it on 5 source revision(s)"
+    )
+
+    local register_source_scans =
+        snapshot.counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.full_tree_scans"
+        ]
+
+    local register_source_matches =
+        snapshot.counters[
+            "context.registers.dynamic.prepare_source.collect_nodes.nodes_matched"
+        ]
+
+    assert(
+        type(register_source_scans) == "table"
+            and type(register_source_matches) == "table"
+            and register_source_scans.count == 5
+            and register_source_scans.total == 5
+            and register_source_matches.count == 5
+            and shared_source_walks.total == 5
+            and shared_source_nodes.total == 5590,
+        "Register prepared-source Tree-sitter walk opportunity changed"
+    )
+
+    print(
+        "[Tracker_HUD] Register prepared-source walk opportunity: "
+            .. tostring(
+                register_source_scans.total
+            )
+            .. " additional full-tree scan(s) across the same 5 source revision(s); "
+            .. "shared snapshot already indexes the complete 5590-node traversal"
     )
 
     local directive_scan_counter =

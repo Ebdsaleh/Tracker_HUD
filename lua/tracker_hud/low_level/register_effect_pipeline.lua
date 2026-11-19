@@ -93,6 +93,28 @@ local function profile_end(
 end
 
 
+local function profile_counter(
+    opts,
+    suffix,
+    delta
+)
+    if type(opts) ~= "table"
+        or type(opts.profile_counter)
+            ~= "function"
+    then
+        return
+    end
+
+    opts.profile_counter(
+        profile_name(
+            opts,
+            suffix
+        ),
+        delta
+    )
+end
+
+
 function M.get_index(adapter)
     return register_effect_index.get(
         adapter,
@@ -213,11 +235,26 @@ local function collect_nodes(
         collect_nodes = function(
             node_type
         )
-            return instruction_source
-                .collect_nodes_by_type(
-                    opts.root_node,
-                    node_type
-                )
+            profile_counter(
+                opts,
+                "prepare_source.collect_nodes.full_tree_scans",
+                1
+            )
+
+            local nodes =
+                instruction_source
+                    .collect_nodes_by_type(
+                        opts.root_node,
+                        node_type
+                    )
+
+            profile_counter(
+                opts,
+                "prepare_source.collect_nodes.nodes_matched",
+                #nodes
+            )
+
+            return nodes
         end,
 
         normalize_position =
