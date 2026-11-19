@@ -86,14 +86,22 @@ local function load_adapter_module(module_name)
     local ok, adapter_or_err = pcall(require, module_name)
 
     if not ok then
-        return false, adapter_or_err
+        return false,
+            "adapter module '"
+            .. tostring(module_name)
+            .. "' failed to load: "
+            .. tostring(adapter_or_err)
     end
 
 
     local registered, register_err = registry.register(adapter_or_err)
 
     if not registered then
-        return false, register_err
+        return false,
+            "adapter module '"
+            .. tostring(module_name)
+            .. "' failed Contract v1 validation: "
+            .. tostring(register_err)
     end
 
     loaded_modules[module_name] = true

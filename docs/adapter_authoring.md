@@ -77,6 +77,61 @@ The starter deliberately demonstrates only four ideas:
 
 Add more semantics only when the language actually needs them.
 
+## External adapters are drop-in modules
+
+A new adapter does not need an edit to Tracker_HUD's registry.
+
+Put its entry point under any runtimepath-backed module prefix using this shape:
+
+```text
+lua/
+  my_tracker_adapters/
+    my_language/
+      init.lua
+```
+
+The `init.lua` file returns the Adapter Contract table.
+
+Then include both Tracker_HUD's built-in adapter path and the custom path during
+setup:
+
+```lua
+require("tracker_hud").setup({
+    adapter_paths = {
+        "tracker_hud/adapters",
+        "my_tracker_adapters",
+    },
+})
+```
+
+Tracker_HUD scans each configured prefix for:
+
+```text
+lua/<adapter_path>/*/init.lua
+```
+
+and registers the adapter under every filetype declared by that module.
+
+A broken custom adapter does not prevent other discovered adapters from loading.
+Tracker_HUD warns with the module name plus the exact Contract v1 error path.
+`setup()` also returns the loader result for programmatic checks:
+
+```lua
+local result =
+    require("tracker_hud").setup({
+        adapter_paths = {
+            "tracker_hud/adapters",
+            "my_tracker_adapters",
+        },
+    })
+
+-- result.loaded_count
+-- result.errors
+```
+
+This means adapter #5 can live outside the Tracker_HUD repository. The core
+registry, loader, and context engine do not need language-specific edits.
+
 ## Construct authoring
 
 Use `construct_schema.rule(...)` when building a table literal, or

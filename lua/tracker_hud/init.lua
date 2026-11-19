@@ -692,7 +692,22 @@ function M.setup(opts)
     highlights.setup(config)
 
     clear_registered_user_commands()
-    adapter_loader.reload(config.adapter_paths)
+
+    local adapter_load_result =
+        adapter_loader.reload(
+            config.adapter_paths
+        )
+
+    for _, adapter_error in ipairs(
+        adapter_load_result.errors
+            or {}
+    ) do
+        vim.notify(
+            "tracker_hud adapter load error: "
+                .. tostring(adapter_error),
+            vim.log.levels.WARN
+        )
+    end
 
     vim.api.nvim_clear_autocmds({
         group = hud_group,
@@ -789,6 +804,8 @@ function M.setup(opts)
     })
 
     setup_keymaps()
+
+    return adapter_load_result
 end
 
 return M
