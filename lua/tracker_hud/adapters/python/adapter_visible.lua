@@ -992,31 +992,6 @@ M.scope_members = {
             }
         ),
         scope_member_schema.rule(
-            "except_clause",
-            "assignment",
-            {
-                language_term =
-                    "exception alias",
-                fields = {
-                    name = {
-                        field = "alias",
-                        node_type =
-                            "identifier",
-                    },
-                },
-                tokens = {
-                    declaration =
-                        "except",
-                    alias =
-                        "as",
-                },
-                binding_mutability =
-                    "conditional",
-                visibility_range =
-                    "structural_scope",
-            }
-        ),
-        scope_member_schema.rule(
             "assignment",
             "assignment",
             {
@@ -1168,6 +1143,31 @@ M.scope_members = {
                 },
                 binding_mutability =
                     "mutable",
+            }
+        ),
+        scope_member_schema.rule(
+            "except_clause",
+            "assignment",
+            {
+                language_term =
+                    "exception alias",
+                fields = {
+                    name = {
+                        field = "alias",
+                        node_type =
+                            "identifier",
+                    },
+                },
+                tokens = {
+                    declaration =
+                        "except",
+                    alias =
+                        "as",
+                },
+                binding_mutability =
+                    "conditional",
+                visibility_range =
+                    "structural_scope",
             }
         ),
     },
