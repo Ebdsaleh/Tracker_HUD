@@ -221,6 +221,8 @@ local function with_scope_depth_filter(
             state.structural_depth,
         structural_range =
             state.structural_range,
+        direct_structural_visibility_range =
+            state.direct_structural_visibility_range,
         structural_path =
             state.structural_path,
         lexical_path =
@@ -1077,13 +1079,25 @@ local function with_member_visibility(
     if core.is_table(visibility)
         and visibility.range
             == "structural_scope"
-        and core.is_table(
-            state
-            and state.structural_range
-        )
     then
-        result.member_visibility_range =
-            state.structural_range
+        local structural_visibility_range =
+            state
+            and (
+                state.structural_range
+                or state
+                    .direct_structural_visibility_range
+            )
+            or nil
+
+        if core.is_table(
+            structural_visibility_range
+        ) then
+            result.member_visibility_range =
+                structural_visibility_range
+        else
+            result.member_visibility_range =
+                nil
+        end
     else
         result.member_visibility_range =
             nil
@@ -3492,6 +3506,37 @@ local function walk_node(
         node_type
     )
 
+    local member_collection_state =
+        current_state
+
+    if core.is_table(
+        construct_scope
+    )
+        and construct_scope.kind
+            == "structural"
+        and construct_scope
+            .affects_visibility
+            == true
+        and construct_scope
+            .owns_members
+            ~= true
+    then
+        member_collection_state = {}
+
+        for key, value in pairs(
+            current_state or {}
+        ) do
+            member_collection_state[key] =
+                value
+        end
+
+        member_collection_state
+            .direct_structural_visibility_range =
+            ts_utils.get_node_range(
+                node
+            )
+    end
+
     collect_from_node(
         node,
         bufnr,
@@ -3499,7 +3544,7 @@ local function walk_node(
         member_spec_index,
         members,
         seen,
-        current_state,
+        member_collection_state,
         node_type
     )
 
