@@ -319,6 +319,61 @@ local function run()
         "PASS generic Scope Member lifetime contract"
     )
 
+    local owner_exclusion_probe =
+        vim.deepcopy(
+            c.scope_members.symbols[1]
+        )
+
+    owner_exclusion_probe.member.owner_scope =
+        "lexical"
+    owner_exclusion_probe.member
+        .owner_scope_excluded_construct_kinds = {
+            "comprehension",
+        }
+
+    local owner_exclusion_ok,
+        owner_exclusion_error =
+        construct_contract
+            .validate_member_spec(
+                owner_exclusion_probe.member
+            )
+
+    assert(
+        owner_exclusion_ok,
+        "contract rejected generic lexical-owner exclusions: "
+            .. tostring(
+                owner_exclusion_error
+            )
+    )
+
+    owner_exclusion_probe.member
+        .owner_scope_excluded_construct_kinds = {
+            "python_comprehension_magic",
+        }
+
+    local invalid_owner_exclusion_ok,
+        invalid_owner_exclusion_error =
+        construct_contract
+            .validate_member_spec(
+                owner_exclusion_probe.member
+            )
+
+    assert(
+        not invalid_owner_exclusion_ok
+            and tostring(
+                invalid_owner_exclusion_error
+            ):find(
+                "invalid construct kind",
+                1,
+                true
+            ),
+        "contract accepted language-specific lexical-owner exclusion magic"
+    )
+
+    print(
+        "PASS generic lexical-owner exclusion contract"
+    )
+
     local modifier_probe =
         vim.deepcopy(c)
 

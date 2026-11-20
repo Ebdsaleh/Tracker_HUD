@@ -82,6 +82,13 @@ function M.rule(
             or "lexical",
     }
 
+    if opts.owner_scope_excluded_construct_kinds
+        ~= nil
+    then
+        member.owner_scope_excluded_construct_kinds =
+            opts.owner_scope_excluded_construct_kinds
+    end
+
     if opts.binding_mutability ~= nil then
         member.mutability = {
             binding =
@@ -151,6 +158,8 @@ function M.named(
                 opts.language_term,
             owner_scope =
                 opts.owner_scope,
+            owner_scope_excluded_construct_kinds =
+                opts.owner_scope_excluded_construct_kinds,
             binding_mutability =
                 opts.binding_mutability,
             visibility_range =

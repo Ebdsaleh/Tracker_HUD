@@ -49,6 +49,7 @@ M.construct_kinds = {
     delegate = true,
     closure = true,
     lambda = true,
+    comprehension = true,
 
     branch = true,
     loop = true,
@@ -361,6 +362,45 @@ function M.validate_member_spec(member_spec)
         member_spec.owner_scope
     ) then
         return false, "member.owner_scope is invalid"
+    end
+
+    local excluded_owner_kinds =
+        member_spec
+            .owner_scope_excluded_construct_kinds
+
+    if excluded_owner_kinds ~= nil then
+        if member_spec.owner_scope ~= "lexical" then
+            return false,
+                "member.owner_scope_excluded_construct_kinds requires lexical ownership"
+        end
+
+        if not core.is_table(
+            excluded_owner_kinds
+        ) or #excluded_owner_kinds == 0
+        then
+            return false,
+                "member.owner_scope_excluded_construct_kinds must be a non-empty list"
+        end
+
+        local seen_kinds = {}
+
+        for _, construct_kind in ipairs(
+            excluded_owner_kinds
+        ) do
+            if not M.validate_construct_kind(
+                construct_kind
+            ) then
+                return false,
+                    "member.owner_scope_excluded_construct_kinds contains an invalid construct kind"
+            end
+
+            if seen_kinds[construct_kind] then
+                return false,
+                    "member.owner_scope_excluded_construct_kinds contains a duplicate construct kind"
+            end
+
+            seen_kinds[construct_kind] = true
+        end
     end
 
     local ok, err = M.validate_mutability_spec(

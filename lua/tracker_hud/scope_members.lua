@@ -875,6 +875,78 @@ local function get_syntax_ancestor_exclusions(member_spec)
 end
 
 
+local function with_member_owner_scope(
+    state,
+    member_spec
+)
+    local result = {}
+
+    for key, value in pairs(
+        state or {}
+    ) do
+        result[key] = value
+    end
+
+    local member =
+        core.is_table(member_spec)
+        and core.is_table(
+            member_spec.member
+        )
+        and member_spec.member
+        or nil
+
+    local excluded =
+        member
+        and member
+            .owner_scope_excluded_construct_kinds
+        or nil
+
+    if not core.is_table(excluded)
+        or #excluded == 0
+        or member.owner_scope ~= "lexical"
+    then
+        return result
+    end
+
+    local excluded_set = {}
+
+    for _, construct_kind in ipairs(
+        excluded
+    ) do
+        excluded_set[construct_kind] = true
+    end
+
+    local lexical_path =
+        state
+        and state.lexical_path
+        or {}
+
+    for index = #lexical_path, 1, -1 do
+        local frame =
+            lexical_path[index]
+
+        if core.is_table(frame)
+            and excluded_set[
+                frame.construct_kind
+            ] ~= true
+        then
+            result.scope_depth =
+                frame.depth
+                or 0
+            result.scope_range =
+                frame.range
+
+            return result
+        end
+    end
+
+    result.scope_depth = 0
+    result.scope_range = nil
+
+    return result
+end
+
+
 local function with_member_visibility(
     state,
     member_spec
@@ -2185,8 +2257,14 @@ local function collect_member_group(
             )
         then
             local member_state =
-                with_member_visibility(
+                with_member_owner_scope(
                     group_state,
+                    member_spec
+                )
+
+            member_state =
+                with_member_visibility(
+                    member_state,
                     member_spec
                 )
 
@@ -2288,8 +2366,14 @@ local function collect_member_group_before_scope_enter(
             )
         then
             local member_state =
-                with_member_visibility(
+                with_member_owner_scope(
                     group_state,
+                    member_spec
+                )
+
+            member_state =
+                with_member_visibility(
+                    member_state,
                     member_spec
                 )
 
