@@ -280,6 +280,8 @@ M.scope_members.loops = {
                 "range-for variable",
             fallback_node_type =
                 "identifier",
+            visibility_range =
+                "structural_scope",
         }
     ),
 }
