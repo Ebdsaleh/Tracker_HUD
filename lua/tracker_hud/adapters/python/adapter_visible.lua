@@ -962,7 +962,28 @@ M.scope_members = {
             "assignment",
             {
                 fields = {
-                    name = "left",
+                    bindings = {
+                        field = "left",
+
+                        -- Assignment destructuring is grammar-driven.
+                        -- Composite attribute/subscript targets are terminals,
+                        -- never containers whose child identifiers become
+                        -- fake lexical bindings.
+                        recursive = {
+                            terminal_node_types = {
+                                "identifier",
+                                "keyword_identifier",
+                                "attribute",
+                                "subscript",
+                            },
+                            container_node_types = {
+                                "pattern_list",
+                                "tuple_pattern",
+                                "list_pattern",
+                                "list_splat_pattern",
+                            },
+                        },
+                    },
                     value = "right",
                 },
                 tokens = {
