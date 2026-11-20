@@ -9,6 +9,7 @@ local construct_schema = require("tracker_hud.adapters.construct_schema")
 
 M.name = "cpp"
 M.filetypes = { "cpp" }
+M.target_directives.standard = "standard"
 M.target_dimensions = {
     standard = {
         default = "cpp17",
@@ -50,7 +51,13 @@ M.active_targets = {
 -- Do not inherit the C function closure: it captures the original C adapter
 -- table and would update C's targets rather than this C++ adapter.
 function M.configure_adapter_for_buffer(bufnr, config)
-    M.active_targets = target_directives.resolve(bufnr, config, "cpp")
+    M.active_targets =
+        target_directives.resolve(
+            bufnr,
+            config,
+            "cpp",
+            M.target_dimensions
+        )
 end
 
 construct_schema.define(
