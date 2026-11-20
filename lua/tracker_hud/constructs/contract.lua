@@ -336,6 +336,12 @@ function M.validate_scope_spec(scope_spec)
         return false, "scope.owns_members must be a boolean when provided"
     end
 
+    if scope_spec.binding_parent ~= nil
+        and type(scope_spec.binding_parent) ~= "boolean"
+    then
+        return false, "scope.binding_parent must be a boolean when provided"
+    end
+
     return true, nil
 end
 

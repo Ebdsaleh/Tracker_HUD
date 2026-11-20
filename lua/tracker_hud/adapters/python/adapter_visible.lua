@@ -173,6 +173,10 @@ M.construct_specs = {
                     kind = "lexical",
                     affects_visibility = true,
                     owns_members = true,
+
+                    -- Nested Python functions do not resolve ordinary lexical
+                    -- bindings through the class namespace.
+                    binding_parent = false,
                 },
                 value = {
                     kind = "object",

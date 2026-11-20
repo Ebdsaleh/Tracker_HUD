@@ -949,6 +949,14 @@ local function with_member_owner_scope(
         and member_spec.member
         or nil
 
+    result.member_is_binding =
+        core.is_table(member)
+        and core.is_table(
+            member.mutability
+        )
+        and member.mutability.binding
+            ~= nil
+
     local excluded =
         member
         and member
@@ -2940,6 +2948,163 @@ local function resolve_scope_binding_modifiers(
 end
 
 
+local function persisted_frame_matches_member(
+    frame,
+    member
+)
+    return core.is_table(frame)
+        and core.is_table(member)
+        and member.scope_depth
+            == frame.depth
+        and member.scope_start_line
+            == frame.start_line
+        and member.scope_start_column
+            == frame.start_column
+        and member.scope_end_line
+            == frame.end_line
+        and member.scope_end_column
+            == frame.end_column
+end
+
+
+local function member_can_participate_in_shadowing(
+    member
+)
+    return core.is_table(member)
+        and member.is_binding == true
+        and member.owner_scope_redirected
+            ~= true
+        and not scope_member_model
+            .is_annotation_owned(
+                member
+            )
+        and core.is_non_empty_string(
+            member.name
+        )
+end
+
+
+local function find_member_owner_frame_index(
+    member
+)
+    local path =
+        core.is_table(member)
+        and member.lexical_path
+        or {}
+
+    for index = #path, 1, -1 do
+        if persisted_frame_matches_member(
+            path[index],
+            member
+        )
+        then
+            return index
+        end
+    end
+
+    return nil
+end
+
+
+local function shadow_candidate_for_frame(
+    members,
+    member,
+    frame
+)
+    local candidate = nil
+
+    for _, possible in ipairs(
+        members or {}
+    ) do
+        if possible ~= member
+            and member_can_participate_in_shadowing(
+                possible
+            )
+            and possible.name
+                == member.name
+            and persisted_frame_matches_member(
+                frame,
+                possible
+            )
+            and (
+                possible.line == nil
+                or member.line == nil
+                or possible.line
+                    <= member.line
+            )
+            and (
+                candidate == nil
+                or (
+                    possible.line
+                        or math.huge
+                )
+                    < (
+                        candidate.line
+                        or math.huge
+                    )
+            )
+        then
+            candidate = possible
+        end
+    end
+
+    return candidate
+end
+
+
+local function resolve_lexical_shadowing(
+    members
+)
+    for _, member in ipairs(
+        members or {}
+    ) do
+        member.shadows_member_id = nil
+
+        if member_can_participate_in_shadowing(
+            member
+        )
+        then
+            local path =
+                member.lexical_path
+                or {}
+            local owner_index =
+                find_member_owner_frame_index(
+                    member
+                )
+
+            if owner_index then
+                for index =
+                    owner_index - 1,
+                    1,
+                    -1
+                do
+                    local frame =
+                        path[index]
+
+                    if frame
+                        and frame.binding_parent
+                            ~= false
+                    then
+                        local candidate =
+                            shadow_candidate_for_frame(
+                                members,
+                                member,
+                                frame
+                            )
+
+                        if candidate then
+                            member.shadows_member_id =
+                                candidate.id
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+
 local function member_spec_opens_annotation_scope(
     node,
     member_spec
@@ -3161,6 +3326,10 @@ local function walk_node(
                         construct.language_term,
                     label =
                         construct.label,
+                    binding_parent =
+                        construct_scope
+                            .binding_parent
+                        ~= false,
                     range =
                         lexical_range,
                 }
@@ -3415,6 +3584,10 @@ local function collect_internal(
     resolve_scope_binding_modifiers(
         members,
         binding_modifiers
+    )
+
+    resolve_lexical_shadowing(
+        members
     )
 
     profile_counter(

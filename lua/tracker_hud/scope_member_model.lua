@@ -54,6 +54,52 @@ local function copy_structural_path(path)
     return result
 end
 
+
+local function copy_lexical_path(path)
+    local result = {}
+
+    for _, frame in ipairs(path or {}) do
+        if core.is_table(frame) then
+            local range = frame.range
+
+            table.insert(
+                result,
+                {
+                    depth = frame.depth,
+                    node_type = frame.node_type,
+                    construct_kind =
+                        frame.construct_kind,
+                    language_term =
+                        frame.language_term,
+                    label = frame.label,
+                    binding_parent =
+                        frame.binding_parent
+                        ~= false,
+
+                    start_line =
+                        range
+                        and range.start_line
+                        or frame.start_line,
+                    start_column =
+                        range
+                        and range.start_column
+                        or frame.start_column,
+                    end_line =
+                        range
+                        and range.end_line
+                        or frame.end_line,
+                    end_column =
+                        range
+                        and range.end_column
+                        or frame.end_column,
+                }
+            )
+        end
+    end
+
+    return result
+end
+
 function M.get_kind_label(kind)
     if not core.is_non_empty_string(kind) then
         return nil
@@ -171,6 +217,13 @@ function M.set_owner_scope(
     member.id =
         build_member_id(member)
 
+    -- Ownership changes performed after discovery (for example global/nonlocal
+    -- redirects) refer to an existing binding rather than introducing a fresh
+    -- binding in the source scope. Shadow provenance must not treat the
+    -- redirected record as a new lexical declaration.
+    member.owner_scope_redirected =
+        true
+
     return true
 end
 
@@ -272,6 +325,14 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         scope_start_column = scope_range and scope_range.start_column,
         scope_end_line = scope_range and scope_range.end_line,
         scope_end_column = scope_range and scope_range.end_column,
+
+        lexical_path =
+            copy_lexical_path(
+                state.lexical_path
+            ),
+        is_binding =
+            state.member_is_binding
+            == true,
 
         structural_depth = structural_depth,
         structural_path =
