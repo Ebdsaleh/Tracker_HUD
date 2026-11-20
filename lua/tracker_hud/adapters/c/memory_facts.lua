@@ -145,6 +145,20 @@ local function assignment_binding(bufnr, node)
     return direct_identifier_text(bufnr, left)
 end
 
+local function direct_pointer_binding(bufnr, node)
+    local binding = initializer_binding(bufnr, node)
+    if binding then
+        return binding, "declaration"
+    end
+
+    binding = assignment_binding(bufnr, node)
+    if binding then
+        return binding, "assignment"
+    end
+
+    return nil, nil
+end
+
 local function direct_call_first_argument(bufnr, node)
     local arguments = ts_utils.get_child_by_field_name(node, "arguments")
     if not arguments then
@@ -204,6 +218,87 @@ local function pointer_scope_id(node)
     return "translation_unit"
 end
 
+local function pointer_lexical_scope_range(node)
+    local current = node
+
+    while current do
+        local node_type = current:type()
+        if node_type == "compound_statement"
+            or pointer_callable_scope_types[node_type]
+        then
+            local range = ts_utils.get_node_range_fields(current)
+            if range.start_line and range.end_line then
+                return {
+                    start_line = range.start_line,
+                    start_column = range.start_column or 0,
+                    end_line = range.end_line,
+                    end_column = range.end_column or 0,
+                }
+            end
+        end
+
+        current = current:parent()
+    end
+
+    return nil
+end
+
+local function position_before(
+    left_line,
+    left_column,
+    right_line,
+    right_column
+)
+    if left_line ~= right_line then
+        return left_line < right_line
+    end
+
+    return (left_column or 0) < (right_column or 0)
+end
+
+local function scope_contains_position(scope, line, column)
+    if not scope then
+        return true
+    end
+
+    if position_before(
+        line,
+        column,
+        scope.start_line,
+        scope.start_column
+    ) then
+        return false
+    end
+
+    return position_before(
+        line,
+        column,
+        scope.end_line,
+        scope.end_column
+    )
+end
+
+local function visible_predecessor(scoped_producers, name, fact)
+    local producers = scoped_producers[name]
+    if not producers then
+        return nil
+    end
+
+    for index = #producers, 1, -1 do
+        local candidate = producers[index]
+        local candidate_metadata = candidate.metadata or {}
+        if scope_contains_position(
+            candidate_metadata.pointer_binding_scope,
+            fact.source_line,
+            fact.source_column or 0
+        ) then
+            return candidate
+        end
+    end
+
+    return nil
+end
+
 local function make_fact(
     bufnr,
     node,
@@ -212,7 +307,8 @@ local function make_fact(
     role,
     source,
     pointer_binding,
-    pointer_target
+    pointer_target,
+    pointer_binding_origin
 )
     local range = ts_utils.get_node_range_fields(node)
     local line = range.start_line
@@ -247,6 +343,11 @@ local function make_fact(
             pointer_binding = pointer_binding,
             pointer_target = pointer_target,
             pointer_scope_id = pointer_scope_id(node),
+            pointer_binding_origin = pointer_binding_origin,
+            pointer_binding_scope =
+                pointer_binding
+                    and pointer_lexical_scope_range(node)
+                    or nil,
         },
     }
 end
@@ -269,12 +370,12 @@ local function inspect_node(bufnr, node, language)
         end
 
         local pointer_binding
+        local pointer_binding_origin
         local pointer_target
 
         if name == "malloc" or name == "calloc" or name == "realloc" then
-            pointer_binding =
-                initializer_binding(bufnr, node)
-                or assignment_binding(bufnr, node)
+            pointer_binding, pointer_binding_origin =
+                direct_pointer_binding(bufnr, node)
         end
 
         if name == "realloc" or name == "free" then
@@ -289,12 +390,16 @@ local function inspect_node(bufnr, node, language)
             signature.role,
             language .. "_source_memory",
             pointer_binding,
-            pointer_target
+            pointer_target,
+            pointer_binding_origin
         )
     end
 
     if language == "cpp" then
         if node_type == "new_expression" then
+            local pointer_binding, pointer_binding_origin =
+                direct_pointer_binding(bufnr, node)
+
             return make_fact(
                 bufnr,
                 node,
@@ -302,9 +407,9 @@ local function inspect_node(bufnr, node, language)
                 "heap_allocation_site",
                 "C++ new expression; construction, success and ownership not inferred",
                 "cpp_source_memory",
-                initializer_binding(bufnr, node)
-                    or assignment_binding(bufnr, node),
-                nil
+                pointer_binding,
+                nil,
+                pointer_binding_origin
             )
         end
         if node_type == "delete_expression" then
@@ -316,7 +421,8 @@ local function inspect_node(bufnr, node, language)
                 "C++ delete expression; pointer ownership and destructor effects not inferred",
                 "cpp_source_memory",
                 nil,
-                delete_target(bufnr, node)
+                delete_target(bufnr, node),
+                nil
             )
         end
     end
@@ -385,7 +491,12 @@ function M.collect(bufnr, root_node, language, cursor_line)
         -- Resolve before publishing the current binding so same-name realloc
         -- forms can point backward rather than at the current fact itself.
         if pointer_target then
-            local predecessor = scoped_producers[pointer_target]
+            local predecessor =
+                visible_predecessor(
+                    scoped_producers,
+                    pointer_target,
+                    fact
+                )
             if predecessor then
                 metadata.pointer_predecessor_id = predecessor.id
                 metadata.pointer_predecessor_relation =
@@ -395,7 +506,28 @@ function M.collect(bufnr, root_node, language, cursor_line)
 
         local pointer_binding = metadata.pointer_binding
         if pointer_binding then
-            scoped_producers[pointer_binding] = fact
+            -- Assignment-owned producers replace the currently visible
+            -- binding rather than creating a new lexical declaration. Carry
+            -- that binding's source scope forward when direct evidence exists.
+            if metadata.pointer_binding_origin == "assignment" then
+                local previous =
+                    visible_predecessor(
+                        scoped_producers,
+                        pointer_binding,
+                        fact
+                    )
+                if previous then
+                    metadata.pointer_binding_scope =
+                        (previous.metadata or {}).pointer_binding_scope
+                end
+            end
+
+            local producers = scoped_producers[pointer_binding]
+            if not producers then
+                producers = {}
+                scoped_producers[pointer_binding] = producers
+            end
+            table.insert(producers, fact)
         end
     end
 
