@@ -932,6 +932,75 @@ M.scope_members = {
             }
         ),
         scope_member_schema.rule(
+            "function_definition",
+            "type_parameter",
+            {
+                language_term =
+                    "type parameter",
+                fields = {
+                    parameters =
+                        "type_parameters",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "type_parameter",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                annotation_scope = true,
+            }
+        ),
+        scope_member_schema.rule(
+            "class_definition",
+            "type_parameter",
+            {
+                language_term =
+                    "type parameter",
+                fields = {
+                    parameters =
+                        "type_parameters",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "type_parameter",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                annotation_scope = true,
+            }
+        ),
+        scope_member_schema.rule(
+            "type_alias_statement",
+            "type_parameter",
+            {
+                language_term =
+                    "type parameter",
+                fields = {
+                    parameters =
+                        "left",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "type_parameter",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                annotation_scope = true,
+            }
+        ),
+        scope_member_schema.rule(
             "lambda",
             "parameter",
             {
