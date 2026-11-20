@@ -250,7 +250,12 @@ local function declaration_binding_scope(node)
         if current:type() == "declaration" then
             local parent = current:parent()
 
-            if parent and parent:type() == "for_statement" then
+            if parent
+                and (
+                    parent:type() == "for_statement"
+                    or parent:type() == "for_range_loop"
+                )
+            then
                 local range = ts_utils.get_node_range_fields(parent)
 
                 if range.start_line and range.end_line then
