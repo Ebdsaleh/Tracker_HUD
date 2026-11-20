@@ -177,6 +177,33 @@ local function delete_target(bufnr, node)
     return nil
 end
 
+local pointer_callable_scope_types = {
+    function_definition = true,
+    lambda_expression = true,
+}
+
+local function pointer_scope_id(node)
+    local current = node
+
+    while current do
+        if pointer_callable_scope_types[current:type()] then
+            local range = ts_utils.get_node_range_fields(current)
+            return table.concat({
+                "callable",
+                tostring(current:type()),
+                tostring(range.start_line or 0),
+                tostring(range.start_column or 0),
+                tostring(range.end_line or 0),
+                tostring(range.end_column or 0),
+            }, ":")
+        end
+
+        current = current:parent()
+    end
+
+    return "translation_unit"
+end
+
 local function make_fact(
     bufnr,
     node,
@@ -219,6 +246,7 @@ local function make_fact(
             leak_status = "not analyzed",
             pointer_binding = pointer_binding,
             pointer_target = pointer_target,
+            pointer_scope_id = pointer_scope_id(node),
         },
     }
 end
@@ -343,12 +371,21 @@ function M.collect(bufnr, root_node, language, cursor_line)
 
     for _, fact in ipairs(facts) do
         local metadata = fact.metadata or {}
+        local pointer_scope = metadata.pointer_scope_id
+            or "translation_unit"
+        local scoped_producers = direct_producers[pointer_scope]
+
+        if not scoped_producers then
+            scoped_producers = {}
+            direct_producers[pointer_scope] = scoped_producers
+        end
+
         local pointer_target = metadata.pointer_target
 
         -- Resolve before publishing the current binding so same-name realloc
         -- forms can point backward rather than at the current fact itself.
         if pointer_target then
-            local predecessor = direct_producers[pointer_target]
+            local predecessor = scoped_producers[pointer_target]
             if predecessor then
                 metadata.pointer_predecessor_id = predecessor.id
                 metadata.pointer_predecessor_relation =
@@ -358,7 +395,7 @@ function M.collect(bufnr, root_node, language, cursor_line)
 
         local pointer_binding = metadata.pointer_binding
         if pointer_binding then
-            direct_producers[pointer_binding] = fact
+            scoped_producers[pointer_binding] = fact
         end
     end
 
