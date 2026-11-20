@@ -202,15 +202,35 @@ local function run()
             }
         )
 
+    local payload_member = nil
+
+    for _, member in ipairs(members) do
+        if member.name == "payload" then
+            payload_member = member
+            break
+        end
+    end
+
+    assert(
+        payload_member
+            and payload_member.source_start_line
+            and payload_member.source_start_column
+            and payload_member.scope_start_line
+            and payload_member.scope_end_line,
+        "parser-backed payload member range missing"
+    )
+
     local context = {
         scope_members = members,
         all_scope_members = members,
 
-        -- payload begins at zero-based column 20 on source line 16.
         -- HUD context columns are one-based before rendering normalizes them.
         cursor = {
-            line = 16,
-            column = 21,
+            line =
+                payload_member.source_start_line,
+            column =
+                payload_member.source_start_column
+                + 1,
         },
 
         section_order = {
@@ -258,11 +278,22 @@ local function run()
         "payload cursor must activate Scope Members section"
     )
 
+    local expected_lexical_range =
+        "[scope "
+        .. tostring(
+            payload_member.scope_start_line
+        )
+        .. " - "
+        .. tostring(
+            payload_member.scope_end_line
+        )
+        .. "]"
+
     local lexical_index,
         lexical_line =
         find_line(
             rendered.lines,
-            "[scope 10 - 19]"
+            expected_lexical_range
         )
 
     local source_index,
@@ -377,6 +408,17 @@ local function run()
 
     print(
         "RENDER python structural members: "
+            .. "cursor="
+            .. tostring(
+                context.cursor.line
+            )
+            .. ":"
+            .. tostring(
+                context.cursor.column
+            )
+            .. ", lexical="
+            .. expected_lexical_range
+            .. " | "
             .. table.concat({
                 source_line,
                 while_line,
