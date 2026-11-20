@@ -182,6 +182,34 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
     local structural_range =
         state.structural_range
 
+    local member_visibility_range =
+        state.member_visibility_range
+    local visibility_start_line =
+        member_visibility_range
+        and member_visibility_range
+            .start_line
+        or nil
+    local visibility_end_line =
+        member_visibility_range
+        and member_visibility_range
+            .end_line
+        or nil
+
+    -- Tree-sitter block ranges are half-open. A dedented suite may therefore
+    -- end at column 0 of the following source line. Scope Member visibility is
+    -- currently selected by line, so normalize that zero-column endpoint back
+    -- to the final line that actually belongs to the member lifetime.
+    if visibility_start_line
+        and visibility_end_line
+        and member_visibility_range
+            .end_column == 0
+        and visibility_end_line
+            > visibility_start_line
+    then
+        visibility_end_line =
+            visibility_end_line - 1
+    end
+
     local line = nil
     local source_start_column = nil
     local source_end_line = nil
@@ -251,13 +279,9 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
             and structural_range.end_column,
 
         visibility_start_line =
-            state.member_visibility_range
-            and state.member_visibility_range
-                .start_line,
+            visibility_start_line,
         visibility_end_line =
-            state.member_visibility_range
-            and state.member_visibility_range
-                .end_line,
+            visibility_end_line,
 
         source_start_line = line,
         source_start_column = source_start_column,
