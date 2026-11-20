@@ -780,24 +780,46 @@ local function run()
         "shared general Scope Member rule builder changed value semantics"
     )
 
+    local function find_python_parameter_spec(
+        node_type,
+        member_kind,
+        parameters_field
+    )
+        for _, spec in ipairs(
+            python_adapter.scope_members
+                .parameters
+                or {}
+        ) do
+            if spec.syntax.node_type
+                    == node_type
+                and spec.member.kind
+                    == member_kind
+                and spec.syntax.fields
+                    .parameters
+                    == parameters_field
+            then
+                return spec
+            end
+        end
+
+        return nil
+    end
+
     local python_parameter =
-        python_adapter.scope_members
-            .parameters[1]
+        find_python_parameter_spec(
+            "function_definition",
+            "parameter",
+            "parameters"
+        )
 
     assert(
-        python_parameter.syntax.node_type
-            == "function_definition"
-            and python_parameter.syntax.fields
-                .parameters
-                == "parameters"
+        python_parameter
             and python_parameter.syntax.children
                 .names.node_type
                 == "parameters"
             and python_parameter.syntax.children
                 .name.node_type
                 == "identifier"
-            and python_parameter.member.kind
-                == "parameter"
             and python_parameter.member.mutability
                 .binding
                 == "mutable",
@@ -805,27 +827,71 @@ local function run()
     )
 
     local python_lambda_parameter =
-        python_adapter.scope_members
-            .parameters[2]
+        find_python_parameter_spec(
+            "lambda",
+            "parameter",
+            "parameters"
+        )
 
     assert(
-        python_lambda_parameter.syntax.node_type
-            == "lambda"
-            and python_lambda_parameter.syntax.fields
-                .parameters
-                == "parameters"
+        python_lambda_parameter
             and python_lambda_parameter.syntax.children
                 .names.node_type
                 == "lambda_parameters"
             and python_lambda_parameter.syntax.children
                 .name.node_type
                 == "identifier"
-            and python_lambda_parameter.member.kind
-                == "parameter"
             and python_lambda_parameter.member.mutability
                 .binding
                 == "mutable",
         "Python lambda parameter contract changed"
+    )
+
+    for _, expected in ipairs({
+        {
+            node_type =
+                "function_definition",
+            parameters_field =
+                "type_parameters",
+        },
+        {
+            node_type =
+                "class_definition",
+            parameters_field =
+                "type_parameters",
+        },
+        {
+            node_type =
+                "type_alias_statement",
+            parameters_field =
+                "left",
+        },
+    }) do
+        local type_parameter =
+            find_python_parameter_spec(
+                expected.node_type,
+                "type_parameter",
+                expected.parameters_field
+            )
+
+        assert(
+            type_parameter
+                and type_parameter.syntax.children
+                    .names.node_type
+                    == "type_parameter"
+                and type_parameter.syntax.children
+                    .name.node_type
+                    == "identifier"
+                and type_parameter.member
+                    .annotation_scope
+                    == true,
+            "Python PEP 695 annotation member contract changed: "
+                .. expected.node_type
+        )
+    end
+
+    print(
+        "PASS Python PEP 695 annotation member contracts"
     )
 
     local python_loop =
