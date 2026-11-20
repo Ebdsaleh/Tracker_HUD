@@ -302,6 +302,19 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         return
     end
 
+    if opts.cursor_line
+        and visibility_start_line
+        and visibility_end_line
+        and (
+            opts.cursor_line
+                < visibility_start_line
+            or opts.cursor_line
+                > visibility_end_line
+        )
+    then
+        return
+    end
+
     local seen_key = table.concat({
         tostring(line or ""),
         tostring(kind or ""),
