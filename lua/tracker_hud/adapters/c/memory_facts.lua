@@ -299,6 +299,149 @@ local function visible_predecessor(scoped_producers, name, fact)
     return nil
 end
 
+local function declaration_has_direct_binding(
+    bufnr,
+    declaration,
+    binding
+)
+    if not declaration
+        or declaration:type() ~= "declaration"
+        or not binding
+    then
+        return false
+    end
+
+    local function matches_declarator(node)
+        if not node then
+            return false
+        end
+
+        if node:type() == "init_declarator" then
+            node = ts_utils.get_child_by_field_name(
+                node,
+                "declarator"
+            )
+        end
+
+        return declarator_identifier_text(bufnr, node) == binding
+    end
+
+    local declarator =
+        ts_utils.get_child_by_field_name(
+            declaration,
+            "declarator"
+        )
+
+    if matches_declarator(declarator) then
+        return true
+    end
+
+    -- C/C++ declarations may expose initialized declarators as named children
+    -- rather than through declaration.declarator. Inspect only declarator
+    -- shapes; never treat identifiers in initializer expressions as bindings.
+    for child in declaration:iter_children() do
+        if child:named()
+            and (
+                child:type() == "init_declarator"
+                or declarator_wrappers[child:type()]
+                or child:type() == "identifier"
+            )
+            and matches_declarator(child)
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function assignment_declaration_scope(
+    bufnr,
+    node,
+    binding
+)
+    local assignment = node and node:parent() or nil
+    if not assignment
+        or assignment:type() ~= "assignment_expression"
+        or not binding
+    then
+        return nil
+    end
+
+    local assignment_range =
+        ts_utils.get_node_range_fields(assignment)
+
+    if not assignment_range.start_line then
+        return nil
+    end
+
+    local current = assignment
+
+    while current do
+        local parent = current:parent()
+        if not parent then
+            return nil
+        end
+
+        if parent:type() == "compound_statement" then
+            local latest_declaration = nil
+            local latest_line = nil
+            local latest_column = nil
+
+            for child in parent:iter_children() do
+                if child:named()
+                    and child:type() == "declaration"
+                then
+                    local child_range =
+                        ts_utils.get_node_range_fields(child)
+
+                    if child_range.start_line
+                        and position_before(
+                            child_range.start_line,
+                            child_range.start_column or 0,
+                            assignment_range.start_line,
+                            assignment_range.start_column or 0
+                        )
+                        and declaration_has_direct_binding(
+                            bufnr,
+                            child,
+                            binding
+                        )
+                    then
+                        if not latest_declaration
+                            or position_before(
+                                latest_line,
+                                latest_column,
+                                child_range.start_line,
+                                child_range.start_column or 0
+                            )
+                        then
+                            latest_declaration = child
+                            latest_line = child_range.start_line
+                            latest_column =
+                                child_range.start_column or 0
+                        end
+                    end
+                end
+            end
+
+            if latest_declaration then
+                return pointer_lexical_scope_range(
+                    latest_declaration
+                )
+            end
+        end
+
+        if pointer_callable_scope_types[parent:type()] then
+            return nil
+        end
+
+        current = parent
+    end
+
+    return nil
+end
+
 local function make_fact(
     bufnr,
     node,
@@ -346,7 +489,17 @@ local function make_fact(
             pointer_binding_origin = pointer_binding_origin,
             pointer_binding_scope =
                 pointer_binding
-                    and pointer_lexical_scope_range(node)
+                    and (
+                        (
+                            pointer_binding_origin == "assignment"
+                            and assignment_declaration_scope(
+                                bufnr,
+                                node,
+                                pointer_binding
+                            )
+                        )
+                        or pointer_lexical_scope_range(node)
+                    )
                     or nil,
         },
     }
