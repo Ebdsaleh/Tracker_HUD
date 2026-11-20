@@ -42,7 +42,124 @@ local function describe_expression(bufnr, node)
     return text
 end
 
-local function make_fact(bufnr, node, name, kind, role, source)
+local declarator_wrappers = {
+    pointer_declarator = true,
+    array_declarator = true,
+    parenthesized_declarator = true,
+    reference_declarator = true,
+}
+
+local function direct_identifier_text(bufnr, node)
+    if not node or node:type() ~= "identifier" then
+        return nil
+    end
+
+    return ts_utils.get_node_text(node, bufnr)
+end
+
+local function declarator_identifier_text(bufnr, node)
+    if not node then
+        return nil
+    end
+
+    local direct = direct_identifier_text(bufnr, node)
+    if direct then
+        return direct
+    end
+
+    if not declarator_wrappers[node:type()] then
+        return nil
+    end
+
+    local nested = ts_utils.get_child_by_field_name(node, "declarator")
+    if nested then
+        return declarator_identifier_text(bufnr, nested)
+    end
+
+    -- Parser versions can differ in whether a declarator wrapper exposes its
+    -- nested binding as a named field. Stay conservative and recurse only
+    -- through known declarator wrapper shapes.
+    for child in node:iter_children() do
+        if child:named() then
+            local binding = declarator_identifier_text(bufnr, child)
+            if binding then
+                return binding
+            end
+        end
+    end
+
+    return nil
+end
+
+local function initializer_binding(bufnr, node)
+    local current = node and node:parent() or nil
+
+    while current do
+        local node_type = current:type()
+
+        if node_type == "init_declarator" then
+            local declarator =
+                ts_utils.get_child_by_field_name(current, "declarator")
+            return declarator_identifier_text(bufnr, declarator)
+        end
+
+        -- Do not walk out of the declaration/expression that owns the memory
+        -- operation. Assignment-based pointer propagation is a later tranche.
+        if node_type == "declaration"
+            or node_type == "expression_statement"
+            or node_type == "return_statement"
+        then
+            return nil
+        end
+
+        current = current:parent()
+    end
+
+    return nil
+end
+
+local function direct_call_first_argument(bufnr, node)
+    local arguments = ts_utils.get_child_by_field_name(node, "arguments")
+    if not arguments then
+        return nil
+    end
+
+    for child in arguments:iter_children() do
+        if child:named() then
+            return direct_identifier_text(bufnr, child)
+        end
+    end
+
+    return nil
+end
+
+local function delete_target(bufnr, node)
+    local argument = ts_utils.get_child_by_field_name(node, "argument")
+    if argument then
+        return direct_identifier_text(bufnr, argument)
+    end
+
+    -- Keep compatibility with parser versions where delete's operand is a
+    -- direct named child rather than an exposed "argument" field.
+    for child in node:iter_children() do
+        if child:named() then
+            return direct_identifier_text(bufnr, child)
+        end
+    end
+
+    return nil
+end
+
+local function make_fact(
+    bufnr,
+    node,
+    name,
+    kind,
+    role,
+    source,
+    pointer_binding,
+    pointer_target
+)
     local range = ts_utils.get_node_range_fields(node)
     local line = range.start_line
     if not line then
@@ -73,6 +190,8 @@ local function make_fact(bufnr, node, name, kind, role, source)
             ownership = "unknown",
             live_pointer = "unknown",
             leak_status = "not analyzed",
+            pointer_binding = pointer_binding,
+            pointer_target = pointer_target,
         },
     }
 end
@@ -94,22 +213,53 @@ local function inspect_node(bufnr, node, language)
             return nil
         end
 
-        return make_fact(bufnr, node, name,
-            signature.kind, signature.role, language .. "_source_memory")
+        local pointer_binding
+        local pointer_target
+
+        if name == "malloc" or name == "calloc" or name == "realloc" then
+            pointer_binding = initializer_binding(bufnr, node)
+        end
+
+        if name == "realloc" or name == "free" then
+            pointer_target = direct_call_first_argument(bufnr, node)
+        end
+
+        return make_fact(
+            bufnr,
+            node,
+            name,
+            signature.kind,
+            signature.role,
+            language .. "_source_memory",
+            pointer_binding,
+            pointer_target
+        )
     end
 
     if language == "cpp" then
         if node_type == "new_expression" then
-            return make_fact(bufnr, node, "new",
+            return make_fact(
+                bufnr,
+                node,
+                "new",
                 "heap_allocation_site",
                 "C++ new expression; construction, success and ownership not inferred",
-                "cpp_source_memory")
+                "cpp_source_memory",
+                initializer_binding(bufnr, node),
+                nil
+            )
         end
         if node_type == "delete_expression" then
-            return make_fact(bufnr, node, "delete",
+            return make_fact(
+                bufnr,
+                node,
+                "delete",
                 "heap_release_site",
                 "C++ delete expression; pointer ownership and destructor effects not inferred",
-                "cpp_source_memory")
+                "cpp_source_memory",
+                nil,
+                delete_target(bufnr, node)
+            )
         end
     end
 
