@@ -104,7 +104,8 @@ local function initializer_binding(bufnr, node)
         end
 
         -- Do not walk out of the declaration/expression that owns the memory
-        -- operation. Assignment-based pointer propagation is a later tranche.
+        -- operation. Direct assignment-owned producers are handled separately;
+        -- broader pointer propagation remains outside this source-fact layer.
         if node_type == "declaration"
             or node_type == "expression_statement"
             or node_type == "return_statement"
@@ -116,6 +117,32 @@ local function initializer_binding(bufnr, node)
     end
 
     return nil
+end
+
+local function assignment_binding(bufnr, node)
+    local assignment = node and node:parent() or nil
+    if not assignment or assignment:type() ~= "assignment_expression" then
+        return nil
+    end
+
+    local right = ts_utils.get_child_by_field_name(assignment, "right")
+    if not right then
+        return nil
+    end
+
+    local node_range = ts_utils.get_node_range_fields(node)
+    local right_range = ts_utils.get_node_range_fields(right)
+    if node:type() ~= right:type()
+        or node_range.start_line ~= right_range.start_line
+        or node_range.start_column ~= right_range.start_column
+        or node_range.end_line ~= right_range.end_line
+        or node_range.end_column ~= right_range.end_column
+    then
+        return nil
+    end
+
+    local left = ts_utils.get_child_by_field_name(assignment, "left")
+    return direct_identifier_text(bufnr, left)
 end
 
 local function direct_call_first_argument(bufnr, node)
@@ -217,7 +244,9 @@ local function inspect_node(bufnr, node, language)
         local pointer_target
 
         if name == "malloc" or name == "calloc" or name == "realloc" then
-            pointer_binding = initializer_binding(bufnr, node)
+            pointer_binding =
+                initializer_binding(bufnr, node)
+                or assignment_binding(bufnr, node)
         end
 
         if name == "realloc" or name == "free" then
@@ -245,7 +274,8 @@ local function inspect_node(bufnr, node, language)
                 "heap_allocation_site",
                 "C++ new expression; construction, success and ownership not inferred",
                 "cpp_source_memory",
-                initializer_binding(bufnr, node),
+                initializer_binding(bufnr, node)
+                    or assignment_binding(bufnr, node),
                 nil
             )
         end
