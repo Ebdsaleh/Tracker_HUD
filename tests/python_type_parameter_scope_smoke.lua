@@ -456,7 +456,7 @@ local function run()
                 == "generic_type"
             and parser_by_line[1]
                 .parameters
-                == "identifier:T",
+                == "type:T",
         "generic type-alias parameter parser shape changed"
     )
 
@@ -467,7 +467,7 @@ local function run()
                 == "function_definition"
             and parser_by_line[3]
                 .parameters
-                == "identifier:T,constrained_type:U: str",
+                == "type:T,type:U: str",
         "generic function parameter parser shape changed"
     )
 
@@ -478,7 +478,7 @@ local function run()
                 == "class_definition"
             and parser_by_line[8]
                 .parameters
-                == "identifier:T,splat_type:*Ts,splat_type:**P",
+                == "type:T,type:*Ts,type:**P",
         "generic class parameter parser shape changed"
     )
 
