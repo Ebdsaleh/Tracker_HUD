@@ -38,26 +38,49 @@ local function named_children(node)
 end
 
 
-local function same_node_range(left, right)
-    if not left or not right then
+local function node_range_contains(
+    outer,
+    inner
+)
+    if not outer or not inner then
         return false
     end
 
-    local left_range =
-        require("tracker_hud.treesitter_utils")
-            .get_node_range_fields(left)
-    local right_range =
-        require("tracker_hud.treesitter_utils")
-            .get_node_range_fields(right)
+    local ts_utils =
+        require(
+            "tracker_hud.treesitter_utils"
+        )
+    local outer_range =
+        ts_utils.get_node_range_fields(
+            outer
+        )
+    local inner_range =
+        ts_utils.get_node_range_fields(
+            inner
+        )
 
-    return left_range.start_line
-            == right_range.start_line
-        and left_range.start_column
-            == right_range.start_column
-        and left_range.end_line
-            == right_range.end_line
-        and left_range.end_column
-            == right_range.end_column
+    local starts_after_or_at =
+        inner_range.start_line
+            > outer_range.start_line
+        or (
+            inner_range.start_line
+                == outer_range.start_line
+            and inner_range.start_column
+                >= outer_range.start_column
+        )
+
+    local ends_before_or_at =
+        inner_range.end_line
+            < outer_range.end_line
+        or (
+            inner_range.end_line
+                == outer_range.end_line
+            and inner_range.end_column
+                <= outer_range.end_column
+        )
+
+    return starts_after_or_at
+        and ends_before_or_at
 end
 
 
@@ -286,25 +309,30 @@ local function run()
             and parent_type
                 == "generic_type"
         then
-            local grandparent =
-                parent:parent()
+            local ancestor = parent
 
-            if grandparent
-                and grandparent:type()
+            while ancestor do
+                if ancestor:type()
                     == "type_alias_statement"
-            then
-                local alias_left =
-                    ts_utils
-                        .get_child_by_field_name(
-                            grandparent,
-                            "left"
+                then
+                    local alias_left =
+                        ts_utils
+                            .get_child_by_field_name(
+                                ancestor,
+                                "left"
+                            )
+
+                    is_declaration =
+                        node_range_contains(
+                            alias_left,
+                            node
                         )
 
-                is_declaration =
-                    same_node_range(
-                        alias_left,
-                        parent
-                    )
+                    break
+                end
+
+                ancestor =
+                    ancestor:parent()
             end
         end
 
