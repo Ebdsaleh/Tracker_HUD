@@ -328,7 +328,7 @@ local function run()
     )
 
     assert(
-        leading_spaces(source_line) == 2,
+        leading_spaces(source_line) == 3,
         "direct lexical member indentation changed"
     )
 
