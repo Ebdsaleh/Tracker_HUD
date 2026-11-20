@@ -222,6 +222,46 @@ local function run()
             or false
     end
 
+    print(
+        "OBSERVED parser exception aliases: "
+            .. "5="
+            .. tostring(
+                parser_aliases[5]
+                    and (
+                        parser_aliases[5].node_type
+                        .. ":"
+                        .. tostring(
+                            parser_aliases[5].text
+                        )
+                    )
+                    or "none"
+            )
+            .. " 12="
+            .. tostring(
+                parser_aliases[12]
+                    and (
+                        parser_aliases[12].node_type
+                        .. ":"
+                        .. tostring(
+                            parser_aliases[12].text
+                        )
+                    )
+                    or "none"
+            )
+            .. " 18="
+            .. tostring(
+                parser_aliases[18]
+                    and (
+                        parser_aliases[18].node_type
+                        .. ":"
+                        .. tostring(
+                            parser_aliases[18].text
+                        )
+                    )
+                    or "none"
+            )
+    )
+
     assert(
         parser_aliases[5]
             and parser_aliases[5].node_type
@@ -302,6 +342,129 @@ local function run()
             all_members,
             "group"
         )
+
+    print(
+        "OBSERVED exception members: "
+            .. "err="
+            .. tostring(
+                err
+                and (
+                    "line="
+                    .. tostring(err.line)
+                    .. ",lex="
+                    .. tostring(
+                        err.scope_depth
+                    )
+                    .. ",struct="
+                    .. tostring(
+                        err.structural_depth
+                    )
+                    .. ",path="
+                    .. structural_path_text(
+                        err
+                    )
+                    .. ",visible="
+                    .. tostring(
+                        err.visibility_start_line
+                    )
+                    .. "-"
+                    .. tostring(
+                        err.visibility_end_line
+                    )
+                )
+                or "missing"
+            )
+            .. " group="
+            .. tostring(
+                group
+                and (
+                    "line="
+                    .. tostring(group.line)
+                    .. ",lex="
+                    .. tostring(
+                        group.scope_depth
+                    )
+                    .. ",struct="
+                    .. tostring(
+                        group.structural_depth
+                    )
+                    .. ",path="
+                    .. structural_path_text(
+                        group
+                    )
+                    .. ",visible="
+                    .. tostring(
+                        group.visibility_start_line
+                    )
+                    .. "-"
+                    .. tostring(
+                        group.visibility_end_line
+                    )
+                )
+                or "missing"
+            )
+    )
+
+    print(
+        "OBSERVED exception visibility: "
+            .. "line6(err="
+            .. tostring(
+                has_member(
+                    first_inside,
+                    "err"
+                )
+            )
+            .. ",group="
+            .. tostring(
+                has_member(
+                    first_inside,
+                    "group"
+                )
+            )
+            .. ") line8(err="
+            .. tostring(
+                has_member(
+                    after_first,
+                    "err"
+                )
+            )
+            .. ",group="
+            .. tostring(
+                has_member(
+                    after_first,
+                    "group"
+                )
+            )
+            .. ") line13(err="
+            .. tostring(
+                has_member(
+                    group_inside,
+                    "err"
+                )
+            )
+            .. ",group="
+            .. tostring(
+                has_member(
+                    group_inside,
+                    "group"
+                )
+            )
+            .. ") line14(err="
+            .. tostring(
+                has_member(
+                    after_group,
+                    "err"
+                )
+            )
+            .. ",group="
+            .. tostring(
+                has_member(
+                    after_group,
+                    "group"
+                )
+            )
+            .. ")"
+    )
 
     assert(
         err and group,
@@ -442,14 +605,24 @@ end
 
 
 local ok, err =
-    pcall(run)
+    xpcall(
+        run,
+        debug.traceback
+    )
 
 if not ok then
-    vim.api.nvim_err_writeln(
+    io.stderr:write(
         "FAIL Python exception alias lifetime smoke: "
             .. tostring(err)
+            .. string.char(10)
     )
-    vim.cmd("cquit 1")
+
+    -- Propagate to the outer test harness so its redirected stderr captures the
+    -- real assertion instead of terminating here before the temp log flushes.
+    error(
+        err,
+        0
+    )
 else
     vim.cmd("qa!")
 end
