@@ -305,6 +305,33 @@ function M.collect(bufnr, root_node, language, cursor_line)
         end
         return (a.source_column or 0) < (b.source_column or 0)
     end)
+
+    -- Record only direct source-order identity lineage. This intentionally
+    -- does not model aliases, path execution, allocation success, liveness,
+    -- ownership, release success or leaks.
+    local direct_producers = {}
+
+    for _, fact in ipairs(facts) do
+        local metadata = fact.metadata or {}
+        local pointer_target = metadata.pointer_target
+
+        -- Resolve before publishing the current binding so same-name realloc
+        -- forms can point backward rather than at the current fact itself.
+        if pointer_target then
+            local predecessor = direct_producers[pointer_target]
+            if predecessor then
+                metadata.pointer_predecessor_id = predecessor.id
+                metadata.pointer_predecessor_relation =
+                    "direct_source_identity"
+            end
+        end
+
+        local pointer_binding = metadata.pointer_binding
+        if pointer_binding then
+            direct_producers[pointer_binding] = fact
+        end
+    end
+
     return facts
 end
 
