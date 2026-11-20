@@ -264,7 +264,23 @@ local function run()
         "separate Lua for statements must retain distinct lexical owners"
     )
 
-    local selected =
+    local numeric_visible =
+        collector.select(
+            discovery,
+            {
+                cursor_line = 4,
+            }
+        )
+
+    local generic_visible =
+        collector.select(
+            discovery,
+            {
+                cursor_line = 8,
+            }
+        )
+
+    local after_loops =
         collector.select(
             discovery,
             {
@@ -273,14 +289,43 @@ local function run()
         )
 
     assert(
+        find_loop(
+            numeric_visible,
+            "index",
+            3
+        )
+            and #loop_members(
+                numeric_visible
+            ) == 1,
+        "Lua numeric loop variable must be visible only inside its lexical loop"
+    )
+
+    assert(
+        find_loop(
+            generic_visible,
+            "key",
+            7
+        )
+            and find_loop(
+                generic_visible,
+                "value",
+                7
+            )
+            and #loop_members(
+                generic_visible
+            ) == 2,
+        "Lua generic loop variables must be visible only inside their lexical loop"
+    )
+
+    assert(
         #loop_members(
-            selected
-        ) == 3,
-        "Lua loop binding discover/select parity changed"
+            after_loops
+        ) == 0,
+        "Lua loop variables leaked past their lexical loop lifetime"
     )
 
     print(
-        "PASS Lua parser-backed numeric/generic loop-variable semantics"
+        "PASS Lua parser-backed numeric/generic loop-variable ownership and lifetime semantics"
     )
 
     vim.api.nvim_buf_delete(
