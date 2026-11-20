@@ -1037,11 +1037,61 @@ local function run()
                 == "assignment"
             and python_named_expression.member.language_term
                 == "named expression"
+            and python_named_expression.member
+                .owner_scope_excluded_construct_kinds[1]
+                == "comprehension"
             and python_named_expression.member.mutability
                 .binding
                 == "mutable",
         "Python named-expression binding contract changed"
     )
+
+    local python_comprehension_loop =
+        python_adapter.scope_members
+            .loops[2]
+
+    assert(
+        python_comprehension_loop.syntax.node_type
+            == "for_in_clause"
+            and python_comprehension_loop.syntax.fields
+                .name.field
+                == "left"
+            and python_comprehension_loop.syntax.fields
+                .name.node_type
+                == "identifier"
+            and python_comprehension_loop.member.kind
+                == "loop_variable"
+            and python_comprehension_loop.member.language_term
+                == "comprehension variable",
+        "Python comprehension loop-binding contract changed"
+    )
+
+    for _, node_type in ipairs({
+        "list_comprehension",
+        "set_comprehension",
+        "dictionary_comprehension",
+        "generator_expression",
+    }) do
+        local comprehension =
+            python_adapter.construct_specs[
+                node_type
+            ]
+
+        assert(
+            comprehension.construct.kind
+                == "comprehension"
+                and comprehension.scope.kind
+                    == "lexical"
+                and comprehension.scope
+                    .affects_visibility
+                    == true
+                and comprehension.scope
+                    .owns_members
+                    == true,
+            "Python comprehension lexical-scope contract changed: "
+                .. node_type
+        )
+    end
 
     local python_match_dotted_capture =
         python_adapter.scope_members

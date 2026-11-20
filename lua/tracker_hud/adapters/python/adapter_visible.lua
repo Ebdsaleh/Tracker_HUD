@@ -697,6 +697,78 @@ M.construct_specs = {
         ),
 
 
+    ["list_comprehension"] =
+        construct_schema.rule(
+            "list_comprehension",
+            "comprehension",
+            {
+                language_term =
+                    "list comprehension",
+                label =
+                    "List Comprehension",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        ),
+
+
+    ["set_comprehension"] =
+        construct_schema.rule(
+            "set_comprehension",
+            "comprehension",
+            {
+                language_term =
+                    "set comprehension",
+                label =
+                    "Set Comprehension",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        ),
+
+
+    ["dictionary_comprehension"] =
+        construct_schema.rule(
+            "dictionary_comprehension",
+            "comprehension",
+            {
+                language_term =
+                    "dictionary comprehension",
+                label =
+                    "Dictionary Comprehension",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        ),
+
+
+    ["generator_expression"] =
+        construct_schema.rule(
+            "generator_expression",
+            "comprehension",
+            {
+                language_term =
+                    "generator expression",
+                label =
+                    "Generator Expression",
+                scope = {
+                    kind = "lexical",
+                    affects_visibility = true,
+                    owns_members = true,
+                },
+            }
+        ),
+
+
     ["return_statement"] =
         construct_schema.rule(
             "return_statement",
@@ -915,6 +987,37 @@ M.scope_members = {
                     "conditional",
             }
         ),
+        scope_member_schema.rule(
+            "for_in_clause",
+            "loop_variable",
+            {
+                language_term =
+                    "comprehension variable",
+                fields = {
+                    name = {
+                        field = "left",
+                        node_type =
+                            "identifier",
+                    },
+                    iterable = "right",
+                },
+                children = {
+                    names = {
+                        node_type =
+                            "pattern_list",
+                    },
+                    name = {
+                        node_type =
+                            "identifier",
+                    },
+                },
+                tokens = {
+                    iterator = "in",
+                },
+                binding_mutability =
+                    "conditional",
+            }
+        ),
     },
 
     symbols = {
@@ -1073,6 +1176,9 @@ M.scope_members = {
                 },
                 tokens = {
                     operator = ":=",
+                },
+                owner_scope_excluded_construct_kinds = {
+                    "comprehension",
                 },
                 binding_mutability =
                     "mutable",
