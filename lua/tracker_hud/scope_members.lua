@@ -670,6 +670,59 @@ local function syntax_field_node_matches(
 end
 
 
+local function collect_recursive_field_nodes(
+    node,
+    recursive_spec,
+    result
+)
+    if not node
+        or not core.is_table(
+            recursive_spec
+        )
+    then
+        return
+    end
+
+    local node_type =
+        node:type()
+
+    if node_type_is_in_list(
+        node_type,
+        recursive_spec
+            .terminal_node_types
+            or {}
+    )
+    then
+        table.insert(
+            result,
+            node
+        )
+
+        return
+    end
+
+    if not node_type_is_in_list(
+        node_type,
+        recursive_spec
+            .container_node_types
+            or {}
+    )
+    then
+        return
+    end
+
+    for index = 0,
+        node:named_child_count() - 1
+    do
+        collect_recursive_field_nodes(
+            node:named_child(index),
+            recursive_spec,
+            result
+        )
+    end
+end
+
+
 local function get_syntax_field_nodes(
     node,
     member_spec,
@@ -697,10 +750,21 @@ local function get_syntax_field_nodes(
             field_node,
             field_spec
         ) then
-            table.insert(
-                result,
-                field_node
+            if core.is_table(
+                field_spec.recursive
             )
+            then
+                collect_recursive_field_nodes(
+                    field_node,
+                    field_spec.recursive,
+                    result
+                )
+            else
+                table.insert(
+                    result,
+                    field_node
+                )
+            end
 
             if field_spec.multiple
                 ~= true
@@ -1803,19 +1867,36 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
                 ts_utils.get_node_range_fields(
                     binding_node
                 )
-            local binding_name =
-                get_field_name(
-                    binding_node,
-                    bufnr,
-                    member_spec
+            local recursive_binding =
+                core.is_table(
+                    binding_field.recursive
                 )
+
+            local binding_name = nil
+
+            if recursive_binding then
+                binding_name =
+                    ts_utils.get_node_text(
+                        binding_node,
+                        bufnr
+                    )
+            else
+                binding_name =
+                    get_field_name(
+                        binding_node,
+                        bufnr,
+                        member_spec
+                    )
+            end
 
             if core.is_non_empty_string(
                 binding_name
             ) then
                 local metadata =
                     build_symbol_metadata(
-                        binding_node,
+                        recursive_binding
+                            and node
+                            or binding_node,
                         bufnr,
                         binding_name,
                         member_spec

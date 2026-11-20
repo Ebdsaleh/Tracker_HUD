@@ -198,6 +198,76 @@ local function run()
         "PASS shared Scope Member adapter schema + named builder"
     )
 
+    local recursive_binding_syntax = {
+        node_type = "assignment",
+        fields = {
+            bindings = {
+                field = "left",
+                recursive = {
+                    terminal_node_types = {
+                        "identifier",
+                        "attribute",
+                        "subscript",
+                    },
+                    container_node_types = {
+                        "pattern_list",
+                        "tuple_pattern",
+                    },
+                },
+            },
+        },
+    }
+
+    local recursive_binding_ok,
+        recursive_binding_error =
+        contract.validate_syntax(
+            recursive_binding_syntax,
+            "probe.syntax"
+        )
+
+    assert(
+        recursive_binding_ok,
+        "contract rejected recursive binding field: "
+            .. tostring(
+                recursive_binding_error
+            )
+    )
+
+    local overlapping_binding_syntax =
+        vim.deepcopy(
+            recursive_binding_syntax
+        )
+
+    table.insert(
+        overlapping_binding_syntax
+            .fields.bindings.recursive
+            .container_node_types,
+        "identifier"
+    )
+
+    local overlapping_binding_ok,
+        overlapping_binding_error =
+        contract.validate_syntax(
+            overlapping_binding_syntax,
+            "probe.syntax"
+        )
+
+    assert(
+        not overlapping_binding_ok
+            and tostring(
+                overlapping_binding_error
+            ):find(
+                "must not overlap",
+                1,
+                true
+            ),
+        "contract accepted ambiguous recursive binding terminals/containers"
+    )
+
+    print(
+        "PASS recursive binding field contract"
+    )
+
     local modifier_probe =
         vim.deepcopy(c)
 

@@ -179,6 +179,81 @@ local function validate_field_descriptor(field_spec, path)
         )
     end
 
+    if field_spec.recursive ~= nil then
+        if not core.is_table(
+            field_spec.recursive
+        )
+        then
+            return path_error(
+                path .. ".recursive",
+                "must be a table when provided"
+            )
+        end
+
+        local terminal_types =
+            field_spec.recursive
+                .terminal_node_types
+
+        local container_types =
+            field_spec.recursive
+                .container_node_types
+
+        local recursive_ok,
+            recursive_err =
+            validate_string_list(
+                terminal_types,
+                path
+                    .. ".recursive.terminal_node_types",
+                {
+                    non_empty = true,
+                    unique = true,
+                }
+            )
+
+        if not recursive_ok then
+            return false, recursive_err
+        end
+
+        recursive_ok,
+            recursive_err =
+            validate_string_list(
+                container_types,
+                path
+                    .. ".recursive.container_node_types",
+                {
+                    non_empty = true,
+                    unique = true,
+                }
+            )
+
+        if not recursive_ok then
+            return false, recursive_err
+        end
+
+        local terminal_seen = {}
+
+        for _, node_type in ipairs(
+            terminal_types
+        ) do
+            terminal_seen[node_type] =
+                true
+        end
+
+        for _, node_type in ipairs(
+            container_types
+        ) do
+            if terminal_seen[
+                node_type
+            ]
+            then
+                return path_error(
+                    path .. ".recursive",
+                    "terminal/container node types must not overlap"
+                )
+            end
+        end
+    end
+
     local ok, err = validate_optional_boolean(
         field_spec.optional,
         path .. ".optional"
