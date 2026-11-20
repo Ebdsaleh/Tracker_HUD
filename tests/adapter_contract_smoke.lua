@@ -198,6 +198,95 @@ local function run()
         "PASS shared Scope Member adapter schema + named builder"
     )
 
+    local modifier_probe =
+        vim.deepcopy(c)
+
+    modifier_probe.scope_binding_modifiers = {
+        {
+            syntax = {
+                node_type =
+                    "binding_redirect",
+                children = {
+                    names = {
+                        node_type =
+                            "identifier",
+                        multiple = true,
+                    },
+                },
+            },
+            target = {
+                strategy =
+                    "outermost_lexical",
+            },
+        },
+        {
+            syntax = {
+                node_type =
+                    "binding_redirect_nearest",
+                children = {
+                    names = {
+                        node_type =
+                            "identifier",
+                        multiple = true,
+                    },
+                },
+            },
+            target = {
+                strategy =
+                    "nearest_enclosing_binding",
+                eligible_construct_kinds = {
+                    "function",
+                },
+            },
+        },
+    }
+
+    local modifier_probe_ok,
+        modifier_probe_error =
+        contract.validate_adapter(
+            modifier_probe
+        )
+
+    assert(
+        modifier_probe_ok,
+        "contract rejected generic binding-scope modifiers: "
+            .. tostring(
+                modifier_probe_error
+            )
+    )
+
+    local invalid_modifier_probe =
+        vim.deepcopy(
+            modifier_probe
+        )
+
+    invalid_modifier_probe
+        .scope_binding_modifiers[1]
+        .target.strategy =
+            "python_magic"
+
+    local invalid_modifier_ok,
+        invalid_modifier_error =
+        contract.validate_adapter(
+            invalid_modifier_probe
+        )
+
+    assert(
+        not invalid_modifier_ok
+            and tostring(
+                invalid_modifier_error
+            ):find(
+                "outermost_lexical or nearest_enclosing_binding",
+                1,
+                true
+            ),
+        "contract accepted language-specific binding ownership magic"
+    )
+
+    print(
+        "PASS generic binding-scope modifier contract"
+    )
+
     local lua_adapter =
         registry.get_adapter("lua")
     local python_adapter =

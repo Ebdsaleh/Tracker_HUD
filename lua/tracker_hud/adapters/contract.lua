@@ -1187,6 +1187,113 @@ local function validate_scope_members(scope_members)
 end
 
 
+local binding_scope_modifier_strategies = {
+    outermost_lexical = true,
+    nearest_enclosing_binding = true,
+}
+
+
+local function validate_scope_binding_modifiers(
+    modifiers
+)
+    if modifiers == nil then
+        return true, nil
+    end
+
+    if not core.is_table(modifiers) then
+        return false,
+            "adapter.scope_binding_modifiers must be a table when provided"
+    end
+
+    for index, spec in ipairs(modifiers) do
+        local path =
+            "adapter.scope_binding_modifiers["
+            .. tostring(index)
+            .. "]"
+
+        if not core.is_table(spec) then
+            return path_error(
+                path,
+                "must be a table"
+            )
+        end
+
+        local ok, err =
+            M.validate_syntax(
+                spec.syntax,
+                path .. ".syntax"
+            )
+
+        if not ok then
+            return false, err
+        end
+
+        local names =
+            spec.syntax
+            and spec.syntax.children
+            and spec.syntax.children.names
+
+        if not core.is_table(names)
+            or (
+                not core.is_non_empty_string(
+                    names.node_type
+                )
+                and not core.is_table(
+                    names.node_types
+                )
+            )
+        then
+            return path_error(
+                path .. ".syntax.children.names",
+                "must declare direct binding-name node type(s)"
+            )
+        end
+
+        if not core.is_table(spec.target) then
+            return path_error(
+                path .. ".target",
+                "must be a table"
+            )
+        end
+
+        if not core.is_non_empty_string(
+            spec.target.strategy
+        )
+            or not binding_scope_modifier_strategies[
+                spec.target.strategy
+            ]
+        then
+            return path_error(
+                path .. ".target.strategy",
+                "must be outermost_lexical or nearest_enclosing_binding"
+            )
+        end
+
+        if spec.target.eligible_construct_kinds
+            ~= nil
+        then
+            ok, err =
+                validate_string_list(
+                    spec.target
+                        .eligible_construct_kinds,
+                    path
+                        .. ".target.eligible_construct_kinds",
+                    {
+                        non_empty = true,
+                        unique = true,
+                    }
+                )
+
+            if not ok then
+                return false, err
+            end
+        end
+    end
+
+    return true, nil
+end
+
+
 local function validate_range_scopes(range_scopes)
     if range_scopes == nil then
         return true, nil
@@ -1575,6 +1682,7 @@ end
 local reusable_validation_components = {
     construct_specs = true,
     scope_members = true,
+    scope_binding_modifiers = true,
     presentation = true,
     instruction_parser = true,
     memory_accesses = true,
@@ -1995,6 +2103,30 @@ function M.validate_adapter(
                 "context.configure.validate.scope_members",
                 validate_scope_members,
                 adapter.scope_members
+            )
+
+        if not ok then
+            return false, err
+        end
+    end
+
+    if validation_component_is_reusable(
+        opts,
+        "scope_binding_modifiers",
+        adapter.scope_binding_modifiers
+    )
+    then
+        profile_reused_component(
+            opts,
+            "context.configure.validate.scope_binding_modifiers_reuse"
+        )
+    else
+        ok, err =
+            validate_phase(
+                opts,
+                "context.configure.validate.scope_binding_modifiers",
+                validate_scope_binding_modifiers,
+                adapter.scope_binding_modifiers
             )
 
         if not ok then

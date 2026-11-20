@@ -223,6 +223,8 @@ local function with_scope_depth_filter(
             state.structural_range,
         structural_path =
             state.structural_path,
+        lexical_path =
+            state.lexical_path,
         measurement =
             state.measurement,
         scope_depth_filter =
@@ -800,7 +802,8 @@ local function make_state(
     structural_depth,
     structural_range,
     measurement,
-    structural_path
+    structural_path,
+    lexical_path
 )
     return {
         opts = opts or {},
@@ -810,6 +813,7 @@ local function make_state(
         structural_depth = structural_depth or 0,
         structural_range = structural_range,
         structural_path = structural_path or {},
+        lexical_path = lexical_path or {},
 
         measurement = measurement,
     }
@@ -817,6 +821,24 @@ end
 
 
 local function append_structural_path(
+    path,
+    frame
+)
+    local result = {}
+
+    for index, existing in ipairs(
+        path or {}
+    ) do
+        result[index] = existing
+    end
+
+    table.insert(result, frame)
+
+    return result
+end
+
+
+local function append_lexical_path(
     path,
     frame
 )
@@ -1594,7 +1616,8 @@ local function make_structural_member_state(state)
             state.structural_depth,
             state.structural_range,
             state.measurement,
-            state.structural_path
+            state.structural_path,
+            state.lexical_path
         )
 
     result.scope_depth_filter =
@@ -2201,11 +2224,351 @@ local function collect_from_node(
 end
 
 
+local function build_scope_binding_modifier_index(
+    modifiers
+)
+    local result = {}
+
+    for _, spec in ipairs(modifiers or {}) do
+        local node_type =
+            core.is_table(spec)
+            and core.is_table(spec.syntax)
+            and spec.syntax.node_type
+            or nil
+
+        if core.is_non_empty_string(
+            node_type
+        ) then
+            result[node_type] =
+                result[node_type]
+                or {}
+
+            table.insert(
+                result[node_type],
+                spec
+            )
+        end
+    end
+
+    return result
+end
+
+
+local function modifier_child_matches(
+    child,
+    descriptor
+)
+    if not child
+        or not core.is_table(
+            descriptor
+        )
+    then
+        return false
+    end
+
+    local child_type =
+        child:type()
+
+    if descriptor.node_type
+        == child_type
+    then
+        return true
+    end
+
+    for _, node_type in ipairs(
+        descriptor.node_types
+        or {}
+    ) do
+        if node_type == child_type then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function collect_scope_binding_modifiers(
+    node,
+    bufnr,
+    modifier_spec_index,
+    modifiers,
+    state,
+    node_type
+)
+    local candidates =
+        core.is_table(
+            modifier_spec_index
+        )
+        and modifier_spec_index[
+            node_type
+        ]
+        or nil
+
+    if not core.is_table(candidates)
+        or #candidates == 0
+    then
+        return
+    end
+
+    for _, spec in ipairs(candidates) do
+        local names =
+            spec.syntax
+            and spec.syntax.children
+            and spec.syntax.children.names
+            or nil
+
+        local target =
+            spec.target or {}
+
+        for child in node:iter_children() do
+            if modifier_child_matches(
+                child,
+                names
+            )
+            then
+                local name =
+                    ts_utils.get_node_text(
+                        child,
+                        bufnr
+                    )
+
+                if core.is_non_empty_string(
+                    name
+                )
+                then
+                    table.insert(
+                        modifiers,
+                        {
+                            name = name,
+                            strategy =
+                                target.strategy,
+                            eligible_construct_kinds =
+                                target
+                                .eligible_construct_kinds,
+                            lexical_path =
+                                state.lexical_path
+                                or {},
+                            declaring_scope_depth =
+                                state.scope_depth,
+                            declaring_scope_range =
+                                state.scope_range,
+                            source_range =
+                                ts_utils
+                                .get_node_range(
+                                    node
+                                ),
+                        }
+                    )
+                end
+            end
+        end
+    end
+end
+
+
+local function scope_range_matches(
+    member,
+    frame
+)
+    local range =
+        frame and frame.range
+
+    return core.is_table(member)
+        and core.is_table(frame)
+        and core.is_table(range)
+        and member.scope_depth
+            == frame.depth
+        and member.scope_start_line
+            == range.start_line
+        and member.scope_start_column
+            == range.start_column
+        and member.scope_end_line
+            == range.end_line
+        and member.scope_end_column
+            == range.end_column
+end
+
+
+local function frame_kind_is_eligible(
+    frame,
+    eligible_construct_kinds
+)
+    if not core.is_table(
+        eligible_construct_kinds
+    )
+        or #eligible_construct_kinds
+            == 0
+    then
+        return true
+    end
+
+    for _, kind in ipairs(
+        eligible_construct_kinds
+    ) do
+        if frame.construct_kind
+            == kind
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function frame_has_binding(
+    members,
+    name,
+    frame
+)
+    for _, member in ipairs(
+        members or {}
+    ) do
+        if member.name == name
+            and scope_range_matches(
+                member,
+                frame
+            )
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+
+local function resolve_modifier_target(
+    members,
+    modifier
+)
+    local path =
+        modifier.lexical_path
+        or {}
+
+    if modifier.strategy
+        == "outermost_lexical"
+    then
+        return path[1]
+    end
+
+    if modifier.strategy
+        ~= "nearest_enclosing_binding"
+    then
+        return nil
+    end
+
+    for index = #path - 1, 1, -1 do
+        local frame =
+            path[index]
+
+        if frame_kind_is_eligible(
+            frame,
+            modifier
+                .eligible_construct_kinds
+        )
+            and frame_has_binding(
+                members,
+                modifier.name,
+                frame
+            )
+        then
+            return frame
+        end
+    end
+
+    return nil
+end
+
+
+local function modifier_sort(
+    left,
+    right
+)
+    local left_depth =
+        left.declaring_scope_depth
+        or 0
+    local right_depth =
+        right.declaring_scope_depth
+        or 0
+
+    if left_depth ~= right_depth then
+        return left_depth
+            < right_depth
+    end
+
+    local left_line =
+        left.source_range
+        and left.source_range.start_line
+        or 0
+    local right_line =
+        right.source_range
+        and right.source_range.start_line
+        or 0
+
+    return left_line < right_line
+end
+
+
+local function resolve_scope_binding_modifiers(
+    members,
+    modifiers
+)
+    table.sort(
+        modifiers,
+        modifier_sort
+    )
+
+    for _, modifier in ipairs(
+        modifiers or {}
+    ) do
+        local declaring_frame =
+            modifier.lexical_path
+            and modifier.lexical_path[
+                #modifier.lexical_path
+            ]
+            or nil
+
+        local target_frame =
+            resolve_modifier_target(
+                members,
+                modifier
+            )
+
+        if declaring_frame
+            and target_frame
+        then
+            for _, member in ipairs(
+                members or {}
+            ) do
+                if member.name
+                        == modifier.name
+                    and scope_range_matches(
+                        member,
+                        declaring_frame
+                    )
+                then
+                    scope_member_model
+                        .set_owner_scope(
+                            member,
+                            target_frame.depth,
+                            target_frame.range
+                        )
+                end
+            end
+        end
+    end
+end
+
+
 local function walk_node(
     node,
     bufnr,
     adapter,
     member_spec_index,
+    modifier_spec_index,
+    binding_modifiers,
     members,
     seen,
     state
@@ -2342,14 +2705,47 @@ local function walk_node(
             == true
 
     if creates_lexical_scope then
+        local lexical_range =
+            ts_utils.get_node_range(
+                node
+            )
+
+        local construct =
+            core.is_table(
+                construct_spec.construct
+            )
+            and construct_spec.construct
+            or {}
+
+        local lexical_depth =
+            state.scope_depth + 1
+
+        local lexical_path =
+            append_lexical_path(
+                state.lexical_path,
+                {
+                    depth = lexical_depth,
+                    node_type = node_type,
+                    construct_kind =
+                        construct.kind,
+                    language_term =
+                        construct.language_term,
+                    label =
+                        construct.label,
+                    range =
+                        lexical_range,
+                }
+            )
+
         current_state = make_state(
             state.opts,
-            state.scope_depth + 1,
-            ts_utils.get_node_range(node),
+            lexical_depth,
+            lexical_range,
             state.structural_depth,
             state.structural_range,
             state.measurement,
-            state.structural_path
+            state.structural_path,
+            lexical_path
         )
     end
 
@@ -2410,9 +2806,19 @@ local function walk_node(
             structural_depth,
             structural_range,
             current_state.measurement,
-            structural_path
+            structural_path,
+            current_state.lexical_path
         )
     end
+
+    collect_scope_binding_modifiers(
+        node,
+        bufnr,
+        modifier_spec_index,
+        binding_modifiers,
+        current_state,
+        node_type
+    )
 
     collect_from_node(
         node,
@@ -2431,6 +2837,8 @@ local function walk_node(
             bufnr,
             adapter,
             member_spec_index,
+            modifier_spec_index,
+            binding_modifiers,
             members,
             seen,
             current_state
@@ -2474,11 +2882,21 @@ local function collect_internal(
             adapter.scope_members
         )
 
+    local modifier_spec_index =
+        build_scope_binding_modifier_index(
+            adapter
+                .scope_binding_modifiers
+        )
+
+    local binding_modifiers = {}
+
     walk_node(
         root_node,
         bufnr,
         adapter,
         member_spec_index,
+        modifier_spec_index,
+        binding_modifiers,
         members,
         seen,
         make_state(
@@ -2489,6 +2907,11 @@ local function collect_internal(
             nil,
             measurement
         )
+    )
+
+    resolve_scope_binding_modifiers(
+        members,
+        binding_modifiers
     )
 
     profile_counter(

@@ -101,6 +101,71 @@ function M.build_label(member)
 end
 
 
+local function build_member_id(
+    member
+)
+    return table.concat({
+        "member",
+        tostring(
+            member.scope_start_line
+            or ""
+        ),
+        tostring(
+            member.scope_end_line
+            or ""
+        ),
+        tostring(
+            member.line
+            or ""
+        ),
+        tostring(
+            member.kind
+            or ""
+        ),
+        tostring(
+            member.name
+            or ""
+        ),
+    }, ":")
+end
+
+
+function M.set_owner_scope(
+    member,
+    scope_depth,
+    scope_range
+)
+    if not core.is_table(member) then
+        return false
+    end
+
+    member.scope_depth =
+        scope_depth or 0
+
+    member.scope_start_line =
+        scope_range
+        and scope_range.start_line
+        or nil
+    member.scope_start_column =
+        scope_range
+        and scope_range.start_column
+        or nil
+    member.scope_end_line =
+        scope_range
+        and scope_range.end_line
+        or nil
+    member.scope_end_column =
+        scope_range
+        and scope_range.end_column
+        or nil
+
+    member.id =
+        build_member_id(member)
+
+    return true
+end
+
+
 function M.add(members, seen, name, kind, source_range, state, metadata)
     if not core.is_non_empty_string(name) then
         return
@@ -202,14 +267,8 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         source_node_type = metadata.source_node_type,
     }
 
-    member.id = table.concat({
-        "member",
-        tostring(member.scope_start_line or ""),
-        tostring(member.scope_end_line or ""),
-        tostring(member.line or ""),
-        tostring(member.kind or ""),
-        tostring(member.name or ""),
-    }, ":")
+    member.id =
+        build_member_id(member)
 
     member.label = M.build_label(member)
 
