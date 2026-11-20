@@ -243,6 +243,43 @@ local function pointer_lexical_scope_range(node)
     return nil
 end
 
+local function declaration_binding_scope(node)
+    local current = node
+
+    while current do
+        if current:type() == "declaration" then
+            local parent = current:parent()
+
+            if parent and parent:type() == "for_statement" then
+                local range = ts_utils.get_node_range_fields(parent)
+
+                if range.start_line and range.end_line then
+                    return {
+                        start_line = range.start_line,
+                        start_column = range.start_column or 0,
+                        end_line = range.end_line,
+                        end_column = range.end_column or 0,
+                    }
+                end
+            end
+
+            return pointer_lexical_scope_range(current)
+        end
+
+        local node_type = current:type()
+        if node_type == "expression_statement"
+            or node_type == "return_statement"
+            or pointer_callable_scope_types[node_type]
+        then
+            return pointer_lexical_scope_range(node)
+        end
+
+        current = current:parent()
+    end
+
+    return pointer_lexical_scope_range(node)
+end
+
 local function position_before(
     left_line,
     left_column,
@@ -649,6 +686,10 @@ local function make_fact(
                                 node,
                                 pointer_binding
                             )
+                        )
+                        or (
+                            pointer_binding_origin == "declaration"
+                            and declaration_binding_scope(node)
                         )
                         or pointer_lexical_scope_range(node)
                     )
