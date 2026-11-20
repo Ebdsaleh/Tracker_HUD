@@ -382,9 +382,11 @@ call :run_config "tests/python_assignment_destructuring_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/python_exception_alias_lifetime_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_config "tests/python_comprehension_scope_smoke.lua"
+if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 172/172
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 172/172
+echo [GREEN] Tracker_HUD test suite passed: 173/173
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 173/173
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
