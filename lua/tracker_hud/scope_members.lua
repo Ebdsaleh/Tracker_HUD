@@ -225,6 +225,12 @@ local function with_scope_depth_filter(
             state.structural_path,
         lexical_path =
             state.lexical_path,
+        annotation_depth =
+            state.annotation_depth,
+        annotation_range =
+            state.annotation_range,
+        annotation_path =
+            state.annotation_path,
         measurement =
             state.measurement,
         scope_depth_filter =
@@ -330,6 +336,7 @@ local function build_member_spec_index(
     local index = {
         active_group_names = {},
         eligible_group_names_by_node_type = {},
+        annotation_scope_specs_by_node_type = {},
     }
 
     scope_member_spec =
@@ -355,6 +362,53 @@ local function build_member_spec_index(
                 index.active_group_names,
                 group_name
             )
+        end
+
+        for _, entry in pairs(
+            group_index.by_node_type
+                or {}
+        ) do
+            for _, typed_entry in ipairs(
+                entry
+            ) do
+                local member_spec =
+                    typed_entry.spec
+                local member =
+                    core.is_table(member_spec)
+                    and core.is_table(
+                        member_spec.member
+                    )
+                    and member_spec.member
+                    or nil
+
+                if member
+                    and member.annotation_scope
+                        == true
+                then
+                    local node_type =
+                        get_syntax_node_type(
+                            member_spec
+                        )
+
+                    index
+                        .annotation_scope_specs_by_node_type[
+                            node_type
+                        ] =
+                        index
+                            .annotation_scope_specs_by_node_type[
+                                node_type
+                            ]
+                        or {}
+
+                    table.insert(
+                        index
+                            .annotation_scope_specs_by_node_type[
+                                node_type
+                            ],
+                        member_spec
+                    )
+                end
+            end
         end
     end
 
@@ -947,6 +1001,51 @@ local function with_member_owner_scope(
 end
 
 
+local function with_member_annotation_scope(
+    state,
+    member_spec
+)
+    local result = {}
+
+    for key, value in pairs(
+        state or {}
+    ) do
+        result[key] = value
+    end
+
+    local member =
+        core.is_table(member_spec)
+        and core.is_table(
+            member_spec.member
+        )
+        and member_spec.member
+        or nil
+
+    if not member
+        or member.annotation_scope
+            ~= true
+        or not core.is_table(
+            state
+            and state.annotation_range
+        )
+    then
+        return result
+    end
+
+    result.member_annotation_depth =
+        state.annotation_depth
+    result.member_annotation_range =
+        state.annotation_range
+    result.member_annotation_path =
+        state.annotation_path
+    result.member_visibility_range =
+        state.annotation_range
+    result.scope_depth_filter = false
+
+    return result
+end
+
+
 local function with_member_visibility(
     state,
     member_spec
@@ -994,7 +1093,10 @@ local function make_state(
     structural_range,
     measurement,
     structural_path,
-    lexical_path
+    lexical_path,
+    annotation_depth,
+    annotation_range,
+    annotation_path
 )
     return {
         opts = opts or {},
@@ -1005,6 +1107,13 @@ local function make_state(
         structural_range = structural_range,
         structural_path = structural_path or {},
         lexical_path = lexical_path or {},
+
+        annotation_depth =
+            annotation_depth or 0,
+        annotation_range =
+            annotation_range,
+        annotation_path =
+            annotation_path or {},
 
         measurement = measurement,
     }
@@ -1030,6 +1139,24 @@ end
 
 
 local function append_lexical_path(
+    path,
+    frame
+)
+    local result = {}
+
+    for index, existing in ipairs(
+        path or {}
+    ) do
+        result[index] = existing
+    end
+
+    table.insert(result, frame)
+
+    return result
+end
+
+
+local function append_annotation_path(
     path,
     frame
 )
@@ -1808,7 +1935,10 @@ local function make_structural_member_state(state)
             state.structural_range,
             state.measurement,
             state.structural_path,
-            state.lexical_path
+            state.lexical_path,
+            state.annotation_depth,
+            state.annotation_range,
+            state.annotation_path
         )
 
     result.scope_depth_filter =
@@ -2268,6 +2398,12 @@ local function collect_member_group(
                     member_spec
                 )
 
+            member_state =
+                with_member_annotation_scope(
+                    member_state,
+                    member_spec
+                )
+
             collector(
                 node,
                 bufnr,
@@ -2373,6 +2509,12 @@ local function collect_member_group_before_scope_enter(
 
             member_state =
                 with_member_visibility(
+                    member_state,
+                    member_spec
+                )
+
+            member_state =
+                with_member_annotation_scope(
                     member_state,
                     member_spec
                 )
@@ -2794,6 +2936,57 @@ local function resolve_scope_binding_modifiers(
 end
 
 
+local function member_spec_opens_annotation_scope(
+    node,
+    member_spec
+)
+    if not node
+        or not core.is_table(member_spec)
+    then
+        return false
+    end
+
+    local parameters_field =
+        get_syntax_field(
+            member_spec,
+            "parameters"
+        )
+
+    if not core.is_non_empty_string(
+        parameters_field
+    ) then
+        return false
+    end
+
+    local list_owner =
+        ts_utils.get_child_by_field_name(
+            node,
+            parameters_field
+        )
+
+    if not list_owner then
+        return false
+    end
+
+    local list_node_type =
+        get_syntax_child_node_type(
+            member_spec,
+            "names"
+        )
+
+    if not core.is_non_empty_string(
+        list_node_type
+    ) then
+        return false
+    end
+
+    return ts_utils.find_first_descendant_by_type(
+        list_owner,
+        list_node_type
+    ) ~= nil
+end
+
+
 local function walk_node(
     node,
     bufnr,
@@ -2977,7 +3170,10 @@ local function walk_node(
             state.structural_range,
             state.measurement,
             state.structural_path,
-            lexical_path
+            lexical_path,
+            state.annotation_depth,
+            state.annotation_range,
+            state.annotation_path
         )
     end
 
@@ -3039,8 +3235,79 @@ local function walk_node(
             structural_range,
             current_state.measurement,
             structural_path,
-            current_state.lexical_path
+            current_state.lexical_path,
+            current_state.annotation_depth,
+            current_state.annotation_range,
+            current_state.annotation_path
         )
+    end
+
+    local annotation_specs =
+        member_spec_index
+            .annotation_scope_specs_by_node_type[
+                node_type
+            ]
+        or {}
+
+    for _, annotation_spec in ipairs(
+        annotation_specs
+    ) do
+        if member_spec_opens_annotation_scope(
+            node,
+            annotation_spec
+        ) then
+            local annotation_range =
+                ts_utils.get_node_range(
+                    node
+                )
+            local annotation_depth =
+                current_state.annotation_depth
+                + 1
+            local annotation_path =
+                append_annotation_path(
+                    current_state
+                        .annotation_path,
+                    {
+                        depth =
+                            annotation_depth,
+                        node_type =
+                            node_type,
+                        start_line =
+                            annotation_range
+                            and annotation_range
+                                .start_line,
+                        start_column =
+                            annotation_range
+                            and annotation_range
+                                .start_column,
+                        end_line =
+                            annotation_range
+                            and annotation_range
+                                .end_line,
+                        end_column =
+                            annotation_range
+                            and annotation_range
+                                .end_column,
+                    }
+                )
+
+            current_state =
+                make_state(
+                    current_state.opts,
+                    current_state.scope_depth,
+                    current_state.scope_range,
+                    current_state.structural_depth,
+                    current_state.structural_range,
+                    current_state.measurement,
+                    current_state.structural_path,
+                    current_state.lexical_path,
+                    annotation_depth,
+                    annotation_range,
+                    annotation_path
+                )
+
+            break
+        end
     end
 
     collect_scope_binding_modifiers(

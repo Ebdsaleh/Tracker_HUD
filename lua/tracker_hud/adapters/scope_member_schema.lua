@@ -89,6 +89,11 @@ function M.rule(
             opts.owner_scope_excluded_construct_kinds
     end
 
+    if opts.annotation_scope ~= nil then
+        member.annotation_scope =
+            opts.annotation_scope
+    end
+
     if opts.binding_mutability ~= nil then
         member.mutability = {
             binding =
@@ -160,6 +165,8 @@ function M.named(
                 opts.owner_scope,
             owner_scope_excluded_construct_kinds =
                 opts.owner_scope_excluded_construct_kinds,
+            annotation_scope =
+                opts.annotation_scope,
             binding_mutability =
                 opts.binding_mutability,
             visibility_range =

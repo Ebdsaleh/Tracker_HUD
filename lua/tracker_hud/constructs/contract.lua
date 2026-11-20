@@ -96,6 +96,7 @@ M.member_kinds = {
     ["local"] = true,
     variable = true,
     parameter = true,
+    type_parameter = true,
     field = true,
     property = true,
     method = true,
@@ -401,6 +402,13 @@ function M.validate_member_spec(member_spec)
 
             seen_kinds[construct_kind] = true
         end
+    end
+
+    if member_spec.annotation_scope ~= nil
+        and member_spec.annotation_scope ~= true
+    then
+        return false,
+            "member.annotation_scope must be true when provided"
     end
 
     local ok, err = M.validate_mutability_spec(

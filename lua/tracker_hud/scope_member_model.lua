@@ -181,6 +181,10 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         state.structural_depth or 0
     local structural_range =
         state.structural_range
+    local annotation_depth =
+        state.member_annotation_depth
+    local annotation_range =
+        state.member_annotation_range
 
     local member_visibility_range =
         state.member_visibility_range
@@ -277,6 +281,25 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
         structural_scope_end_column =
             structural_range
             and structural_range.end_column,
+
+        annotation_depth =
+            annotation_depth,
+        annotation_path =
+            copy_structural_path(
+                state.member_annotation_path
+            ),
+        annotation_scope_start_line =
+            annotation_range
+            and annotation_range.start_line,
+        annotation_scope_start_column =
+            annotation_range
+            and annotation_range.start_column,
+        annotation_scope_end_line =
+            annotation_range
+            and annotation_range.end_line,
+        annotation_scope_end_column =
+            annotation_range
+            and annotation_range.end_column,
 
         visibility_start_line =
             visibility_start_line,
