@@ -412,9 +412,11 @@ call :run_config "tests/lua_loop_binding_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/cpp_range_for_lifetime_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_config "tests/c_for_loop_lifetime_smoke.lua"
+if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 187/187
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 187/187
+echo [GREEN] Tracker_HUD test suite passed: 188/188
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 188/188
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
