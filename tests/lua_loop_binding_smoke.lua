@@ -208,6 +208,16 @@ local function run()
                                 member.scope_depth
                                     or "?"
                             )
+                            .. ",range="
+                            .. tostring(
+                                member.scope_start_line
+                                    or "?"
+                            )
+                            .. "-"
+                            .. tostring(
+                                member.scope_end_line
+                                    or "?"
+                            )
                             .. ",binding="
                             .. tostring(
                                 member.is_binding
@@ -242,10 +252,10 @@ local function run()
     )
 
     assert(
-        index.scope_depth == 2
-            and key.scope_depth == 2
-            and value.scope_depth == 2,
-        "Lua loop variables resolved to unexpected lexical depth"
+        index.scope_depth == 1
+            and key.scope_depth == 1
+            and value.scope_depth == 1,
+        "Lua top-level loop variables must be owned by their depth-1 loop scopes"
     )
 
     assert(
