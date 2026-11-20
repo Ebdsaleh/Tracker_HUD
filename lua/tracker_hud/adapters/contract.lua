@@ -2067,6 +2067,129 @@ local function normalize_filetypes(filetypes)
 end
 
 
+local function validate_target_dimensions(
+    target_dimensions
+)
+    if target_dimensions == nil then
+        return true, nil
+    end
+
+    if not core.is_table(target_dimensions) then
+        return false,
+            "adapter.target_dimensions must be a table when provided"
+    end
+
+    for dimension_name, descriptor in pairs(
+        target_dimensions
+    ) do
+        if not core.is_non_empty_string(
+            dimension_name
+        ) then
+            return false,
+                "adapter.target_dimensions keys must be non-empty strings"
+        end
+
+        local path =
+            "adapter.target_dimensions."
+            .. dimension_name
+
+        if not core.is_table(descriptor) then
+            return path_error(
+                path,
+                "must be a table"
+            )
+        end
+
+        if not core.is_non_empty_string(
+            descriptor.default
+        ) then
+            return path_error(
+                path .. ".default",
+                "must be a non-empty string"
+            )
+        end
+
+        local supported_ok,
+            supported_err =
+            validate_string_list(
+                descriptor.supported,
+                path .. ".supported",
+                {
+                    non_empty = true,
+                    unique = true,
+                }
+            )
+
+        if not supported_ok then
+            return false, supported_err
+        end
+
+        local supported = {}
+
+        for _, value in ipairs(
+            descriptor.supported
+        ) do
+            supported[value] = true
+        end
+
+        if not supported[
+            descriptor.default
+        ] then
+            return path_error(
+                path .. ".default",
+                "must name a supported canonical value"
+            )
+        end
+
+        if descriptor.aliases ~= nil then
+            if not core.is_table(
+                descriptor.aliases
+            ) then
+                return path_error(
+                    path .. ".aliases",
+                    "must be a table when provided"
+                )
+            end
+
+            for alias, canonical in pairs(
+                descriptor.aliases
+            ) do
+                if not core.is_non_empty_string(
+                    alias
+                ) then
+                    return path_error(
+                        path .. ".aliases",
+                        "keys must be non-empty strings"
+                    )
+                end
+
+                if not core.is_non_empty_string(
+                    canonical
+                ) then
+                    return path_error(
+                        path
+                            .. ".aliases."
+                            .. alias,
+                        "must be a non-empty string"
+                    )
+                end
+
+                if not supported[canonical] then
+                    return path_error(
+                        path
+                            .. ".aliases."
+                            .. alias,
+                        "must resolve directly to a supported canonical value"
+                    )
+                end
+            end
+        end
+    end
+
+    return true, nil
+end
+
+
 local function validate_filetypes(filetypes)
     local normalized = normalize_filetypes(filetypes)
 
@@ -2119,6 +2242,18 @@ function M.validate_adapter(
             "context.configure.validate.filetypes",
             validate_filetypes,
             adapter.filetypes
+        )
+
+    if not ok then
+        return false, err
+    end
+
+    ok, err =
+        validate_phase(
+            opts,
+            "context.configure.validate.target_dimensions",
+            validate_target_dimensions,
+            adapter.target_dimensions
         )
 
     if not ok then
