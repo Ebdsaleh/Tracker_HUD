@@ -38,6 +38,29 @@ local function named_children(node)
 end
 
 
+local function same_node_range(left, right)
+    if not left or not right then
+        return false
+    end
+
+    local left_range =
+        require("tracker_hud.treesitter_utils")
+            .get_node_range_fields(left)
+    local right_range =
+        require("tracker_hud.treesitter_utils")
+            .get_node_range_fields(right)
+
+    return left_range.start_line
+            == right_range.start_line
+        and left_range.start_column
+            == right_range.start_column
+        and left_range.end_line
+            == right_range.end_line
+        and left_range.end_column
+            == right_range.end_column
+end
+
+
 local function parser_parameter_text(node, bufnr)
     local result = {}
 
@@ -203,22 +226,126 @@ local function run()
         "Python type-parameter fixture contains parser ERROR nodes"
     )
 
-    local parameter_nodes =
+    local raw_parameter_nodes =
         collect_nodes_by_type(
             root,
             "type_parameter"
         )
 
+    local parameter_nodes = {}
+    local raw_shapes = {}
+
+    for _, node in ipairs(
+        raw_parameter_nodes
+    ) do
+        local range =
+            ts_utils
+                .get_node_range_fields(
+                    node
+                )
+        local parent = node:parent()
+        local parent_type =
+            parent
+            and parent:type()
+            or "none"
+        local parent_text =
+            parent
+            and vim.treesitter
+                .get_node_text(
+                    parent,
+                    buffer
+                )
+            or "none"
+
+        table.insert(
+            raw_shapes,
+            tostring(
+                range.start_line
+            )
+                .. "="
+                .. parent_type
+                .. ":"
+                .. tostring(
+                    parent_text
+                )
+                .. "["
+                .. parser_parameter_text(
+                    node,
+                    buffer
+                )
+                .. "]"
+        )
+
+        local is_declaration =
+            parent_type
+                == "function_definition"
+            or parent_type
+                == "class_definition"
+
+        if not is_declaration
+            and parent_type
+                == "generic_type"
+        then
+            local grandparent =
+                parent:parent()
+
+            if grandparent
+                and grandparent:type()
+                    == "type_alias_statement"
+            then
+                local alias_left =
+                    ts_utils
+                        .get_child_by_field_name(
+                            grandparent,
+                            "left"
+                        )
+
+                is_declaration =
+                    same_node_range(
+                        alias_left,
+                        parent
+                    )
+            end
+        end
+
+        if is_declaration then
+            table.insert(
+                parameter_nodes,
+                node
+            )
+        end
+    end
+
     print(
-        "PARSER python type-parameter scopes: count="
+        "PARSER python raw type-parameter nodes: "
+            .. table.concat(
+                raw_shapes,
+                " | "
+            )
+    )
+
+    print(
+        "PARSER python type-parameter scopes: raw="
+            .. tostring(
+                #raw_parameter_nodes
+            )
+            .. " declaration="
             .. tostring(
                 #parameter_nodes
             )
     )
 
     assert(
+        #raw_parameter_nodes == 5,
+        "Python type-parameter fixture expected 5 raw type_parameter nodes, got "
+            .. tostring(
+                #raw_parameter_nodes
+            )
+    )
+
+    assert(
         #parameter_nodes == 3,
-        "Python type-parameter fixture expected 3 type_parameter nodes, got "
+        "Python type-parameter fixture expected 3 declaration type_parameter nodes, got "
             .. tostring(
                 #parameter_nodes
             )
