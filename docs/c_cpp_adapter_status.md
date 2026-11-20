@@ -487,3 +487,36 @@ highlighted. Then try ASM to verify shared styling.
 `tests/c_cpp_memory_observation_smoke.lua` have not yet been reported
 green by ERIDU. Do not infer lifetime or leak correctness from the
 C/C++ source-observation feature.
+
+## Locked C++ standard-variant design decision (2026-11-21)
+
+The built-in `cpp` adapter is the **C++ language-family adapter**. It must not
+silently become a catch-all for every construct accepted by the installed
+Tree-sitter C++ grammar.
+
+The planned default semantic standard is **C++17**. Explicit standard
+selection must support regression as well as advancement, including future
+use of older bundles such as C++98/C++03 and newer bundles such as
+C++20/C++23.
+
+This distinction was made explicit after a C++20-only range-for
+init-statement was accidentally introduced as a pointer-lifetime checkpoint
+while the project target was C++17. That checkpoint was invalidated and the
+C++17 tree restored at `c7f0a77`; the accepted semantic feature baseline
+remains the C++17-valid 198-test state.
+
+Language-version semantics should be composed through availability metadata /
+standard bundles rather than copied into separate monolithic adapters.
+Tree-sitter recognizing a node does not make that node valid in the active
+C++ standard.
+
+C++ uses the ecosystem term `standard`, not a generic `variant` label.
+Compiler-specific behavior may later use a separate `dialect` dimension
+(for example, a legacy MSVC overlay) rather than contaminating ISO-standard
+semantics.
+
+See [Adapter target dimensions and language-version bundles](adapter_target_dimensions.md)
+for the canonical design contract. The current C/C++ directive implementation
+still exposes `arch/platform/abi/syntax/mode`; `standard=` is planned
+architecture, not yet shipped API.
+

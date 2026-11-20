@@ -10764,3 +10764,23 @@ unknown vs known certainty
 
 Do not trade these semantics for a broad cache without first identifying the
 actual source-memory subcost.
+
+## Terminology boundary: architecture variant vs platform vs language standard
+
+The shared architecture/profile work must preserve ecosystem-native target
+terminology rather than flattening every selection into one word.
+
+For assembly, processor/ISA selection is conceptually a **variant** (for
+example i386, x86_64, m68000, SH-4). A **platform** is a separate environment
+such as Windows, Linux, Mega Drive, Saturn or Dreamcast. Platform must never
+be used as a synonym for CPU/ISA variant.
+
+For C++, language editions use the ecosystem term **standard** (C++98,
+C++11, C++17, C++20, and so on). The built-in C++ design intends C++17 as
+the default standard while allowing both older and newer standard bundles.
+
+The generic selection machinery may be shared, but user-facing vocabulary and
+accepted dimensions are adapter-owned. See
+[Adapter target dimensions and language-version bundles](adapter_target_dimensions.md)
+for the canonical design contract and current implementation boundary.
+

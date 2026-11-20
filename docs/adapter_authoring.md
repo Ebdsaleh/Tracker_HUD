@@ -434,3 +434,29 @@ tracker_profile.bat
 
 The executable starter is covered by the cumulative test suite, so changes to
 the Adapter Contract cannot silently make this guide stale.
+
+## Adapter-owned target dimensions and version bundles
+
+Tracker_HUD does not impose one universal user-facing `variant` vocabulary
+on every adapter. The **selection mechanism is generic, but its terminology
+is adapter-owned**.
+
+Examples:
+
+- C++ uses `standard` for C++98/C++11/C++17/C++20 because that is the
+  ecosystem's normal nomenclature.
+- ASM uses `variant` for processor/ISA selections such as i386, x86_64,
+  m68000 or SH-4; `platform` remains a separate Windows/Linux/console
+  environment dimension.
+- Parser capability does not authorize semantics from a later language
+  standard or different ISA variant.
+
+The built-in C++ design intends `cpp17` to be the default standard while
+allowing explicit regression to older standards such as C++98 and future
+advancement to C++20/23 through composed semantic bundles.
+
+See [Adapter target dimensions and language-version bundles](adapter_target_dimensions.md)
+for the locked terminology, availability, bundle, cache-identity, and
+compatibility rules. That document is architectural intent; do not assume
+every described directive/dimension is implemented yet.
+
