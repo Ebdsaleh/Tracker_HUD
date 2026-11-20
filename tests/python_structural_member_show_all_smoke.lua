@@ -234,11 +234,24 @@ local function run()
             "payload"
         )
 
+    local nested =
+        collect_member(
+            all_members,
+            "nested"
+        )
+
     assert(
         payload
             and payload.source_start_line
-            and payload.source_start_column,
+            and payload.source_start_column
+            and payload.label,
         "parser-backed payload member missing"
+    )
+
+    assert(
+        nested
+            and nested.label,
+        "parser-backed nested member missing"
     )
 
     local current_members =
@@ -264,12 +277,20 @@ local function run()
         not collect_member(
             current_members,
             "nested"
-        )
-            and collect_member(
-                all_members,
-                "nested"
-            ),
-        "Show All fixture must contain one future nested member"
+        ),
+        "Show All fixture must exclude future nested member from current view"
+    )
+
+    print(
+        "SHOW ALL fixture: "
+            .. "current="
+            .. tostring(#current_members)
+            .. ", all="
+            .. tostring(#all_members)
+            .. ", payload="
+            .. tostring(payload.label)
+            .. ", nested="
+            .. tostring(nested.label)
     )
 
     local context = {
@@ -329,6 +350,16 @@ local function run()
         current_control =
         render()
 
+    print(
+        "SHOW ALL current render: control="
+            .. tostring(current_control.title)
+            .. " | "
+            .. table.concat(
+                current_render.lines,
+                " || "
+            )
+    )
+
     assert(
         current_control.title
             == "[ ] Show All Scope Members",
@@ -338,11 +369,11 @@ local function run()
     assert(
         find_line(
             current_render.lines,
-            "payload"
+            payload.label
         )
             and not find_line(
                 current_render.lines,
-                "nested"
+                nested.label
             ),
         "future nested member leaked before Show All"
     )
@@ -372,18 +403,28 @@ local function run()
         "enabled Show All control title changed"
     )
 
+    print(
+        "SHOW ALL enabled render: control="
+            .. tostring(all_control.title)
+            .. " | "
+            .. table.concat(
+                all_render.lines,
+                " || "
+            )
+    )
+
     local payload_index,
         payload_line =
         find_line(
             all_render.lines,
-            "payload"
+            payload.label
         )
 
     local nested_index,
         nested_line =
         find_line(
             all_render.lines,
-            "nested"
+            nested.label
         )
 
     local case_index =
