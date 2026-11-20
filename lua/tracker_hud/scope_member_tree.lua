@@ -515,6 +515,222 @@ local function attach_structural_scopes_to_members(
 end
 
 
+local function structural_path_is_valid(
+    path
+)
+    if not core.is_table(path)
+        or #path == 0
+    then
+        return false
+    end
+
+    for index, frame in ipairs(path) do
+        if not core.is_table(frame)
+            or frame.depth ~= index
+            or frame.start_line == nil
+            or frame.end_line == nil
+        then
+            return false
+        end
+    end
+
+    return true
+end
+
+
+local function make_structural_scope_key(
+    parent_id,
+    frame
+)
+    return table.concat({
+        tostring(parent_id or "scope"),
+        "structural",
+        tostring(frame.depth or ""),
+        tostring(frame.node_type or ""),
+        tostring(frame.start_line or ""),
+        tostring(frame.end_line or ""),
+    }, ":")
+end
+
+
+local function build_structural_scope_node(
+    parent_id,
+    frame
+)
+    local label =
+        frame.label
+        or frame.language_term
+        or frame.node_type
+        or "[structural scope]"
+
+    return {
+        id = make_structural_scope_key(
+            parent_id,
+            frame
+        ),
+
+        kind = "scope",
+        scope_kind = "structural",
+        label = label,
+        default_expanded = true,
+
+        source_line = frame.start_line,
+        source_column =
+            frame.start_column or 0,
+
+        source_start_line =
+            frame.start_line,
+        source_start_column =
+            frame.start_column or 0,
+
+        source_end_line =
+            frame.end_line,
+        source_end_column =
+            frame.end_column or 0,
+
+        scope_start_line =
+            frame.start_line,
+        scope_start_column =
+            frame.start_column or 0,
+
+        scope_end_line =
+            frame.end_line,
+        scope_end_column =
+            frame.end_column or 0,
+
+        structural_depth =
+            frame.depth,
+
+        node_type =
+            frame.node_type,
+
+        construct_kind =
+            frame.construct_kind,
+
+        language_term =
+            frame.language_term,
+
+        children = {},
+    }
+end
+
+
+local function nest_structural_members(
+    scope_node
+)
+    if not core.is_table(scope_node)
+        or scope_node.kind ~= "scope"
+        or scope_node.scope_kind
+            == "structural"
+    then
+        return
+    end
+
+    local original_children =
+        scope_node.children or {}
+
+    local rebuilt_children = {}
+    local structural_nodes = {}
+
+    for _, child in ipairs(
+        original_children
+    ) do
+        local member =
+            core.is_table(child)
+            and child.member
+            or nil
+
+        local path =
+            core.is_table(member)
+            and member.structural_path
+            or nil
+
+        if child.kind == "member"
+            and structural_path_is_valid(
+                path
+            )
+        then
+            local parent_id =
+                scope_node.id
+
+            local parent_children =
+                rebuilt_children
+
+            for _, frame in ipairs(path) do
+                local structural_id =
+                    make_structural_scope_key(
+                        parent_id,
+                        frame
+                    )
+
+                local structural_node =
+                    structural_nodes[
+                        structural_id
+                    ]
+
+                if not structural_node then
+                    structural_node =
+                        build_structural_scope_node(
+                            parent_id,
+                            frame
+                        )
+
+                    structural_nodes[
+                        structural_id
+                    ] = structural_node
+
+                    table.insert(
+                        parent_children,
+                        structural_node
+                    )
+                end
+
+                parent_id =
+                    structural_node.id
+
+                parent_children =
+                    structural_node.children
+            end
+
+            table.insert(
+                parent_children,
+                child
+            )
+        else
+            table.insert(
+                rebuilt_children,
+                child
+            )
+        end
+    end
+
+    scope_node.children =
+        rebuilt_children
+end
+
+
+local function nest_structural_paths_in_tree(
+    nodes
+)
+    for _, node in ipairs(nodes or {}) do
+        if core.is_table(node) then
+            if node.kind == "scope"
+                and node.scope_kind
+                    ~= "structural"
+            then
+                nest_structural_members(
+                    node
+                )
+            end
+
+            nest_structural_paths_in_tree(
+                node.children
+            )
+        end
+    end
+end
+
+
 function M.build(members, context)
     local scope_nodes = {}
     local scope_order = {}
@@ -591,6 +807,10 @@ function M.build(members, context)
         attach_structural_scopes_to_members(
             scope_order
         )
+
+    nest_structural_paths_in_tree(
+        scope_order
+    )
 
     return scope_order
 end
