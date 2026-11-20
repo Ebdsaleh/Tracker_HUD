@@ -279,6 +279,10 @@ local function run()
             discovery,
             {
                 cursor_line = 4,
+                start_line =
+                    index.scope_start_line,
+                end_line =
+                    index.scope_end_line,
             }
         )
 
@@ -287,6 +291,10 @@ local function run()
             discovery,
             {
                 cursor_line = 8,
+                start_line =
+                    key.scope_start_line,
+                end_line =
+                    key.scope_end_line,
             }
         )
 
@@ -295,6 +303,7 @@ local function run()
             discovery,
             {
                 cursor_line = #lines,
+                scope_depth = 0,
             }
         )
 
@@ -335,7 +344,7 @@ local function run()
     )
 
     print(
-        "PASS Lua parser-backed numeric/generic loop-variable ownership and lifetime semantics"
+        "PASS Lua parser-backed numeric/generic loop-variable ownership, selection, and lifetime semantics"
     )
 
     vim.api.nvim_buf_delete(
