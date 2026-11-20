@@ -9,6 +9,36 @@ local construct_schema = require("tracker_hud.adapters.construct_schema")
 
 M.name = "cpp"
 M.filetypes = { "cpp" }
+M.target_dimensions = {
+    standard = {
+        default = "cpp17",
+        supported = {
+            "cpp98",
+            "cpp03",
+            "cpp11",
+            "cpp14",
+            "cpp17",
+            "cpp20",
+            "cpp23",
+        },
+        aliases = {
+            ["c++98"] = "cpp98",
+            ["c++03"] = "cpp03",
+            ["c++11"] = "cpp11",
+            ["c++14"] = "cpp14",
+            ["c++17"] = "cpp17",
+            ["c++20"] = "cpp20",
+            ["c++23"] = "cpp23",
+            ["98"] = "cpp98",
+            ["03"] = "cpp03",
+            ["11"] = "cpp11",
+            ["14"] = "cpp14",
+            ["17"] = "cpp17",
+            ["20"] = "cpp20",
+            ["23"] = "cpp23",
+        },
+    },
+}
 M.active_targets = {
     architecture = "unknown",
     platform = "unknown",
