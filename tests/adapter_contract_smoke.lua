@@ -842,8 +842,41 @@ local function run()
     assert(
         python_assignment.syntax.node_type
             == "assignment"
-            and python_assignment.syntax.fields.name
+            and python_assignment.syntax.fields
+                .bindings.field
                 == "left"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .terminal_node_types[1]
+                == "identifier"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .terminal_node_types[2]
+                == "keyword_identifier"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .terminal_node_types[3]
+                == "attribute"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .terminal_node_types[4]
+                == "subscript"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .container_node_types[1]
+                == "pattern_list"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .container_node_types[2]
+                == "tuple_pattern"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .container_node_types[3]
+                == "list_pattern"
+            and python_assignment.syntax.fields
+                .bindings.recursive
+                .container_node_types[4]
+                == "list_splat_pattern"
             and python_assignment.syntax.fields.value
                 == "right"
             and python_assignment.syntax.tokens.operator
