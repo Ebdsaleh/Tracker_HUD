@@ -670,6 +670,22 @@ local function syntax_field_node_matches(
 end
 
 
+local function recursive_field_node_type_matches(
+    node_type,
+    node_types
+)
+    for _, expected in ipairs(
+        node_types or {}
+    ) do
+        if node_type == expected then
+            return true
+        end
+    end
+
+    return false
+end
+
+
 local function collect_recursive_field_nodes(
     node,
     recursive_spec,
@@ -686,7 +702,7 @@ local function collect_recursive_field_nodes(
     local node_type =
         node:type()
 
-    if node_type_is_in_list(
+    if recursive_field_node_type_matches(
         node_type,
         recursive_spec
             .terminal_node_types
@@ -701,7 +717,7 @@ local function collect_recursive_field_nodes(
         return
     end
 
-    if not node_type_is_in_list(
+    if not recursive_field_node_type_matches(
         node_type,
         recursive_spec
             .container_node_types
