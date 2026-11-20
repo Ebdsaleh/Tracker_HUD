@@ -407,8 +407,12 @@ local function run()
     assert(
         count_lines(
             all_render.lines,
-            inner_value.label
-        ) == 2,
+            outer_value.label
+        ) == 1
+            and count_lines(
+                all_render.lines,
+                inner_value.label
+            ) == 1,
         "Show All render collapsed same-name shadowing bindings"
     )
 
