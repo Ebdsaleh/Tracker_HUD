@@ -439,9 +439,50 @@ M.scope_members = {
             "symbol",
             {
                 language_term =
+                    "for declaration",
+                fallback_node_type =
+                    "identifier",
+                constraints = {
+                    ancestor_node_types = {
+                        "for_statement",
+                    },
+                },
+                visibility_range =
+                    "structural_scope",
+            }
+        ),
+        scope_member_schema.named(
+            "declaration",
+            "declarator",
+            "symbol",
+            {
+                language_term =
                     "declaration",
                 fallback_node_type =
                     "identifier",
+                exclusions = {
+                    ancestor_node_types = {
+                        "for_statement",
+                    },
+                },
+            }
+        ),
+        scope_member_schema.named(
+            "init_declarator",
+            "declarator",
+            "variable",
+            {
+                language_term =
+                    "for initialized variable",
+                fallback_node_type =
+                    "identifier",
+                constraints = {
+                    ancestor_node_types = {
+                        "for_statement",
+                    },
+                },
+                visibility_range =
+                    "structural_scope",
             }
         ),
         scope_member_schema.named(
@@ -453,6 +494,11 @@ M.scope_members = {
                     "initialized variable",
                 fallback_node_type =
                     "identifier",
+                exclusions = {
+                    ancestor_node_types = {
+                        "for_statement",
+                    },
+                },
             }
         ),
         scope_member_schema.named(

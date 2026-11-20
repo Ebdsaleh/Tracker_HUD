@@ -223,6 +223,8 @@ local function with_scope_depth_filter(
             state.structural_range,
         direct_structural_visibility_range =
             state.direct_structural_visibility_range,
+        inherited_structural_visibility_range =
+            state.inherited_structural_visibility_range,
         structural_path =
             state.structural_path,
         lexical_path =
@@ -1086,6 +1088,8 @@ local function with_member_visibility(
                 state.structural_range
                 or state
                     .direct_structural_visibility_range
+                or state
+                    .inherited_structural_visibility_range
             )
             or nil
 
@@ -3548,6 +3552,37 @@ local function walk_node(
         node_type
     )
 
+    local child_state =
+        current_state
+
+    if core.is_table(
+        construct_scope
+    )
+        and construct_scope.kind
+            == "structural"
+        and construct_scope
+            .affects_visibility
+            == true
+        and construct_scope
+            .owns_members
+            ~= true
+    then
+        child_state = {}
+
+        for key, value in pairs(
+            current_state or {}
+        ) do
+            child_state[key] =
+                value
+        end
+
+        child_state
+            .inherited_structural_visibility_range =
+            ts_utils.get_node_range(
+                node
+            )
+    end
+
     for child in node:iter_children() do
         walk_node(
             child,
@@ -3558,7 +3593,7 @@ local function walk_node(
             binding_modifiers,
             members,
             seen,
-            current_state
+            child_state
         )
     end
 end
