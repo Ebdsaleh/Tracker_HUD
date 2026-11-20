@@ -1054,6 +1054,7 @@ M.scope_members = {
                 exclusions = {
                     ancestor_node_types = {
                         "case_clause",
+                        "except_clause",
                     },
                 },
                 binding_mutability =
@@ -1146,23 +1147,18 @@ M.scope_members = {
             }
         ),
         scope_member_schema.rule(
-            "except_clause",
+            "as_pattern",
             "assignment",
             {
                 language_term =
                     "exception alias",
                 fields = {
-                    name = {
-                        field = "alias",
-                        node_type =
-                            "identifier",
-                    },
+                    name = "alias",
                 },
-                tokens = {
-                    declaration =
-                        "except",
-                    alias =
-                        "as",
+                constraints = {
+                    ancestor_node_types = {
+                        "except_clause",
+                    },
                 },
                 binding_mutability =
                     "conditional",

@@ -952,6 +952,9 @@ local function run()
             and python_with_binding.syntax.exclusions
                 .ancestor_node_types[1]
                 == "case_clause"
+            and python_with_binding.syntax.exclusions
+                .ancestor_node_types[2]
+                == "except_clause"
             and python_with_binding.member.kind
                 == "assignment"
             and python_with_binding.member.language_term
@@ -1066,6 +1069,30 @@ local function run()
                 .binding
                 == "mutable",
         "Python type-alias binding contract changed"
+    )
+
+    local python_exception_alias =
+        python_adapter.scope_members
+            .symbols[10]
+
+    assert(
+        python_exception_alias.syntax.node_type
+            == "as_pattern"
+            and python_exception_alias.syntax.fields.name
+                == "alias"
+            and python_exception_alias.syntax.constraints
+                .ancestor_node_types[1]
+                == "except_clause"
+            and python_exception_alias.member.kind
+                == "assignment"
+            and python_exception_alias.member.language_term
+                == "exception alias"
+            and python_exception_alias.member.mutability
+                .binding
+                == "conditional"
+            and python_exception_alias.member.visibility.range
+                == "structural_scope",
+        "Python exception-alias binding contract changed"
     )
 
     local python_return =

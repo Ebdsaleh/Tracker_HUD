@@ -200,17 +200,28 @@ local function run()
             ts_utils.get_node_range_fields(
                 clause
             )
-        local alias =
+        local value =
             ts_utils.get_child_by_field_name(
                 clause,
+                "value"
+            )
+        local alias =
+            value
+            and value:type()
+                == "as_pattern"
+            and ts_utils.get_child_by_field_name(
+                value,
                 "alias"
             )
+            or nil
 
         parser_aliases[
             range.start_line
         ] =
             alias
             and {
+                value_node_type =
+                    value:type(),
                 node_type =
                     alias:type(),
                 text =
@@ -228,7 +239,9 @@ local function run()
             .. tostring(
                 parser_aliases[5]
                     and (
-                        parser_aliases[5].node_type
+                        parser_aliases[5].value_node_type
+                        .. ">"
+                        .. parser_aliases[5].node_type
                         .. ":"
                         .. tostring(
                             parser_aliases[5].text
@@ -240,7 +253,9 @@ local function run()
             .. tostring(
                 parser_aliases[12]
                     and (
-                        parser_aliases[12].node_type
+                        parser_aliases[12].value_node_type
+                        .. ">"
+                        .. parser_aliases[12].node_type
                         .. ":"
                         .. tostring(
                             parser_aliases[12].text
@@ -252,7 +267,9 @@ local function run()
             .. tostring(
                 parser_aliases[18]
                     and (
-                        parser_aliases[18].node_type
+                        parser_aliases[18].value_node_type
+                        .. ">"
+                        .. parser_aliases[18].node_type
                         .. ":"
                         .. tostring(
                             parser_aliases[18].text
@@ -264,8 +281,10 @@ local function run()
 
     assert(
         parser_aliases[5]
+            and parser_aliases[5].value_node_type
+                == "as_pattern"
             and parser_aliases[5].node_type
-                == "identifier"
+                == "as_pattern_target"
             and parser_aliases[5].text
                 == "err",
         "Python ordinary except alias parser shape changed"
@@ -273,8 +292,10 @@ local function run()
 
     assert(
         parser_aliases[12]
+            and parser_aliases[12].value_node_type
+                == "as_pattern"
             and parser_aliases[12].node_type
-                == "identifier"
+                == "as_pattern_target"
             and parser_aliases[12].text
                 == "group",
         "Python except* alias parser shape changed"
@@ -573,8 +594,8 @@ local function run()
 
     print(
         "PARSER python exception aliases: "
-            .. "except@5=err "
-            .. "except*@12=group "
+            .. "except@5=as_pattern>as_pattern_target:err "
+            .. "except*@12=as_pattern>as_pattern_target:group "
             .. "bare@18=no-alias"
     )
 
