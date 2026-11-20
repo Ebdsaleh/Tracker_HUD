@@ -432,6 +432,65 @@ local function function_parameter_scope(
     return pointer_lexical_scope_range(function_node)
 end
 
+local function lambda_parameter_scope(
+    bufnr,
+    lambda_node,
+    binding
+)
+    if not lambda_node
+        or lambda_node:type() ~= "lambda_expression"
+        or not binding
+    then
+        return nil
+    end
+
+    local declarator =
+        ts_utils.get_child_by_field_name(
+            lambda_node,
+            "declarator"
+        )
+
+    if not declarator then
+        -- Keep compatibility with parser versions that expose the lambda
+        -- signature as a direct named declarator child rather than a field.
+        for child in lambda_node:iter_children() do
+            if child:named()
+                and (
+                    child:type() == "lambda_declarator"
+                    or child:type() == "abstract_function_declarator"
+                )
+            then
+                declarator = child
+                break
+            end
+        end
+    end
+
+    if not declarator
+        or not declarator_has_parameter_binding(
+            bufnr,
+            declarator,
+            binding
+        )
+    then
+        return nil
+    end
+
+    local body =
+        ts_utils.get_child_by_field_name(
+            lambda_node,
+            "body"
+        )
+
+    if body and body:type() == "compound_statement" then
+        return pointer_lexical_scope_range(body)
+    end
+
+    -- Do not search arbitrary lambda children for parameters: captures may
+    -- contain nested expressions/lambdas and are not evidence for this binding.
+    return nil
+end
+
 local function assignment_declaration_scope(
     bufnr,
     node,
@@ -511,6 +570,14 @@ local function assignment_declaration_scope(
 
         if parent:type() == "function_definition" then
             return function_parameter_scope(
+                bufnr,
+                parent,
+                binding
+            )
+        end
+
+        if parent:type() == "lambda_expression" then
+            return lambda_parameter_scope(
                 bufnr,
                 parent,
                 binding
