@@ -34,8 +34,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [Tracker_HUD] Running 170 tests...
->> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 170 tests...
+echo [Tracker_HUD] Running 171 tests...
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 171 tests...
 >> "%TRACKER_HUD_RESULTS%" echo.
 
 call :run_none "tests/architecture_registry_smoke.lua"
@@ -378,9 +378,11 @@ call :run_config "tests/python_structural_member_show_all_smoke.lua"
 if errorlevel 1 goto :fail
 call :run_config "tests/python_binding_scope_modifier_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_config "tests/python_assignment_destructuring_smoke.lua"
+if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 170/170
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 170/170
+echo [GREEN] Tracker_HUD test suite passed: 171/171
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 171/171
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
