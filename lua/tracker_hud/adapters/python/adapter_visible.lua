@@ -47,6 +47,57 @@ M.capabilities = {
     source_jump = true,
 }
 
+M.scope_binding_modifiers = {
+    {
+        syntax = {
+            node_type =
+                "global_statement",
+            children = {
+                names = {
+                    node_type =
+                        "identifier",
+                    multiple = true,
+                },
+            },
+            tokens = {
+                start = "global",
+            },
+        },
+        target = {
+            strategy =
+                "outermost_lexical",
+        },
+    },
+    {
+        syntax = {
+            node_type =
+                "nonlocal_statement",
+            children = {
+                names = {
+                    node_type =
+                        "identifier",
+                    multiple = true,
+                },
+            },
+            tokens = {
+                start = "nonlocal",
+            },
+        },
+        target = {
+            strategy =
+                "nearest_enclosing_binding",
+
+            -- Python closure lookup skips ordinary class namespaces.
+            -- Lambda constructs use the shared "function" construct kind,
+            -- so this also admits lambda lexical owners without teaching
+            -- the generic resolver Python node names.
+            eligible_construct_kinds = {
+                "function",
+            },
+        },
+    },
+}
+
 M.range_scopes = {
     {
         syntax = {
@@ -222,6 +273,36 @@ M.construct_specs = {
                     kind = "function",
                     language_term = "lambda",
                     type_label = "function",
+                },
+            }
+        ),
+
+
+    ["global_statement"] =
+        construct_schema.rule(
+            "global_statement",
+            "declaration",
+            {
+                language_term =
+                    "global declaration",
+                label = "Global",
+                tokens = {
+                    start = "global",
+                },
+            }
+        ),
+
+
+    ["nonlocal_statement"] =
+        construct_schema.rule(
+            "nonlocal_statement",
+            "declaration",
+            {
+                language_term =
+                    "nonlocal declaration",
+                label = "Nonlocal",
+                tokens = {
+                    start = "nonlocal",
                 },
             }
         ),
