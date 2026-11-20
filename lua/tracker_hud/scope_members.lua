@@ -2800,6 +2800,10 @@ local function frame_has_binding(
         members or {}
     ) do
         if member.name == name
+            and not scope_member_model
+                .is_annotation_owned(
+                    member
+                )
             and scope_range_matches(
                 member,
                 frame

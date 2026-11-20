@@ -81,6 +81,15 @@ function M.scope_depth_filter_enabled(
 end
 
 
+function M.is_annotation_owned(
+    member
+)
+    return core.is_table(member)
+        and member.annotation_depth
+            ~= nil
+end
+
+
 function M.build_label(member)
     if not core.is_table(member) then
         return ""
