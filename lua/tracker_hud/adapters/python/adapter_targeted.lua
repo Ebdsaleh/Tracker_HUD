@@ -11,7 +11,7 @@
 --     1. Where am I structurally in the source layout?
 --     2. Which region owns the currently visible member tree?
 --
--- Python if/for/while/try/with/match/case blocks do not introduce a new Python
+-- Python if/for/while/try/except/with/match/case blocks do not introduce a new Python
 -- local variable namespace, but they are absolutely meaningful structural
 -- locations for the
 -- HUD. Keep them as structural member scopes so nested layout remains visible
@@ -38,6 +38,7 @@ mark_structural_member_scope("if_statement")
 mark_structural_member_scope("for_statement")
 mark_structural_member_scope("while_statement")
 mark_structural_member_scope("try_statement")
+mark_structural_member_scope("except_clause")
 mark_structural_member_scope("with_statement")
 mark_structural_member_scope("match_statement")
 mark_structural_member_scope("case_clause")

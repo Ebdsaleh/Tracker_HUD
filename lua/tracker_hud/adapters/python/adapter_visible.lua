@@ -483,6 +483,40 @@ M.construct_specs = {
         ),
 
 
+    ["except_clause"] =
+        construct_schema.rule(
+            "except_clause",
+            "branch",
+            {
+                language_term =
+                    "except",
+                label =
+                    "Except",
+                fields = {
+                    value = "value",
+                    alias = "alias",
+                },
+                tokens = {
+                    start = "except",
+                    alias = "as",
+                    branch_open = ":",
+                },
+                scope = {
+                    kind = "structural",
+                    affects_visibility = false,
+                    owns_members = false,
+                },
+                markers = {
+                    required = {
+                        "start",
+                        "branch_open",
+                    },
+                    total_required = 2,
+                },
+            }
+        ),
+
+
     ["with_statement"] =
         construct_schema.rule(
             "with_statement",
@@ -955,6 +989,31 @@ M.scope_members = {
                         "from import",
                     type_label = "import",
                 },
+            }
+        ),
+        scope_member_schema.rule(
+            "except_clause",
+            "assignment",
+            {
+                language_term =
+                    "exception alias",
+                fields = {
+                    name = {
+                        field = "alias",
+                        node_type =
+                            "identifier",
+                    },
+                },
+                tokens = {
+                    declaration =
+                        "except",
+                    alias =
+                        "as",
+                },
+                binding_mutability =
+                    "conditional",
+                visibility_range =
+                    "structural_scope",
             }
         ),
         scope_member_schema.rule(
