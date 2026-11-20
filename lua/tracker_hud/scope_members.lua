@@ -875,6 +875,45 @@ local function get_syntax_ancestor_exclusions(member_spec)
 end
 
 
+local function with_member_visibility(
+    state,
+    member_spec
+)
+    local result = {}
+
+    for key, value in pairs(
+        state or {}
+    ) do
+        result[key] = value
+    end
+
+    local visibility =
+        core.is_table(member_spec)
+        and core.is_table(
+            member_spec.member
+        )
+        and member_spec.member.visibility
+        or nil
+
+    if core.is_table(visibility)
+        and visibility.range
+            == "structural_scope"
+        and core.is_table(
+            state
+            and state.structural_range
+        )
+    then
+        result.member_visibility_range =
+            state.structural_range
+    else
+        result.member_visibility_range =
+            nil
+    end
+
+    return result
+end
+
+
 local function make_state(
     opts,
     scope_depth,
@@ -2145,13 +2184,19 @@ local function collect_member_group(
                 member_spec
             )
         then
+            local member_state =
+                with_member_visibility(
+                    group_state,
+                    member_spec
+                )
+
             collector(
                 node,
                 bufnr,
                 member_spec,
                 members,
                 seen,
-                group_state,
+                member_state,
                 adapter
             )
         end
@@ -2242,13 +2287,19 @@ local function collect_member_group_before_scope_enter(
                 member_spec
             )
         then
+            local member_state =
+                with_member_visibility(
+                    group_state,
+                    member_spec
+                )
+
             collector(
                 node,
                 bufnr,
                 member_spec,
                 members,
                 seen,
-                group_state,
+                member_state,
                 adapter
             )
         end
@@ -3242,6 +3293,19 @@ local function member_matches_view(
     if opts.cursor_line
         and line
         and line > opts.cursor_line
+    then
+        return false
+    end
+
+    if opts.cursor_line
+        and member.visibility_start_line
+        and member.visibility_end_line
+        and (
+            opts.cursor_line
+                < member.visibility_start_line
+            or opts.cursor_line
+                > member.visibility_end_line
+        )
     then
         return false
     end

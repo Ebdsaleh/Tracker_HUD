@@ -268,6 +268,57 @@ local function run()
         "PASS recursive binding field contract"
     )
 
+    local lifetime_member_probe =
+        vim.deepcopy(
+            c.scope_members.symbols[1]
+        )
+
+    lifetime_member_probe.member.visibility = {
+        range =
+            "structural_scope",
+    }
+
+    local lifetime_member_ok,
+        lifetime_member_error =
+        construct_contract
+            .validate_member_spec(
+                lifetime_member_probe.member
+            )
+
+    assert(
+        lifetime_member_ok,
+        "contract rejected structural member visibility range: "
+            .. tostring(
+                lifetime_member_error
+            )
+    )
+
+    lifetime_member_probe.member.visibility.range =
+        "python_handler_magic"
+
+    local invalid_lifetime_ok,
+        invalid_lifetime_error =
+        construct_contract
+            .validate_member_spec(
+                lifetime_member_probe.member
+            )
+
+    assert(
+        not invalid_lifetime_ok
+            and tostring(
+                invalid_lifetime_error
+            ):find(
+                "member.visibility.range is invalid",
+                1,
+                true
+            ),
+        "contract accepted language-specific member lifetime magic"
+    )
+
+    print(
+        "PASS generic Scope Member lifetime contract"
+    )
+
     local modifier_probe =
         vim.deepcopy(c)
 

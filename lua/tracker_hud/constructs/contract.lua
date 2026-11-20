@@ -123,6 +123,11 @@ M.owner_scope_kinds = {
 }
 
 
+M.member_visibility_range_kinds = {
+    structural_scope = true,
+}
+
+
 M.value_kinds = {
     scalar = true,
 
@@ -364,6 +369,30 @@ function M.validate_member_spec(member_spec)
 
     if not ok then
         return false, err
+    end
+
+    if member_spec.visibility ~= nil then
+        if not core.is_table(
+            member_spec.visibility
+        )
+        then
+            return false,
+                "member.visibility must be a table when provided"
+        end
+
+        local range =
+            member_spec.visibility.range
+
+        if not core.is_non_empty_string(
+            range
+        )
+            or not M.member_visibility_range_kinds[
+                range
+            ]
+        then
+            return false,
+                "member.visibility.range is invalid"
+        end
     end
 
     return true, nil

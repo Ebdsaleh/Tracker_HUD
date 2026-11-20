@@ -250,6 +250,15 @@ function M.add(members, seen, name, kind, source_range, state, metadata)
             structural_range
             and structural_range.end_column,
 
+        visibility_start_line =
+            state.member_visibility_range
+            and state.member_visibility_range
+                .start_line,
+        visibility_end_line =
+            state.member_visibility_range
+            and state.member_visibility_range
+                .end_line,
+
         source_start_line = line,
         source_start_column = source_start_column,
         source_end_line = source_end_line,

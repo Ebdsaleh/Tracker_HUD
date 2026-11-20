@@ -89,6 +89,13 @@ function M.rule(
         }
     end
 
+    if opts.visibility_range ~= nil then
+        member.visibility = {
+            range =
+                opts.visibility_range,
+        }
+    end
+
     local result = {
         syntax = syntax,
         member = member,
@@ -146,6 +153,8 @@ function M.named(
                 opts.owner_scope,
             binding_mutability =
                 opts.binding_mutability,
+            visibility_range =
+                opts.visibility_range,
             value =
                 opts.value,
         }
