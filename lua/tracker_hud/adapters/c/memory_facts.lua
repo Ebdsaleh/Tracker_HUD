@@ -355,6 +355,83 @@ local function declaration_has_direct_binding(
     return false
 end
 
+local function declarator_has_parameter_binding(
+    bufnr,
+    node,
+    binding
+)
+    if not node or not binding then
+        return false
+    end
+
+    if node:type() == "parameter_declaration" then
+        local declarator =
+            ts_utils.get_child_by_field_name(
+                node,
+                "declarator"
+            )
+        return declarator_identifier_text(
+            bufnr,
+            declarator
+        ) == binding
+    end
+
+    for child in node:iter_children() do
+        if child:named()
+            and declarator_has_parameter_binding(
+                bufnr,
+                child,
+                binding
+            )
+        then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function function_parameter_scope(
+    bufnr,
+    function_node,
+    binding
+)
+    if not function_node
+        or function_node:type() ~= "function_definition"
+        or not binding
+    then
+        return nil
+    end
+
+    local declarator =
+        ts_utils.get_child_by_field_name(
+            function_node,
+            "declarator"
+        )
+
+    if not declarator
+        or not declarator_has_parameter_binding(
+            bufnr,
+            declarator,
+            binding
+        )
+    then
+        return nil
+    end
+
+    local body =
+        ts_utils.get_child_by_field_name(
+            function_node,
+            "body"
+        )
+
+    if body and body:type() == "compound_statement" then
+        return pointer_lexical_scope_range(body)
+    end
+
+    return pointer_lexical_scope_range(function_node)
+end
+
 local function assignment_declaration_scope(
     bufnr,
     node,
@@ -430,6 +507,14 @@ local function assignment_declaration_scope(
                     latest_declaration
                 )
             end
+        end
+
+        if parent:type() == "function_definition" then
+            return function_parameter_scope(
+                bufnr,
+                parent,
+                binding
+            )
         end
 
         if pointer_callable_scope_types[parent:type()] then
