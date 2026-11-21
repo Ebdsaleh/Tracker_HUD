@@ -183,6 +183,10 @@ function M.is_available(
                 "availability standards must be a non-empty list"
         end
 
+        -- Validate the complete declaration even after a matching value.
+        -- An invalid trailing value must never activate a semantic rule.
+        local matched = false
+
         for _, requested in ipairs(
             standards
         ) do
@@ -198,11 +202,11 @@ function M.is_available(
             end
 
             if resolved == selected then
-                return true, nil
+                matched = true
             end
         end
 
-        return false, nil
+        return matched, nil
     end
 
     local since_position = nil
