@@ -83,6 +83,34 @@ function M.validate_name_uniqueness(descriptor)
             "target dimension supported values must be a list"
     end
 
+    -- A sparse table's # length is not reliably defined in Lua.
+    -- Validate every key before ipairs() can silently skip entries.
+    local entries = 0
+    local last_index = 0
+
+    for index in pairs(
+        descriptor.supported
+    ) do
+        if type(index) ~= "number"
+            or index < 1
+            or index ~= math.floor(index)
+        then
+            return false,
+                "target dimension supported values must be a dense integer-indexed list"
+        end
+
+        entries = entries + 1
+
+        if index > last_index then
+            last_index = index
+        end
+    end
+
+    if entries ~= last_index then
+        return false,
+            "target dimension supported values must be a dense integer-indexed list"
+    end
+
     local seen = {}
 
     for _, value in ipairs(
