@@ -48,11 +48,11 @@ local function run()
         {
             language = "cpp",
             since = "cpp98",
-            until = "cpp17",
+            ["until"] = "cpp17",
         },
         {
             language = "cpp",
-            until = "cpp03",
+            ["until"] = "cpp03",
         },
         {
             language = "cpp",
@@ -127,7 +127,7 @@ local function run()
             label = "blank until",
             value = {
                 language = "cpp",
-                until = "",
+                ["until"] = "",
             },
         },
         {
@@ -178,7 +178,7 @@ local function run()
             label = "explicit standards mixed with until",
             value = {
                 language = "cpp",
-                until = "cpp17",
+                ["until"] = "cpp17",
                 standards = {
                     "cpp11",
                 },
