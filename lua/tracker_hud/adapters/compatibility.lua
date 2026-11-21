@@ -54,6 +54,15 @@ function M.is_available(
             "compatibility declaration must be a table"
     end
 
+    -- Runtime calls must enforce the same unambiguous contract as
+    -- registration: neither explicit-set form may silently override the other.
+    if declaration.values ~= nil
+        and declaration.standards ~= nil
+    then
+        return false,
+            "compatibility availability values cannot be combined with standards"
+    end
+
     if not core.is_non_empty_string(
         declaration.dimension
     ) then
