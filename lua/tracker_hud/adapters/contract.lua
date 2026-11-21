@@ -1082,11 +1082,27 @@ local function validate_availability(
         )
     end
 
+    local dimension =
+        availability.dimension
+
+    if dimension ~= nil
+        and not is_non_blank_string(
+            dimension
+        )
+    then
+        return path_error(
+            path .. ".dimension",
+            "must be a non-empty string when provided"
+        )
+    end
+
     local since = availability.since
     local until_value =
         availability["until"]
     local standards =
         availability.standards
+    local values =
+        availability.values
 
     if since ~= nil
         and not is_non_blank_string(
@@ -1131,19 +1147,48 @@ local function validate_availability(
         end
     end
 
+    if values ~= nil then
+        if dimension == nil then
+            return path_error(
+                path .. ".dimension",
+                "is required when values are declared"
+            )
+        end
+
+        local ok, err =
+            validate_availability_string_list(
+                values,
+                path .. ".values"
+            )
+
+        if not ok then
+            return false, err
+        end
+
+        if since ~= nil
+            or until_value ~= nil
+            or standards ~= nil
+        then
+            return path_error(
+                path,
+                "values must not be combined with since/until/standards"
+            )
+        end
+    end
+
     if since == nil
         and until_value == nil
         and standards == nil
+        and values == nil
     then
         return path_error(
             path,
-            "must declare since, until, or standards"
+            "must declare since, until, standards, or values"
         )
     end
 
     return true, nil
 end
-
 
 local function validate_construct_entry(node_type, spec, path)
     if not core.is_table(spec) then
