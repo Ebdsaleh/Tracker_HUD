@@ -7,6 +7,7 @@
 
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
+local compatibility = require("tracker_hud.adapters.compatibility")
 
 local M = {}
 
@@ -35,9 +36,26 @@ function M.get_construct_spec(
             node:type()
     end
 
-    return adapter.construct_specs[
-        resolved_node_type
-    ]
+    local spec =
+        adapter.construct_specs[
+            resolved_node_type
+        ]
+
+    if not core.is_table(spec) then
+        return nil
+    end
+
+    local available =
+        compatibility.is_available(
+            adapter,
+            spec.availability
+        )
+
+    if available ~= true then
+        return nil
+    end
+
+    return spec
 end
 
 
