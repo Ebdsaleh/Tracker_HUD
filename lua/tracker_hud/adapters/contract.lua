@@ -1042,6 +1042,33 @@ local function validate_availability_string_list(
         return false, err
     end
 
+    -- Reject entries that ipairs() would silently skip, including named,
+    -- zero-indexed, fractional, and sparse list keys.
+    local length = #values
+    local entries = 0
+
+    for key in pairs(values) do
+        if type(key) ~= "number"
+            or key < 1
+            or key > length
+            or key ~= math.floor(key)
+        then
+            return path_error(
+                path,
+                "must be a dense integer-indexed list"
+            )
+        end
+
+        entries = entries + 1
+    end
+
+    if entries ~= length then
+        return path_error(
+            path,
+            "must be a dense integer-indexed list"
+        )
+    end
+
     for index, value in ipairs(values) do
         if not is_non_blank_string(value) then
             return path_error(
