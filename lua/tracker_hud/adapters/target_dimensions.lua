@@ -112,6 +112,7 @@ function M.validate_name_uniqueness(descriptor)
     end
 
     local seen = {}
+    local canonical_values = {}
 
     for _, value in ipairs(
         descriptor.supported
@@ -130,6 +131,7 @@ function M.validate_name_uniqueness(descriptor)
         end
 
         seen[key] = true
+        canonical_values[value] = true
     end
 
     if descriptor.aliases ~= nil then
@@ -138,12 +140,20 @@ function M.validate_name_uniqueness(descriptor)
                 "target dimension aliases must be a table"
         end
 
-        for alias in pairs(
+        for alias, target in pairs(
             descriptor.aliases
         ) do
             if not core.is_non_empty_string(alias) then
                 return false,
                     "target dimension alias names must be non-empty strings"
+            end
+
+            if not core.is_non_empty_string(target)
+                or not canonical_values[target]
+            then
+                return false,
+                    "target dimension alias must resolve directly to a supported canonical value: "
+                        .. tostring(alias)
             end
 
             local key = alias:lower()
