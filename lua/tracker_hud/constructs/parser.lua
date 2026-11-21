@@ -6,6 +6,8 @@
 -- construct validation, source identity, branch presentation or scope logic.
 
 local core = require("tracker_hud.core")
+local compatibility =
+    require("tracker_hud.adapters.compatibility")
 local context_primitives =
     require("tracker_hud.constructs.context_primitives")
 local spec_validation =
@@ -39,9 +41,22 @@ function M.match_node(
         return false
     end
 
-    return adapter.construct_specs[
-        node_type
-    ] ~= nil
+    local spec =
+        adapter.construct_specs[
+            node_type
+        ]
+
+    if not core.is_table(spec) then
+        return false
+    end
+
+    local available =
+        compatibility.is_available(
+            adapter,
+            spec.availability
+        )
+
+    return available == true
 end
 
 
@@ -76,6 +91,17 @@ function M.parse_node(
 
     if not spec then
         return nil, spec_err
+    end
+
+    -- Grammar recognition alone does not establish semantic availability.
+    local available =
+        compatibility.is_available(
+            adapter,
+            spec.availability
+        )
+
+    if available ~= true then
+        return nil, nil
     end
 
     local range =
