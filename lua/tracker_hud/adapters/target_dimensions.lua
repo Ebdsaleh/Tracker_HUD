@@ -70,13 +70,79 @@ local function alias_lookup(
 end
 
 
+-- The resolver case-folds canonical and alias names into lookup keys.
+-- Reject collisions before a later entry can silently replace an earlier one.
+function M.validate_name_uniqueness(descriptor)
+    if not core.is_table(descriptor) then
+        return false,
+            "target dimension descriptor must be a table"
+    end
+
+    if not core.is_table(descriptor.supported) then
+        return false,
+            "target dimension supported values must be a list"
+    end
+
+    local seen = {}
+
+    for _, value in ipairs(
+        descriptor.supported
+    ) do
+        if not core.is_non_empty_string(value) then
+            return false,
+                "target dimension canonical names must be non-empty strings"
+        end
+
+        local key = value:lower()
+
+        if seen[key] then
+            return false,
+                "target dimension normalized name collision: "
+                    .. tostring(value)
+        end
+
+        seen[key] = true
+    end
+
+    if descriptor.aliases ~= nil then
+        if not core.is_table(descriptor.aliases) then
+            return false,
+                "target dimension aliases must be a table"
+        end
+
+        for alias in pairs(
+            descriptor.aliases
+        ) do
+            if not core.is_non_empty_string(alias) then
+                return false,
+                    "target dimension alias names must be non-empty strings"
+            end
+
+            local key = alias:lower()
+
+            if seen[key] then
+                return false,
+                    "target dimension normalized name collision: "
+                        .. tostring(alias)
+            end
+
+            seen[key] = true
+        end
+    end
+
+    return true, nil
+end
+
+
 function M.resolve_value(
     descriptor,
     requested
 )
-    if not core.is_table(descriptor) then
-        return nil,
-            "target dimension descriptor must be a table"
+    local valid, validation_err =
+        M.validate_name_uniqueness(descriptor)
+
+    if not valid then
+        return nil, validation_err
     end
 
     local canonical =
