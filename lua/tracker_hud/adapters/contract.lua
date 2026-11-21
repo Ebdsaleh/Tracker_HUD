@@ -1018,6 +1018,46 @@ local function validate_memory_operand_spec(memory, path)
 end
 
 
+local function is_non_blank_string(value)
+    return core.is_non_empty_string(value)
+        and value:find("%S") ~= nil
+end
+
+
+local function validate_availability_string_list(
+    values,
+    path
+)
+    local ok, err =
+        validate_string_list(
+            values,
+            path,
+            {
+                non_empty = true,
+                unique = true,
+            }
+        )
+
+    if not ok then
+        return false, err
+    end
+
+    for index, value in ipairs(values) do
+        if not is_non_blank_string(value) then
+            return path_error(
+                path
+                    .. "["
+                    .. tostring(index)
+                    .. "]",
+                "must be a non-blank string"
+            )
+        end
+    end
+
+    return true, nil
+end
+
+
 local function validate_availability(
     availability,
     path
@@ -1033,7 +1073,7 @@ local function validate_availability(
         )
     end
 
-    if not core.is_non_empty_string(
+    if not is_non_blank_string(
         availability.language
     ) then
         return path_error(
@@ -1049,7 +1089,7 @@ local function validate_availability(
         availability.standards
 
     if since ~= nil
-        and not core.is_non_empty_string(
+        and not is_non_blank_string(
             since
         )
     then
@@ -1060,7 +1100,7 @@ local function validate_availability(
     end
 
     if until_value ~= nil
-        and not core.is_non_empty_string(
+        and not is_non_blank_string(
             until_value
         )
     then
@@ -1072,13 +1112,9 @@ local function validate_availability(
 
     if standards ~= nil then
         local ok, err =
-            validate_string_list(
+            validate_availability_string_list(
                 standards,
-                path .. ".standards",
-                {
-                    non_empty = true,
-                    unique = true,
-                }
+                path .. ".standards"
             )
 
         if not ok then
