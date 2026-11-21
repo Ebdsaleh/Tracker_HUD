@@ -183,6 +183,29 @@ function M.is_available(
                 "availability standards must be a non-empty list"
         end
 
+        -- ipairs() skips extra keys and stops at holes. Validate the whole
+        -- table before interpreting any explicit target as available.
+        local length = #standards
+        local entries = 0
+
+        for key in pairs(standards) do
+            if type(key) ~= "number"
+                or key < 1
+                or key > length
+                or key ~= math.floor(key)
+            then
+                return false,
+                    "availability standards must be a dense integer-indexed list"
+            end
+
+            entries = entries + 1
+        end
+
+        if entries ~= length then
+            return false,
+                "availability standards must be a dense integer-indexed list"
+        end
+
         -- Validate the complete declaration even after a matching value.
         -- An invalid trailing or duplicate canonical target must never
         -- activate a semantic rule.
