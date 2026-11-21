@@ -16,6 +16,7 @@
 local core = require("tracker_hud.core")
 local construct_contract = require("tracker_hud.constructs.contract")
 local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
+local target_dimension_helpers = require("tracker_hud.adapters.target_dimensions")
 
 local M = {}
 
@@ -2391,6 +2392,19 @@ local function validate_target_dimensions(
                     )
                 end
             end
+        end
+
+        -- Enforce the same case-folded identity used by runtime lookup.
+        local unique, uniqueness_err =
+            target_dimension_helpers.validate_name_uniqueness(
+                descriptor
+            )
+
+        if not unique then
+            return path_error(
+                path,
+                uniqueness_err
+            )
         end
     end
 
