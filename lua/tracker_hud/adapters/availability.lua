@@ -184,8 +184,10 @@ function M.is_available(
         end
 
         -- Validate the complete declaration even after a matching value.
-        -- An invalid trailing value must never activate a semantic rule.
+        -- An invalid trailing or duplicate canonical target must never
+        -- activate a semantic rule.
         local matched = false
+        local seen = {}
 
         for _, requested in ipairs(
             standards
@@ -200,6 +202,14 @@ function M.is_available(
             if resolved == nil then
                 return false, err
             end
+
+            if seen[resolved] then
+                return false,
+                    "availability standards must be unique by resolved target: "
+                        .. tostring(resolved)
+            end
+
+            seen[resolved] = true
 
             if resolved == selected then
                 matched = true
