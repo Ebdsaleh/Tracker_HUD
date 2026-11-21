@@ -61,6 +61,7 @@ function M.rule(
         "signature",
         "markers",
         "branch",
+        "availability",
     }) do
         if opts[key] ~= nil then
             result[key] = opts[key]

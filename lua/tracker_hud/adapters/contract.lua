@@ -1018,6 +1018,97 @@ local function validate_memory_operand_spec(memory, path)
 end
 
 
+local function validate_availability(
+    availability,
+    path
+)
+    if availability == nil then
+        return true, nil
+    end
+
+    if not core.is_table(availability) then
+        return path_error(
+            path,
+            "must be a table when provided"
+        )
+    end
+
+    if not core.is_non_empty_string(
+        availability.language
+    ) then
+        return path_error(
+            path .. ".language",
+            "must be a non-empty string"
+        )
+    end
+
+    local since = availability.since
+    local until_value =
+        availability["until"]
+    local standards =
+        availability.standards
+
+    if since ~= nil
+        and not core.is_non_empty_string(
+            since
+        )
+    then
+        return path_error(
+            path .. ".since",
+            "must be a non-empty string when provided"
+        )
+    end
+
+    if until_value ~= nil
+        and not core.is_non_empty_string(
+            until_value
+        )
+    then
+        return path_error(
+            path .. ".until",
+            "must be a non-empty string when provided"
+        )
+    end
+
+    if standards ~= nil then
+        local ok, err =
+            validate_string_list(
+                standards,
+                path .. ".standards",
+                {
+                    non_empty = true,
+                    unique = true,
+                }
+            )
+
+        if not ok then
+            return false, err
+        end
+
+        if since ~= nil
+            or until_value ~= nil
+        then
+            return path_error(
+                path,
+                "standards must not be combined with since/until"
+            )
+        end
+    end
+
+    if since == nil
+        and until_value == nil
+        and standards == nil
+    then
+        return path_error(
+            path,
+            "must declare since, until, or standards"
+        )
+    end
+
+    return true, nil
+end
+
+
 local function validate_construct_entry(node_type, spec, path)
     if not core.is_table(spec) then
         return path_error(path, "must be a table")
@@ -1058,6 +1149,15 @@ local function validate_construct_entry(node_type, spec, path)
 
     if not ok then
         return path_error(path, err)
+    end
+
+    ok, err = validate_availability(
+        spec.availability,
+        path .. ".availability"
+    )
+
+    if not ok then
+        return false, err
     end
 
     ok, err = construct_contract.validate_value_spec(spec.value)
