@@ -134,6 +134,15 @@ function M.validate_name_uniqueness(descriptor)
         canonical_values[value] = true
     end
 
+    -- Defaults are adapter declarations, not normalized user input.
+    -- Require the exact canonical ID even for explicit requests.
+    if not core.is_non_empty_string(descriptor.default)
+        or not canonical_values[descriptor.default]
+    then
+        return false,
+            "target dimension default must name a supported canonical value"
+    end
+
     if descriptor.aliases ~= nil then
         if not core.is_table(descriptor.aliases) then
             return false,
