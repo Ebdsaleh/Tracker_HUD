@@ -13,6 +13,8 @@
 
 local core = require("tracker_hud.core")
 local adapter_contract = require("tracker_hud.adapters.contract")
+local target_dimensions =
+    require("tracker_hud.adapters.target_dimensions")
 local construct_contract = require("tracker_hud.constructs.contract")
 local context_engine = require("tracker_hud.context_engine")
 
@@ -134,6 +136,67 @@ local function profile_end(
 end
 
 
+local function semantic_target_identity(
+    adapter,
+    config
+)
+    local declared =
+        type(adapter) == "table"
+        and type(adapter.target_dimensions)
+            == "table"
+        and adapter.target_dimensions
+        or nil
+
+    if declared == nil then
+        return ""
+    end
+
+    local config_targets =
+        type(config) == "table"
+        and type(config.targets) == "table"
+        and config.targets
+        or {}
+
+    local names = {}
+
+    for name in pairs(declared) do
+        table.insert(names, name)
+    end
+
+    table.sort(names)
+
+    local parts = {}
+
+    for _, name in ipairs(names) do
+        local descriptor =
+            declared[name]
+
+        local resolved =
+            target_dimensions.resolve_value(
+                descriptor,
+                config_targets[name]
+            )
+
+        if resolved == nil then
+            resolved =
+                target_dimensions.resolve_value(
+                    descriptor,
+                    nil
+                )
+        end
+
+        table.insert(
+            parts,
+            tostring(name)
+                .. "="
+                .. tostring(resolved)
+        )
+    end
+
+    return table.concat(parts, ";")
+end
+
+
 local function get_buffer_changedtick(bufnr)
     if not bufnr
         or not vim
@@ -164,7 +227,8 @@ local function configuration_cache_matches(
     filetype,
     bufnr,
     config,
-    changedtick
+    changedtick,
+    semantic_identity
 )
     local cached =
         configured_adapter_cache
@@ -177,6 +241,8 @@ local function configuration_cache_matches(
         and cached.changedtick
             == changedtick
         and cached.config == config
+        and cached.semantic_identity
+            == semantic_identity
 end
 
 
@@ -184,7 +250,8 @@ local function remember_configuration(
     adapter,
     filetype,
     bufnr,
-    config
+    config,
+    semantic_identity
 )
     local changedtick =
         get_buffer_changedtick(
@@ -202,6 +269,8 @@ local function remember_configuration(
         bufnr = bufnr,
         changedtick = changedtick,
         config = config,
+        semantic_identity =
+            semantic_identity,
     }
 end
 
@@ -309,6 +378,12 @@ function M.configure_adapter_for_buffer(
         phase
     )
 
+    local semantic_identity =
+        semantic_target_identity(
+            adapter,
+            config
+        )
+
     phase =
         profile_begin(
             opts,
@@ -321,7 +396,8 @@ function M.configure_adapter_for_buffer(
             filetype,
             bufnr,
             config,
-            changedtick
+            changedtick,
+            semantic_identity
         )
 
     profile_end(
@@ -408,7 +484,8 @@ function M.configure_adapter_for_buffer(
         adapter,
         filetype,
         bufnr,
-        config
+        config,
+        semantic_identity
     )
 
     profile_end(
