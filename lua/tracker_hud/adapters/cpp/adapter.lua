@@ -46,6 +46,9 @@ M.active_targets = {
     abi = "unknown",
     syntax = "cpp",
     mode = "compiled",
+    -- Parser-facing callers may run before buffer configuration.
+    -- Keep the initial semantic target aligned with the declared default.
+    standard = M.target_dimensions.standard.default,
 }
 
 -- Do not inherit the C function closure: it captures the original C adapter
