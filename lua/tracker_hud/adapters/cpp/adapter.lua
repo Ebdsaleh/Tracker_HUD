@@ -346,6 +346,19 @@ table.insert(
 table.insert(
     M.scope_members.symbols,
     scope_member_schema.named(
+        "concept_definition",
+        "name",
+        "symbol",
+        {
+            language_term = "concept",
+            fallback_node_type =
+                "identifier",
+        }
+    )
+)
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
         "namespace_definition",
         "name",
         "symbol",
