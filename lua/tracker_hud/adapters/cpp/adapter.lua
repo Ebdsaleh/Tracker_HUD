@@ -117,7 +117,6 @@ for _, definition in ipairs({
     { "delete_expression", "call", "delete expression", "Delete" },
     { "reference_declarator", "declaration", "reference declarator", "Reference" },
     { "throw_statement", "call", "throw", "Throw" },
-    { "co_return_statement", "return", "co_return", "Co Return" },
 }) do
     construct_schema.define(
         M.construct_specs,
@@ -129,6 +128,21 @@ for _, definition in ipairs({
         }
     )
 end
+-- C++20 coroutine-return semantics are unavailable in earlier standards.
+construct_schema.define(
+    M.construct_specs,
+    "co_return_statement",
+    "return",
+    {
+        language_term = "co_return",
+        label = "Co Return",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "alias_declaration",
