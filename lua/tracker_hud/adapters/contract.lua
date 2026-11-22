@@ -2298,6 +2298,15 @@ local function validate_target_dimensions(
                 "adapter.target_dimensions keys must be non-empty strings"
         end
 
+        -- Descriptor names are literal source/config keys, not user values.
+        -- Boundary whitespace makes those declared dimensions unreachable.
+        if dimension_name:match("^%s")
+            or dimension_name:match("%s$")
+        then
+            return false,
+                "adapter.target_dimensions keys must not have boundary whitespace"
+        end
+
         local path =
             "adapter.target_dimensions."
             .. dimension_name
