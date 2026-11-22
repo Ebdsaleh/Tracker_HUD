@@ -3183,7 +3183,8 @@ local function walk_node(
     binding_modifiers,
     members,
     seen,
-    state
+    state,
+    suppress_members
 )
     if not node then
         return
@@ -3246,7 +3247,8 @@ local function walk_node(
     local function_group_index =
         member_spec_index.functions
 
-    if core.is_table(function_group_index)
+    if not suppress_members
+        and core.is_table(function_group_index)
         and (function_group_index.spec_count or 0)
             > 0
         and member_group_can_match_node(
@@ -3555,7 +3557,9 @@ local function walk_node(
         core.is_table(declared_construct)
         and declared_construct.availability ~= nil
 
-    if not unavailable_construct then
+    if not suppress_members
+        and not unavailable_construct
+    then
         collect_from_node(
             node,
             bufnr,
@@ -3599,6 +3603,8 @@ local function walk_node(
             )
     end
 
+    -- Keep walking syntax for structural discovery and measurement,
+    -- but do not publish bindings from an unavailable ancestor.
     for child in node:iter_children() do
         walk_node(
             child,
@@ -3609,7 +3615,8 @@ local function walk_node(
             binding_modifiers,
             members,
             seen,
-            child_state
+            child_state,
+            suppress_members or unavailable_construct
         )
     end
 end
