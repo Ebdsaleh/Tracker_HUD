@@ -128,6 +128,29 @@ construct_schema.define(
         },
     }
 )
+construct_schema.define(
+    M.construct_specs,
+    "requires_expression",
+    "block",
+    {
+        language_term = "requires expression",
+        label = "Requires",
+        fields = {
+            parameters = "parameters",
+            requirements = "requirements",
+        },
+        scope = {
+            kind = "lexical",
+            affects_visibility = true,
+            owns_members = true,
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 for _, definition in ipairs({
     { "access_specifier", "declaration", "access specifier", "Access" },
     { "using_declaration", "declaration", "using declaration", "Using" },
