@@ -222,6 +222,11 @@ construct_schema.define(
             affects_visibility = true,
             owns_members = false,
         },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp11",
+        },
     }
 )
 construct_schema.define(
