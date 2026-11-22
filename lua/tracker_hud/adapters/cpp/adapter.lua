@@ -154,6 +154,11 @@ construct_schema.define(
             name = "name",
             type = "type",
         },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp11",
+        },
     }
 )
 construct_schema.define(
