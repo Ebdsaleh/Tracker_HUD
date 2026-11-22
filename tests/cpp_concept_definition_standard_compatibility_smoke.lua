@@ -34,6 +34,8 @@ local function run()
     registered, err = registry.register(cpp)
     assert(registered, "C++ adapter registration failed: " .. tostring(err))
 
+    local reference_spec = nil
+
     local cases = {
         {
             label = "cpp98 source overrides cpp23 config",
@@ -134,8 +136,13 @@ local function run()
         assert(
             type(spec) == "table"
                 and type(spec.construct) == "table"
-                and spec.construct.kind == "type",
-            "C++ concept_definition must declare a type construct"
+                and spec.construct.kind == "declaration",
+            "C++ concept_definition must declare a concept declaration"
+        )
+        reference_spec = reference_spec or spec
+        assert(
+            spec == reference_spec,
+            "C++ concept declaration identity changed: " .. case.label
         )
         assert(
             type(spec.availability) == "table"
@@ -170,8 +177,8 @@ local function run()
         )
         if case.available then
             assert(
-                parsed.construct and parsed.construct.kind == "type",
-                "available concept lost type semantics: " .. case.label
+                parsed.construct and parsed.construct.kind == "declaration",
+                "available concept lost declaration semantics: " .. case.label
             )
         end
 
@@ -183,14 +190,13 @@ local function run()
         "C adapter unexpectedly inherited C++ concept semantics"
     )
     assert(
-        cpp.construct_specs.concept_definition
-            == cpp.construct_specs.concept_definition,
+        cpp.construct_specs.concept_definition == reference_spec,
         "C++ concept construct identity became unstable"
     )
 
     print("PASS concept_definition parses regardless of selected C++ standard")
     print("PASS cpp98/cpp03/cpp11/cpp17 exclude C++20 concept semantics")
-    print("PASS cpp20/cpp23 expose concept type semantics")
+    print("PASS cpp20/cpp23 expose concept declaration semantics")
     print("PASS C++ source/config/default selection and C isolation")
     print("PASS Tracker_HUD C++ concept-definition standard compatibility smoke")
 end
