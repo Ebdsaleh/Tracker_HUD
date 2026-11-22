@@ -122,6 +122,12 @@ function M.validate_name_uniqueness(descriptor)
                 "target dimension canonical names must be non-empty strings"
         end
 
+        -- Requests trim boundary whitespace; declared names must be reachable.
+        if value:match("^%s") or value:match("%s$") then
+            return false,
+                "target dimension canonical names must not have boundary whitespace"
+        end
+
         local key = value:lower()
 
         if seen[key] then
@@ -155,6 +161,11 @@ function M.validate_name_uniqueness(descriptor)
             if not core.is_non_empty_string(alias) then
                 return false,
                     "target dimension alias names must be non-empty strings"
+            end
+
+            if alias:match("^%s") or alias:match("%s$") then
+                return false,
+                    "target dimension alias names must not have boundary whitespace"
             end
 
             if not core.is_non_empty_string(target)
