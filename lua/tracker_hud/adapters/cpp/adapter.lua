@@ -111,6 +111,23 @@ construct_schema.define(
         },
     }
 )
+construct_schema.define(
+    M.construct_specs,
+    "concept_definition",
+    "declaration",
+    {
+        language_term = "concept",
+        label = "Concept",
+        fields = {
+            name = "name",
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 for _, definition in ipairs({
     { "access_specifier", "declaration", "access specifier", "Access" },
     { "using_declaration", "declaration", "using declaration", "Using" },
