@@ -3541,16 +3541,32 @@ local function walk_node(
             )
     end
 
-    collect_from_node(
-        node,
-        bufnr,
-        adapter,
-        member_spec_index,
-        members,
-        seen,
-        member_collection_state,
-        node_type
-    )
+    -- Construct availability also governs Scope Member emission. A parser
+    -- can still recognize newer syntax under an older selected standard.
+    -- Keep visiting children, but do not publish this unavailable node's
+    -- bindings through the separate member-spec dispatcher.
+    local declared_construct =
+        not core.is_table(construct_spec)
+        and core.is_table(adapter.construct_specs)
+        and adapter.construct_specs[node_type]
+        or nil
+
+    local unavailable_construct =
+        core.is_table(declared_construct)
+        and declared_construct.availability ~= nil
+
+    if not unavailable_construct then
+        collect_from_node(
+            node,
+            bufnr,
+            adapter,
+            member_spec_index,
+            members,
+            seen,
+            member_collection_state,
+            node_type
+        )
+    end
 
     local child_state =
         current_state
