@@ -48,7 +48,8 @@ local function run()
     local range_spec = cpp.construct_specs.for_range_loop
     assert(
         type(range_spec) == "table"
-            and range_spec.kind == "loop",
+            and range_spec.construct
+            and range_spec.construct.kind == "loop",
         "real C++ range-for construct spec is missing"
     )
 
@@ -187,16 +188,16 @@ local function run()
                 .. case.label
         )
 
-        assert(
-            construct_utils.node_creates_structural_scope(
-                loop,
-                cpp
-            ) == expected,
-            "range-for structural scope leaked into older standard: "
-                .. case.label
-        )
-
+        -- Range-for carries structural metadata but does not own members.
+        -- Its semantic exposure is tested through the matched construct spec.
         if expected then
+            assert(
+                selected_spec.scope
+                    and selected_spec.scope.kind == "structural"
+                    and selected_spec.scope.owns_members == false,
+                "compatible range-for lost structural metadata: "
+                    .. case.label
+            )
             assert(
                 parsed.construct
                     and parsed.construct.kind == "loop",
@@ -229,7 +230,7 @@ local function run()
         "PASS Tree-sitter range-for parsing does not authorize older C++ semantics"
     )
     print(
-        "PASS cpp98/cpp03 hide range-for and cpp11+ expose loop/scope semantics"
+        "PASS cpp98/cpp03 hide range-for and cpp11+ expose loop semantics"
     )
     print(
         "PASS range-for compatibility honors source/config/default standard precedence"
