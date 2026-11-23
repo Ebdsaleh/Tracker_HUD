@@ -152,6 +152,22 @@ construct_schema.define(
         },
     }
 )
+-- An export declaration annotates the visibility of its enclosed
+-- declaration(s). It does not create a lexical owner or member scope.
+construct_schema.define(
+    M.construct_specs,
+    "export_declaration",
+    "declaration",
+    {
+        language_term = "module export",
+        label = "Export",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "concept_definition",
