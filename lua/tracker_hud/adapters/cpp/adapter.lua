@@ -147,6 +147,22 @@ construct_schema.define(
         },
     }
 )
+-- "module : private;" marks the private module fragment.
+-- Like the global fragment, this is a module construct, not a lexical scope.
+construct_schema.define(
+    M.construct_specs,
+    "private_module_fragment_declaration",
+    "module",
+    {
+        language_term = "private module fragment",
+        label = "Private Module Fragment",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 -- Module imports reference a module, partition, or header unit;
 -- this declaration does not introduce a lexical binding scope.
 construct_schema.define(
