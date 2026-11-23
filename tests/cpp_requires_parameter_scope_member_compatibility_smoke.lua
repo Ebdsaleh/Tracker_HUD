@@ -172,8 +172,21 @@ local function run()
         local raw = collector.collect(bufnr, root, cpp)
         local discovery = collector.discover(bufnr, root, cpp)
 
-        local inside = { cursor_line = 4 }
-        local after = { cursor_line = 6 }
+        -- Scope Member selection is explicitly scoped by the active
+        -- lexical source range. A cursor line by itself intentionally
+        -- filters source order, not membership in an unrelated scope.
+        -- The requires expression owns lines 3-5; the following
+        -- function occupies line 6.
+        local inside = {
+            cursor_line = 4,
+            start_line = 3,
+            end_line = 5,
+        }
+        local after = {
+            cursor_line = 6,
+            start_line = 6,
+            end_line = 6,
+        }
 
         local direct_inside = collector.select(
             { members = raw }, inside
@@ -212,10 +225,8 @@ local function run()
 
         if case.available then
             assert(
-                type(raw_binding.scope_start_line) == "number"
-                    and raw_binding.scope_start_line <= 4
-                    and type(raw_binding.scope_end_line) == "number"
-                    and raw_binding.scope_end_line < 6,
+                raw_binding.scope_start_line == 3
+                    and raw_binding.scope_end_line == 5,
                 "requires parameter must belong to its own lexical range: "
                     .. case.label
             )
@@ -260,10 +271,12 @@ end
 
 local ok, err = pcall(run)
 if not ok then
-    vim.api.nvim_err_writeln(
+    local diagnostic =
         "FAIL Tracker_HUD requires-parameter Scope Member smoke: "
             .. tostring(err)
-    )
+    io.stderr:write(diagnostic .. "\n")
+    io.stderr:flush()
+    vim.api.nvim_err_writeln(diagnostic)
     vim.cmd("cquit 1")
 else
     vim.cmd("qa!")
