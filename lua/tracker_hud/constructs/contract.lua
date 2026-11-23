@@ -52,6 +52,7 @@ M.construct_kinds = {
     comprehension = true,
 
     branch = true,
+    condition = true,
     loop = true,
     block = true,
 
