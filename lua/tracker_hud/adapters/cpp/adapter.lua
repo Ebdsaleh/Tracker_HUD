@@ -111,6 +111,26 @@ construct_schema.define(
         },
     }
 )
+-- A named C++20 module declaration identifies a module/partition;
+-- it does not establish a lexical scope for source member visibility.
+construct_schema.define(
+    M.construct_specs,
+    "module_declaration",
+    "module",
+    {
+        language_term = "module",
+        label = "Module",
+        fields = {
+            name = "name",
+            partition = "partition",
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "concept_definition",
