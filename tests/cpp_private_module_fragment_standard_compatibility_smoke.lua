@@ -1,6 +1,6 @@
 -- tests/cpp_private_module_fragment_standard_compatibility_smoke.lua
 --
--- C++20's private module fragment (module;) is a distinct grammar node
+-- C++20's private module fragment (module : private;) is a distinct grammar node
 -- from a named module declaration. Parsing it is not permission to
 -- expose its semantics in a pre-C++20 target. This is a parser-backed
 -- syntax/contract check, not compilation or linkage of a module unit.
