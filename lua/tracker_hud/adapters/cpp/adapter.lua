@@ -131,6 +131,22 @@ construct_schema.define(
         },
     }
 )
+-- The global module fragment starts with "module;" and does not
+-- declare a named module or introduce a lexical member scope.
+construct_schema.define(
+    M.construct_specs,
+    "global_module_fragment_declaration",
+    "module",
+    {
+        language_term = "global module fragment",
+        label = "Global Module Fragment",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 -- Module imports reference a module, partition, or header unit;
 -- this declaration does not introduce a lexical binding scope.
 construct_schema.define(
