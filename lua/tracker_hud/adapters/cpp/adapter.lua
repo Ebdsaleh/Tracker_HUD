@@ -131,6 +131,27 @@ construct_schema.define(
         },
     }
 )
+-- Module imports reference a module, partition, or header unit;
+-- this declaration does not introduce a lexical binding scope.
+construct_schema.define(
+    M.construct_specs,
+    "import_declaration",
+    "declaration",
+    {
+        language_term = "module import",
+        label = "Import",
+        fields = {
+            name = "name",
+            partition = "partition",
+            header = "header",
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "concept_definition",
