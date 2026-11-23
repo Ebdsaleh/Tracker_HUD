@@ -151,6 +151,25 @@ construct_schema.define(
         },
     }
 )
+-- A requires-clause constrains a template/function but does not open
+-- a lexical scope or introduce Scope Members by itself.
+construct_schema.define(
+    M.construct_specs,
+    "requires_clause",
+    "condition",
+    {
+        language_term = "requires clause",
+        label = "Requires Clause",
+        fields = {
+            constraint = "constraint",
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp20",
+        },
+    }
+)
 for _, definition in ipairs({
     { "access_specifier", "declaration", "access specifier", "Access" },
     { "using_declaration", "declaration", "using declaration", "Using" },
