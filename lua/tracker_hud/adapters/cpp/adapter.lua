@@ -291,6 +291,22 @@ construct_schema.define(
         },
     }
 )
+-- C++23 explicit object parameters wrap an ordinary parameter.
+-- The wrapper represents a parameter binding, not a lexical scope.
+construct_schema.define(
+    M.construct_specs,
+    "explicit_object_parameter_declaration",
+    "parameter",
+    {
+        language_term = "explicit object parameter",
+        label = "Explicit Object Parameter",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp23",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "alias_declaration",
