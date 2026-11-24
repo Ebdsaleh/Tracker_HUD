@@ -413,11 +413,62 @@ local function validate_exclusions(exclusions, path)
     end
 
     if exclusions.ancestor_node_types ~= nil then
-        return validate_string_list(
+        local ok, err = validate_string_list(
             exclusions.ancestor_node_types,
             path .. ".ancestor_node_types",
             { non_empty = true, unique = true }
         )
+        if not ok then
+            return false, err
+        end
+    end
+
+    -- A field path excludes only a specific syntactic role, not arbitrary
+    -- descendants (such as declarations inside an initializer expression).
+    if exclusions.field_paths ~= nil then
+        local paths = exclusions.field_paths
+        local paths_path = path .. ".field_paths"
+        if not core.is_table(paths) or #paths == 0 then
+            return path_error(paths_path, "must be a non-empty list")
+        end
+        for key in pairs(paths) do
+            if type(key) ~= "number" or key < 1 or key > #paths
+                or key ~= math.floor(key)
+            then
+                return path_error(paths_path, "must be a dense list")
+            end
+        end
+        for index = 1, #paths do
+            local entry = paths[index]
+            local entry_path = paths_path .. "[" .. index .. "]"
+            if not core.is_table(entry) then
+                return path_error(entry_path, "must be a table")
+            end
+            for _, key in ipairs({ "fields", "node_types" }) do
+                local values = entry[key]
+                local ok, err = validate_string_list(
+                    values, entry_path .. "." .. key,
+                    { non_empty = true, unique = key == "node_types" }
+                )
+                if not ok then
+                    return false, err
+                end
+                for position in pairs(values) do
+                    if type(position) ~= "number" or position < 1
+                        or position > #values or position ~= math.floor(position)
+                    then
+                        return path_error(entry_path .. "." .. key,
+                            "must be a dense list")
+                    end
+                end
+                for position = 1, #values do
+                    if not core.is_non_empty_string(values[position]) then
+                        return path_error(entry_path .. "." .. key,
+                            "must be a dense list of non-empty strings")
+                    end
+                end
+            end
+        end
     end
 
     return true, nil

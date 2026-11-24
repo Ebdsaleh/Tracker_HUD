@@ -268,6 +268,34 @@ local function run()
         "PASS recursive binding field contract"
     )
 
+    local field_path_probe = {
+        node_type = "declaration",
+        exclusions = {
+            ancestor_node_types = { "for_statement" },
+            field_paths = {
+                { fields = { "declarator", "declarator" },
+                  node_types = { "structured_binding_declarator" } },
+            },
+        },
+    }
+    local valid_path, path_err = contract.validate_syntax(
+        field_path_probe, "probe.syntax")
+    assert(valid_path, "valid repeated field path rejected: " .. tostring(path_err))
+
+    for _, invalid in ipairs({
+        { fields = {}, node_types = { "identifier" } },
+        { fields = { "declarator" }, node_types = {} },
+        { fields = { "declarator" }, node_types = { "identifier", "identifier" } },
+        { fields = { "declarator", false }, node_types = { "identifier" } },
+        { fields = { "declarator", unexpected = "value" }, node_types = { "identifier" } },
+    }) do
+        local probe = vim.deepcopy(field_path_probe)
+        probe.exclusions.field_paths = { invalid }
+        local accepted = contract.validate_syntax(probe, "probe.syntax")
+        assert(not accepted, "invalid field path exclusion accepted")
+    end
+    print("PASS declarative field path exclusion contract")
+
     local lifetime_member_probe =
         vim.deepcopy(
             c.scope_members.symbols[1]

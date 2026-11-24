@@ -463,6 +463,45 @@ construct_schema.define(
     }
 )
 
+-- C++ structured bindings have independent identifier children. Suppress
+-- the inherited C singular-name rules only along their declarator fields,
+-- so an ordinary initializer containing unrelated syntax is unaffected.
+for _, spec in ipairs(M.scope_members.symbols) do
+    local node_type = spec.syntax.node_type
+    if node_type == "declaration" or node_type == "init_declarator" then
+        spec.syntax.exclusions = spec.syntax.exclusions or {}
+        spec.syntax.exclusions.field_paths = {
+            {
+                fields = { "declarator" },
+                node_types = { "structured_binding_declarator" },
+            },
+        }
+        if node_type == "declaration" then
+            table.insert(spec.syntax.exclusions.field_paths, {
+                fields = { "declarator", "declarator" },
+                node_types = { "structured_binding_declarator" },
+            })
+        end
+    end
+end
+
+-- The shared walker already gates unavailable ancestor constructs. Match
+-- only immediate identifier children, never the initializer or comments.
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.rule(
+        "identifier",
+        "variable",
+        {
+            language_term = "structured binding",
+            children = { name = { node_type = "identifier" } },
+            constraints = {
+                parent_node_types = { "structured_binding_declarator" },
+            },
+        }
+    )
+)
+
 -- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
 

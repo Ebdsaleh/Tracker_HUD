@@ -1296,17 +1296,55 @@ local function get_field_name(node, bufnr, member_spec)
 end
 
 
+-- Follow only adapter-declared Tree-sitter fields. Never search an
+-- arbitrary descendant of a declaration (for example its initializer).
+local function excluded_field_path_matches(node, spec, position)
+    if not node then
+        return false
+    end
+
+    local field = spec.fields[position]
+    if field == nil then
+        for _, node_type in ipairs(spec.node_types) do
+            if ts_utils.node_type_matches(node, node_type) then
+                return true
+            end
+        end
+        return false
+    end
+
+    for _, child in ipairs(ts_utils.get_children_by_field_name(node, field)) do
+        if excluded_field_path_matches(child, spec, position + 1) then
+            return true
+        end
+    end
+    return false
+end
+
+
 local function should_skip_member_spec_node(
     node,
     member_spec
 )
-    return core.is_table(member_spec)
-        and ts_utils.node_has_ancestor_type(
-            node,
-            get_syntax_ancestor_exclusions(
-                member_spec
-            )
-        )
+    if not core.is_table(member_spec) then
+        return false
+    end
+
+    if ts_utils.node_has_ancestor_type(
+        node, get_syntax_ancestor_exclusions(member_spec)
+    ) then
+        return true
+    end
+
+    local exclusions = get_syntax(member_spec).exclusions
+    if core.is_table(exclusions) then
+        for _, spec in ipairs(exclusions.field_paths or {}) do
+            if excluded_field_path_matches(node, spec, 1) then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 
