@@ -345,6 +345,22 @@ construct_schema.define(
         },
     }
 )
+-- C++17 structured bindings declare multiple names without introducing a scope.
+-- Keep the child identifiers intact; do not fabricate a singular name field.
+construct_schema.define(
+    M.construct_specs,
+    "structured_binding_declarator",
+    "declaration",
+    {
+        language_term = "structured binding",
+        label = "Structured Binding",
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp17",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "lambda_expression",
