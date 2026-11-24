@@ -1322,6 +1322,22 @@ local function excluded_field_path_matches(node, spec, position)
 end
 
 
+-- Match contiguous ancestors, starting at the immediate parent.
+-- A distant ancestor of the same type must not satisfy this role.
+local function parent_path_matches(node, path)
+    if not core.is_table(path) or #path == 0 then
+        return false
+    end
+    for _, node_type in ipairs(path) do
+        node = node and node:parent()
+        if not node or not ts_utils.node_type_matches(node, node_type) then
+            return false
+        end
+    end
+    return true
+end
+
+
 local function should_skip_member_spec_node(
     node,
     member_spec
@@ -1338,6 +1354,11 @@ local function should_skip_member_spec_node(
 
     local exclusions = get_syntax(member_spec).exclusions
     if core.is_table(exclusions) then
+        if exclusions.parent_path
+            and parent_path_matches(node, exclusions.parent_path)
+        then
+            return true
+        end
         for _, spec in ipairs(exclusions.field_paths or {}) do
             if excluded_field_path_matches(node, spec, 1) then
                 return true
@@ -1426,6 +1447,12 @@ local function member_spec_constraints_match(
         then
             return false
         end
+    end
+
+    if constraints.parent_path
+        and not parent_path_matches(node, constraints.parent_path)
+    then
+        return false
     end
 
     if constraints.named_child_count

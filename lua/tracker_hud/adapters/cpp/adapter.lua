@@ -485,8 +485,13 @@ for _, spec in ipairs(M.scope_members.symbols) do
     end
 end
 
--- The shared walker already gates unavailable ancestor constructs. Match
--- only immediate identifier children, never the initializer or comments.
+-- Distinguish the loop's declarator from an ordinary binding declaration
+-- inside its body. The shared walker gates unavailable C++17 ancestors.
+local range_binding_parent_path = {
+    "structured_binding_declarator",
+    "for_range_loop",
+}
+
 table.insert(
     M.scope_members.symbols,
     scope_member_schema.rule(
@@ -498,6 +503,20 @@ table.insert(
             constraints = {
                 parent_node_types = { "structured_binding_declarator" },
             },
+            exclusions = { parent_path = range_binding_parent_path },
+        }
+    )
+)
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.rule(
+        "identifier",
+        "loop_variable",
+        {
+            language_term = "structured range-for binding",
+            children = { name = { node_type = "identifier" } },
+            constraints = { parent_path = range_binding_parent_path },
+            visibility_range = "structural_scope",
         }
     )
 )
@@ -601,6 +620,14 @@ M.scope_members.loops = {
                 "range-for variable",
             fallback_node_type =
                 "identifier",
+            exclusions = {
+                field_paths = {
+                    {
+                        fields = { "declarator" },
+                        node_types = { "structured_binding_declarator" },
+                    },
+                },
+            },
             visibility_range =
                 "structural_scope",
         }

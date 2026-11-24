@@ -296,6 +296,24 @@ local function run()
     end
     print("PASS declarative field path exclusion contract")
 
+    for _, key in ipairs({ "constraints", "exclusions" }) do
+        local probe = {
+            node_type = "identifier",
+            [key] = { parent_path = { "wrapper", "wrapper", "owner" } },
+        }
+        local accepted, diagnostic = contract.validate_syntax(probe, "probe.syntax")
+        assert(accepted, "valid ordered parent path rejected: " .. tostring(diagnostic))
+        for _, invalid in ipairs({
+            {}, "wrapper", { "wrapper", false },
+            { "wrapper", extra = "owner" }, { "" },
+        }) do
+            probe[key].parent_path = invalid
+            assert(not contract.validate_syntax(probe, "probe.syntax"),
+                "invalid " .. key .. " parent path accepted")
+        end
+    end
+    print("PASS declarative ordered parent path contract")
+
     local lifetime_member_probe =
         vim.deepcopy(
             c.scope_members.symbols[1]

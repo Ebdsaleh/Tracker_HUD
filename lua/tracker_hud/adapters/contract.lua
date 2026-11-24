@@ -403,6 +403,29 @@ local function validate_tokens(tokens, path)
 end
 
 
+-- Ordered path from immediate parent outwards. Repeated node types are
+-- meaningful (nested syntax), so validate density rather than uniqueness.
+local function validate_parent_path(values, path)
+    local ok, err = validate_string_list(values, path, { non_empty = true })
+    if not ok then
+        return false, err
+    end
+    for key in pairs(values) do
+        if type(key) ~= "number" or key < 1 or key > #values
+            or key ~= math.floor(key)
+        then
+            return path_error(path, "must be a dense list")
+        end
+    end
+    for index = 1, #values do
+        if not core.is_non_empty_string(values[index]) then
+            return path_error(path, "must be a dense list of non-empty strings")
+        end
+    end
+    return true, nil
+end
+
+
 local function validate_exclusions(exclusions, path)
     if exclusions == nil then
         return true, nil
@@ -417,6 +440,15 @@ local function validate_exclusions(exclusions, path)
             exclusions.ancestor_node_types,
             path .. ".ancestor_node_types",
             { non_empty = true, unique = true }
+        )
+        if not ok then
+            return false, err
+        end
+    end
+
+    if exclusions.parent_path ~= nil then
+        local ok, err = validate_parent_path(
+            exclusions.parent_path, path .. ".parent_path"
         )
         if not ok then
             return false, err
@@ -505,6 +537,15 @@ local function validate_constraints(constraints, path)
             if not ok then
                 return false, err
             end
+        end
+    end
+
+    if constraints.parent_path ~= nil then
+        local ok, err = validate_parent_path(
+            constraints.parent_path, path .. ".parent_path"
+        )
+        if not ok then
+            return false, err
         end
     end
 
