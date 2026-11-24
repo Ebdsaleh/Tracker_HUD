@@ -3867,21 +3867,6 @@ local function collect_internal(
 end
 
 
-function M.collect(
-    bufnr,
-    root_node,
-    adapter,
-    opts
-)
-    return collect_internal(
-        bufnr,
-        root_node,
-        adapter,
-        opts
-    )
-end
-
-
 local function discovery_profile_options(
     opts
 )
@@ -4062,6 +4047,29 @@ function M.select(
     end
 
     return result
+end
+
+
+-- Direct collection is an uncached source discovery followed by a view.
+-- Resolve source relationships before filtering so a historical shadow
+-- target (or binding owner) need not be present in the requested view.
+function M.collect(
+    bufnr,
+    root_node,
+    adapter,
+    opts
+)
+    return M.select(
+        {
+            members = collect_internal(
+                bufnr,
+                root_node,
+                adapter,
+                discovery_profile_options(opts)
+            ),
+        },
+        opts
+    )
 end
 
 
