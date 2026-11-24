@@ -504,6 +504,7 @@ table.insert(
         "variable",
         {
             language_term = "structured binding",
+            binding_mutability = "unknown",
             children = { name = { node_type = "identifier" } },
             constraints = {
                 parent_node_types = { "structured_binding_declarator" },
@@ -519,6 +520,7 @@ table.insert(
         "loop_variable",
         {
             language_term = "structured range-for binding",
+            binding_mutability = "unknown",
             children = { name = { node_type = "identifier" } },
             constraints = { parent_path = range_binding_parent_path },
             visibility_range = "structural_scope",
