@@ -3115,6 +3115,18 @@ local function shadow_candidate_for_frame(
                 or possible.line
                     <= member.line
             )
+            -- Shadow provenance is evaluated at the new declaration,
+            -- not at the HUD cursor. Keep expired source records, but
+            -- do not use them as candidates outside explicit visibility.
+            and (
+                member.line == nil
+                or possible.visibility_start_line == nil
+                or possible.visibility_end_line == nil
+                or (
+                    member.line >= possible.visibility_start_line
+                    and member.line <= possible.visibility_end_line
+                )
+            )
             and (
                 candidate == nil
                 or (
