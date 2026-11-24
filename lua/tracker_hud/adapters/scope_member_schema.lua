@@ -159,6 +159,8 @@ function M.named(
         {
             fields = fields,
             children = children,
+            constraints = opts.constraints,
+            exclusions = opts.exclusions,
             language_term =
                 opts.language_term,
             owner_scope =
