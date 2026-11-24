@@ -424,6 +424,27 @@ M.scope_members = {
     -- The shared symbol collector consumes named Tree-sitter fields.
     -- C declarations include prototypes, so don't assume every one is a variable.
     symbols = {
+        -- Only direct function-definition parameters establish bindings
+        -- for this role. Prototype and other parameter observations retain
+        -- their existing names and ownership without shadow eligibility.
+        scope_member_schema.named(
+            "parameter_declaration",
+            "declarator",
+            "parameter",
+            {
+                binding_mutability =
+                    "unknown",
+                fallback_node_type =
+                    "identifier",
+                constraints = {
+                    parent_path = {
+                        "parameter_list",
+                        "function_declarator",
+                        "function_definition",
+                    },
+                },
+            }
+        ),
         scope_member_schema.named(
             "parameter_declaration",
             "declarator",
@@ -431,6 +452,13 @@ M.scope_members = {
             {
                 fallback_node_type =
                     "identifier",
+                exclusions = {
+                    parent_path = {
+                        "parameter_list",
+                        "function_declarator",
+                        "function_definition",
+                    },
+                },
             }
         ),
         -- Match only the exact initializer parent chain. Ordinary declarations
