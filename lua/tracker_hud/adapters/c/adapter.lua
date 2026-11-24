@@ -466,6 +466,8 @@ M.scope_members = {
                 },
             }
         ),
+        -- Initialized variables are source bindings, but these rules do not
+        -- distinguish const qualification or prove runtime mutability.
         scope_member_schema.named(
             "init_declarator",
             "declarator",
@@ -473,6 +475,8 @@ M.scope_members = {
             {
                 language_term =
                     "for initialized variable",
+                binding_mutability =
+                    "unknown",
                 fallback_node_type =
                     "identifier",
                 constraints = {
@@ -489,6 +493,8 @@ M.scope_members = {
             {
                 language_term =
                     "initialized variable",
+                binding_mutability =
+                    "unknown",
                 fallback_node_type =
                     "identifier",
                 exclusions = {

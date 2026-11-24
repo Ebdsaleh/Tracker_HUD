@@ -468,6 +468,11 @@ construct_schema.define(
 -- so an ordinary initializer containing unrelated syntax is unaffected.
 for _, spec in ipairs(M.scope_members.symbols) do
     local node_type = spec.syntax.node_type
+    -- C binding provenance is opt-in for C only. Preserve the C++ baseline
+    -- until its declarator and ownership semantics have their own gate.
+    if node_type == "init_declarator" and spec.member.kind == "variable" then
+        spec.member.mutability = nil
+    end
     if node_type == "declaration" or node_type == "init_declarator" then
         spec.syntax.exclusions = spec.syntax.exclusions or {}
         spec.syntax.exclusions.field_paths = {
