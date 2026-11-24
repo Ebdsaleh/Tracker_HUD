@@ -34,8 +34,8 @@ if errorlevel 1 (
     exit /b 1
 )
 
-echo [Tracker_HUD] Running 234 tests...
->> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 234 tests...
+echo [Tracker_HUD] Running 235 tests...
+>> "%TRACKER_HUD_RESULTS%" echo [Tracker_HUD] Running 235 tests...
 >> "%TRACKER_HUD_RESULTS%" echo.
 
 call :run_none "tests/architecture_registry_smoke.lua"
@@ -506,9 +506,11 @@ call :run_none "tests/cpp_global_module_fragment_standard_compatibility_smoke.lu
 if errorlevel 1 goto :fail
 call :run_none "tests/cpp_private_module_fragment_standard_compatibility_smoke.lua"
 if errorlevel 1 goto :fail
+call :run_none "tests/cpp_explicit_object_parameter_standard_compatibility_smoke.lua"
+if errorlevel 1 goto :fail
 
-echo [GREEN] Tracker_HUD test suite passed: 234/234
->> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 234/234
+echo [GREEN] Tracker_HUD test suite passed: 235/235
+>> "%TRACKER_HUD_RESULTS%" echo [GREEN] Tracker_HUD test suite passed: 235/235
 echo.
 echo [Tracker_HUD] Results saved to:
 echo   %TRACKER_HUD_RESULTS%
