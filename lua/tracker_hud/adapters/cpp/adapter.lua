@@ -626,6 +626,7 @@ M.scope_members.loops = {
         {
             language_term =
                 "range-for variable",
+            binding_mutability = "unknown",
             fields = { name = "declarator" },
             children = { name = { node_type = "identifier" } },
             exclusions = {
