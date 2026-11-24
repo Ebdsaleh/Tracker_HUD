@@ -325,6 +325,26 @@ construct_schema.define(
         },
     }
 )
+-- C++11 static assertions are compile-time declarations, not scopes.
+-- Capture condition/message fields without presenting semantics in C++98/03.
+construct_schema.define(
+    M.construct_specs,
+    "static_assert_declaration",
+    "declaration",
+    {
+        language_term = "static_assert",
+        label = "Static Assert",
+        fields = {
+            condition = "condition",
+            message = "message",
+        },
+        availability = {
+            language = "cpp",
+            dimension = "standard",
+            since = "cpp11",
+        },
+    }
+)
 construct_schema.define(
     M.construct_specs,
     "lambda_expression",
