@@ -1,6 +1,6 @@
 -- Checkpoint 251: ordinary C++ range-for binding provenance.
 -- The header's explicit visibility range is source evidence, not runtime state.
--- Preserve the structured-binding gate and the staged initializer isolation.
+-- Preserve the structured-binding gate and explicit staged/final initializer control.
 local ranges = { [5] = 10, [6] = 8, [11] = 13 }
 local cases = {
     { standard = "cpp17", range = true, structured = true },
@@ -22,6 +22,20 @@ local function run()
     registry.clear()
     local ok, err = registry.register(cpp)
     assert(ok, tostring(err))
+    -- Checkpoint 252 deliberately transitions the inherited initializer policy.
+    -- Preserve the distinct-name control; the new gate requires final opt-in.
+    local ordinary_rule, ordinary_count = nil, 0
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "init_declarator" and spec.member.kind == "variable"
+            and spec.member.language_term == "initialized variable" then
+            ordinary_rule, ordinary_count = spec, ordinary_count + 1
+        end
+    end
+    assert(ordinary_count == 1, "missing or duplicate ordinary initializer rule")
+    local ordinary_policy = ordinary_rule.member.mutability
+    assert(ordinary_policy == nil or ordinary_policy.binding == "unknown",
+        "unsupported ordinary initializer policy")
+    local ordinary_binding = ordinary_policy ~= nil
     local missing_binding, wrong_links, errors = 0, 0, {}
     local function record(message)
         if #errors < 16 then errors[#errors + 1] = message end
@@ -101,7 +115,7 @@ local function run()
                     end
                     controls[name], used[member.id] = member, true
                 elseif name == "ordinary" and member.kind == "variable" then
-                    assert(line == 4 and not controls.ordinary and member.is_binding ~= true
+                    assert(line == 4 and not controls.ordinary and (member.is_binding == true) == ordinary_binding
                         and member.shadows_member_id == nil, label .. ": initializer policy drift")
                     controls.ordinary = member
                 elseif member.kind == "symbol" then

@@ -1,6 +1,7 @@
 -- Checkpoint 249: guard the staged C initializer provenance migration.
--- C++ inherits syntax from C but must not accidentally inherit the opt-in.
--- A deliberate later C++ migration requires its own semantic acceptance gate.
+-- Checkpoint 252: retain inheritance isolation through the deliberate migration.
+-- Both C++ roles must use one consistent staged or final policy; gate 252
+-- independently requires final eligibility and provenance.
 local source = {
     "int index = 0;",
     "void example(void) {",
@@ -33,14 +34,16 @@ end
 
 local function check_policy(c, cpp)
     local c_rules, cpp_rules = initializer_rules(c), initializer_rules(cpp)
+    local cpp_opted_in = cpp_rules["initialized variable"].member.mutability ~= nil
     for term, c_rule in pairs(c_rules) do
         local cpp_rule = cpp_rules[term]
         assert(c_rule ~= cpp_rule and c_rule.member ~= cpp_rule.member
             and c_rule.syntax ~= cpp_rule.syntax, "shared mutable adapter rule: " .. term)
         assert(c_rule.member.mutability and c_rule.member.mutability.binding == "unknown",
             "C must retain unknown binding mutability: " .. term)
-        assert(cpp_rule.member.mutability == nil,
-            "C++ prematurely inherited binding policy: " .. term)
+        assert((cpp_opted_in and vim.deep_equal(cpp_rule.member.mutability, c_rule.member.mutability))
+            or (not cpp_opted_in and cpp_rule.member.mutability == nil),
+            "C++ mixed or unsupported initializer policy: " .. term)
         local syntax = vim.deepcopy(cpp_rule.syntax)
         assert(syntax.exclusions and syntax.exclusions.field_paths
             and vim.deep_equal(syntax.exclusions.field_paths, {
@@ -51,14 +54,15 @@ local function check_policy(c, cpp)
         assert(vim.deep_equal(syntax, c_rule.syntax),
             "inherited initializer syntax/lifetime role drift: " .. term)
         local member = vim.deepcopy(c_rule.member)
-        member.mutability = nil
+        if not cpp_opted_in then member.mutability = nil end
         assert(vim.deep_equal(member, cpp_rule.member),
             "unexpected initializer member policy drift: " .. term)
     end
+    return cpp_opted_in
 end
 
-local function run_case(adapter, collector)
-    local is_c = adapter.name == "c"
+local function run_case(adapter, collector, cpp_opted_in)
+    local expects_binding = adapter.name == "c" or cpp_opted_in
     local buffer = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(buffer, 0, -1, false, source)
     vim.bo[buffer].filetype = adapter.name
@@ -80,7 +84,7 @@ local function run_case(adapter, collector)
                     label .. ": missing or duplicate identity")
                 assert(not ids[line] or ids[line] == member.id, label .. ": identity drift")
                 ids[line], found[line], used[member.id] = member.id, member, true
-                assert((member.is_binding == true) == is_c,
+                assert((member.is_binding == true) == expects_binding,
                     label .. ": incorrect binding eligibility at " .. line)
                 assert(member.visibility_start_line == (line == 3 and 3 or nil)
                     and member.visibility_end_line == (line == 3 and 6 or nil),
@@ -94,7 +98,7 @@ local function run_case(adapter, collector)
             local expected = cursor == nil or (line <= cursor and (line ~= 3 or cursor <= 6))
             assert((found[line] ~= nil) == expected, label .. ": membership mismatch at " .. line)
             if found[line] then
-                local target = is_c and (line == 3 or line == 8) and ids[1] or nil
+                local target = expects_binding and (line == 3 or line == 8) and ids[1] or nil
                 assert(found[line].shadows_member_id == target,
                     label .. ": incorrect shadow provenance at " .. line)
             end
@@ -123,13 +127,13 @@ local function run()
     local cpp = require("tracker_hud.adapters.cpp.init")
     local c = require("tracker_hud.adapters.c.init")
     registry.clear()
-    check_policy(c, cpp)
+    local cpp_opted_in = check_policy(c, cpp)
     for _, adapter in ipairs({ cpp, c }) do
         local ok, err = registry.register(adapter)
         assert(ok, tostring(err))
-        run_case(adapter, collector)
+        run_case(adapter, collector, cpp_opted_in)
     end
-    check_policy(c, cpp)
+    assert(check_policy(c, cpp) == cpp_opted_in, "initializer policy changed during registration")
     print("PASS inherited initializer policy isolation and structured binding exclusions")
     print("PASS Tracker_HUD C/C++ initialized binding isolation smoke")
 end

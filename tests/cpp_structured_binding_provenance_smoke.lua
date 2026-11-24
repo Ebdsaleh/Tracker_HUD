@@ -1,5 +1,5 @@
 -- Checkpoint 250: opt-in provenance for the two C++ structured-binding
--- identifier roles. Ordinary inherited C++ initializers remain unchanged.
+-- identifier roles. Ordinary initializer control follows the explicit staged/final policy.
 -- This tests source relationships, not runtime values or complete lookup.
 local declaration_lines = { 2, 5, 7, 11, 15 }
 local ranges = { [5] = 10, [11] = 13 }
@@ -14,6 +14,20 @@ local function run()
     registry.clear()
     local ok, err = registry.register(cpp)
     assert(ok, tostring(err))
+    -- Checkpoint 252 deliberately transitions the inherited initializer policy.
+    -- Preserve the distinct-name control; the new gate requires final opt-in.
+    local ordinary_rule, ordinary_count = nil, 0
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "init_declarator" and spec.member.kind == "variable"
+            and spec.member.language_term == "initialized variable" then
+            ordinary_rule, ordinary_count = spec, ordinary_count + 1
+        end
+    end
+    assert(ordinary_count == 1, "missing or duplicate ordinary initializer rule")
+    local ordinary_policy = ordinary_rule.member.mutability
+    assert(ordinary_policy == nil or ordinary_policy.binding == "unknown",
+        "unsupported ordinary initializer policy")
+    local ordinary_binding = ordinary_policy ~= nil
     local cases = {
         { standard = "cpp17", available = true },
         { standard = "cpp98" },
@@ -105,7 +119,7 @@ local function run()
                     end
                 elseif name == "ordinary" and member.kind == "variable" then
                     ordinary = ordinary + 1
-                    assert(member.is_binding ~= true and member.shadows_member_id == nil,
+                    assert((member.is_binding == true) == ordinary_binding and member.shadows_member_id == nil,
                         label .. ": inherited ordinary initializer policy changed")
                 elseif member.kind == "symbol" then
                     assert(member.is_binding ~= true and member.shadows_member_id == nil,
