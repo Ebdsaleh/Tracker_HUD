@@ -433,12 +433,9 @@ M.scope_members = {
                     "identifier",
             }
         ),
-        -- Compatibility staging: named() previously discarded the four
-        -- for_statement ancestor constraints/exclusions below this boundary.
-        -- Preserve the effective rules for the builder repair. A separate
-        -- parser-backed gate must distinguish header declarations from body
-        -- declarations before restoring role predicates; a broad ancestor
-        -- match would also classify declarations inside the loop body.
+        -- Match only the exact initializer parent chain. Ordinary declarations
+        -- inside the loop body keep lexical ownership, and an expired header
+        -- binding cannot fall through to an unbounded ordinary rule.
         scope_member_schema.named(
             "declaration",
             "declarator",
@@ -448,6 +445,9 @@ M.scope_members = {
                     "for declaration",
                 fallback_node_type =
                     "identifier",
+                constraints = {
+                    parent_path = { "for_statement" },
+                },
                 visibility_range =
                     "structural_scope",
             }
@@ -461,6 +461,9 @@ M.scope_members = {
                     "declaration",
                 fallback_node_type =
                     "identifier",
+                exclusions = {
+                    parent_path = { "for_statement" },
+                },
             }
         ),
         scope_member_schema.named(
@@ -472,6 +475,9 @@ M.scope_members = {
                     "for initialized variable",
                 fallback_node_type =
                     "identifier",
+                constraints = {
+                    parent_path = { "declaration", "for_statement" },
+                },
                 visibility_range =
                     "structural_scope",
             }
@@ -485,6 +491,9 @@ M.scope_members = {
                     "initialized variable",
                 fallback_node_type =
                     "identifier",
+                exclusions = {
+                    parent_path = { "declaration", "for_statement" },
+                },
             }
         ),
         scope_member_schema.named(
