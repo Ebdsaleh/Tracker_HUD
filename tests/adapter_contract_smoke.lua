@@ -314,6 +314,34 @@ local function run()
     end
     print("PASS declarative ordered parent path contract")
 
+    -- Check the expanded adapter rule, not merely the helper's input.
+    -- The named builder historically drops syntax exclusions.
+    local ordinary_range_rule = nil
+    for _, spec in ipairs(cpp.scope_members.loops or {}) do
+        if spec.syntax.node_type == "for_range_loop"
+            and spec.member.kind == "loop_variable"
+        then
+            ordinary_range_rule = spec
+            break
+        end
+    end
+    assert(ordinary_range_rule, "ordinary C++ range-for rule missing")
+    local syntax = ordinary_range_rule.syntax
+    local field_path = syntax.exclusions
+        and syntax.exclusions.field_paths
+        and syntax.exclusions.field_paths[1]
+    assert(field_path
+        and #field_path.fields == 1
+        and field_path.fields[1] == "declarator"
+        and #field_path.node_types == 1
+        and field_path.node_types[1] == "structured_binding_declarator",
+        "expanded C++ range-for rule lost structured-binding exclusion")
+    assert(syntax.fields.name == "declarator"
+        and syntax.children.name.node_type == "identifier"
+        and ordinary_range_rule.member.visibility.range == "structural_scope",
+        "ordinary C++ range-for field/fallback/lifetime changed")
+    print("PASS expanded C++ range-for rule retains field exclusion")
+
     local lifetime_member_probe =
         vim.deepcopy(
             c.scope_members.symbols[1]

@@ -610,16 +610,17 @@ table.insert(
         }
     )
 )
+-- Use the general rule builder: named() does not forward exclusions.
+-- Keep the existing field and fallback while excluding composite bindings.
 M.scope_members.loops = {
-    scope_member_schema.named(
+    scope_member_schema.rule(
         "for_range_loop",
-        "declarator",
         "loop_variable",
         {
             language_term =
                 "range-for variable",
-            fallback_node_type =
-                "identifier",
+            fields = { name = "declarator" },
+            children = { name = { node_type = "identifier" } },
             exclusions = {
                 field_paths = {
                     {
