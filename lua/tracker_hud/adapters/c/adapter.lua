@@ -427,7 +427,7 @@ M.scope_members = {
         -- Only direct function-definition parameters establish bindings
         -- for this role. Prototype and other parameter observations retain
         -- their ownership without shadow eligibility. Normalize simple
-        -- pointer declarators through their declared identifier field.
+        -- pointer and array declarators through their declared name field.
         scope_member_schema.named(
             "parameter_declaration",
             {
@@ -435,7 +435,7 @@ M.scope_members = {
                 recursive = {
                     field = "declarator",
                     terminal_node_types = { "identifier" },
-                    container_node_types = { "pointer_declarator" },
+                    container_node_types = { "pointer_declarator", "array_declarator" },
                 },
             },
             "parameter",
@@ -460,7 +460,7 @@ M.scope_members = {
                 recursive = {
                     field = "declarator",
                     terminal_node_types = { "identifier" },
-                    container_node_types = { "pointer_declarator" },
+                    container_node_types = { "pointer_declarator", "array_declarator" },
                 },
             },
             "parameter",

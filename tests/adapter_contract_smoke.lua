@@ -68,7 +68,7 @@ local function run()
             recursive = {
                 field = "declarator",
                 terminal_node_types = { "identifier" },
-                container_node_types = { "pointer_declarator" },
+                container_node_types = { "pointer_declarator", "array_declarator" },
             },
         }
         for _, spec in ipairs(adapter.scope_members.symbols or {}) do
