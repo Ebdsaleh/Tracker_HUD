@@ -191,6 +191,15 @@ local function validate_field_descriptor(field_spec, path)
             )
         end
 
+        if field_spec.recursive.field ~= nil
+            and not core.is_non_empty_string(field_spec.recursive.field)
+        then
+            return path_error(
+                path .. ".recursive.field",
+                "must be a non-empty string when provided"
+            )
+        end
+
         local terminal_types =
             field_spec.recursive
                 .terminal_node_types

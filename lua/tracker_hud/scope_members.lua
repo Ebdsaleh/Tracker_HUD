@@ -785,6 +785,16 @@ local function collect_recursive_field_nodes(
         return
     end
 
+    -- Optional adapter-owned field traversal avoids unrelated children.
+    if core.is_non_empty_string(recursive_spec.field) then
+        for _, child in ipairs(ts_utils.get_children_by_field_name(
+            node, recursive_spec.field
+        )) do
+            collect_recursive_field_nodes(child, recursive_spec, result)
+        end
+        return
+    end
+
     for index = 0,
         node:named_child_count() - 1
     do
@@ -794,6 +804,22 @@ local function collect_recursive_field_nodes(
             result
         )
     end
+end
+
+
+-- Resolve a singular name without changing the declaration's source range.
+-- Preserve legacy field text for unsupported or ambiguous wrapper shapes.
+local function resolve_recursive_name_node(node, member_spec)
+    local fields = get_syntax(member_spec).fields or {}
+    local name_spec = fields.name
+    if core.is_table(name_spec) and core.is_table(name_spec.recursive) then
+        local terminals = {}
+        collect_recursive_field_nodes(node, name_spec.recursive, terminals)
+        if #terminals == 1 then
+            return terminals[1]
+        end
+    end
+    return node
 end
 
 
@@ -1258,7 +1284,7 @@ local function get_field_name(node, bufnr, member_spec)
     if name_node then
         return strip_quotes(
             ts_utils.get_node_text(
-                name_node,
+                resolve_recursive_name_node(name_node, member_spec),
                 bufnr
             )
         )
@@ -2310,7 +2336,7 @@ local function collect_symbol_member_spec(node, bufnr, member_spec, members, see
 
             if name_node then
                 name = ts_utils.get_node_text(
-                    name_node,
+                    resolve_recursive_name_node(name_node, member_spec),
                     bufnr
                 )
             end

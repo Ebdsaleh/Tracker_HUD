@@ -62,17 +62,24 @@ local function run()
                     .. group_name
             )
         end
-        local parameter_spec = nil
+        local parameter_count = 0
+        local expected_name = {
+            field = "declarator",
+            recursive = {
+                field = "declarator",
+                terminal_node_types = { "identifier" },
+                container_node_types = { "pointer_declarator" },
+            },
+        }
         for _, spec in ipairs(adapter.scope_members.symbols or {}) do
             if spec.syntax.node_type == "parameter_declaration" then
-                parameter_spec = spec
-                break
+                parameter_count = parameter_count + 1
+                assert(vim.deep_equal(spec.syntax.fields.name, expected_name)
+                    and spec.member.kind == "parameter",
+                    adapter.name .. " must expose declared terminal parameter names")
             end
         end
-        assert(parameter_spec
-            and parameter_spec.syntax.fields.name == "declarator"
-            and parameter_spec.member.kind == "parameter",
-            adapter.name .. " must expose declared parameter names")
+        assert(parameter_count == 2, adapter.name .. " must preserve both parameter roles")
     end
 
 
@@ -232,6 +239,17 @@ local function run()
                 recursive_binding_error
             )
     )
+
+    local field_recursive_syntax = vim.deepcopy(recursive_binding_syntax)
+    field_recursive_syntax.fields.bindings.recursive.field = "declarator"
+    local field_ok, field_err = contract.validate_syntax(field_recursive_syntax, "probe.syntax")
+    assert(field_ok, "contract rejected explicit recursive field: " .. tostring(field_err))
+    for _, invalid in ipairs({ false, 1, "", {} }) do
+        field_recursive_syntax.fields.bindings.recursive.field = invalid
+        local valid, err = contract.validate_syntax(field_recursive_syntax, "probe.syntax")
+        assert(not valid and tostring(err):find(".recursive.field", 1, true),
+            "contract accepted malformed recursive field or lost diagnostic path")
+    end
 
     local overlapping_binding_syntax =
         vim.deepcopy(

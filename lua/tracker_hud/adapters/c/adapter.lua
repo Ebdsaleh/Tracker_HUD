@@ -426,10 +426,18 @@ M.scope_members = {
     symbols = {
         -- Only direct function-definition parameters establish bindings
         -- for this role. Prototype and other parameter observations retain
-        -- their existing names and ownership without shadow eligibility.
+        -- their ownership without shadow eligibility. Normalize simple
+        -- pointer declarators through their declared identifier field.
         scope_member_schema.named(
             "parameter_declaration",
-            "declarator",
+            {
+                field = "declarator",
+                recursive = {
+                    field = "declarator",
+                    terminal_node_types = { "identifier" },
+                    container_node_types = { "pointer_declarator" },
+                },
+            },
             "parameter",
             {
                 binding_mutability =
@@ -447,7 +455,14 @@ M.scope_members = {
         ),
         scope_member_schema.named(
             "parameter_declaration",
-            "declarator",
+            {
+                field = "declarator",
+                recursive = {
+                    field = "declarator",
+                    terminal_node_types = { "identifier" },
+                    container_node_types = { "pointer_declarator" },
+                },
+            },
             "parameter",
             {
                 fallback_node_type =
