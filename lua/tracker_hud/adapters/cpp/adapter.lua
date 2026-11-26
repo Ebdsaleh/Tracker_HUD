@@ -468,6 +468,13 @@ construct_schema.define(
 -- so an ordinary initializer containing unrelated syntax is unaffected.
 for _, spec in ipairs(M.scope_members.symbols) do
     local node_type = spec.syntax.node_type
+    -- C++ references have one unnamed declarator child. Preserve the
+    -- inherited field traversal for pointers and arrays in both parameter roles.
+    if node_type == "parameter_declaration" then
+        local recursive = spec.syntax.fields.name.recursive
+        table.insert(recursive.container_node_types, "reference_declarator")
+        recursive.single_named_child_node_types = { "reference_declarator" }
+    end
     if node_type == "declaration" or node_type == "init_declarator" then
         spec.syntax.exclusions = spec.syntax.exclusions or {}
         spec.syntax.exclusions.field_paths = {

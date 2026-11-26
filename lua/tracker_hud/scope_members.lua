@@ -785,6 +785,17 @@ local function collect_recursive_field_nodes(
         return
     end
 
+    -- Some explicitly declared containers have no named declarator field.
+    -- Require a singular named child; never fall back to a broader scan.
+    if recursive_field_node_type_matches(
+        node_type, recursive_spec.single_named_child_node_types
+    ) then
+        if node:named_child_count() == 1 then
+            collect_recursive_field_nodes(node:named_child(0), recursive_spec, result)
+        end
+        return
+    end
+
     -- Optional adapter-owned field traversal avoids unrelated children.
     if core.is_non_empty_string(recursive_spec.field) then
         for _, child in ipairs(ts_utils.get_children_by_field_name(

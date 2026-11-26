@@ -240,6 +240,38 @@ local function validate_field_descriptor(field_spec, path)
             return false, recursive_err
         end
 
+        local single_child_types = field_spec.recursive.single_named_child_node_types
+        if single_child_types ~= nil then
+            local child_path = path .. ".recursive.single_named_child_node_types"
+            if not core.is_non_empty_string(field_spec.recursive.field) then
+                return path_error(child_path, "requires an explicit recursive.field")
+            end
+            local child_ok, child_err = validate_string_list(
+                single_child_types, child_path, { non_empty = true, unique = true }
+            )
+            if not child_ok then
+                return false, child_err
+            end
+            local containers = {}
+            for _, node_type in ipairs(container_types) do
+                containers[node_type] = true
+            end
+            for index, node_type in pairs(single_child_types) do
+                if type(index) ~= "number" or index % 1 ~= 0
+                    or index < 1 or index > #single_child_types then
+                    return path_error(child_path, "must be a dense list")
+                end
+                if not containers[node_type] then
+                    return path_error(child_path, "must be a subset of container_node_types")
+                end
+            end
+            for index = 1, #single_child_types do
+                if not core.is_non_empty_string(single_child_types[index]) then
+                    return path_error(child_path, "must be a dense list")
+                end
+            end
+        end
+
         local terminal_seen = {}
 
         for _, node_type in ipairs(

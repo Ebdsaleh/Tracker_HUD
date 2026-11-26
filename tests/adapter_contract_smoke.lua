@@ -71,6 +71,10 @@ local function run()
                 container_node_types = { "pointer_declarator", "array_declarator" },
             },
         }
+        if adapter.name == "cpp" then
+            table.insert(expected_name.recursive.container_node_types, "reference_declarator")
+            expected_name.recursive.single_named_child_node_types = { "reference_declarator" }
+        end
         for _, spec in ipairs(adapter.scope_members.symbols or {}) do
             if spec.syntax.node_type == "parameter_declaration" then
                 parameter_count = parameter_count + 1
@@ -250,6 +254,29 @@ local function run()
         assert(not valid and tostring(err):find(".recursive.field", 1, true),
             "contract accepted malformed recursive field or lost diagnostic path")
     end
+
+    local single_child_syntax = vim.deepcopy(recursive_binding_syntax)
+    local recursive = single_child_syntax.fields.bindings.recursive
+    recursive.field = "declarator"
+    local container = recursive.container_node_types[1]
+    recursive.single_named_child_node_types = { container }
+    local single_ok, single_err = contract.validate_syntax(single_child_syntax, "probe.syntax")
+    assert(single_ok, "contract rejected single named child traversal: " .. tostring(single_err))
+    for _, invalid in ipairs({
+        false, "container", {}, { false }, { container, container },
+        { "undeclared_container" }, { container, extra = container },
+        { [1] = container, [3] = container },
+    }) do
+        recursive.single_named_child_node_types = invalid
+        local valid, err = contract.validate_syntax(single_child_syntax, "probe.syntax")
+        assert(not valid and tostring(err):find(".recursive.single_named_child_node_types", 1, true),
+            "contract accepted malformed single named child traversal or lost diagnostic path")
+    end
+    recursive.single_named_child_node_types = { container }
+    recursive.field = nil
+    local valid, err = contract.validate_syntax(single_child_syntax, "probe.syntax")
+    assert(not valid and tostring(err):find(".recursive.single_named_child_node_types", 1, true),
+        "contract accepted single named child traversal without explicit field mode")
 
     local overlapping_binding_syntax =
         vim.deepcopy(
