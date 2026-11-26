@@ -203,8 +203,38 @@ local function run()
     end
     print("PASS C/C++ definition and prototype grammar, identity, ownership and filtered membership")
     local cr, cppr = policy(c, totals), policy(cpp, totals)
-    assert(vim.deep_equal(cr, cppr) and cr[1] ~= cppr[1],
-        "inherited parameter rules must be equal but independent")
+    -- C++ extends the inherited grammar, not the shared binding policy.
+    -- Require the entire rule to match after only the declared reference extension.
+    assert(#cr == 2 and #cppr == 2, "both complementary parameter roles must remain")
+    local expected_c_name = {
+        field = "declarator",
+        recursive = {
+            field = "declarator",
+            terminal_node_types = { "identifier" },
+            container_node_types = { "pointer_declarator", "array_declarator" },
+        },
+    }
+    local expected_cpp = vim.deepcopy(cr)
+    for i, rule in ipairs(cr) do
+        assert(vim.deep_equal(rule.syntax.fields.name, expected_c_name),
+            "C parameter grammar must remain unchanged")
+        local recursive = expected_cpp[i].syntax.fields.name.recursive
+        table.insert(recursive.container_node_types, "reference_declarator")
+        recursive.single_named_child_node_types = { "reference_declarator" }
+        local cpp_rule = cppr[i]
+        assert(rule ~= cpp_rule and rule.syntax ~= cpp_rule.syntax
+            and rule.syntax.fields ~= cpp_rule.syntax.fields
+            and rule.syntax.fields.name ~= cpp_rule.syntax.fields.name
+            and rule.syntax.fields.name.recursive ~= cpp_rule.syntax.fields.name.recursive
+            and rule.syntax.fields.name.recursive.container_node_types
+                ~= cpp_rule.syntax.fields.name.recursive.container_node_types
+            and rule.syntax.fields.name.recursive.terminal_node_types
+                ~= cpp_rule.syntax.fields.name.recursive.terminal_node_types
+            and rule.member ~= cpp_rule.member,
+            "inherited parameter rule tables must remain independent")
+    end
+    assert(vim.deep_equal(expected_cpp, cppr),
+        "C++ parameter rules must differ only by the declared reference grammar extension")
     assert(totals.missing == 0 and totals.false_binding == 0 and totals.links == 0 and totals.policy == 0,
         "definition parameter provenance mismatch: missing_binding=" .. totals.missing
         .. " false_binding=" .. totals.false_binding .. " wrong_links=" .. totals.links
