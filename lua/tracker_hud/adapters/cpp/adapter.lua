@@ -543,8 +543,9 @@ table.insert(
 -- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
 
--- C++ defaulted parameters in ordinary function definitions participate
+-- C++ defaulted parameters in function definitions and lambdas participate
 -- in lexical shadow provenance. Other grammatical roles remain observations.
+-- The enclosing lambda's standard gate also covers defaulted parameters.
 -- Keep the default argument separate from the declared parameter name.
 table.insert(
     M.scope_members.symbols,
@@ -559,10 +560,9 @@ table.insert(
                 "identifier",
             binding_mutability = "unknown",
             constraints = {
-                parent_path = {
-                    "parameter_list",
-                    "function_declarator",
-                    "function_definition",
+                parent_paths = {
+                    { "parameter_list", "function_declarator", "function_definition" },
+                    { "parameter_list", "lambda_declarator", "lambda_expression" },
                 },
             },
         }
@@ -580,10 +580,9 @@ table.insert(
             fallback_node_type =
                 "identifier",
             exclusions = {
-                parent_path = {
-                    "parameter_list",
-                    "function_declarator",
-                    "function_definition",
+                parent_paths = {
+                    { "parameter_list", "function_declarator", "function_definition" },
+                    { "parameter_list", "lambda_declarator", "lambda_expression" },
                 },
             },
         }
