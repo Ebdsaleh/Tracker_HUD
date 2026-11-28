@@ -109,6 +109,29 @@ local function get_discovery_buffer_revision(
 end
 
 
+-- Discovery applies adapter-owned availability to source members and their
+-- enclosing constructs. Snapshot the selected declared semantic dimensions,
+-- not the mutable active_targets table or unrelated target metadata.
+-- Configured adapters already expose canonical selections.
+local function discovery_target_values(adapter)
+    if not core.is_table(adapter)
+        or not core.is_table(adapter.target_dimensions)
+    then
+        return nil
+    end
+
+    local values = {}
+    local active = adapter.active_targets
+    for name in pairs(adapter.target_dimensions) do
+        local selected = core.is_table(active) and active[name] or nil
+        -- Preserve the dimension key even when its selection is missing
+        -- or invalid. Availability cannot admit non-string selections.
+        values[name] = type(selected) == "string" and selected or false
+    end
+    return values
+end
+
+
 local function persistent_discovery_matches(
     bufnr,
     adapter,
@@ -127,6 +150,10 @@ local function persistent_discovery_matches(
         and cached.adapter == adapter
         and cached.scope_members
             == adapter.scope_members
+        and vim.deep_equal(
+            cached.target_values,
+            discovery_target_values(adapter)
+        )
         and core.is_table(
             cached.discovery
         )
@@ -153,6 +180,7 @@ local function remember_persistent_discovery(
         adapter = adapter,
         scope_members =
             adapter.scope_members,
+        target_values = discovery_target_values(adapter),
         discovery = discovery,
     }
 end
