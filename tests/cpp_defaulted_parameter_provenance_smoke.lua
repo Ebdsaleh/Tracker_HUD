@@ -127,6 +127,18 @@ local function run()
     local cpp = require("tracker_hud.adapters.cpp.init")
     local c_members = vim.deepcopy(c.scope_members)
     local lambda_spec = cpp.construct_specs.lambda_expression
+    -- Terminology is an adapter declaration property, not a normalized
+    -- Scope Member property. Allow complementary role declarations.
+    local defaulted_specs = 0
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "optional_parameter_declaration" then
+            assert(spec.member.kind == "parameter"
+                and spec.member.language_term == "defaulted parameter",
+                "defaulted parameter declaration terminology drift")
+            defaulted_specs = defaulted_specs + 1
+        end
+    end
+    assert(defaulted_specs > 0, "defaulted parameter declarations missing")
     registry.clear()
     for _, adapter in ipairs({ c, cpp }) do
         local ok, err = registry.register(adapter)
@@ -164,9 +176,10 @@ local function run()
                     local line, record = member.line, records[member.line]
                     assert(record and member.name == "item" and member.kind == record.kind
                         and not found[line], where .. ": unexpected/duplicate named member @" .. line)
-                    if defaults[line] then
-                        assert(member.language_term == "defaulted parameter",
-                            where .. ": defaulted parameter terminology drift @" .. line)
+                    if member.kind == "parameter" then
+                        assert(member.source_node_type == (defaults[line]
+                            and "optional_parameter_declaration" or "parameter_declaration"),
+                            where .. ": parameter source node type drift @" .. line)
                     end
                     assert(type(member.id) == "string" and member.id ~= "" and not used[member.id],
                         where .. ": missing/collapsed identity @" .. line)
