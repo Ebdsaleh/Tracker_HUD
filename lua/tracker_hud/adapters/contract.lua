@@ -504,6 +504,10 @@ local function validate_parent_paths(spec, path)
 end
 
 
+-- The shared availability validator is defined below and is also used
+-- by conditional field-path exclusions.
+local validate_availability
+
 local function validate_exclusions(exclusions, path)
     if exclusions == nil then
         return true, nil
@@ -556,6 +560,21 @@ local function validate_exclusions(exclusions, path)
             local entry_path = paths_path .. "[" .. index .. "]"
             if not core.is_table(entry) then
                 return path_error(entry_path, "must be a table")
+            end
+            if entry.anonymous_child_type ~= nil
+                and not core.is_non_empty_string(entry.anonymous_child_type)
+            then
+                return path_error(entry_path .. ".anonymous_child_type",
+                    "must be a non-empty Tree-sitter anonymous child type")
+            end
+            if entry.unless_available ~= nil then
+                local ok, err = validate_availability(
+                    entry.unless_available, entry_path .. ".unless_available")
+                if not ok then return false, err end
+                if not core.is_non_empty_string(entry.unless_available.dimension) then
+                    return path_error(entry_path .. ".unless_available.dimension",
+                        "is required for conditional field path exclusions")
+                end
             end
             for _, key in ipairs({ "fields", "node_types" }) do
                 local values = entry[key]
@@ -1262,7 +1281,7 @@ local function validate_availability_string_list(
 end
 
 
-local function validate_availability(
+validate_availability = function(
     availability,
     path
 )

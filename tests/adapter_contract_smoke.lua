@@ -425,6 +425,36 @@ local function run()
     end
     print("PASS declarative field path exclusion contract")
 
+    local conditional_probe = vim.deepcopy(field_path_probe)
+    local conditional = conditional_probe.exclusions.field_paths[1]
+    conditional.anonymous_child_type = "&&"
+    conditional.unless_available = {
+        language = "cpp", dimension = "standard", since = "cpp11",
+    }
+    local conditional_ok, conditional_err = contract.validate_syntax(
+        conditional_probe, "probe.syntax")
+    assert(conditional_ok, tostring(conditional_err))
+    for _, invalid in ipairs({ false, 42, "", {} }) do
+        local probe = vim.deepcopy(conditional_probe)
+        probe.exclusions.field_paths[1].anonymous_child_type = invalid
+        local accepted, err = contract.validate_syntax(probe, "probe.syntax")
+        assert(not accepted and tostring(err):find(".anonymous_child_type", 1, true),
+            "invalid anonymous child type accepted")
+    end
+    for _, invalid in ipairs({
+        false, {},
+        { language = "cpp", since = "cpp11" },
+        { language = "cpp", dimension = "standard", since = false },
+        { language = "cpp", dimension = "standard", since = "cpp11", values = { "cpp17" } },
+    }) do
+        local probe = vim.deepcopy(conditional_probe)
+        probe.exclusions.field_paths[1].unless_available = invalid
+        local accepted, err = contract.validate_syntax(probe, "probe.syntax")
+        assert(not accepted and tostring(err):find(".unless_available", 1, true),
+            "invalid conditional field path availability accepted")
+    end
+    print("PASS conditional anonymous-token field path exclusion contract")
+
     for _, key in ipairs({ "constraints", "exclusions" }) do
         local probe = {
             node_type = "identifier",

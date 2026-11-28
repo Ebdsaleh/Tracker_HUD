@@ -8,6 +8,7 @@
 local core = require("tracker_hud.core")
 local ts_utils = require("tracker_hud.treesitter_utils")
 local construct_utils = require("tracker_hud.construct_utils")
+local compatibility = require("tracker_hud.adapters.compatibility")
 local scope_member_model = require("tracker_hud.scope_member_model")
 local scope_member_schema = require("tracker_hud.adapters.scope_member_schema")
 
@@ -1335,7 +1336,7 @@ end
 
 -- Follow only adapter-declared Tree-sitter fields. Never search an
 -- arbitrary descendant of a declaration (for example its initializer).
-local function excluded_field_path_matches(node, spec, position)
+local function excluded_field_path_matches(node, spec, position, adapter)
     if not node then
         return false
     end
@@ -1344,6 +1345,23 @@ local function excluded_field_path_matches(node, spec, position)
     if field == nil then
         for _, node_type in ipairs(spec.node_types) do
             if ts_utils.node_type_matches(node, node_type) then
+                -- An optional exact anonymous child distinguishes grammatical
+                -- forms sharing the same named terminal node type.
+                if spec.anonymous_child_type ~= nil then
+                    local matched = false
+                    for child in node:iter_children() do
+                        if child:type() == spec.anonymous_child_type and not child:named() then
+                            matched = true
+                            break
+                        end
+                    end
+                    if not matched then return false end
+                end
+                -- Conditional exclusions apply only when the matching form
+                -- is unavailable under the adapter's selected target.
+                if spec.unless_available ~= nil then
+                    return compatibility.is_available(adapter, spec.unless_available) ~= true
+                end
                 return true
             end
         end
@@ -1351,7 +1369,7 @@ local function excluded_field_path_matches(node, spec, position)
     end
 
     for _, child in ipairs(ts_utils.get_children_by_field_name(node, field)) do
-        if excluded_field_path_matches(child, spec, position + 1) then
+        if excluded_field_path_matches(child, spec, position + 1, adapter) then
             return true
         end
     end
@@ -1386,7 +1404,8 @@ end
 
 local function should_skip_member_spec_node(
     node,
-    member_spec
+    member_spec,
+    adapter
 )
     if not core.is_table(member_spec) then
         return false
@@ -1411,7 +1430,7 @@ local function should_skip_member_spec_node(
             return true
         end
         for _, spec in ipairs(exclusions.field_paths or {}) do
-            if excluded_field_path_matches(node, spec, 1) then
+            if excluded_field_path_matches(node, spec, 1, adapter) then
                 return true
             end
         end
@@ -2523,7 +2542,8 @@ local function collect_member_group(
 
         if not should_skip_member_spec_node(
             node,
-            member_spec
+            member_spec,
+            adapter
         )
             and member_spec_constraints_match(
                 node,
@@ -2638,7 +2658,8 @@ local function collect_member_group_before_scope_enter(
 
         if not should_skip_member_spec_node(
             node,
-            member_spec
+            member_spec,
+            adapter
         )
             and member_spec_constraints_match(
                 node,

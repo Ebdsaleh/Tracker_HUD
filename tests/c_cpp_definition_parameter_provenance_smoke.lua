@@ -239,6 +239,19 @@ local function run()
             { "parameter_list", "lambda_declarator", "lambda_expression" },
         }
         expected_role.parent_path = nil
+        expected_cpp[i].syntax.exclusions = expected_cpp[i].syntax.exclusions or {}
+        expected_cpp[i].syntax.exclusions.field_paths = {
+            {
+                fields = { "declarator" },
+                node_types = { "reference_declarator" },
+                anonymous_child_type = "&&",
+                unless_available = {
+                    language = "cpp",
+                    dimension = "standard",
+                    since = "cpp11",
+                },
+            },
+        }
         local cpp_rule = cppr[i]
         local c_role = rule.syntax.constraints or rule.syntax.exclusions
         local cpp_role = cpp_rule.syntax.constraints or cpp_rule.syntax.exclusions
@@ -256,11 +269,18 @@ local function run()
             "inherited parameter rule tables must remain independent")
     end
     assert(vim.deep_equal(expected_cpp, cppr),
-        "C++ parameter rules must differ only by declared reference and callable paths")
+        "C++ parameter rules must differ only by declared reference, callable paths and availability")
     assert(cppr[1].syntax.constraints.parent_paths ~= cppr[2].syntax.exclusions.parent_paths
         and cppr[1].syntax.constraints.parent_paths[1] ~= cppr[2].syntax.exclusions.parent_paths[1]
         and cppr[1].syntax.constraints.parent_paths[2] ~= cppr[2].syntax.exclusions.parent_paths[2],
         "C++ callable and fallback paths must remain independent")
+    local first_gate = cppr[1].syntax.exclusions.field_paths
+    local second_gate = cppr[2].syntax.exclusions.field_paths
+    assert(first_gate ~= second_gate and first_gate[1] ~= second_gate[1]
+        and first_gate[1].fields ~= second_gate[1].fields
+        and first_gate[1].node_types ~= second_gate[1].node_types
+        and first_gate[1].unless_available ~= second_gate[1].unless_available,
+        "C++ callable and fallback reference availability declarations must remain independent")
     assert(totals.missing == 0 and totals.false_binding == 0 and totals.links == 0 and totals.policy == 0,
         "definition parameter provenance mismatch: missing_binding=" .. totals.missing
         .. " false_binding=" .. totals.false_binding .. " wrong_links=" .. totals.links

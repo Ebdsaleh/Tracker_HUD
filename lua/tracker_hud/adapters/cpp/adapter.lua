@@ -484,6 +484,22 @@ for _, spec in ipairs(M.scope_members.symbols) do
             { "parameter_list", "lambda_declarator", "lambda_expression" },
         }
         role.parent_path = nil
+
+        -- The direct reference wrapper shares its node type with lvalue
+        -- references. Only the anonymous rvalue token requires C++11.
+        spec.syntax.exclusions = spec.syntax.exclusions or {}
+        spec.syntax.exclusions.field_paths = {
+            {
+                fields = { "declarator" },
+                node_types = { "reference_declarator" },
+                anonymous_child_type = "&&",
+                unless_available = {
+                    language = "cpp",
+                    dimension = "standard",
+                    since = "cpp11",
+                },
+            },
+        }
     end
     if node_type == "declaration" or node_type == "init_declarator" then
         spec.syntax.exclusions = spec.syntax.exclusions or {}
