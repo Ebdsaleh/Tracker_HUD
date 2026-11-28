@@ -140,6 +140,46 @@ local function run()
         "optional_parameter_declaration", "identifier")
     print("PASS C/C++ grammar-specific member fallback contracts")
 
+    -- Defaulted ordinary function definitions opt into binding provenance;
+    -- the complementary fallback preserves every other grammatical role.
+    local expected_defaulted = {
+        scope_member_schema.named("optional_parameter_declaration", "declarator", "parameter", {
+            language_term = "defaulted parameter",
+            fallback_node_type = "identifier",
+            binding_mutability = "unknown",
+            constraints = {
+                parent_path = { "parameter_list", "function_declarator", "function_definition" },
+            },
+        }),
+        scope_member_schema.named("optional_parameter_declaration", "declarator", "parameter", {
+            language_term = "defaulted parameter",
+            fallback_node_type = "identifier",
+            exclusions = {
+                parent_path = { "parameter_list", "function_declarator", "function_definition" },
+            },
+        }),
+    }
+    local defaulted_rules = {}
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "optional_parameter_declaration" then
+            defaulted_rules[#defaulted_rules + 1] = spec
+        end
+    end
+    assert(vim.deep_equal(defaulted_rules, expected_defaulted),
+        "C++ defaulted parameter definition/fallback role contract drift")
+    assert(defaulted_rules[1].syntax ~= defaulted_rules[2].syntax
+        and defaulted_rules[1].member ~= defaulted_rules[2].member
+        and defaulted_rules[1].syntax.fields ~= defaulted_rules[2].syntax.fields
+        and defaulted_rules[1].syntax.children.name ~= defaulted_rules[2].syntax.children.name
+        and defaulted_rules[1].syntax.constraints.parent_path
+            ~= defaulted_rules[2].syntax.exclusions.parent_path,
+        "C++ defaulted parameter role declarations must remain independent")
+    for _, spec in ipairs(c.scope_members.symbols) do
+        assert(spec.syntax.node_type ~= "optional_parameter_declaration",
+            "C must not inherit C++ defaulted parameter declarations")
+    end
+    print("PASS C++ defaulted parameter definition and fallback role contract")
+
     local named_probe =
         scope_member_schema.named(
             "function_definition",

@@ -543,8 +543,9 @@ table.insert(
 -- C++ class, namespace, and alias declarations add visible source symbols.
 -- These are declarations, not claims about allocated objects or lifetimes.
 
--- C++ adds defaulted and variadic parameter syntax nodes beyond C's
--- parameter_declaration. Extract just the declared binding from each one.
+-- C++ defaulted parameters in ordinary function definitions participate
+-- in lexical shadow provenance. Other grammatical roles remain observations.
+-- Keep the default argument separate from the declared parameter name.
 table.insert(
     M.scope_members.symbols,
     scope_member_schema.named(
@@ -556,9 +557,40 @@ table.insert(
                 "defaulted parameter",
             fallback_node_type =
                 "identifier",
+            binding_mutability = "unknown",
+            constraints = {
+                parent_path = {
+                    "parameter_list",
+                    "function_declarator",
+                    "function_definition",
+                },
+            },
         }
     )
 )
+table.insert(
+    M.scope_members.symbols,
+    scope_member_schema.named(
+        "optional_parameter_declaration",
+        "declarator",
+        "parameter",
+        {
+            language_term =
+                "defaulted parameter",
+            fallback_node_type =
+                "identifier",
+            exclusions = {
+                parent_path = {
+                    "parameter_list",
+                    "function_declarator",
+                    "function_definition",
+                },
+            },
+        }
+    )
+)
+
+-- Variadic parameter syntax remains a separate observation rule.
 table.insert(
     M.scope_members.symbols,
     scope_member_schema.named(
