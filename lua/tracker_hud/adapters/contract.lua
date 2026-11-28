@@ -467,6 +467,43 @@ local function validate_parent_path(values, path)
 end
 
 
+-- Alternatives are ordered paths, not independent ancestor-type matches.
+local function validate_parent_paths(spec, path)
+    if spec.parent_paths == nil then
+        return true, nil
+    end
+    local paths = spec.parent_paths
+    local where = path .. ".parent_paths"
+    if spec.parent_path ~= nil then
+        return path_error(where, "must not accompany parent_path")
+    end
+    if not core.is_table(paths) or #paths == 0 then
+        return path_error(where, "must be a non-empty dense list of paths")
+    end
+    for key in pairs(paths) do
+        if type(key) ~= "number" or key < 1 or key > #paths
+            or key ~= math.floor(key)
+        then
+            return path_error(where, "must be a dense list")
+        end
+    end
+    for index = 1, #paths do
+        local entry = paths[index]
+        local ok, err = validate_parent_path(entry, where .. "[" .. index .. "]")
+        if not ok then return false, err end
+        for previous = 1, index - 1 do
+            local other = paths[previous]
+            local equal = #entry == #other
+            for position = 1, #entry do
+                if entry[position] ~= other[position] then equal = false end
+            end
+            if equal then return path_error(where, "must not contain duplicate paths") end
+        end
+    end
+    return true, nil
+end
+
+
 local function validate_exclusions(exclusions, path)
     if exclusions == nil then
         return true, nil
@@ -495,6 +532,9 @@ local function validate_exclusions(exclusions, path)
             return false, err
         end
     end
+
+    local paths_ok, paths_err = validate_parent_paths(exclusions, path)
+    if not paths_ok then return false, paths_err end
 
     -- A field path excludes only a specific syntactic role, not arbitrary
     -- descendants (such as declarations inside an initializer expression).
@@ -589,6 +629,9 @@ local function validate_constraints(constraints, path)
             return false, err
         end
     end
+
+    local paths_ok, paths_err = validate_parent_paths(constraints, path)
+    if not paths_ok then return false, paths_err end
 
     if constraints.named_child_count ~= nil then
         local count =

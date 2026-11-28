@@ -1375,6 +1375,15 @@ local function parent_path_matches(node, path)
 end
 
 
+local function any_parent_path_matches(node, paths)
+    if not core.is_table(paths) then return false end
+    for _, path in ipairs(paths) do
+        if parent_path_matches(node, path) then return true end
+    end
+    return false
+end
+
+
 local function should_skip_member_spec_node(
     node,
     member_spec
@@ -1393,6 +1402,11 @@ local function should_skip_member_spec_node(
     if core.is_table(exclusions) then
         if exclusions.parent_path
             and parent_path_matches(node, exclusions.parent_path)
+        then
+            return true
+        end
+        if exclusions.parent_paths
+            and any_parent_path_matches(node, exclusions.parent_paths)
         then
             return true
         end
@@ -1488,6 +1502,11 @@ local function member_spec_constraints_match(
 
     if constraints.parent_path
         and not parent_path_matches(node, constraints.parent_path)
+    then
+        return false
+    end
+    if constraints.parent_paths ~= nil
+        and not any_parent_path_matches(node, constraints.parent_paths)
     then
         return false
     end

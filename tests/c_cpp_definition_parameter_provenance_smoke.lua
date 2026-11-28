@@ -160,14 +160,25 @@ end
 
 local function policy(adapter, totals)
     local rules, definition, fallback = {}, nil, nil
+    local callable_paths = {
+        definition_path,
+        { "parameter_list", "lambda_declarator", "lambda_expression" },
+    }
+    local function matches_role(role)
+        if adapter.name == "cpp" then
+            return role.parent_path == nil
+                and vim.deep_equal(role.parent_paths, callable_paths)
+        end
+        return role.parent_paths == nil and vim.deep_equal(role.parent_path, definition_path)
+    end
     for _, spec in ipairs(adapter.scope_members.symbols) do
         if spec.syntax.node_type == "parameter_declaration" and spec.member.kind == "parameter" then
             rules[#rules + 1] = spec
             local constraints, exclusions = spec.syntax.constraints or {}, spec.syntax.exclusions or {}
-            if vim.deep_equal(constraints.parent_path, definition_path) then
+            if matches_role(constraints) then
                 assert(not definition, adapter.name .. ": duplicate definition parameter rule")
                 definition = spec
-            elseif vim.deep_equal(exclusions.parent_path, definition_path) then
+            elseif matches_role(exclusions) then
                 assert(not fallback, adapter.name .. ": duplicate fallback parameter rule")
                 fallback = spec
             end
@@ -203,8 +214,8 @@ local function run()
     end
     print("PASS C/C++ definition and prototype grammar, identity, ownership and filtered membership")
     local cr, cppr = policy(c, totals), policy(cpp, totals)
-    -- C++ extends the inherited grammar, not the shared binding policy.
-    -- Require the entire rule to match after only the declared reference extension.
+    -- Require exact inherited rules after only the declared C++ grammar
+    -- and callable ancestry extensions. C retains its singular paths.
     assert(#cr == 2 and #cppr == 2, "both complementary parameter roles must remain")
     local expected_c_name = {
         field = "declarator",
@@ -221,7 +232,18 @@ local function run()
         local recursive = expected_cpp[i].syntax.fields.name.recursive
         table.insert(recursive.container_node_types, "reference_declarator")
         recursive.single_named_child_node_types = { "reference_declarator" }
+        local expected_role = expected_cpp[i].syntax.constraints
+            or expected_cpp[i].syntax.exclusions
+        expected_role.parent_paths = {
+            expected_role.parent_path,
+            { "parameter_list", "lambda_declarator", "lambda_expression" },
+        }
+        expected_role.parent_path = nil
         local cpp_rule = cppr[i]
+        local c_role = rule.syntax.constraints or rule.syntax.exclusions
+        local cpp_role = cpp_rule.syntax.constraints or cpp_rule.syntax.exclusions
+        assert(c_role ~= cpp_role and c_role.parent_path ~= cpp_role.parent_paths[1],
+            "inherited callable paths must remain independent")
         assert(rule ~= cpp_rule and rule.syntax ~= cpp_rule.syntax
             and rule.syntax.fields ~= cpp_rule.syntax.fields
             and rule.syntax.fields.name ~= cpp_rule.syntax.fields.name
@@ -234,7 +256,11 @@ local function run()
             "inherited parameter rule tables must remain independent")
     end
     assert(vim.deep_equal(expected_cpp, cppr),
-        "C++ parameter rules must differ only by the declared reference grammar extension")
+        "C++ parameter rules must differ only by declared reference and callable paths")
+    assert(cppr[1].syntax.constraints.parent_paths ~= cppr[2].syntax.exclusions.parent_paths
+        and cppr[1].syntax.constraints.parent_paths[1] ~= cppr[2].syntax.exclusions.parent_paths[1]
+        and cppr[1].syntax.constraints.parent_paths[2] ~= cppr[2].syntax.exclusions.parent_paths[2],
+        "C++ callable and fallback paths must remain independent")
     assert(totals.missing == 0 and totals.false_binding == 0 and totals.links == 0 and totals.policy == 0,
         "definition parameter provenance mismatch: missing_binding=" .. totals.missing
         .. " false_binding=" .. totals.false_binding .. " wrong_links=" .. totals.links

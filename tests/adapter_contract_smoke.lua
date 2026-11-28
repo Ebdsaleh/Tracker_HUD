@@ -357,7 +357,37 @@ local function run()
                 "invalid " .. key .. " parent path accepted")
         end
     end
+    for _, key in ipairs({ "constraints", "exclusions" }) do
+        local probe = {
+            node_type = "identifier",
+            [key] = { parent_paths = {
+                { "wrapper", "wrapper", "owner" },
+                { "wrapper", "other" },
+            } },
+        }
+        local valid, diagnostic = contract.validate_syntax(probe, "probe.syntax")
+        assert(valid, "valid alternative parent paths rejected: " .. tostring(diagnostic))
+        local good = vim.deepcopy(probe[key].parent_paths)
+        for _, invalid in ipairs({
+            false, "wrapper", {}, { "wrapper" }, { {} },
+            { { "wrapper" }, { "other", false } },
+            { { "wrapper" }, { "wrapper" } },
+            { { "wrapper" }, extra = { "owner" } },
+            { [1] = { "wrapper" }, [3] = { "owner" } },
+            { { "wrapper", extra = "owner" } },
+        }) do
+            probe[key].parent_paths = invalid
+            local accepted, err = contract.validate_syntax(probe, "probe.syntax")
+            assert(not accepted and tostring(err):find("." .. key .. ".parent_paths", 1, true),
+                "invalid alternative parent paths accepted or diagnostic lost")
+        end
+        probe[key].parent_paths = good
+        probe[key].parent_path = { "wrapper" }
+        assert(not contract.validate_syntax(probe, "probe.syntax"),
+            "ambiguous singular and alternative parent paths accepted")
+    end
     print("PASS declarative ordered parent path contract")
+    print("PASS declarative alternative parent path contract")
 
     -- Check the expanded adapter rule, not merely the helper's input.
     -- The named builder historically drops syntax exclusions.

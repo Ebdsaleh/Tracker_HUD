@@ -474,6 +474,16 @@ for _, spec in ipairs(M.scope_members.symbols) do
         local recursive = spec.syntax.fields.name.recursive
         table.insert(recursive.container_node_types, "reference_declarator")
         recursive.single_named_child_node_types = { "reference_declarator" }
+
+        -- Extend both complementary callable/prototype roles using exact
+        -- contiguous paths. The lambda construct's existing standard gate
+        -- controls whether its subtree is discovered at all.
+        local role = spec.syntax.constraints or spec.syntax.exclusions
+        role.parent_paths = {
+            role.parent_path,
+            { "parameter_list", "lambda_declarator", "lambda_expression" },
+        }
+        role.parent_path = nil
     end
     if node_type == "declaration" or node_type == "init_declarator" then
         spec.syntax.exclusions = spec.syntax.exclusions or {}
