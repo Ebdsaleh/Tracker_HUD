@@ -153,11 +153,20 @@ local function run()
             },
         }
     end
+    local function expected_rvalue_paths()
+        return {{
+            fields = { "declarator" },
+            node_types = { "reference_declarator" },
+            anonymous_child_type = "&&",
+            unless_available = { language = "cpp", dimension = "standard", since = "cpp11" },
+        }}
+    end
     local expected_defaulted = {
         scope_member_schema.named("optional_parameter_declaration", defaulted_name(), "parameter", {
             language_term = "defaulted parameter",
             fallback_node_type = "identifier",
             binding_mutability = "unknown",
+            exclusions = { field_paths = expected_rvalue_paths() },
             constraints = {
                 parent_paths = {
                     { "parameter_list", "function_declarator", "function_definition" },
@@ -169,6 +178,7 @@ local function run()
             language_term = "defaulted parameter",
             fallback_node_type = "identifier",
             exclusions = {
+                field_paths = expected_rvalue_paths(),
                 parent_paths = {
                     { "parameter_list", "function_declarator", "function_definition" },
                     { "parameter_list", "lambda_declarator", "lambda_expression" },
@@ -223,6 +233,25 @@ local function run()
             "C must not inherit C++ defaulted parameter declarations")
     end
     print("PASS C++ defaulted parameter recursive name and callable/fallback role contract")
+    local parameter_gates = {}
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "parameter_declaration"
+            or spec.syntax.node_type == "optional_parameter_declaration" then
+            local paths = spec.syntax.exclusions.field_paths
+            assert(vim.deep_equal(paths, expected_rvalue_paths()),
+                "C++ direct rvalue availability policy drift")
+            for _, other in ipairs(parameter_gates) do
+                assert(paths ~= other and paths[1] ~= other[1]
+                    and paths[1].fields ~= other[1].fields
+                    and paths[1].node_types ~= other[1].node_types
+                    and paths[1].unless_available ~= other[1].unless_available,
+                    "C++ direct rvalue availability declarations must remain independent")
+            end
+            parameter_gates[#parameter_gates + 1] = paths
+        end
+    end
+    assert(#parameter_gates == 4, "C++ ordinary/defaulted parameter role count drift")
+    print("PASS C++ ordinary/defaulted direct rvalue availability policy and isolation")
 
     local named_probe =
         scope_member_schema.named(

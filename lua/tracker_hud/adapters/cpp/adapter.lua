@@ -463,6 +463,24 @@ construct_schema.define(
     }
 )
 
+-- Both ordinary and defaulted parameter roles use the same direct
+-- reference availability policy, with independently owned declarations.
+local function direct_rvalue_field_paths()
+    return {
+        {
+            fields = { "declarator" },
+            node_types = { "reference_declarator" },
+            anonymous_child_type = "&&",
+            unless_available = {
+                language = "cpp",
+                dimension = "standard",
+                since = "cpp11",
+            },
+        },
+    }
+end
+
+
 -- C++ structured bindings have independent identifier children. Suppress
 -- the inherited C singular-name rules only along their declarator fields,
 -- so an ordinary initializer containing unrelated syntax is unaffected.
@@ -488,18 +506,7 @@ for _, spec in ipairs(M.scope_members.symbols) do
         -- The direct reference wrapper shares its node type with lvalue
         -- references. Only the anonymous rvalue token requires C++11.
         spec.syntax.exclusions = spec.syntax.exclusions or {}
-        spec.syntax.exclusions.field_paths = {
-            {
-                fields = { "declarator" },
-                node_types = { "reference_declarator" },
-                anonymous_child_type = "&&",
-                unless_available = {
-                    language = "cpp",
-                    dimension = "standard",
-                    since = "cpp11",
-                },
-            },
-        }
+        spec.syntax.exclusions.field_paths = direct_rvalue_field_paths()
     end
     if node_type == "declaration" or node_type == "init_declarator" then
         spec.syntax.exclusions = spec.syntax.exclusions or {}
@@ -586,6 +593,7 @@ table.insert(
             fallback_node_type =
                 "identifier",
             binding_mutability = "unknown",
+            exclusions = { field_paths = direct_rvalue_field_paths() },
             constraints = {
                 parent_paths = {
                     { "parameter_list", "function_declarator", "function_definition" },
@@ -617,6 +625,7 @@ table.insert(
             fallback_node_type =
                 "identifier",
             exclusions = {
+                field_paths = direct_rvalue_field_paths(),
                 parent_paths = {
                     { "parameter_list", "function_declarator", "function_definition" },
                     { "parameter_list", "lambda_declarator", "lambda_expression" },
