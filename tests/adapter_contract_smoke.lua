@@ -87,8 +87,8 @@ local function run()
     end
 
 
+    -- The exact defaulted role contract below covers optional parameters.
     for _, node_type in ipairs({
-        "optional_parameter_declaration",
         "variadic_parameter_declaration",
     }) do
         local found = false
@@ -142,8 +142,19 @@ local function run()
 
     -- Defaulted function definitions and lambdas opt into binding provenance;
     -- the complementary fallback preserves every other grammatical role.
+    local function defaulted_name()
+        return {
+            field = "declarator",
+            recursive = {
+                field = "declarator",
+                terminal_node_types = { "identifier" },
+                container_node_types = { "pointer_declarator", "array_declarator", "reference_declarator" },
+                single_named_child_node_types = { "reference_declarator" },
+            },
+        }
+    end
     local expected_defaulted = {
-        scope_member_schema.named("optional_parameter_declaration", "declarator", "parameter", {
+        scope_member_schema.named("optional_parameter_declaration", defaulted_name(), "parameter", {
             language_term = "defaulted parameter",
             fallback_node_type = "identifier",
             binding_mutability = "unknown",
@@ -154,7 +165,7 @@ local function run()
                 },
             },
         }),
-        scope_member_schema.named("optional_parameter_declaration", "declarator", "parameter", {
+        scope_member_schema.named("optional_parameter_declaration", defaulted_name(), "parameter", {
             language_term = "defaulted parameter",
             fallback_node_type = "identifier",
             exclusions = {
@@ -173,6 +184,29 @@ local function run()
     end
     assert(vim.deep_equal(defaulted_rules, expected_defaulted),
         "C++ defaulted parameter callable/fallback role contract drift")
+    local first_name = defaulted_rules[1].syntax.fields.name
+    local second_name = defaulted_rules[2].syntax.fields.name
+    assert(first_name ~= second_name
+        and first_name.recursive ~= second_name.recursive
+        and first_name.recursive.terminal_node_types ~= second_name.recursive.terminal_node_types
+        and first_name.recursive.container_node_types ~= second_name.recursive.container_node_types
+        and first_name.recursive.single_named_child_node_types ~= second_name.recursive.single_named_child_node_types,
+        "C++ defaulted parameter recursive name declarations must remain independent")
+    for _, spec in ipairs(cpp.scope_members.symbols) do
+        if spec.syntax.node_type == "parameter_declaration" then
+            local plain_name = spec.syntax.fields.name
+            assert(vim.deep_equal(plain_name, first_name)
+                and vim.deep_equal(plain_name, second_name),
+                "C++ plain and defaulted terminal parameter names must agree")
+            for _, name in ipairs({ first_name, second_name }) do
+                assert(plain_name ~= name and plain_name.recursive ~= name.recursive
+                    and plain_name.recursive.terminal_node_types ~= name.recursive.terminal_node_types
+                    and plain_name.recursive.container_node_types ~= name.recursive.container_node_types
+                    and plain_name.recursive.single_named_child_node_types ~= name.recursive.single_named_child_node_types,
+                    "C++ plain and defaulted name declarations must remain independent")
+            end
+        end
+    end
     assert(defaulted_rules[1].syntax ~= defaulted_rules[2].syntax
         and defaulted_rules[1].member ~= defaulted_rules[2].member
         and defaulted_rules[1].syntax.fields ~= defaulted_rules[2].syntax.fields
@@ -188,7 +222,7 @@ local function run()
         assert(spec.syntax.node_type ~= "optional_parameter_declaration",
             "C must not inherit C++ defaulted parameter declarations")
     end
-    print("PASS C++ defaulted parameter callable and fallback role contract")
+    print("PASS C++ defaulted parameter recursive name and callable/fallback role contract")
 
     local named_probe =
         scope_member_schema.named(

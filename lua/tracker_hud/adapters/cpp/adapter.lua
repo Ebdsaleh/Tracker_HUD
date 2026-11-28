@@ -546,12 +546,23 @@ table.insert(
 -- C++ defaulted parameters in function definitions and lambdas participate
 -- in lexical shadow provenance. Other grammatical roles remain observations.
 -- The enclosing lambda's standard gate also covers defaulted parameters.
--- Keep the default argument separate from the declared parameter name.
+-- Follow the same recursive name fields as plain parameters; never
+-- traverse the separate default argument field for the declared name.
 table.insert(
     M.scope_members.symbols,
     scope_member_schema.named(
         "optional_parameter_declaration",
-        "declarator",
+        {
+            field = "declarator",
+            recursive = {
+                field = "declarator",
+                terminal_node_types = { "identifier" },
+                container_node_types = {
+                    "pointer_declarator", "array_declarator", "reference_declarator",
+                },
+                single_named_child_node_types = { "reference_declarator" },
+            },
+        },
         "parameter",
         {
             language_term =
@@ -572,7 +583,17 @@ table.insert(
     M.scope_members.symbols,
     scope_member_schema.named(
         "optional_parameter_declaration",
-        "declarator",
+        {
+            field = "declarator",
+            recursive = {
+                field = "declarator",
+                terminal_node_types = { "identifier" },
+                container_node_types = {
+                    "pointer_declarator", "array_declarator", "reference_declarator",
+                },
+                single_named_child_node_types = { "reference_declarator" },
+            },
+        },
         "parameter",
         {
             language_term =
